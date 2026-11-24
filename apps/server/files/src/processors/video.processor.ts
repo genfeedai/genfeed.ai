@@ -126,6 +126,20 @@ export class VideoProcessor extends WorkerHost {
     );
   }
 
+  /** Queues the completed event of a job whose output is already in S3. */
+  private async publishProcessed(
+    { ingredientId, organizationId, userId }: VideoJobData,
+    output: { outputPath: string; s3Key: string; url: string },
+  ): Promise<void> {
+    await this.publishVideoCompletion(
+      ingredientId,
+      userId,
+      organizationId,
+      'completed',
+      { ingredientId, ...output },
+    );
+  }
+
   private async publishVideoCompletion(
     ingredientId: string,
     userId: string,
@@ -208,8 +222,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleResize(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, organizationId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing resize job for ${ingredientId}`);
 
     try {
@@ -239,18 +252,7 @@ export class VideoProcessor extends WorkerHost {
 
       this.ffmpegService.removeTempDir('resize', ingredientId);
 
-      await this.publishVideoCompletion(
-        ingredientId,
-        userId,
-        organizationId,
-        'completed',
-        {
-          ingredientId,
-          outputPath,
-          s3Key,
-          url,
-        },
-      );
+      await this.publishProcessed(job.data, { outputPath, s3Key, url });
 
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
@@ -400,76 +402,40 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleReverse(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, organizationId, room } =
-      job.data;
-    this.logger.log(`Processing reverse job for ${ingredientId}`);
-
-    try {
-      const tempPath = this.ffmpegService.getTempPath('reverse', ingredientId);
-      const inputPath = path.join(tempPath, 'input.mp4');
-      const outputPath = path.join(tempPath, 'output.mp4');
-
-      await this.downloadInput(params, inputPath);
-
-      await this.ffmpegService.reverseVideo(
-        inputPath,
-        outputPath,
-        this.createProgressCallback(metadata.websocketUrl, userId, room),
-      );
-
-      const { s3Key, url } = await this.uploadAndEmitSuccess(
-        outputPath,
-        ingredientId,
-        'videos',
-        'video/mp4',
-        metadata.websocketUrl,
-        userId,
-        room,
-      );
-
-      this.ffmpegService.removeTempDir('reverse', ingredientId);
-
-      await this.publishVideoCompletion(
-        ingredientId,
-        userId,
-        organizationId,
-        'completed',
-        {
-          ingredientId,
-          outputPath,
-          s3Key,
-          url,
-        },
-      );
-
-      return { outputPath, s3Key, success: true };
-    } catch (error: unknown) {
-      const message = getErrorMessage(error);
-      this.logger.error(`Reverse job failed: ${message}`);
-      this.webSocketService.emitError(
-        metadata.websocketUrl,
-        message,
-        userId,
-        room,
-      );
-      await this.publishFinalFailure(job, message);
-      throw error;
-    }
+    return this.runFfmpegTransform(
+      job,
+      'reverse',
+      (input, output, onProgress) =>
+        this.ffmpegService.reverseVideo(input, output, onProgress),
+    );
   }
 
   async handleMirror(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, organizationId, room } =
-      job.data;
-    this.logger.log(`Processing mirror job for ${ingredientId}`);
+    return this.runFfmpegTransform(job, 'mirror', (input, output, onProgress) =>
+      this.ffmpegService.mirrorVideo(input, output, onProgress),
+    );
+  }
+
+  /** Downloads, transforms, uploads and queues the completion of a whole-video effect. */
+  private async runFfmpegTransform(
+    job: Job<VideoJobData>,
+    name: 'reverse' | 'mirror',
+    transform: (
+      inputPath: string,
+      outputPath: string,
+      onProgress: (progress: FFmpegProgress) => void,
+    ) => Promise<unknown>,
+  ): Promise<JobResult> {
+    const { ingredientId, params, metadata, userId, room } = job.data;
+    this.logger.log(`Processing ${name} job for ${ingredientId}`);
 
     try {
-      const tempPath = this.ffmpegService.getTempPath('mirror', ingredientId);
+      const tempPath = this.ffmpegService.getTempPath(name, ingredientId);
       const inputPath = path.join(tempPath, 'input.mp4');
       const outputPath = path.join(tempPath, 'output.mp4');
 
       await this.downloadInput(params, inputPath);
-
-      await this.ffmpegService.mirrorVideo(
+      await transform(
         inputPath,
         outputPath,
         this.createProgressCallback(metadata.websocketUrl, userId, room),
@@ -485,25 +451,12 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('mirror', ingredientId);
-
-      await this.publishVideoCompletion(
-        ingredientId,
-        userId,
-        organizationId,
-        'completed',
-        {
-          ingredientId,
-          outputPath,
-          s3Key,
-          url,
-        },
-      );
-
+      this.ffmpegService.removeTempDir(name, ingredientId);
+      await this.publishProcessed(job.data, { outputPath, s3Key, url });
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
-      this.logger.error(`Mirror job failed: ${message}`);
+      this.logger.error(`${name} job failed: ${message}`);
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
@@ -665,8 +618,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleTextOverlay(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, organizationId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing text overlay for ${ingredientId}`);
 
     try {
@@ -702,18 +654,7 @@ export class VideoProcessor extends WorkerHost {
 
       this.ffmpegService.removeTempDir('overlay', ingredientId);
 
-      await this.publishVideoCompletion(
-        ingredientId,
-        userId,
-        organizationId,
-        'completed',
-        {
-          ingredientId,
-          outputPath,
-          s3Key,
-          url,
-        },
-      );
+      await this.publishProcessed(job.data, { outputPath, s3Key, url });
 
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
