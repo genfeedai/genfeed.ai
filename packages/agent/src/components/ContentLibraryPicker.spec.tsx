@@ -32,10 +32,10 @@ describe('ContentLibraryPicker', () => {
     );
 
     expect(
-      screen.getByRole('option', { name: 'Reference Launch thread' }),
+      screen.getByRole('button', { name: 'Reference Launch thread' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'Reference Campaign visual' }),
+      screen.getByRole('button', { name: 'Reference Campaign visual' }),
     ).toBeInTheDocument();
   });
 
@@ -54,7 +54,7 @@ describe('ContentLibraryPicker', () => {
       screen.getByRole('region', { name: 'Knowledge' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'Reference Launch thread' }),
+      screen.getByRole('button', { name: 'Reference Launch thread' }),
     ).toBeInTheDocument();
   });
 
@@ -96,15 +96,15 @@ it('retains local title/type filtering and resets it after close', () => {
     { target: { value: 'image' } },
   );
   expect(
-    screen.queryByRole('option', { name: 'Reference Launch thread' }),
+    screen.queryByRole('button', { name: 'Reference Launch thread' }),
   ).toBeNull();
   expect(
-    screen.getByRole('option', { name: 'Reference Campaign visual' }),
+    screen.getByRole('button', { name: 'Reference Campaign visual' }),
   ).toBeInTheDocument();
   view.rerender(<ContentLibraryPicker {...props} isOpen={false} />);
   view.rerender(<ContentLibraryPicker {...props} isOpen />);
   expect(
-    screen.getByRole('option', { name: 'Reference Launch thread' }),
+    screen.getByRole('button', { name: 'Reference Launch thread' }),
   ).toBeInTheDocument();
 });
 it('remote mode returns server metadata matches without filtering and delegates the exact query', () => {
@@ -120,7 +120,7 @@ it('remote mode returns server metadata matches without filtering and delegates 
   };
   const view = render(<ContentLibraryPicker {...props} />);
   expect(
-    screen.getByRole('option', { name: 'Reference Launch thread' }),
+    screen.getByRole('button', { name: 'Reference Launch thread' }),
   ).toBeInTheDocument();
   fireEvent.change(
     screen.getByRole('textbox', { name: 'Search library content' }),

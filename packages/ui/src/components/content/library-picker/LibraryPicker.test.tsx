@@ -29,10 +29,10 @@ describe('LibraryGrid', () => {
       <LibraryGrid ariaLabel="Library" items={ITEMS} onSelect={onSelect} />,
     );
 
-    const list = screen.getByRole('listbox', { name: 'Library' });
-    expect(within(list).getAllByRole('option')).toHaveLength(3);
+    const list = screen.getByRole('group', { name: 'Library' });
+    expect(within(list).getAllByRole('button')).toHaveLength(3);
 
-    fireEvent.click(within(list).getByRole('option', { name: 'Waves' }));
+    fireEvent.click(within(list).getByRole('button', { name: 'Waves' }));
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(ITEMS[1]);
   });
 
@@ -48,16 +48,26 @@ describe('LibraryGrid', () => {
       />,
     );
 
-    const selected = screen.getByRole('option', { name: 'Sunset' });
-    expect(selected).toHaveAttribute('aria-selected', 'true');
+    const selected = screen.getByRole('button', { name: 'Sunset' });
+    expect(selected).toHaveAttribute('aria-pressed', 'true');
     expect(selected).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'Waves' })).toHaveAttribute(
-      'aria-selected',
+    expect(screen.getByRole('button', { name: 'Waves' })).toHaveAttribute(
+      'aria-pressed',
       'false',
     );
 
     fireEvent.click(selected);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('exposes no pressed state when the caller does not track selection', () => {
+    render(
+      <LibraryGrid ariaLabel="Library" items={ITEMS} onSelect={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Sunset' })).not.toHaveAttribute(
+      'aria-pressed',
+    );
   });
 
   it('keeps a selected tile clickable when the picker toggles', () => {
@@ -71,7 +81,7 @@ describe('LibraryGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('option', { name: 'Sunset' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sunset' }));
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(ITEMS[0]);
   });
 
@@ -89,11 +99,11 @@ describe('LibraryGrid', () => {
     );
 
     expect(
-      screen.getByRole('option', { name: 'Reference Waves' }),
+      screen.getByRole('button', { name: 'Reference Waves' }),
     ).toContainElement(screen.getByTestId('custom-preview'));
     expect(
       screen
-        .getByRole('option', { name: 'Reference Sunset' })
+        .getByRole('button', { name: 'Reference Sunset' })
         .querySelector('img'),
     ).toHaveAttribute('src', 'https://cdn.test/a.png');
   });
@@ -137,7 +147,11 @@ describe('LibraryPicker', () => {
       screen.getByRole('region', { name: 'Knowledge' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Footer note')).toBeInTheDocument();
-    expect(screen.getAllByRole('option')).toHaveLength(3);
+    expect(
+      within(
+        screen.getByRole('group', { name: 'Library content' }),
+      ).getAllByRole('button'),
+    ).toHaveLength(3);
   });
 
   it('reports each keystroke of the search', () => {
@@ -153,12 +167,12 @@ describe('LibraryPicker', () => {
   it('shows the empty label, and a spinner instead of the grid while loading', () => {
     const view = render(<LibraryPicker {...props} items={[]} />);
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
 
     view.rerender(<LibraryPicker {...props} isLoading />);
     expect(
       screen.getByRole('status', { name: 'Loading library' }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
   });
 });

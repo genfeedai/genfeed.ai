@@ -710,7 +710,9 @@ describe('SettingsApiKeysPage', () => {
 
     await screen.findByText('MCP Key');
 
-    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    const presets = within(
+      screen.getByRole('radiogroup', { name: 'Scope preset' }),
+    );
     const mcp = presets.getByRole('radio', { name: 'MCP' });
     const read = presets.getByRole('radio', { name: 'Read' });
     const content = presets.getByRole('radio', { name: 'Content' });
@@ -731,16 +733,21 @@ describe('SettingsApiKeysPage', () => {
     renderPage();
 
     await screen.findByText('MCP Key');
-    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    const presets = within(
+      screen.getByRole('radiogroup', { name: 'Scope preset' }),
+    );
     fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
 
     expect(
-      within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {
-        name: 'Read',
-      }),
+      within(screen.getByRole('radiogroup', { name: 'Videos' })).getByRole(
+        'radio',
+        {
+          name: 'Read',
+        },
+      ),
     ).toHaveAttribute('aria-checked', 'true');
     expect(
-      within(screen.getByRole('group', { name: 'Post drafts' })).getByRole(
+      within(screen.getByRole('radiogroup', { name: 'Post drafts' })).getByRole(
         'radio',
         { name: 'None' },
       ),
@@ -752,7 +759,7 @@ describe('SettingsApiKeysPage', () => {
 
     await screen.findByText('MCP Key');
     const brands = within(
-      screen.getByRole('group', { name: 'Brands and brand context' }),
+      screen.getByRole('radiogroup', { name: 'Brands and brand context' }),
     );
 
     expect(
@@ -764,17 +771,25 @@ describe('SettingsApiKeysPage', () => {
     renderPage();
 
     await screen.findByText('MCP Key');
-    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    const presets = within(
+      screen.getByRole('radiogroup', { name: 'Scope preset' }),
+    );
     fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
     fireEvent.click(
-      within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {
-        name: 'None',
-      }),
+      within(screen.getByRole('radiogroup', { name: 'Videos' })).getByRole(
+        'radio',
+        {
+          name: 'None',
+        },
+      ),
     );
     fireEvent.click(
-      within(screen.getByRole('group', { name: 'Images' })).getByRole('radio', {
-        name: 'Write',
-      }),
+      within(screen.getByRole('radiogroup', { name: 'Images' })).getByRole(
+        'radio',
+        {
+          name: 'Write',
+        },
+      ),
     );
     expect(presets.getByRole('radio', { name: 'Read' })).toHaveAttribute(
       'aria-checked',
