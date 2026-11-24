@@ -1,3 +1,6 @@
+import type { Editor } from '@tiptap/react';
+import type { ReactNode } from 'react';
+
 export interface RichTextEditorAiConfig {
   orgId: string;
   token: string;
@@ -20,4 +23,13 @@ export interface RichTextEditorProps {
   aiConfig?: RichTextEditorAiConfig;
   /** Offers embedding library generations as blocks (articles only). */
   isGenerationInsertEnabled?: boolean;
+}
+
+export interface RichTextEditorFormatToggleProps {
+  children: ReactNode;
+  editor: Editor;
+  label: string;
+  /** The tiptap mark or node name whose active state the toggle shows. */
+  mark: string;
+  onToggle: () => void;
 }

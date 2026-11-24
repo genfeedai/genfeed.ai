@@ -158,9 +158,6 @@
     "apps/web/src/components/desktop/DesktopServerSettings.tsx": {
       "unstyled-look": 3
     },
-    "apps/web/src/components/editors/RichTextEditorToolbar.tsx": {
-      "unstyled-look": 9
-    },
     "apps/web/src/components/evaluation/card/EvaluationCard.tsx": {
       "unstyled-look": 2
     },
