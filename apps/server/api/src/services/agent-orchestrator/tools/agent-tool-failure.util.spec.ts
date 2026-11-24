@@ -90,3 +90,21 @@ describe('isDeliberateToolRejection', () => {
     expect(isDeliberateToolRejection(error)).toBe(expected);
   });
 });
+
+describe('isDeliberateToolRejection for action contracts', () => {
+  function contractError(boundary: 'input' | 'output'): Error {
+    const error = new Error(
+      `Action contract ${boundary} validation failed [action=get_assets node=n] $: must have required property 'type'`,
+    );
+    error.name = 'ActionContractValidationError';
+    return error;
+  }
+
+  it('treats an input the model got wrong as a handled rejection', () => {
+    expect(isDeliberateToolRejection(contractError('input'))).toBe(true);
+  });
+
+  it('keeps an output violation a fault', () => {
+    expect(isDeliberateToolRejection(contractError('output'))).toBe(false);
+  });
+});

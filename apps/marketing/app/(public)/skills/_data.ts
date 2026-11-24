@@ -2,21 +2,27 @@ import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface
 import {
   InstagramIcon,
   LinkedinIcon,
+  TiktokIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import {
   BrainCircuit,
-  Code,
+  Calendar,
+  Clapperboard,
+  Film,
   GitBranch,
   Image,
+  Layers,
   LayoutTemplate,
   Megaphone,
   Newspaper,
   Package,
   Palette,
   PenTool,
+  Quote,
   Rocket,
+  Scissors,
   Search,
   Shuffle,
   Sparkles,
@@ -24,6 +30,7 @@ import {
   Terminal,
   TrendingUp,
   Users,
+  Video,
   Wand,
   Zap,
 } from 'lucide-react';
@@ -146,6 +153,62 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
         icon: PenTool,
         name: 'Copywriter',
         slug: 'copywriter',
+      },
+      {
+        description:
+          'Find fresh public X posts worth quote-posting, ranked with a fit reason and an angle.',
+        icon: Quote,
+        name: 'Quote Finder',
+        slug: 'quote-finder',
+      },
+      {
+        description:
+          'Truthful, click-worthy titles for livestreams, recaps, cutdowns and Shorts.',
+        icon: YoutubeIcon,
+        name: 'YouTube Title',
+        slug: 'youtube-title',
+      },
+      {
+        description:
+          'Descriptions with an opener, takeaway, accurate chapters, sources and links.',
+        icon: YoutubeIcon,
+        name: 'YouTube Description',
+        slug: 'youtube-description',
+      },
+      {
+        description:
+          'Branded thumbnails with exactly three test concepts for livestreams and recaps.',
+        icon: YoutubeIcon,
+        name: 'YouTube Thumbnail',
+        slug: 'youtube-thumbnail',
+      },
+      {
+        description:
+          'The on-screen hook, cover text and searchable first line of the caption.',
+        icon: TiktokIcon,
+        name: 'TikTok Title',
+        slug: 'tiktok-title',
+      },
+      {
+        description:
+          'TikTok captions with a hook line, one supporting fact, hashtags and disclosure.',
+        icon: TiktokIcon,
+        name: 'TikTok Description',
+        slug: 'tiktok-description',
+      },
+      {
+        description:
+          'Channel-conform launch copy for Hacker News (Show HN) and Product Hunt.',
+        icon: Rocket,
+        name: 'Launch Copy Creator',
+        slug: 'launch-copy-creator',
+      },
+      {
+        description:
+          'Plan, write and schedule a week of social content in one session over the Genfeed MCP.',
+        icon: Calendar,
+        name: 'Weekly Batch',
+        slug: 'weekly-batch',
       },
     ],
     subtitle:
@@ -276,13 +339,6 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       },
       {
         description:
-          'Pick the right model for the job: face consistency, speed, quality, and cost tiers.',
-        icon: Zap,
-        name: 'Model Selector',
-        slug: 'model-selector',
-      },
-      {
-        description:
           'Visual brand systems: colors, typography feel, composition rules, and prompt presets.',
         icon: Palette,
         name: 'Visual Brand Kit',
@@ -294,6 +350,34 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
         icon: Wand,
         name: 'Media Forge',
         slug: 'media-forge',
+      },
+      {
+        description:
+          'Rewrite naive image and video prompts with precise cinematography vocabulary.',
+        icon: Film,
+        name: 'Cinematic Prompting',
+        slug: 'cinematic-prompting',
+      },
+      {
+        description:
+          'Optimized prompts for AI image and video generation from a short brief.',
+        icon: Wand,
+        name: 'Prompt Generator',
+        slug: 'prompt-generator',
+      },
+      {
+        description:
+          'Realistic shot prompts as a timed shot list with references, a spoken line and sound.',
+        icon: Video,
+        name: 'Video Realism',
+        slug: 'video-realism',
+      },
+      {
+        description:
+          'Run one prompt through two or three video models and merge the clips side by side.',
+        icon: Layers,
+        name: 'Video Model Benchmark',
+        slug: 'video-model-benchmark',
       },
     ],
     subtitle:
@@ -317,6 +401,13 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
         icon: TrendingUp,
         name: 'Ad Performance Analyzer',
         slug: 'ad-performance-analyzer',
+      },
+      {
+        description:
+          'Free prompt pack for selfie, talking-head and screen-demo video ads.',
+        icon: Megaphone,
+        name: 'UGC Ad Prompts',
+        slug: 'ugc-ad-prompts',
       },
     ],
     subtitle:
@@ -488,28 +579,145 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
         name: 'Search Domain Validator',
         slug: 'search-domain-validator',
       },
+      {
+        description:
+          'Source-backed brand systems: positioning, voice, visual rules and content pillars.',
+        icon: Palette,
+        name: 'Brand OS Architect',
+        slug: 'brand-os-architect',
+      },
+      {
+        description:
+          'Apply the Genfeed Brand OS to product copy, CTAs, launch content and prompts.',
+        icon: Palette,
+        name: 'Genfeed Brand OS',
+        slug: 'genfeed-brand-os',
+      },
     ],
     subtitle:
       'Positioning, offers, funnels, traffic, lead generation, retention, and expert authority.',
     title: 'Build the Market Engine',
   },
   {
-    id: 'platform',
-    label: 'Platform & dev',
+    id: 'video-rendering',
+    label: 'Video & rendering',
     skills: [
       {
         description:
-          'Create Genfeed Studio workflows from natural language descriptions.',
-        icon: GitBranch,
-        name: 'Workflow Creator',
-        slug: 'workflow-creator',
+          'Cut vertical 9:16 clips from a long recording locally with ffmpeg and burned-in captions.',
+        icon: Scissors,
+        name: 'Clip Cutter',
+        slug: 'clip-cutter',
       },
       {
-        description: 'Custom nodes using the Genfeed SDK fluent builder API.',
-        icon: Code,
-        name: 'Node Creator',
-        slug: 'node-creator',
+        description:
+          'Turn a long recording into branded Shorts: pick, cut, caption and place the logo.',
+        icon: YoutubeIcon,
+        name: 'YouTube Shorts',
+        slug: 'youtube-shorts',
       },
+      {
+        description:
+          'Turn a long recording or clip into a branded 9:16 TikTok with captions.',
+        icon: TiktokIcon,
+        name: 'TikTok Video',
+        slug: 'tiktok-video',
+      },
+      {
+        description:
+          'Write a Remotion composition with your own agent subscription and render it locally.',
+        icon: Clapperboard,
+        name: 'Motion Video',
+        slug: 'motion-video',
+      },
+      {
+        description:
+          'Render a carousel spec into branded PNG slides and a PDF with headless Chrome.',
+        icon: Layers,
+        name: 'Carousel Renderer',
+        slug: 'carousel-renderer',
+      },
+      {
+        description:
+          'Composite three branded thumbnail variants locally from a backdrop and exact text.',
+        icon: Image,
+        name: 'Thumbnail Compositor',
+        slug: 'thumbnail-compositor',
+      },
+      {
+        description:
+          'Assemble shots, stills, text, voiceover and music into a finished ad on your machine.',
+        icon: Megaphone,
+        name: 'Ad Pack Assembly',
+        slug: 'ad-pack-assembly',
+      },
+      {
+        description:
+          'A reusable profile for logo placement, caption font, thumbnail rules and export sizes.',
+        icon: Palette,
+        name: 'Video Brand Profile',
+        slug: 'video-brand-profile',
+      },
+      {
+        description:
+          'Turn a voice note or transcript into a long-form video storyboard with cutaway briefs.',
+        icon: Clapperboard,
+        name: 'Long-form Storyboard',
+        slug: 'long-form-storyboard',
+      },
+    ],
+    subtitle:
+      'Local tools that turn a recording into Shorts, thumbnails, carousels and finished ads on your own machine.',
+    title: 'Cut, caption and render locally',
+  },
+  {
+    id: 'account-warmup',
+    label: 'Account warmup',
+    skills: [
+      {
+        description:
+          'Reply-first warmup for X with thread content and a post-warmup assessment.',
+        icon: XTwitterIcon,
+        name: 'X Warmup',
+        slug: 'x-warmup',
+      },
+      {
+        description:
+          'Engagement plans, Stories strategy and Reel warmup content for Instagram.',
+        icon: InstagramIcon,
+        name: 'Instagram Warmup',
+        slug: 'instagram-warmup',
+      },
+      {
+        description:
+          'Comment-first warmup with SSI-building strategy for LinkedIn.',
+        icon: LinkedinIcon,
+        name: 'LinkedIn Warmup',
+        slug: 'linkedin-warmup',
+      },
+      {
+        description:
+          'A transparent 5 to 7 day TikTok warmup with gradual first uploads.',
+        icon: TiktokIcon,
+        name: 'TikTok Warmup',
+        slug: 'tiktok-warmup',
+      },
+      {
+        description:
+          'Channel optimization, warmup Shorts and SEO-first setup for YouTube.',
+        icon: YoutubeIcon,
+        name: 'YouTube Warmup',
+        slug: 'youtube-warmup',
+      },
+    ],
+    subtitle:
+      'Engagement plans, first-post guidance and post-warmup assessment for each platform.',
+    title: 'Warm up a new account',
+  },
+  {
+    id: 'platform',
+    label: 'Platform & dev',
+    skills: [
       {
         description:
           'Operate the executable Genfeed content loop and route each stage to the right skill.',
@@ -530,26 +738,6 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
         icon: Package,
         name: 'Social Poster',
         slug: 'social-poster',
-      },
-      {
-        description:
-          'Get started with Genfeed through first content creation in under 10 minutes.',
-        icon: Rocket,
-        name: 'Onboarding',
-        slug: 'onboarding',
-      },
-      {
-        description:
-          'Classify Genfeed feature requests as OSS Core or Cloud SaaS scope.',
-        icon: LayoutTemplate,
-        name: 'Scope Validator',
-        slug: 'scope-validator',
-      },
-      {
-        description: 'Connect AI agents to Genfeed via MCP.',
-        icon: BrainCircuit,
-        name: 'OpenClaw Integration',
-        slug: 'openclaw-integration',
       },
     ],
     subtitle:

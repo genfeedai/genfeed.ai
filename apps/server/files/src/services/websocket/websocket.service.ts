@@ -125,7 +125,9 @@ export class WebSocketService {
         'media-failed',
         JSON.stringify(message),
       );
-      this.logger.error(
+      // The failure being announced was logged where it happened; this line
+      // only records that the notice went out, so it is not an error itself.
+      this.logger.log(
         `Published error to Redis: ${websocketUrl} (room: ${message.room})`,
       );
     } catch (error: unknown) {

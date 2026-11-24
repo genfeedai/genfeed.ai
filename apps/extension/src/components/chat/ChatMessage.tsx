@@ -1,3 +1,4 @@
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import type { ReactElement } from 'react';
 
 import { ContentPreview } from '~components/chat/ContentPreview';
@@ -37,14 +38,9 @@ export function ChatMessage({ message }: ChatMessageProps): ReactElement {
         <time
           className={`mt-1 block text-2xs ${isUser ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}
         >
-          {formatTime(message.createdAt)}
+          {formatShortDate(message.createdAt)}
         </time>
       </div>
     </div>
   );
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }

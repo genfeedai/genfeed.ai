@@ -20,6 +20,8 @@ export interface PostComposerActionsProps {
   targetContent: string;
   /** Platform name used in preset prompts (e.g. "TikTok"). */
   platformLabel: string;
+  /** Platform key (e.g. "instagram"); lets a preset read the channel's limits from the catalog. */
+  platform?: string;
   /** True while the page is running an AI request for any post. */
   isBusy: boolean;
   /** Offer "Turn into a thread" (X parent post without replies). */

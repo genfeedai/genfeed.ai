@@ -87,12 +87,14 @@ for (const viewport of [
     await expect(card).toHaveAttribute('data-asset-media-state', 'failed');
     await card.hover();
 
-    // One style for every action on the card.
-    for (const name of [/^Remove/, /^Reprompt/]) {
-      const button = card.getByRole('button', { name });
-      await expect(button).toHaveClass(/bg-transparent/);
-      await expect(button).not.toHaveClass(/border/);
-    }
+    // Reprompt is a ghost action; removing a failed generation reads as
+    // destructive.
+    const reprompt = card.getByRole('button', { name: /^Reprompt/ });
+    await expect(reprompt).toHaveClass(/bg-transparent/);
+    await expect(reprompt).not.toHaveClass(/border/);
+    await expect(card.getByRole('button', { name: /^Remove/ })).toHaveClass(
+      /text-destructive/,
+    );
 
     await card.getByRole('button', { name: 'Show details' }).click();
     const dialog = page.getByRole('dialog');

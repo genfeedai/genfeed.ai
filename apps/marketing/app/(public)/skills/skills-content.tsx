@@ -117,7 +117,8 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
 
             <div className="text-center mt-8">
               <Code className="bg-transparent text-foreground/60">
-                bunx skills add genfeedai/skills/{category.skills[0]?.slug}
+                bunx skills add genfeedai/skills --skill{' '}
+                {category.skills[0]?.slug}
               </Code>
             </div>
           </WebSection>
@@ -196,7 +197,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                       Install one:
                     </span>{' '}
                     <Code className="text-foreground/50 bg-foreground/5">
-                      bunx skills add genfeedai/skills/x/x-post
+                      bunx skills add genfeedai/skills --skill x-post
                     </Code>
                   </p>
                 </div>

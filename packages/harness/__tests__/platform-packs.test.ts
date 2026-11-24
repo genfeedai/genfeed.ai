@@ -81,6 +81,22 @@ describe('matchesPlatform', () => {
   });
 });
 
+describe('Instagram pack hashtag rule', () => {
+  it('states the limit the channel catalog declares, with what each tag must name', () => {
+    const guardrails = contribute(
+      INSTAGRAM_PLATFORM_HARNESS_PACK,
+      input('instagram'),
+    ).guardrails;
+
+    expect(guardrails).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('use at most 5 hashtags'),
+      ]),
+    );
+    expect(guardrails?.join(' ')).toContain('names something in the post');
+  });
+});
+
 describe.each(PLATFORM_PACKS)('$pack.id', ({ pack, platform }) => {
   it('is copy-only so caption rules never reach media prompts', () => {
     expect(pack.surfaces).toEqual(['copy']);

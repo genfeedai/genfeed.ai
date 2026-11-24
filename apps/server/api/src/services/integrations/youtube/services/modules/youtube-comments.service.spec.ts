@@ -92,6 +92,29 @@ describe('YoutubeCommentsService', () => {
       expect(loggerService.warn).toHaveBeenCalledTimes(1);
     });
 
+    it('rethrows a video with comments switched off without reporting it as an error', async () => {
+      const { loggerService } =
+        service as unknown as YoutubeCommentsServiceInternals;
+      mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
+      const disabled = Object.assign(
+        new Error(
+          'The video identified by the videoId parameter has disabled comments.',
+        ),
+        {
+          errors: [{ reason: 'commentsDisabled' }],
+          response: { status: 403 },
+        },
+      );
+      mockYoutubeAPI.commentThreads.list = vi.fn().mockRejectedValue(disabled);
+
+      await expect(
+        service.listVideoComments(orgId, brandId, 'quiet-video', 20, 'cred-1'),
+      ).rejects.toBe(disabled);
+
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledTimes(1);
+    });
+
     it('reports any other listing failure as an error', async () => {
       const { loggerService } =
         service as unknown as YoutubeCommentsServiceInternals;

@@ -1,9 +1,27 @@
 import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { OpenRouterModelTier } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { getChannelHashtagLimit } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 
 export interface ActionPromptConfig {
   systemPrompt: string;
   modelTier: OpenRouterModelTier;
+}
+
+/** How many hashtags to ask for when no channel is named, or the channel has no limit. */
+const DEFAULT_HASHTAG_COUNT = '3 to 5';
+
+/**
+ * The add-hashtags prompt. A named channel is held to the hashtag limit its
+ * capability declares (Instagram: 5), so the action never returns more tags
+ * than the channel allows.
+ */
+export function resolveAddHashtagsSystemPrompt(platform?: string): string {
+  const limit = platform ? getChannelHashtagLimit(platform) : undefined;
+  const count =
+    limit === undefined || limit === 0
+      ? DEFAULT_HASHTAG_COUNT
+      : `at most ${limit}`;
+  return `Generate ${count} relevant hashtags for this social media content. Each hashtag must name something the content is about; skip generic tags that fit any post. Return ONLY the hashtags separated by spaces, nothing else.`;
 }
 
 export const AI_ACTION_PROMPTS: Record<string, ActionPromptConfig> = {
@@ -13,7 +31,7 @@ export const AI_ACTION_PROMPTS: Record<string, ActionPromptConfig> = {
   },
   'add-hashtags': {
     modelTier: OpenRouterModelTier.FAST,
-    systemPrompt: `Generate 5-10 relevant hashtags for this social media content. Include a mix of popular and niche hashtags. Return ONLY the hashtags separated by spaces, nothing else.`,
+    systemPrompt: resolveAddHashtagsSystemPrompt(),
   },
   'analytics-insight': {
     modelTier: OpenRouterModelTier.PREMIUM,

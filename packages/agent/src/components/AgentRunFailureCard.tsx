@@ -3,19 +3,18 @@
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import {
   AgentFailureReason,
-  ButtonSize,
   ButtonVariant,
   CardPadding,
   ModalEnum,
 } from '@genfeedai/contracts';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { CopyButton } from '@ui/buttons/CopyButton';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Check, Coins, Copy, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Coins, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useCallback, useState } from 'react';
+import type { ReactElement } from 'react';
 
 interface AgentRunFailureCardProps {
   error: string | null | undefined;
@@ -60,19 +59,6 @@ export function AgentRunFailureCard({
 }: AgentRunFailureCardProps): ReactElement {
   const translate = useTranslations('agent.runFailureCard');
   const formatted = formatAgentError(error);
-  const [isCopied, setIsCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await ClipboardService.getInstance().copyToClipboard(
-        buildAgentRunFailureCopyText(error),
-      );
-      setIsCopied(true);
-      window.setTimeout(() => setIsCopied(false), 1500);
-    } catch {
-      setIsCopied(false);
-    }
-  }, [error]);
 
   return (
     <Card
@@ -104,22 +90,11 @@ export function AgentRunFailureCard({
             ) : null}
           </div>
           <div className="flex shrink-0 items-start gap-1.5">
-            <Button
+            <CopyButton
+              copiedLabel={translate('errorCopied')}
+              label={translate('copyError')}
+              value={() => buildAgentRunFailureCopyText(error)}
               variant={ButtonVariant.DESTRUCTIVE}
-              size={ButtonSize.ICON}
-              withWrapper={false}
-              ariaLabel={isCopied ? 'Error copied' : 'Copy error'}
-              tooltip={isCopied ? 'Copied' : 'Copy error for agent'}
-              onClick={() => {
-                void handleCopy();
-              }}
-              icon={
-                isCopied ? (
-                  <Check className="size-3.5" />
-                ) : (
-                  <Copy className="size-3.5" />
-                )
-              }
             />
             {formatted.reason === AgentFailureReason.INSUFFICIENT_CREDITS ? (
               <Button
@@ -144,7 +119,7 @@ export function AgentRunFailureCard({
                 className="shrink-0 self-start"
                 icon={<RefreshCw className="size-3.5" />}
               >
-                Retry
+                {translate('retry')}
               </Button>
             ) : null}
           </div>

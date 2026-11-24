@@ -51,6 +51,10 @@ describe('WebsiteTopbar', () => {
       'href',
       '/pricing',
     );
+    expect(screen.getByRole('link', { name: 'Free tools' })).toHaveAttribute(
+      'href',
+      '/tools',
+    );
     // Docs and the changelog live in the footer: the bar sells the product,
     // it is not the site index.
     expect(
@@ -89,6 +93,7 @@ describe('WebsiteTopbar', () => {
       ['Cursor', '/cursor'],
       ['All agents', '/agent'],
       ['MCP server', '/mcp'],
+      ['Agent skills', '/skills'],
       ['See every way to connect', '/agent'],
     ]) {
       expect(

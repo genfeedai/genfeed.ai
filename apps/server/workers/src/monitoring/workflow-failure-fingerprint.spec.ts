@@ -1,6 +1,9 @@
 import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
-import { workflowFailureFingerprint } from './workflow-failure-fingerprint';
+import {
+  isExpectedPublishRefusal,
+  workflowFailureFingerprint,
+} from './workflow-failure-fingerprint';
 
 describe('workflowFailureFingerprint', () => {
   it.each([
@@ -88,5 +91,30 @@ describe('workflowFailureFingerprint', () => {
     [undefined],
   ])('leaves default grouping for %s', (error) => {
     expect(workflowFailureFingerprint(error)).toBeUndefined();
+  });
+});
+
+describe('isExpectedPublishRefusal', () => {
+  it.each([
+    'Nodes failed: claim-publish: Branded Publish Hold Exception',
+    'Nodes failed: claim-publish: This post is held: it breaks the brand Policy. A member must approve it in the app before it can publish.',
+    'Nodes failed: claim-publish: Publish approval is not queued.',
+    'Nodes failed: claim-publish: Publish approval cannot transition from invalidated to queued.',
+  ])('treats a refused claim as handled: %s', (message) => {
+    expect(isExpectedPublishRefusal(new Error(message))).toBe(true);
+  });
+
+  it.each([
+    'Nodes failed: claim-publish: connect ECONNRESET',
+    'Nodes failed: publish: Branded Publish Hold Exception',
+    'Nodes failed: claim-publish: Conflict Exception',
+  ])('still reports a failure that may be ours: %s', (message) => {
+    expect(isExpectedPublishRefusal(new Error(message))).toBe(false);
+  });
+
+  it('ignores a value that is not an Error', () => {
+    expect(isExpectedPublishRefusal('Nodes failed: claim-publish: x')).toBe(
+      false,
+    );
   });
 });

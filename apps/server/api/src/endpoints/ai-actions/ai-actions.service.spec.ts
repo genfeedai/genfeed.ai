@@ -208,6 +208,27 @@ describe('AiActionsService', () => {
       expect(systemMessage).toBeDefined();
     });
 
+    it('holds add-hashtags to the limit of the channel it is for', async () => {
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: '#run #fit' } }],
+        usage: { total_tokens: 50 },
+      } as never);
+
+      await service.execute('org_123', {
+        action: AiActionType.ADD_HASHTAGS,
+        content: 'Morning run',
+        context: { platform: 'instagram' },
+      });
+
+      const callArgs = openRouterService.chatCompletion.mock.calls[0][0];
+      const systemMessage = callArgs.messages.find(
+        (m: { role: string }) => m.role === 'system',
+      );
+      expect(systemMessage?.content).toContain('at most 5 relevant hashtags');
+      expect(systemMessage?.content).not.toContain('5-10');
+    });
+
     it('should trim whitespace from result', async () => {
       const dto: ExecuteAiActionDto = {
         action: AiActionType.REWRITE,

@@ -9,10 +9,11 @@ import Card from '@ui/card/Card';
 import type { BrandOverlayRecord } from '@ui/modals/brands/brand/ModalBrand.types';
 import { Alert } from '@ui/primitives/alert';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
-import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
+import BrandDetailExternalLinksCard from '@/features/brands/components/sidebar/BrandDetailExternalLinksCard';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
 import BrandDetailSystemPrompt from '@/features/brands/components/system-prompt/BrandDetailSystemPrompt';
+import BrandProfileVisibility from '@/features/brands/components/visibility/BrandProfileVisibility';
 
 export type BrandOverviewPanelProps = {
   activeBrand: BrandOverlayRecord;
@@ -50,6 +51,8 @@ export default function BrandOverviewPanel({
   onUploadBanner,
   onUploadLogo,
 }: BrandOverviewPanelProps) {
+  const profileUrl = `${EnvironmentService.apps.website}${creatorProfilePath(activeBrand.slug)}`;
+
   return (
     <div className="space-y-4">
       {error ? (
@@ -72,13 +75,13 @@ export default function BrandOverviewPanel({
           onUploadLogo={onUploadLogo}
           onGenerateLogo={onGenerateLogo}
           onUpdateBrand={onUpdateBrand}
-          onCopyPublicProfile={
-            isPublicAssetScope(activeBrand.scope)
-              ? () =>
-                  onCopy(
-                    `${EnvironmentService.apps.website}${creatorProfilePath(activeBrand.slug)}`,
-                  )
-              : undefined
+          visibility={
+            <BrandProfileVisibility
+              isPublic={isPublicAssetScope(activeBrand.scope)}
+              onCopy={() => onCopy(profileUrl)}
+              onToggle={onTogglePublicProfile}
+              profileUrl={profileUrl}
+            />
           }
         />
       </Card>
@@ -97,10 +100,8 @@ export default function BrandOverviewPanel({
         onRefresh={onRefreshBrand}
       />
 
-      <BrandDetailSidebar
-        brand={activeBrand}
+      <BrandDetailExternalLinksCard
         links={(activeBrand.links || []) as unknown as ILink[]}
-        onTogglePublicProfile={(isPublic) => onTogglePublicProfile(isPublic)}
         onOpenLinkModal={onOpenLinkModal}
       />
     </div>

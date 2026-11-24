@@ -15,6 +15,7 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '../../src/api-types/contracts/channel-capabilities.contract';
+import { getChannelHashtagLimit } from '../../src/api-types/contracts/channel-hashtags.contract';
 import {
   buildXQuoteIntentUrl,
   isManualPostErrorCode,
@@ -647,6 +648,43 @@ describe('validateChannelTargetSettings', () => {
     ]);
     expect(result.validationState).toBe(TargetValidationState.INVALID);
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  test('declares the Instagram hashtag limit in the catalog', () => {
+    expect(getChannelHashtagLimit(CredentialPlatform.INSTAGRAM)).toBe(5);
+    expect(
+      getChannelCapability(CredentialPlatform.INSTAGRAM)?.caption.maxHashtags,
+    ).toBe(5);
+  });
+
+  test('warns, without blocking, when an Instagram caption has more than 5 hashtags', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Morning run #run #fit #goals #health #cardio #motivation',
+      platform: CredentialPlatform.INSTAGRAM,
+      settings: { placement: 'feed' },
+    });
+
+    expect(result.errors.map((issue) => issue.code)).not.toContain(
+      'channel_target.too_many_hashtags',
+    );
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: 'channel_target.too_many_hashtags',
+        field: 'caption',
+        message: expect.stringContaining('at most 5 hashtags'),
+        severity: 'warning',
+      }),
+    ]);
+  });
+
+  test('stays silent for an Instagram caption with 5 hashtags', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Morning run #run #fit #goals #health #cardio',
+      platform: CredentialPlatform.INSTAGRAM,
+      settings: { placement: 'feed' },
+    });
+
+    expect(result.warnings).toEqual([]);
   });
 
   test('flags a valid enum platform with no registered capability', () => {

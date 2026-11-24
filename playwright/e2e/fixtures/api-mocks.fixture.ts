@@ -3599,6 +3599,7 @@ const MOCK_BRAND_BANNER_DATA_URL =
 export async function mockBrandWithMedia(
   page: Page,
   waitForScopeSave?: (scope: string) => Promise<void>,
+  articles: Array<{ id: string; attributes: Record<string, unknown> }> = [],
 ): Promise<void> {
   const brand = {
     banner: {
@@ -3627,6 +3628,17 @@ export async function mockBrandWithMedia(
         data: [{ attributes: brand, id: brand.id, type: 'brand' }],
         meta: { page: 1, pageSize: 1, totalCount: 1 },
       }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+  await routeApiPattern(page, '/articles**', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(buildJsonApiCollection('articles', articles)),
       contentType: 'application/json',
       status: 200,
     });

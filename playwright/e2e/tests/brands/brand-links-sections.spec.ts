@@ -6,10 +6,11 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
-// The Profile page owns the brand's social accounts (a Connect account button
-// in the page header) and its website links. Both sit in the right sidebar,
-// accounts above the website links. Like every other section, the website
-// links title and action sit above the card.
+// The Profile page mirrors the public profile and adds what only the owner
+// needs: the brand's social accounts (a Connect account button in the page
+// header) and its website links, in one column under the articles, accounts
+// above the website links. Like every other section, the website links title
+// and action sit above the card.
 test.describe('Brand accounts and website links', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
@@ -60,7 +61,7 @@ test.describe('Brand accounts and website links', () => {
     ).toHaveCount(0);
   });
 
-  test('lists the connected accounts above the website links in the sidebar', async ({
+  test('lists the connected accounts above the website links', async ({
     authenticatedPage,
   }) => {
     const route = brandPath('/settings/profile');
@@ -87,5 +88,53 @@ test.describe('Brand accounts and website links', () => {
     expect(accountsBox).not.toBeNull();
     expect(accountsBox?.x).toBeCloseTo(linksBox?.x ?? 0, 0);
     expect(accountsBox?.y ?? 0).toBeLessThan(linksBox?.y ?? 0);
+  });
+
+  test('shows the published articles the public profile shows, and a single visibility control', async ({
+    authenticatedPage,
+  }) => {
+    await mockBrandWithMedia(authenticatedPage, undefined, [
+      {
+        attributes: {
+          createdAt: '2026-11-24T08:00:00.000Z',
+          label: 'Token pricing has a half-life',
+          publishedAt: '2026-11-24T08:00:00.000Z',
+          slug: 'token-pricing-half-life',
+          status: 'PUBLISHED',
+          summary: 'Every price cut resets the clock.',
+        },
+        id: 'article-1',
+      },
+    ]);
+    const route = brandPath('/settings/profile');
+    await authenticatedPage.goto(route, {
+      timeout: 60000,
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+
+    await expect(
+      authenticatedPage.getByRole('link', {
+        name: 'Open Token pricing has a half-life',
+      }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      authenticatedPage.getByRole('link', { name: /^Articles 1$/ }),
+    ).toBeVisible();
+
+    // Copy link and View public sit in the same group as the switch, and stay
+    // off while the profile is private.
+    const visibility = authenticatedPage.getByRole('group', {
+      name: 'Profile visibility',
+    });
+    await expect(
+      visibility.getByRole('switch', { name: 'Public Profile' }),
+    ).not.toBeChecked();
+    await expect(
+      visibility.getByRole('button', { name: 'Copy public profile link' }),
+    ).toBeDisabled();
+    await expect(
+      visibility.getByRole('button', { name: 'View public' }),
+    ).toBeDisabled();
   });
 });

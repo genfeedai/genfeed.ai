@@ -152,6 +152,25 @@ describe('repurposePostContent hashtag policy', () => {
     expect(outcome.adjustments).toEqual([]);
   });
 
+  test('keeps the first 5 hashtags for Instagram, the limit the catalog declares', () => {
+    const outcome = repurposePostContent({
+      caption: 'Big news #one #two #three #four #five #six #seven #eight',
+      targetPlatform: CredentialPlatform.INSTAGRAM,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+    expect(outcome.caption).toBe('Big news #one #two #three #four #five');
+    expect(outcome.adjustments).toEqual([
+      expect.objectContaining({
+        code: 'channel_repurpose.hashtags_trimmed',
+        message: expect.stringContaining('at most 5 hashtags'),
+      }),
+    ]);
+  });
+
   test('collapses leftover whitespace after removing inline hashtags', () => {
     const outcome = repurposePostContent({
       caption: 'We #shipped #fast #today and it works',
@@ -326,7 +345,7 @@ describe('getChannelTextPolicy', () => {
       expect.objectContaining({ hasClickableLinks: true, maxHashtags: 2 }),
     );
     expect(getChannelTextPolicy(CredentialPlatform.INSTAGRAM)).toEqual(
-      expect.objectContaining({ hasClickableLinks: false, maxHashtags: 30 }),
+      expect.objectContaining({ hasClickableLinks: false, maxHashtags: 5 }),
     );
   });
 });

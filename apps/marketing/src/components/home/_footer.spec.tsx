@@ -83,6 +83,15 @@ describe('Footer Component', () => {
     });
   });
 
+  it('links the free tools and the free agent skills', () => {
+    const hrefs = WEBSITE_SECTIONS.flatMap((section) =>
+      section.links.map((link) => link.href),
+    );
+
+    expect(hrefs).toContain('/tools');
+    expect(hrefs).toContain('/skills');
+  });
+
   it('leaves the legal links to the bottom bar', () => {
     const hrefs = WEBSITE_SECTIONS.flatMap((section) =>
       section.links.map((link) => link.href),

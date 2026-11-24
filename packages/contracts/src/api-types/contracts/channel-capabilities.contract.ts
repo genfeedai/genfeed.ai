@@ -146,6 +146,12 @@ export const channelCaptionCapabilitySchema = z.object({
    * a warning and the provider decides; only captions past it are refused.
    */
   extendedMaxLength: z.number().int().positive().optional(),
+  /**
+   * Most hashtags a caption for this channel may carry. Generation prompts
+   * state it and validation warns past it. Absent means the channel has no
+   * hashtag limit in the catalog.
+   */
+  maxHashtags: z.number().int().min(0).optional(),
   required: z.boolean().optional(),
 });
 
@@ -448,7 +454,10 @@ const channelCapabilities = [
     status: 'supported',
   },
   {
-    caption: { maxLength: 2_200, required: false },
+    // Instagram has allowed at most 5 hashtags in a post or reel since
+    // 2025-12-18 (@creators on Threads). Meta's API reference still says 30;
+    // what the API does with a sixth is unverified, so validation warns.
+    caption: { maxHashtags: 5, maxLength: 2_200, required: false },
     description:
       'Feed, Reel, or carousel publishing for professional Instagram accounts.',
     helpers: [

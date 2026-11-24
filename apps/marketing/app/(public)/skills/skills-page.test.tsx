@@ -170,6 +170,23 @@ describe('SkillsContent', () => {
     expect(screen.getByText('Platform Warmup')).toBeInTheDocument();
   });
 
+  it('installs a single skill with --skill, never as a path in the repo', () => {
+    const { container } = render(
+      <SkillsContent initialRegistry={registry({ skills: [] })} />,
+    );
+    const commands = Array.from(container.querySelectorAll('code')).map(
+      (code) => code.textContent ?? '',
+    );
+    const one = commands.filter((command) =>
+      command.startsWith('bunx skills add genfeedai/skills --skill '),
+    );
+
+    expect(one.length).toBeGreaterThan(SKILL_CATEGORIES.length);
+    for (const command of commands) {
+      expect(command).not.toMatch(/genfeedai\/skills\//);
+    }
+  });
+
   it('hides the premium section for an empty registry', () => {
     render(<SkillsContent initialRegistry={registry({ skills: [] })} />);
 
