@@ -1,8 +1,8 @@
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('googleapis', () => {
-  function OAuth2(
+vi.mock('google-auth-library', () => {
+  function OAuth2Client(
     this: Record<string, unknown>,
     clientId: string,
     clientSecret: string,
@@ -15,11 +15,7 @@ vi.mock('googleapis', () => {
     this.setCredentials = vi.fn();
     this.getToken = vi.fn();
   }
-  return {
-    google: {
-      auth: { OAuth2 },
-    },
-  };
+  return { OAuth2Client };
 });
 
 describe('YoutubeOAuth2Util', () => {
