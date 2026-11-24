@@ -2,7 +2,7 @@ import { ORCHESTRATOR_AGENT_TYPE } from '@api/services/agent-orchestrator/consta
 import type { CuratedActionName } from '@genfeedai/actions';
 import { getToolsForSurface } from '@genfeedai/actions';
 import { AgentType, CredentialPlatform } from '@genfeedai/contracts';
-import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export interface AgentTypeConfig {

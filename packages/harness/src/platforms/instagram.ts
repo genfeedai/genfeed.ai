@@ -1,5 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
-import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants';
 import type {
   ContentHarnessContribution,

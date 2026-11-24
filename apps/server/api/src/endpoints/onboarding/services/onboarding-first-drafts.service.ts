@@ -47,7 +47,7 @@ import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-web
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import { Platform } from '@genfeedai/contracts';
-import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   ONBOARDING_BRAND_SCANNED_EVENT,

@@ -1,6 +1,6 @@
 import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { OpenRouterModelTier } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { getChannelHashtagLimit } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { getChannelHashtagLimit } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 
 export interface ActionPromptConfig {
   systemPrompt: string;

@@ -26,11 +26,11 @@ import {
   type ChannelValidationIssue,
   channelTargetValidationMediaSchema,
   getChannelCapability,
-  getChannelHashtagLimit,
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from './channel-capabilities.contract';
 import { HASHTAG_PATTERN } from './channel-caption.contract';
+import { getChannelHashtagLimit } from './channel-hashtags.contract';
 
 const WHITESPACE_CHAR_PATTERN = /\s/u;
 const SPACE_BEFORE_PUNCTUATION_PATTERN = /[^\S\n]+([,.;:!?])/gu;

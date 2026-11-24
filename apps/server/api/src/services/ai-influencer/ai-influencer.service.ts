@@ -17,7 +17,7 @@ import {
   IngredientStatus,
   LoraStatus,
 } from '@genfeedai/contracts';
-import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';

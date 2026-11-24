@@ -15,7 +15,6 @@ import {
 import { blueskyChannelCapability } from './channel-capabilities.bluesky';
 import {
   collectCaptionWarnings,
-  describeHashtagRule,
   validateCaption,
 } from './channel-caption.contract';
 import {
@@ -922,29 +921,6 @@ export function getChannelCapability(
 
   const capability = channelCapabilitiesByPlatform.get(normalizedPlatform);
   return capability ? cloneChannelCapability(capability) : undefined;
-}
-
-/**
- * The most hashtags a caption for the channel may carry, from the catalog.
- * Every prompt and rule that bounds hashtags reads it here.
- */
-export function getChannelHashtagLimit(
-  platform: CredentialPlatform | string,
-): number | undefined {
-  return getChannelCapability(platform)?.caption.maxHashtags;
-}
-
-/**
- * The hashtag rule a model prompt states for a channel, read from the catalog.
- * A channel with no declared limit gets the open-ended rule, never a number.
- */
-export function describeChannelHashtagRule(
-  platform: CredentialPlatform | string,
-): string {
-  const limit = getChannelHashtagLimit(platform);
-  return limit === undefined
-    ? 'use a few relevant hashtags'
-    : describeHashtagRule(limit);
 }
 
 const replyChain = (

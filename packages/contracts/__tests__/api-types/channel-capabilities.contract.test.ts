@@ -7,7 +7,6 @@ import {
 import {
   channelTargetValidationResultSchema,
   getChannelCapability,
-  getChannelHashtagLimit,
   getChannelThreadChildCapability,
   getSupportedPostVisibilities,
   listChannelCapabilities,
@@ -16,6 +15,7 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '../../src/api-types/contracts/channel-capabilities.contract';
+import { getChannelHashtagLimit } from '../../src/api-types/contracts/channel-hashtags.contract';
 import {
   buildXQuoteIntentUrl,
   isManualPostErrorCode,
