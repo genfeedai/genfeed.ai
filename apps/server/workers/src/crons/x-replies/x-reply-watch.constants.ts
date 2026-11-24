@@ -7,7 +7,7 @@
 const X_REPLY_WATCH_INTERVAL_MINUTES = 60;
 const X_REPLY_WATCH_WINDOW_HOURS = 24;
 
-/** Top of every hour: `*/60` is not a valid step for the minute field. */
+// Top of every hour: a step of 60 is not valid in the minute field.
 export const X_REPLY_WATCH_SCHEDULE = '0 * * * *';
 const X_REPLY_WATCH_INTERVAL_MS = X_REPLY_WATCH_INTERVAL_MINUTES * 60_000;
 export const X_REPLY_WATCH_WINDOW_MS = X_REPLY_WATCH_WINDOW_HOURS * 3_600_000;
