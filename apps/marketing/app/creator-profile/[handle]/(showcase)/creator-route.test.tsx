@@ -52,7 +52,7 @@ const {
   getPublicBrandBySlug,
   resolveCreatorPlatform,
 } = await import('./creator-loader');
-const { CreatorOverview } = await import('./creator-view');
+const { CreatorOverview, CreatorTab } = await import('./creator-view');
 
 function page<T>(items: T[], total = items.length): IPaginatedResponse<T> {
   return {
@@ -272,6 +272,17 @@ describe('CreatorOverview', () => {
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeVisible();
   });
 
+  it('shows each count in its tab label only, never as separate text', async () => {
+    render(await CreatorOverview({ handle: 'acme' }));
+
+    // 12 articles: the tab link reads "Articles 12", and nothing else on the
+    // page repeats the number as "12 articles" or beside a section title.
+    expect(screen.queryByText(/\b12\b\s+articles?/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Articles' }),
+    ).toBeVisible();
+  });
+
   it('answers with a 404 when the handle is unknown or not public', async () => {
     findPublicProfileBySlug.mockResolvedValue(null);
     const element = (await CreatorProfilePage({
@@ -281,5 +292,18 @@ describe('CreatorOverview', () => {
     await expect(
       CreatorOverview({ handle: element.props.handle }),
     ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
+  });
+});
+
+describe('CreatorTab', () => {
+  it('lists the work without repeating the total under the tabs', async () => {
+    render(await CreatorTab({ handle: 'acme', page: 1, tab: 'articles' }));
+
+    const tabs = screen.getByRole('navigation', { name: 'Profile sections' });
+    expect(
+      within(tabs).getByRole('link', { name: 'Articles 12' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /Launch week/ })).toBeVisible();
+    expect(screen.queryByText(/12 articles/i)).not.toBeInTheDocument();
   });
 });

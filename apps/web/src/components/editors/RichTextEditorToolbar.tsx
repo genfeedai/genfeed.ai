@@ -3,6 +3,7 @@
 import {
   AI_ACTION_LABELS,
   AiActionType,
+  ButtonSize,
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/contracts';
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
+import { Toggle } from '@ui/primitives/toggle';
 import {
   Bold,
   Code,
@@ -24,8 +26,31 @@ import {
   Sparkles,
   Strikethrough,
 } from 'lucide-react';
-import type { RichTextEditorAiConfig } from '@/props/components/rich-text-editor.props';
+import type {
+  RichTextEditorAiConfig,
+  RichTextEditorFormatToggleProps,
+} from '@/props/components/rich-text-editor.props';
 import GenerationInsertButton from './GenerationInsertButton';
+
+function FormatToggle({
+  children,
+  editor,
+  label,
+  mark,
+  onToggle,
+}: RichTextEditorFormatToggleProps) {
+  return (
+    <Toggle
+      aria-label={label}
+      onPressedChange={onToggle}
+      pressed={editor.isActive(mark)}
+      size="sm"
+      title={label}
+    >
+      {children}
+    </Toggle>
+  );
+}
 
 const AI_EDITOR_ACTIONS = [
   AiActionType.GRAMMAR_CHECK,
@@ -101,51 +126,43 @@ export default function RichTextEditorToolbar({
 
       {shouldShowHeadings && <div className="w-px h-6 bg-border mx-1" />}
 
-      <Button
-        withWrapper={false}
-        variant={ButtonVariant.UNSTYLED}
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={`h-8 px-2 ${editor.isActive('bold') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-        title="Bold"
-        ariaLabel="Bold"
+      <FormatToggle
+        editor={editor}
+        label="Bold"
+        mark="bold"
+        onToggle={() => editor.chain().focus().toggleBold().run()}
       >
         <Bold className="size-4" />
-      </Button>
+      </FormatToggle>
 
-      <Button
-        withWrapper={false}
-        variant={ButtonVariant.UNSTYLED}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={`h-8 px-2 ${editor.isActive('italic') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-        title="Italic"
-        ariaLabel="Italic"
+      <FormatToggle
+        editor={editor}
+        label="Italic"
+        mark="italic"
+        onToggle={() => editor.chain().focus().toggleItalic().run()}
       >
         <Italic className="size-4" />
-      </Button>
+      </FormatToggle>
 
       {shouldShowAdvancedFormatting && (
         <>
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            className={`h-8 px-2 ${editor.isActive('strike') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-            title="Strikethrough"
-            ariaLabel="Strikethrough"
+          <FormatToggle
+            editor={editor}
+            label="Strikethrough"
+            mark="strike"
+            onToggle={() => editor.chain().focus().toggleStrike().run()}
           >
             <Strikethrough className="size-4" />
-          </Button>
+          </FormatToggle>
 
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            onClick={() => editor.chain().focus().toggleCode().run()}
-            className={`h-8 px-2 ${editor.isActive('code') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-            title="Code"
-            ariaLabel="Code"
+          <FormatToggle
+            editor={editor}
+            label="Code"
+            mark="code"
+            onToggle={() => editor.chain().focus().toggleCode().run()}
           >
             <Code className="size-4" />
-          </Button>
+          </FormatToggle>
         </>
       )}
 
@@ -154,27 +171,23 @@ export default function RichTextEditorToolbar({
       {/* Lists */}
       {shouldShowLists && (
         <>
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`h-8 px-2 ${editor.isActive('bulletList') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-            title="Bullet List"
-            ariaLabel="Bullet List"
+          <FormatToggle
+            editor={editor}
+            label="Bullet List"
+            mark="bulletList"
+            onToggle={() => editor.chain().focus().toggleBulletList().run()}
           >
             <List className="size-4" />
-          </Button>
+          </FormatToggle>
 
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`h-8 px-2 ${editor.isActive('orderedList') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-            title="Numbered List"
-            ariaLabel="Numbered List"
+          <FormatToggle
+            editor={editor}
+            label="Numbered List"
+            mark="orderedList"
+            onToggle={() => editor.chain().focus().toggleOrderedList().run()}
           >
             <List className="size-4" />
-          </Button>
+          </FormatToggle>
         </>
       )}
 
@@ -184,29 +197,25 @@ export default function RichTextEditorToolbar({
 
       {/* Blockquote & Code Block */}
       {shouldShowBlockquote && (
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`h-8 px-2 ${editor.isActive('blockquote') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-          title="Blockquote"
-          ariaLabel="Blockquote"
+        <FormatToggle
+          editor={editor}
+          label="Blockquote"
+          mark="blockquote"
+          onToggle={() => editor.chain().focus().toggleBlockquote().run()}
         >
           &quot;
-        </Button>
+        </FormatToggle>
       )}
 
       {shouldShowCodeBlock && (
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`h-8 px-2 ${editor.isActive('codeBlock') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-          title="Code Block"
-          ariaLabel="Code Block"
+        <FormatToggle
+          editor={editor}
+          label="Code Block"
+          mark="codeBlock"
+          onToggle={() => editor.chain().focus().toggleCodeBlock().run()}
         >
           {'</>'}
-        </Button>
+        </FormatToggle>
       )}
 
       {isGenerationInsertEnabled && (
@@ -226,9 +235,9 @@ export default function RichTextEditorToolbar({
               <Button
                 key={action}
                 withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.XS}
                 onClick={() => handleAiAction(action)}
-                className="h-8 px-2 hover:bg-accent hover:text-accent-foreground"
                 title={AI_ACTION_LABELS[action]}
                 ariaLabel={AI_ACTION_LABELS[action]}
                 isDisabled={activeAiAction !== null || !value}
