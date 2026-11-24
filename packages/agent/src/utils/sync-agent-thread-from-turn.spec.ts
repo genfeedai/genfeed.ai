@@ -1,5 +1,5 @@
 import { createAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { syncAgentThreadFromTurn } from './sync-agent-thread-from-turn';
 
@@ -39,7 +39,6 @@ describe('syncAgentThreadFromTurn', () => {
       brandId: 'brand-1',
       contextVersion: 2,
       createdAt: '2026-03-20T10:00:00.000Z',
-      mode: AgentThreadMode.PLAN,
       threadId: 'thread-new',
       title: 'Design a launch campaign',
     });
@@ -51,7 +50,6 @@ describe('syncAgentThreadFromTurn', () => {
         contextVersion: 2,
         createdAt: '2026-03-20T10:00:00.000Z',
         id: 'thread-new',
-        mode: AgentThreadMode.PLAN,
         status: AgentThreadStatus.ACTIVE,
         title: 'Design a launch campaign',
         updatedAt: NOW,
@@ -72,7 +70,6 @@ describe('syncAgentThreadFromTurn', () => {
         contextVersion: 1,
         createdAt: NOW,
         id: 'thread-1',
-        mode: undefined,
         status: AgentThreadStatus.ACTIVE,
         title: 'Same thread',
         updatedAt: NOW,

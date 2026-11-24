@@ -21,11 +21,6 @@ export interface GenerationHarnessSettingsCardProps {
   settings: GenerationHarnessSettings | null;
 }
 
-export interface GenerationHarnessSettingsPopoverProps {
-  className?: string;
-  isDisabled?: boolean;
-}
-
 export interface GenerationHarnessReceiptProps {
   receipt: GenerationHarnessReceipt;
 }

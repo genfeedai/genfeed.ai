@@ -38,11 +38,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ThreadAttentionState = 'needs-input' | 'running' | 'updated' | null;
 
@@ -135,44 +131,6 @@ export class AgentThreadsService extends BaseService<
     )
       ? (setting?.agentMode as AgentThreadMode)
       : AgentThreadMode.MANUAL;
-  }
-
-  async updateAgentMode(
-    userId: string,
-    organizationId: string,
-    mode: AgentThreadMode,
-    threadId?: string,
-  ) {
-    if (!Object.values(AgentThreadMode).includes(mode))
-      throw new BadRequestException('Invalid agent mode.');
-    return this.prisma.$transaction(async (transaction) => {
-      if (threadId) {
-        const updated = await transaction.agentThread.updateMany({
-          where: {
-            id: threadId,
-            organizationId,
-            userId,
-            isDeleted: false,
-            status: AgentThreadStatus.ACTIVE,
-          },
-          data: { mode },
-        });
-        if (updated.count !== 1)
-          throw new NotFoundException('Thread', threadId);
-      }
-      const setting = await transaction.setting.upsert({
-        where: { userId },
-        create: { userId, agentMode: mode },
-        update: { agentMode: mode },
-        select: { isDeleted: true },
-      });
-      if (setting.isDeleted) {
-        throw new ConflictException(
-          'The user setting is deleted. Agent mode was not changed.',
-        );
-      }
-      return { mode, threadId };
-    });
   }
 
   // Returns one page of the user's threads, newest first, plus the total.

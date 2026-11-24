@@ -24,7 +24,7 @@ export const CONTENT_ICON_CLASS = 'size-4 shrink-0';
  */
 export const SHELL_ICON_SVG_CLASS = '[&_svg]:size-3.5';
 
-/** Prompt-bar chip (Agent mode, Studio type, Enhance, `+`): icon + label + chevron. */
+/** Prompt-bar chip (Studio type, Enhance, `+`): icon + label + chevron. */
 export const PROMPT_BAR_CHIP_CLASS =
   'h-8 shrink-0 gap-1.5 px-2 text-xs text-foreground';
 

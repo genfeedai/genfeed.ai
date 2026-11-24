@@ -7,7 +7,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
-import { ConflictException } from '@nestjs/common';
 import { ConfigService as EnvironmentConfigService } from '@nestjs/config';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -164,48 +163,12 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
     resolve.mockRestore();
   });
 
-  it.each([undefined, threadId])(
-    'rolls back mode changes for a deleted setting (thread %s)',
-    async (selectedThread) => {
-      await prisma.setting.upsert({
-        where: { userId },
-        create: { userId, agentMode: 'manual', isDeleted: true },
-        update: { agentMode: 'manual', isDeleted: true },
-      });
-      const service = new AgentThreadsService(prisma, {} as never, {} as never);
-      await expect(
-        service.updateAgentMode(
-          userId,
-          organizationId,
-          AgentThreadMode.AUTO,
-          selectedThread,
-        ),
-      ).rejects.toBeInstanceOf(ConflictException);
-      expect(
-        await prisma.setting.findUnique({ where: { userId } }),
-      ).toMatchObject({ agentMode: 'manual', isDeleted: true });
-      expect(
-        await prisma.agentThread.findFirst({
-          where: { id: threadId, organizationId, isDeleted: false },
-        }),
-      ).toMatchObject({ mode: 'manual' });
-    },
-  );
-  it('saves absent and current active settings normally', async () => {
-    await prisma.setting.deleteMany({ where: { userId } });
+  it('reads the saved agent mode for new threads: Manual when absent, otherwise the setting', async () => {
     const service = new AgentThreadsService(prisma, {} as never, {} as never);
-    await service.updateAgentMode(
-      userId,
-      organizationId,
-      AgentThreadMode.AUTO,
-      threadId,
-    );
-    expect(await service.resolveSavedMode(userId)).toBe(AgentThreadMode.AUTO);
-    await service.updateAgentMode(userId, organizationId, AgentThreadMode.PLAN);
+    await prisma.setting.deleteMany({ where: { userId } });
+    expect(await service.resolveSavedMode(userId)).toBe(AgentThreadMode.MANUAL);
+    await prisma.setting.create({ data: { userId, agentMode: 'plan' } });
     expect(await service.resolveSavedMode(userId)).toBe(AgentThreadMode.PLAN);
-    expect(
-      await prisma.setting.findUnique({ where: { userId } }),
-    ).toMatchObject({ agentMode: 'plan', isDeleted: false });
   });
 
   it('releases admission locks before the provider and completes after a real archive and scope switch', async () => {

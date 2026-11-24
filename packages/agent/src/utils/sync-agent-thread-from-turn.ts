@@ -1,12 +1,11 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import { type AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 
 export interface SyncAgentThreadFromTurnInput {
   activeThreadId: string | null;
   brandId?: string | null;
   contextVersion?: number;
   createdAt?: string;
-  mode?: AgentThreadMode;
   setActiveThread: (threadId: string | null) => void;
   threadId: string;
   title: string;
@@ -30,7 +29,6 @@ export function syncAgentThreadFromTurn(
     contextVersion: input.contextVersion ?? 1,
     createdAt: input.createdAt ?? now,
     id: input.threadId,
-    mode: input.mode,
     status: AgentThreadStatus.ACTIVE,
     title: input.title,
     updatedAt: now,
