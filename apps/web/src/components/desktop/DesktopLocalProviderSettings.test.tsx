@@ -197,7 +197,7 @@ describe('DesktopLocalProviderSettings', () => {
       await screen.findByText(/Configure a local OpenAI-compatible provider/),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'OpenAI-compatible' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'OpenAI-compatible' }));
     expect(screen.getByLabelText('Local provider base URL')).toHaveValue(
       'http://localhost:8000/v1',
     );
@@ -229,7 +229,7 @@ describe('DesktopLocalProviderSettings', () => {
   it('tests the current provider payload and reports latency', async () => {
     render(<DesktopLocalProviderSettings />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'fal.ai' }));
+    fireEvent.click(await screen.findByRole('radio', { name: 'fal.ai' }));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
 
     await waitFor(() => {

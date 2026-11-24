@@ -146,22 +146,7 @@
     "apps/web/src/components/app-catalog/AppCatalogCard.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/cloud-sync-indicator/CloudSyncIndicator.tsx": {
-      "unstyled-look": 2
-    },
     "apps/web/src/components/command-palette/command-palette-item/CommandPaletteItem.tsx": {
-      "unstyled-look": 1
-    },
-    "apps/web/src/components/desktop/DesktopLocalProviderSettings.tsx": {
-      "unstyled-look": 4
-    },
-    "apps/web/src/components/desktop/DesktopServerSettings.tsx": {
-      "unstyled-look": 3
-    },
-    "apps/web/src/components/evaluation/card/EvaluationCard.tsx": {
-      "unstyled-look": 2
-    },
-    "apps/web/src/components/evaluation/seo-scorecard/SeoScorecard.tsx": {
       "unstyled-look": 1
     },
     "apps/web/src/components/folders/sidebar/FoldersSidebar.tsx": {
@@ -231,10 +216,10 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.tsx": {
-      "button-restyle": 7
+      "button-restyle": 1
     },
     "apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx": {
-      "button-restyle": 6
+      "button-restyle": 1
     },
     "apps/web/src/components/prompt-bars/components/frame-controls/PromptBarFrameControls.tsx": {
       "button-restyle": 2,
