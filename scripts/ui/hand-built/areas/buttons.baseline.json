@@ -181,14 +181,10 @@
       "button-restyle": 1
     },
     "apps/web/src/components/shell/NotificationInboxPanel.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/src/components/shell/TopbarAppsLink.tsx": {
       "button-restyle": 1
-    },
-    "apps/web/src/components/shell/app-rail/AppRailMore.tsx": {
-      "button-restyle": 2
     },
     "apps/web/src/components/tags/library-tag-picker/TagColorPicker.tsx": {
       "unstyled-look": 1
@@ -201,9 +197,6 @@
     },
     "apps/web/src/components/workspace-shell/AgentDockHistory.tsx": {
       "button-restyle": 1
-    },
-    "apps/web/src/components/workspace-shell/use-conversation-scope-controls.tsx": {
-      "button-restyle": 2
     },
     "apps/web/src/features/activities/components/ActivityThumbnailCell.tsx": {
       "unstyled-look": 2
@@ -275,23 +268,10 @@
       "button-restyle": 1,
       "unstyled-look": 1
     },
-    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupCustomizePanel.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupFieldRow.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupPresetsSection.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupSectionChips.tsx": {
       "button-restyle": 2
     },
-    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupStepSlider.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/features/studio/components/prompt-bars/components/context-row/PromptBarContextRow.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/src/features/studio/playground/components/StudioIdentityFields.tsx": {
