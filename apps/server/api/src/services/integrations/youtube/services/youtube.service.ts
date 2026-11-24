@@ -6,11 +6,11 @@ import {
 } from '@api/server.dependencies';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { google, type youtube_v3 } from 'googleapis';
 import { YoutubeAnalyticsService } from './modules/youtube-analytics.service';
 import { YoutubeAuthService } from './modules/youtube-auth.service';
 import { YoutubeCommentsService } from './modules/youtube-comments.service';
@@ -58,7 +58,7 @@ export class YoutubeService {
   ) {
     // Create YouTube API client without default auth
     // Each API call will pass its own per-request auth to avoid race conditions
-    this.youtubeAPI = google.youtube({
+    this.youtubeAPI = youtube({
       version: 'v3',
       // No default auth - per-request auth will be passed to each API call
     });
@@ -70,7 +70,7 @@ export class YoutubeService {
         ? apiKey
         : undefined;
     this.youtubeDataApiConfigured = auth !== undefined;
-    this.youtubeDataAPI = google.youtube({
+    this.youtubeDataAPI = youtube({
       auth,
       version: 'v3',
     });

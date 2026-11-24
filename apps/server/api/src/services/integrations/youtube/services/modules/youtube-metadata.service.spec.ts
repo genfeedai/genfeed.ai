@@ -8,14 +8,12 @@ const mockVideosList = vi.fn();
 const mockChannelsList = vi.fn();
 const mockPlaylistItemsList = vi.fn();
 
-vi.mock('googleapis', () => ({
-  google: {
-    youtube: () => ({
-      channels: { list: mockChannelsList },
-      playlistItems: { list: mockPlaylistItemsList },
-      videos: { list: mockVideosList },
-    }),
-  },
+vi.mock('@googleapis/youtube', () => ({
+  youtube: () => ({
+    channels: { list: mockChannelsList },
+    playlistItems: { list: mockPlaylistItemsList },
+    videos: { list: mockVideosList },
+  }),
 }));
 
 describe('YoutubeMetadataService', () => {

@@ -1,4 +1,5 @@
-import { ElevenLabsError } from '@elevenlabs/elevenlabs-js';
+// The error class alone: the package index would build the whole SDK.
+import { ElevenLabsError } from '@elevenlabs/elevenlabs-js/errors/ElevenLabsError';
 import { BadRequestException } from '@nestjs/common';
 
 export type ElevenLabsFailureKind =

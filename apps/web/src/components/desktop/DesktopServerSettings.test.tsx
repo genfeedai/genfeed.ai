@@ -125,7 +125,7 @@ describe('DesktopServerSettings', () => {
     render(<DesktopServerSettings />);
     await screen.findByText(/Connected to Genfeed Cloud\./);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Self-hosted' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Self-hosted' }));
     fireEvent.change(
       screen.getByPlaceholderText('https://api.example.com/v1'),
       {
@@ -163,7 +163,7 @@ describe('DesktopServerSettings', () => {
     render(<DesktopServerSettings />);
     await screen.findByText(/Connected to Genfeed Cloud\./);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Self-hosted' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Self-hosted' }));
     fireEvent.change(
       screen.getByPlaceholderText('https://api.example.com/v1'),
       {

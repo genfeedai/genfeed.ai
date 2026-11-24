@@ -1,5 +1,4 @@
-import type { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 
 export type YoutubeOAuthClient = OAuth2Client;
 
@@ -33,10 +32,6 @@ export const YoutubeOAuth2Util = {
     clientSecret: string,
     redirectUri: string,
   ): YoutubeOAuthClient {
-    return new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      redirectUri,
-    ) as unknown as YoutubeOAuthClient;
+    return new OAuth2Client(clientId, clientSecret, redirectUri);
   },
 };

@@ -5,7 +5,11 @@ import {
 } from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import './instrument';
 
-import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
+import {
+  bootstrap,
+  configureLoadBalancerKeepAlive,
+  setupGracefulShutdown,
+} from '@libs/bootstrap';
 
 bootstrap({ app: 'api' });
 
@@ -66,7 +70,11 @@ import {
   shouldAllowLocalCorsOrigins,
 } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { eventLoopLagSampler } from '@libs/logger/wide-event/wide-event.event-loop';
+import {
+  createMajorGcLogListener,
+  eventLoopLagSampler,
+  scheduleHeapBaselineLog,
+} from '@libs/logger/wide-event/wide-event.event-loop';
 import { createWideEventMiddleware } from '@libs/logger/wide-event/wide-event.http';
 import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import {
@@ -194,8 +202,9 @@ async function main() {
     );
     app.enableShutdownHooks();
 
-    // Lets a slow request's wide event say whether the process was blocked.
-    eventLoopLagSampler.start();
+    // Lets a slow request's wide event say whether the process was blocked,
+    // and logs every full collection with its marking time and live heap.
+    eventLoopLagSampler.start(createMajorGcLogListener(logger));
 
     // One wide event per request, started before CORS, rate limiting and auth
     // so rejected requests are recorded too. Handlers enrich it through
@@ -501,6 +510,10 @@ async function main() {
       },
     });
 
+    // The load balancer idles a connection for 60 s; Node's own 5 s would drop
+    // it first and turn a reused connection into a 502 the API never sees.
+    configureLoadBalancerKeepAlive(app.getHttpServer());
+
     bootstrapLogger.log(`API bootstrap: starting listener on port ${port}`);
     await withStartupTimeout(
       app.listen(port),
@@ -508,6 +521,7 @@ async function main() {
       `API listen timed out after ${apiListenTimeoutMs}ms before serving port ${port}`,
     );
     bootstrapLogger.log(`API bootstrap: listener ready on port ${port}`);
+    scheduleHeapBaselineLog(logger);
     logger.debug(`API service is running on port ${port}`);
   } catch (error: unknown) {
     logger?.error('Failed to start API service:', error);
