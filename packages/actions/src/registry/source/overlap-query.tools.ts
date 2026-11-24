@@ -9,6 +9,11 @@ import type { ToolParameterSchema } from '../../interfaces/tool-definition.inter
  */
 export const REQUEST_MEDIA_UPLOAD_PARAMETERS: ToolParameterSchema = {
   properties: {
+    brandId: {
+      description:
+        'Brand that owns the upload; it lists under this brand in the Library. Required over MCP when the organization has more than one brand: call get_context(action=brands) and pass one of its ids.',
+      type: 'string',
+    },
     category: {
       default: 'image',
       description: 'Media category for the pending asset.',

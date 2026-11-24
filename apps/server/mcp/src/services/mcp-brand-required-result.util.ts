@@ -49,6 +49,6 @@ export function brandChoiceToolResult(brands: McpBrandOption[]) {
   return mcpToolErrorResult({
     brands,
     code: 'brand_required',
-    message: `Choose a brand for this draft: pass its id as brandId. Available brands: ${listBrandLabels(brands, true)}.`,
+    message: `Choose a brand for this call: pass its id as brandId. Available brands: ${listBrandLabels(brands, true)}.`,
   });
 }
