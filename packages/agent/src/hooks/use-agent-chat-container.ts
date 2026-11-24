@@ -55,6 +55,7 @@ import type {
   AttachmentItem,
   ChatAttachment,
 } from '@genfeedai/props/ui/attachments.props';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import {
   useCallback,
@@ -672,7 +673,9 @@ export function useAgentChatContainer({
           return;
         }
 
-        await navigator.clipboard.writeText(content);
+        if (!(await ClipboardService.getInstance().copyToClipboard(content))) {
+          setError('Failed to copy content to clipboard.');
+        }
       } catch {
         setError('Failed to copy content to clipboard.');
       }

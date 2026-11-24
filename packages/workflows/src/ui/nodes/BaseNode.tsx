@@ -18,6 +18,7 @@ import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Progress } from '@genfeedai/ui/primitives/progress';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import { CopyButton } from '@ui/buttons/CopyButton';
 import {
   Handle,
   type NodeProps,
@@ -375,7 +376,6 @@ interface BaseNodeContentProps {
   nodeExecuting: boolean;
   nodeId: string;
   nodeType: string;
-  onCopyError: (e: React.MouseEvent) => void;
   onRetry: (e: React.MouseEvent) => void;
 }
 
@@ -385,7 +385,6 @@ function BaseNodeContent({
   nodeExecuting,
   nodeId,
   nodeType,
-  onCopyError,
   onRetry,
 }: BaseNodeContentProps) {
   return (
@@ -407,15 +406,7 @@ function BaseNodeContent({
                 <RotateCcw className="size-3.5" />
                 Retry
               </Button>
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                onClick={onCopyError}
-                title="Copy error"
-              >
-                <Copy className="size-3.5" />
-              </Button>
+              <CopyButton label="Copy error" value={nodeData.error} />
             </AlertActions>
           </Alert>
         )}
@@ -573,26 +564,6 @@ function BaseNodeComponent({
     ],
   );
 
-  const handleCopyError = useCallback(
-    async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeData.error) {
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(nodeData.error);
-        } else {
-          const textArea = document.createElement('textarea');
-          textArea.value = nodeData.error;
-          textArea.style.cssText = 'position: fixed; opacity: 0;';
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-        }
-      }
-    },
-    [nodeData.error],
-  );
-
   // Hover handlers for preview tooltip
   const handleMouseEnter = useCallback(() => {
     // Start delay timer
@@ -738,7 +709,6 @@ function BaseNodeComponent({
             nodeExecuting={nodeExecuting}
             nodeId={id}
             nodeType={type as string}
-            onCopyError={handleCopyError}
             onRetry={handleRetry}
           >
             {normalizedChildren}

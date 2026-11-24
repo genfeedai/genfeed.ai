@@ -10,6 +10,7 @@ import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -143,11 +144,13 @@ export default function AgentFailuresPage() {
   }
 
   async function copyDetails(run: IWorkflowExecution) {
-    try {
-      await navigator.clipboard.writeText(buildFailureClipboardText(run));
+    if (
+      await ClipboardService.getInstance().copyToClipboard(
+        buildFailureClipboardText(run),
+        { isSilent: true },
+      )
+    ) {
       setCopiedId(run.id);
-    } catch (error) {
-      logger.error('Failed to copy agent failure', error);
     }
   }
 

@@ -46,7 +46,15 @@ type NotificationKind = 'error' | 'success';
  * page that has a copy button: the write itself runs straight from the click,
  * inside the browser's user activation.
  */
-async function notify(kind: NotificationKind, message: string): Promise<void> {
+async function notify(
+  kind: NotificationKind,
+  message: string,
+  options?: ClipboardCopyOptions,
+): Promise<void> {
+  if (options?.isSilent) {
+    return;
+  }
+
   try {
     const { NotificationsService } = await import(
       '@services/core/notifications.service'
@@ -55,6 +63,15 @@ async function notify(kind: NotificationKind, message: string): Promise<void> {
   } catch (error) {
     deferredLogger.error('Copy notification failed to load', error);
   }
+}
+
+export interface ClipboardCopyOptions {
+  /** The caller already shows the outcome (a check mark, an inline error): no toast. */
+  isSilent?: boolean;
+  /** Replaces "Copied to clipboard", for a copy that should say what it copied. */
+  successMessage?: string;
+  /** Replaces "Copy to clipboard failed". */
+  errorMessage?: string;
 }
 
 export class ClipboardService {
@@ -71,7 +88,12 @@ export class ClipboardService {
     return ClipboardService.classInstance;
   }
 
-  public async copyToClipboard(text?: string): Promise<boolean> {
+  public async copyToClipboard(
+    text?: string,
+    options?: ClipboardCopyOptions,
+  ): Promise<boolean> {
+    const successMessage = options?.successMessage ?? 'Copied to clipboard';
+    const errorMessage = options?.errorMessage ?? 'Copy to clipboard failed';
     this.isCopying = true;
     const payload = text ?? '';
 
@@ -83,16 +105,16 @@ export class ClipboardService {
       } else if (!writeTextViaExecCommand(payload)) {
         throw new Error('Clipboard write is unavailable in this environment');
       }
-      await notify('success', 'Copied to clipboard');
+      await notify('success', successMessage, options);
       return true;
     } catch (error) {
       // Prefer silent fallback before surfacing failure.
       if (writeTextViaExecCommand(payload)) {
-        await notify('success', 'Copied to clipboard');
+        await notify('success', successMessage, options);
         return true;
       } else {
         deferredLogger.error('Copy to clipboard failed', error);
-        await notify('error', 'Copy to clipboard failed');
+        await notify('error', errorMessage, options);
         return false;
       }
     } finally {

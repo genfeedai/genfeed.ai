@@ -1,13 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
 import { summarizeAgentToolResult } from '@genfeedai/utils/agent/summarize-agent-tool-result';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
-import { Button } from '@ui/primitives/button';
-import { Check, Clipboard } from 'lucide-react';
+import { CopyButton } from '@ui/buttons/CopyButton';
 import type { ReactElement } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 interface ToolCallDetailPanelProps {
   debug?: StructuredProgressDebugPayload;
@@ -22,7 +21,6 @@ export function ToolCallDetailPanel({
   parameters,
   resultSummary,
 }: ToolCallDetailPanelProps): ReactElement {
-  const [copied, setCopied] = useState(false);
   const resolvedParameters = parameters ?? debug?.parameters;
   const rawOutput =
     typeof debug?.rawOutput === 'string' && debug.rawOutput.trim().length > 0
@@ -38,20 +36,6 @@ export function ToolCallDetailPanel({
 
     return parts.length > 0 ? parts : undefined;
   }, [error, rawOutput, readableResult]);
-
-  const handleCopy = async (): Promise<void> => {
-    if (!copyValue) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(copyValue);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   return (
     <div className="border-t border-border px-2.5 py-2 space-y-2">
@@ -88,20 +72,13 @@ export function ToolCallDetailPanel({
       )}
       {copyValue && (
         <div className="flex items-center justify-end pt-1">
-          <Button
-            variant={ButtonVariant.GHOST}
+          <CopyButton
+            copiedLabel="Copied error details"
+            label="Copy error details"
             size={ButtonSize.XS}
-            tooltip={copied ? 'Copied' : 'Copy error details'}
             tooltipPosition="top"
-            ariaLabel={copied ? 'Copied error details' : 'Copy error details'}
-            onClick={() => void handleCopy()}
-          >
-            {copied ? (
-              <Check className="size-3.5 text-success" />
-            ) : (
-              <Clipboard className="size-3.5" />
-            )}
-          </Button>
+            value={copyValue}
+          />
         </div>
       )}
     </div>

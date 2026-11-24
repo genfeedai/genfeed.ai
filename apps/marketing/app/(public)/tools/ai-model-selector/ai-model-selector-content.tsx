@@ -12,6 +12,7 @@ import {
 import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AiModelSelectorProps } from '@props/tools/ai-model-selector.props';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
@@ -71,21 +72,22 @@ export default function AiModelSelectorContent({
   const FormatIcon = FORMAT_ICONS[format];
 
   async function copyShortlist(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(
-        [
-          `AI model shortlist for ${format} — ${priority}`,
-          ...shortlist.map(
-            (model) =>
-              `${model.label} (${model.provider}) — ${model.key}\nCost: ${model.costTier ?? 'not listed'}; speed: ${model.speedTier ?? 'not listed'}; quality: ${model.qualityTier ?? 'not listed'}`,
-          ),
-          'Catalog matches, not benchmark rankings. https://genfeed.ai/tools/ai-model-selector',
-        ].join('\n\n'),
-      );
-      setCopyStatus('Shortlist copied.');
-    } catch {
-      setCopyStatus('Could not copy. Select the model names to copy manually.');
-    }
+    const didCopy = await ClipboardService.getInstance().copyToClipboard(
+      [
+        `AI model shortlist for ${format} — ${priority}`,
+        ...shortlist.map(
+          (model) =>
+            `${model.label} (${model.provider}) — ${model.key}\nCost: ${model.costTier ?? 'not listed'}; speed: ${model.speedTier ?? 'not listed'}; quality: ${model.qualityTier ?? 'not listed'}`,
+        ),
+        'Catalog matches, not benchmark rankings. https://genfeed.ai/tools/ai-model-selector',
+      ].join('\n\n'),
+      { isSilent: true },
+    );
+    setCopyStatus(
+      didCopy
+        ? 'Shortlist copied.'
+        : 'Could not copy. Select the model names to copy manually.',
+    );
   }
 
   return (

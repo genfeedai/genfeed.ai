@@ -5,6 +5,7 @@ import {
   buildXQuoteIntentUrl,
   parseXQuotedPostId,
 } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -45,10 +46,9 @@ export default function ReleaseManualPostCard({
     trimmedUrl.length > 0 && parseXQuotedPostId(trimmedUrl) === undefined;
 
   function handleCopy(): void {
-    void navigator.clipboard
-      .writeText(caption)
-      .then(() => setIsCopied(true))
-      .catch(() => setIsCopied(false));
+    void ClipboardService.getInstance()
+      .copyToClipboard(caption, { isSilent: true })
+      .then(setIsCopied);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {

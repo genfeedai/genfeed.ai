@@ -5,7 +5,8 @@ import { Pre } from '@genfeedai/ui';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
-import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
+import { CopyButton } from '@ui/buttons/CopyButton';
+import { Bug, ChevronDown, ChevronRight, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
 import type { DebugPayload } from '../stores/execution/types';
@@ -18,36 +19,6 @@ interface PayloadCardProps {
 
 function PayloadCard({ payload }: PayloadCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(
-    async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      try {
-        await navigator.clipboard.writeText(
-          JSON.stringify(payload.input, null, 2),
-        );
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        // Clipboard access denied - fallback to execCommand
-        const textArea = document.createElement('textarea');
-        textArea.value = JSON.stringify(payload.input, null, 2);
-        textArea.style.cssText = 'position: fixed; left: -9999px;';
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch {
-          // Both methods failed
-        }
-        document.body.removeChild(textArea);
-      }
-    },
-    [payload.input],
-  );
 
   const timestamp = new Date(payload.timestamp).toLocaleTimeString();
 
@@ -85,16 +56,11 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <span className="text-2xs font-medium text-muted-foreground uppercase">
               Payload
             </span>
-            <Button
-              withWrapper={false}
-              variant={ButtonVariant.LINK}
-              size={ButtonSize.INLINE}
-              onClick={handleCopy}
-              className="flex items-center gap-1 text-2xs text-primary"
-            >
-              <Copy className="size-3.5" />
-              {copied ? 'Copied!' : 'Copy'}
-            </Button>
+            <CopyButton
+              label="Copy payload"
+              size={ButtonSize.XS}
+              value={JSON.stringify(payload.input, null, 2)}
+            />
           </div>
           <Pre variant="debug" size="xs" className="text-2xs">
             {JSON.stringify(payload.input, null, 2)}

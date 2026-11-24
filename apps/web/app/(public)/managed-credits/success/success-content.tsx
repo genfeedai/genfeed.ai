@@ -11,6 +11,7 @@ import {
   isManagedCreditsTransientError,
   ManagedCreditsService,
 } from '@services/billing/managed-credits.service';
+import { ClipboardService } from '@services/core/clipboard.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
@@ -176,12 +177,15 @@ function ManagedCreditsSuccessContentInner() {
   }, [sessionId, shouldTrackOnboardingCheckout]);
 
   const copyValue = useCallback(async (target: CopyTarget, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
+    if (
+      await ClipboardService.getInstance().copyToClipboard(value, {
+        isSilent: true,
+      })
+    ) {
       setCopiedTarget(target);
       setState((previous) => ({ ...previous, copyError: null }));
       window.setTimeout(() => setCopiedTarget(null), 2000);
-    } catch {
+    } else {
       setCopiedTarget(null);
       setState((previous) => ({
         ...previous,
