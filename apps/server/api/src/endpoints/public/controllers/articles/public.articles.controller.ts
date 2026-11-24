@@ -20,6 +20,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { articleReadingTimeMinutes } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -27,6 +28,7 @@ import type {
 import {
   PublicArticleGenerationSerializer,
   PublicArticleSerializer,
+  PublicArticleSummarySerializer,
 } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
@@ -181,10 +183,16 @@ export class PublicArticlesController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
-    data.docs = data.docs.map((doc) =>
-      withholdGatedContent(stripPrivateBrand(doc)),
-    );
-    return serializeCollection(request, PublicArticleSerializer, data);
+    // A list never renders the body, and the body is most of its bytes (522 KB
+    // for 53 articles). Each item carries the reading time instead.
+    data.docs = data.docs.map((doc) => {
+      const article = withholdGatedContent(stripPrivateBrand(doc));
+      return {
+        ...article,
+        readingTimeMinutes: articleReadingTimeMinutes(article.content),
+      };
+    });
+    return serializeCollection(request, PublicArticleSummarySerializer, data);
   }
 
   @Get('slug/:slug')

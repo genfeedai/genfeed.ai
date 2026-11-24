@@ -1,9 +1,11 @@
 import { Article as BaseArticle } from '@genfeedai/client/models';
+import {
+  ARTICLE_WORDS_PER_MINUTE,
+  countArticleWords,
+} from '@genfeedai/contracts/constants';
 import { User } from '@models/auth/user.model';
 import { Tag } from '@models/content/tag.model';
 import { Brand } from '@models/organization/brand.model';
-
-const WHITESPACE_RUN_PATTERN = /\s+/;
 
 export class Article extends BaseArticle {
   constructor(partial: Partial<Article>) {
@@ -23,14 +25,15 @@ export class Article extends BaseArticle {
   }
 
   get wordCount(): number {
-    if (!this.content) {
-      return 0;
-    }
-    return this.content.split(WHITESPACE_RUN_PATTERN).length;
+    return countArticleWords(this.content);
   }
 
   get readingTime(): number {
-    return Math.ceil(this.wordCount / 200);
+    // The public list sends the minutes and leaves the body out.
+    return (
+      this.readingTimeMinutes ??
+      Math.ceil(this.wordCount / ARTICLE_WORDS_PER_MINUTE)
+    );
   }
 
   get author(): string | undefined {

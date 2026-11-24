@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   PublicArticleGenerationSerializer,
   PublicArticleSerializer,
+  PublicArticleSummarySerializer,
 } from './article.serializer';
 
 const PUBLISHED_ARTICLE = {
@@ -70,6 +71,43 @@ describe('PublicArticleSerializer', () => {
         },
       ],
     });
+  });
+});
+
+describe('PublicArticleSummarySerializer', () => {
+  it('serves a list item without the body, with its reading time', () => {
+    const { data } = PublicArticleSummarySerializer.serialize({
+      ...PUBLISHED_ARTICLE,
+      readingTimeMinutes: 7,
+    });
+
+    expect(data.attributes).toEqual({
+      category: 'POST',
+      coverImageUrl: 'https://cdn.genfeed.ai/cover.jpg',
+      label: 'Launch week',
+      publishedAt: '2026-11-01T00:00:00.000Z',
+      readingTimeMinutes: 7,
+      slug: 'launch-week',
+      summary: 'What shipped.',
+    });
+    expect(data.attributes).not.toHaveProperty('content');
+  });
+
+  it('keeps a page of 53 long articles under 60 KB', () => {
+    const body = `<p>${'word '.repeat(4000)}</p>`;
+    const page = Array.from({ length: 53 }, (_, index) => ({
+      ...PUBLISHED_ARTICLE,
+      content: body,
+      id: `ckarticle${String(index).padStart(15, '0')}`,
+      readingTimeMinutes: 20,
+      slug: `article-${index}`,
+    }));
+    const serialized = JSON.stringify(
+      page.map((article) => PublicArticleSummarySerializer.serialize(article)),
+    );
+
+    expect(serialized.length).toBeLessThan(60_000);
+    expect(serialized).not.toContain('word word');
   });
 });
 
