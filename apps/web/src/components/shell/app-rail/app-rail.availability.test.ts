@@ -90,7 +90,7 @@ describe('resolveAvailableRailApps dashboard order', () => {
     },
   );
 
-  it('hides Trends for an organization without the paid plan it needs', () => {
+  it('keeps Trends in the rail for an organization without the paid plan, so it opens the locked page', () => {
     const ids = resolveAvailableRailApps({
       flags: {},
       installedAppIds: [],
@@ -99,7 +99,7 @@ describe('resolveAvailableRailApps dashboard order', () => {
       },
       modulePreferences: undefined,
     }).map((app) => app.id);
-    expect(ids).not.toContain('discovery');
+    expect(ids).toContain('discovery');
     expect(ids).toContain('library');
   });
 });
