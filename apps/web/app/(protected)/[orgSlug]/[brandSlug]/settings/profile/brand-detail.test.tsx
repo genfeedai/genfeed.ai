@@ -4,13 +4,24 @@ import {
   AssetScope,
   CredentialPlatform,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandDetail from './brand-detail';
 
 const mocks = vi.hoisted(() => ({
+  articles: {
+    articles: [
+      { id: 'a-1', label: 'First article' },
+      { id: 'a-2', label: 'Second article' },
+    ],
+    isError: false,
+    isPending: false,
+    total: 2,
+    totalPages: 1,
+  } as Record<string, unknown>,
   brandDetail: {} as Record<string, unknown>,
+  searchParams: new URLSearchParams(),
   handleCopy: vi.fn(),
   handleGenerateBanner: vi.fn(),
   handleGenerateLogo: vi.fn(),
@@ -80,7 +91,40 @@ vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useParams: () => ({ brandSlug: 'brand-handle', orgSlug: 'org-one' }),
+  useSearchParams: () => mocks.searchParams,
 }));
+
+vi.mock('@/features/brands/hooks/use-brand-profile-articles', () => ({
+  useBrandProfileArticles: () => mocks.articles,
+}));
+
+vi.mock('@/features/brands/components/articles/BrandProfileArticles', () => ({
+  default: ({
+    articles,
+    limit,
+    seeAllHref,
+  }: {
+    articles: Array<{ id: string; label: string }>;
+    limit?: number;
+    seeAllHref?: string;
+  }) => (
+    <section aria-label="Articles">
+      {articles.slice(0, limit ?? articles.length).map((article) => (
+        <p key={article.id}>{article.label}</p>
+      ))}
+      {seeAllHref ? <a href={seeAllHref}>See all</a> : null}
+    </section>
+  ),
+}));
+
+vi.mock(
+  '@/features/brands/components/sidebar/BrandDetailExternalLinksCard',
+  () => ({
+    default: ({ links }: { links: Array<{ id: string }> }) => (
+      <section aria-label="Website links">Links {links.length}</section>
+    ),
+  }),
+);
 
 vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   useElements: () => ({
@@ -171,18 +215,20 @@ vi.mock('@/features/brands/components/banner/BrandDetailBanner', () => ({
 
 vi.mock('@/features/brands/components/overview/BrandDetailOverview', () => ({
   default: ({
-    onCopyPublicProfile,
+    footer,
     onGenerateLogo,
     onUpdateBrand,
     onUploadLogo,
+    visibility,
   }: {
-    onCopyPublicProfile?: () => void;
+    footer?: ReactNode;
     onGenerateLogo: () => void;
     onUpdateBrand: (
       field: 'label' | 'description',
       value: string,
     ) => Promise<void>;
     onUploadLogo: () => void;
+    visibility?: ReactNode;
   }) => (
     <section>
       Profile
@@ -204,11 +250,8 @@ vi.mock('@/features/brands/components/overview/BrandDetailOverview', () => ({
       >
         Update Brand Description
       </button>
-      {onCopyPublicProfile ? (
-        <button type="button" onClick={onCopyPublicProfile}>
-          Copy Public Profile
-        </button>
-      ) : null}
+      {visibility}
+      {footer}
     </section>
   ),
 }));
@@ -226,26 +269,6 @@ vi.mock(
       <button type="button" onClick={() => onCopy(text)}>
         Prompt {text}
       </button>
-    ),
-  }),
-);
-
-vi.mock(
-  '@/features/brands/components/detail-sidebar/BrandDetailSidebar',
-  () => ({
-    default: ({
-      children,
-      onTogglePublicProfile,
-    }: {
-      children?: ReactNode;
-      onTogglePublicProfile: (value: boolean) => void;
-    }) => (
-      <section aria-label="Sidebar">
-        {children}
-        <button type="button" onClick={() => onTogglePublicProfile(false)}>
-          Disable Public
-        </button>
-      </section>
     ),
   }),
 );
@@ -273,6 +296,7 @@ describe('BrandDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.brandDetail = createBrandDetailState();
+    mocks.searchParams = new URLSearchParams();
     mocks.handleRefreshBrand.mockResolvedValue(undefined);
     mocks.handleUpdateAccount.mockResolvedValue(undefined);
   });
@@ -304,7 +328,9 @@ describe('BrandDetail', () => {
 
     expect(screen.getByText('Banner')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Sidebar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Website links' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Public posts/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Latest (Videos|Images|Articles)/)).toBeNull();
     expect(screen.queryByText('Brand Kit Review')).not.toBeInTheDocument();
@@ -337,12 +363,12 @@ describe('BrandDetail', () => {
       'Updated description',
     );
     fireEvent.click(
-      screen.getByRole('button', { name: 'Copy Public Profile' }),
+      screen.getByRole('button', { name: 'Copy public profile link' }),
     );
     expect(mocks.handleCopy).toHaveBeenCalledWith(
       'https://genfeed.test/@brand-handle',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Disable Public' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Public Profile' }));
     expect(mocks.handleUpdateAccount).toHaveBeenCalledWith(
       'scope',
       AssetScope.BRAND,
@@ -352,11 +378,7 @@ describe('BrandDetail', () => {
   it('shows the connected accounts and opens the Connect account modal from the header', () => {
     render(<BrandDetail />);
 
-    expect(
-      within(screen.getByRole('region', { name: 'Sidebar' })).getByText(
-        'Accounts 1 page',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Accounts 1 page')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Accounts' }),
     ).toBeInTheDocument();
@@ -365,5 +387,48 @@ describe('BrandDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Connect account' }));
 
     expect(screen.getByText('Connect account modal')).toBeInTheDocument();
+  });
+
+  it('shows the newest articles on Overview and all of them on the Articles tab', () => {
+    const { rerender } = render(<BrandDetail />);
+
+    expect(screen.getByText('First article')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'See all' })).toHaveAttribute(
+      'href',
+      '?tab=articles',
+    );
+    expect(screen.getByRole('link', { name: /^Articles/ })).toHaveTextContent(
+      'Articles 2',
+    );
+    expect(screen.getByText('2 articles')).toBeInTheDocument();
+    expect(screen.getByText('Accounts 1 page')).toBeInTheDocument();
+
+    mocks.searchParams = new URLSearchParams('tab=articles');
+    rerender(<BrandDetail />);
+
+    expect(screen.getByText('Second article')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'See all' })).toBeNull();
+    expect(screen.queryByText('Accounts 1 page')).toBeNull();
+  });
+
+  it('keeps copy and view public off until the profile is public', () => {
+    mocks.brandDetail = createBrandDetailState({
+      brand: {
+        ...(createBrandDetailState().brand as Record<string, unknown>),
+        scope: 'brand',
+      },
+    });
+    render(<BrandDetail />);
+
+    expect(
+      screen.getByRole('switch', { name: 'Public Profile' }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Copy public profile link' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'View public' })).toBeDisabled();
+    expect(
+      screen.getByText('Only you and your team can see this profile.'),
+    ).toBeInTheDocument();
   });
 });

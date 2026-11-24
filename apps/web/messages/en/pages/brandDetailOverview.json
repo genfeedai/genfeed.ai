@@ -6,5 +6,22 @@
   "editBrandDescription": "Edit brand description",
   "addDescription": "Add a description",
   "copyPublicProfileLink": "Copy public profile link",
-  "profile": "Profile"
+  "profileVisibility": "Profile visibility",
+  "publicProfileSwitch": "Public Profile",
+  "publicLabel": "Public",
+  "viewPublicProfile": "View public",
+  "turnOnPublic": "Turn on Public to share the link",
+  "privateHint": "Only you and your team can see this profile.",
+  "articlesTitle": "Articles",
+  "articlesTab": "Articles",
+  "overviewTab": "Overview",
+  "profileSections": "Profile sections",
+  "seeAll": "See all",
+  "noArticles": "No published articles yet.",
+  "noArticlesDescription": "Published articles appear here and on your public profile.",
+  "articlesLoadError": "Could not load articles.",
+  "openArticle": "Open {label}",
+  "readingTime": "{minutes} min read",
+  "articleCount": "{count, plural, one {# article} other {# articles}}",
+  "connectedAccountsPreview": "Connected accounts"
 }

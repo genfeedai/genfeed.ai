@@ -13,31 +13,44 @@ import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { EnvironmentService } from '@services/core/environment.service';
 import CollectionSection from '@ui/collection/CollectionSection';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { UnderlineNav } from '@ui/primitives/underline-nav';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
 } from '@/components/lazy/modal/LazyModal';
+import BrandProfileArticles from '@/features/brands/components/articles/BrandProfileArticles';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
-import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
+import BrandDetailExternalLinksCard from '@/features/brands/components/sidebar/BrandDetailExternalLinksCard';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
+import BrandProfileVisibility from '@/features/brands/components/visibility/BrandProfileVisibility';
+import { useBrandProfileArticles } from '@/features/brands/hooks/use-brand-profile-articles';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
+/** The Overview shows the newest few articles; the Articles tab lists them all. */
+const OVERVIEW_ARTICLE_LIMIT = 3;
+
+type ProfileTab = 'overview' | 'articles';
+
 /**
- * Brand profile surface — banner, logo, name/description in the main column;
- * visibility, external links (inline + modal) and the connected social
- * accounts (the Connect account modal, status, reconnect and per-account
- * settings) in the sidebar. The brand's public posts live on its public
- * profile at genfeed.ai/@handle, not here.
+ * The brand profile, laid out like the public page at genfeed.ai/@handle: the
+ * banner, the header (picture, name, handle, description, one visibility
+ * control), then Overview and Articles tabs. Overview carries what only the
+ * owner needs on top of the public view: the connected accounts (the Connect
+ * account modal, status, reconnect and per-account settings) and website
+ * links.
  */
 export default function BrandDetail() {
   const translate = useTranslations('pages.brandSocialMedia');
+  const translateOverview = useTranslations('pages.brandDetailOverview');
   const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
     useState(false);
   const {
@@ -63,6 +76,20 @@ export default function BrandDetail() {
     setGenerateModalType,
     selectLink,
   } = useBrandDetail();
+
+  const searchParams = useSearchParams();
+  const activeTab: ProfileTab =
+    searchParams?.get('tab') === 'articles' ? 'articles' : 'overview';
+  const currentPage = Number(searchParams?.get('page')) || 1;
+  const {
+    articles,
+    isError: isArticlesError,
+    isPending: isArticlesPending,
+    total: articlesTotal,
+  } = useBrandProfileArticles(
+    brandId,
+    activeTab === 'articles' ? currentPage : 1,
+  );
 
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {
@@ -94,14 +121,14 @@ export default function BrandDetail() {
     void handleRefreshBrand();
   };
 
-  const handleCopyPublicProfile = () => {
-    if (!brand?.slug) {
-      return;
-    }
+  const profileUrl = brand?.slug
+    ? `${EnvironmentService.apps.website}${creatorProfilePath(brand.slug)}`
+    : '';
 
-    handleCopy(
-      `${EnvironmentService.apps.website}${creatorProfilePath(brand.slug)}`,
-    );
+  const handleCopyPublicProfile = () => {
+    if (profileUrl) {
+      handleCopy(profileUrl);
+    }
   };
 
   const isPublicProfile = isPublicAssetScope(brand?.scope);
@@ -127,62 +154,115 @@ export default function BrandDetail() {
       }
     >
       {isLoading ? (
-        <div className="flex flex-col gap-8" data-testid="brand-detail-loading">
+        <div className="flex flex-col gap-6" data-testid="brand-detail-loading">
           <SkeletonCard showImage />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-            <div className="flex flex-col gap-6 md:col-span-8">
-              <SkeletonCard showImage={false} />
-              <SkeletonCard showImage={false} />
-            </div>
-            <div className="md:col-span-4">
-              <SkeletonCard showImage={false} />
-            </div>
-          </div>
+          <SkeletonCard showImage={false} />
+          <SkeletonCard showImage={false} />
         </div>
       ) : !brand ? (
         <Alert variant="destructive">Error! Account not found.</Alert>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-            <div className="flex flex-col gap-6 md:col-span-8">
-              <BrandDetailBanner
-                brand={brand}
-                isGeneratingBanner={isGeneratingBanner}
-                onUploadBanner={() =>
-                  handleOpenUploadModal(AssetCategory.BANNER)
-                }
-                onGenerateBanner={handleGenerateBanner}
-              />
+          <div className="flex flex-col gap-6">
+            <BrandDetailBanner
+              brand={brand}
+              isGeneratingBanner={isGeneratingBanner}
+              onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
+              onGenerateBanner={handleGenerateBanner}
+            />
 
-              <BrandDetailOverview
-                brand={brand}
-                isGeneratingLogo={isGeneratingLogo}
-                onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-                onGenerateLogo={handleGenerateLogo}
-                onUpdateBrand={(field, value) =>
-                  handleUpdateAccount(field, value)
-                }
-                onUpdateHandle={handleUpdateHandle}
-                onCopyPublicProfile={
-                  isPublicProfile ? handleCopyPublicProfile : undefined
-                }
-              />
-            </div>
+            <BrandDetailOverview
+              brand={brand}
+              footer={
+                <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
+                  <p className="text-sm text-foreground/60">
+                    {translateOverview('articleCount', {
+                      count: articlesTotal,
+                    })}
+                  </p>
+                  <ul
+                    aria-label={translateOverview('connectedAccountsPreview')}
+                    className="flex items-center gap-3"
+                  >
+                    {socialConnections
+                      .filter((connection) => connection.isConnected !== false)
+                      .map((connection) => (
+                        <li key={connection.credentialId}>
+                          <ConnectedAccountAvatar
+                            account={{
+                              avatarUrl: connection.avatarUrl,
+                              handle: connection.handle,
+                              name: connection.name,
+                              platform: connection.platform,
+                            }}
+                            isDecorative
+                            size="md"
+                          />
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              }
+              isAvatarOverlapping
+              isGeneratingLogo={isGeneratingLogo}
+              onGenerateLogo={handleGenerateLogo}
+              onUpdateBrand={(field, value) =>
+                handleUpdateAccount(field, value)
+              }
+              onUpdateHandle={handleUpdateHandle}
+              onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
+              visibility={
+                <BrandProfileVisibility
+                  isPublic={isPublicProfile}
+                  isUpdating={isUpdating}
+                  onCopy={handleCopyPublicProfile}
+                  onToggle={(isPublic) => {
+                    // Fire-and-forget: the hook already reverts and toasts on failure.
+                    void handleUpdateAccount(
+                      'scope',
+                      isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
+                    ).catch(() => undefined);
+                  }}
+                  profileUrl={profileUrl}
+                />
+              }
+            />
 
-            <div className="md:col-span-4">
-              <BrandDetailSidebar
-                brand={brand}
-                links={links}
-                isUpdatingPublicProfile={isUpdating}
-                onTogglePublicProfile={(isPublic) => {
-                  // Fire-and-forget: the hook already reverts and toasts on failure.
-                  void handleUpdateAccount(
-                    'scope',
-                    isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
-                  ).catch(() => undefined);
-                }}
-                onOpenLinkModal={handleOpenLinkModal}
-              >
+            <UnderlineNav
+              ariaLabel={translateOverview('profileSections')}
+              items={[
+                {
+                  href: '?tab=overview',
+                  isActive: activeTab === 'overview',
+                  label: translateOverview('overviewTab'),
+                },
+                {
+                  badge: (
+                    <span className="text-foreground/40">{articlesTotal}</span>
+                  ),
+                  href: '?tab=articles',
+                  isActive: activeTab === 'articles',
+                  label: translateOverview('articlesTab'),
+                },
+              ]}
+            />
+
+            {activeTab === 'articles' ? (
+              <BrandProfileArticles
+                articles={articles}
+                isError={isArticlesError}
+                isPending={isArticlesPending}
+              />
+            ) : (
+              <div className="flex flex-col gap-12">
+                <BrandProfileArticles
+                  articles={articles}
+                  isError={isArticlesError}
+                  isPending={isArticlesPending}
+                  limit={OVERVIEW_ARTICLE_LIMIT}
+                  seeAllHref="?tab=articles"
+                />
+
                 <CollectionSection title={translate('connectedAccounts')}>
                   <BrandDetailSocialMediaCard
                     brandId={brandId}
@@ -196,8 +276,13 @@ export default function BrandDetail() {
                     variant="page"
                   />
                 </CollectionSection>
-              </BrandDetailSidebar>
-            </div>
+
+                <BrandDetailExternalLinksCard
+                  links={links}
+                  onOpenLinkModal={handleOpenLinkModal}
+                />
+              </div>
+            )}
           </div>
 
           <LazyModalBrandGenerate
