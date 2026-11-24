@@ -21,6 +21,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
@@ -72,8 +73,14 @@ export function RoutedOrganizationProvider({
   provisional = null,
   wipeDeviceStores,
 }: RoutedOrganizationProviderProps) {
-  const provisionalOrganizationId = provisional?.organizationId ?? null;
+  // Trimmed once, so the controller and the request gate name the same
+  // organization; a blank id is no copy.
+  const provisionalOrganizationId = provisional?.organizationId.trim() || null;
   const provisionalUserId = provisional?.userId ?? null;
+  // The controller outlives renders: it reaches the latest callback, not the
+  // one of the render that created it.
+  const wipeDeviceStoresRef = useRef(wipeDeviceStores);
+  wipeDeviceStoresRef.current = wipeDeviceStores;
   const pathname = usePathname() ?? '';
   const { replace } = useRouter();
   const routeOrganizationSlug = parseScopedAppPath(pathname).orgSlug;
@@ -108,7 +115,7 @@ export function RoutedOrganizationProvider({
         setProvisionalOrganization: setProvisionalRequestOrganization,
         setRequestOrganizationId,
         wipeDeviceStores: async () => {
-          await wipeDeviceStores?.();
+          await wipeDeviceStoresRef.current?.();
         },
       } satisfies OrganizationControllerPorts),
   );

@@ -65,6 +65,20 @@ describe('RequestOrganizationGate', () => {
     expect(gate.getConfirmedOrganizationId()).toBeNull();
   });
 
+  it('keeps the header of the confirmation when scope is cleared right after it', async () => {
+    const gate = new RequestOrganizationGate();
+    gate.setProvisional('org-a', 'user-1');
+    const request = hold(gate);
+
+    gate.setConfirmed('org-a');
+    gate.setUnscoped();
+
+    expect(await request.outcome()).toBe('sent');
+    expect(request.headers()).toEqual({
+      [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
+    });
+  });
+
   it('releases a held request once, with the header, when the same organization is confirmed', async () => {
     const gate = new RequestOrganizationGate();
     gate.setProvisional('org-a', 'user-1');

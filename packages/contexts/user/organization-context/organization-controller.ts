@@ -2,8 +2,10 @@ import {
   getOrgSwitchHref,
   ROUTED_ORGANIZATION_STORAGE_KEY,
 } from '@genfeedai/contracts/constants';
-import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
-import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
+import {
+  isCancelledMembershipRead,
+  isClientErrorStatus,
+} from './organization-error-status';
 
 /**
  * The reconciliation of the organization in the URL with the organization the
@@ -111,47 +113,6 @@ export function withConfirmationBound<T>(task: Promise<T>): Promise<T> {
       },
     );
   });
-}
-
-function toHttpStatus(value: unknown): number | undefined {
-  return typeof value === 'number' &&
-    Number.isInteger(value) &&
-    value >= 100 &&
-    value <= 599
-    ? value
-    : undefined;
-}
-
-/**
- * The numeric HTTP status of a failed request, wherever the rejection carries
- * it: on the error, on its response, or on the first JSON:API error member.
- * Only the number is kept.
- */
-export function errorStatusOf(error: unknown): string | undefined {
-  if (!isRecord(error)) return undefined;
-  const status =
-    toHttpStatus(error.status) ??
-    toHttpStatus(
-      isRecord(error.response) ? error.response.status : undefined,
-    ) ??
-    toHttpStatus(getJsonApiErrorMember(error)?.status);
-  return status === undefined ? undefined : String(status);
-}
-
-function isClientErrorStatus(error: unknown): boolean {
-  const status = Number(errorStatusOf(error));
-  return status >= 400 && status < 500;
-}
-
-function isCancelledMembershipRead(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const record = error as Record<string, unknown>;
-  return (
-    record.isCancelled === true ||
-    record.code === 'ERR_CANCELED' ||
-    record.name === 'CanceledError' ||
-    record.name === 'AbortError'
-  );
 }
 
 /** The two calls of the API the reconciliation makes. */
@@ -294,6 +255,11 @@ export class OrganizationController {
   // A device copy is drawn once per hard load: after it ends, by whatever
   // way, the page waits for the check like any other.
   private hasDrawnFromCopy = false;
+  // A refused copy is gone only once the caches and the device stores are
+  // cleared. A cleanup that failed stays owed, and the next reconciliation
+  // pays it before anything is confirmed.
+  private wipePending = false;
+  private wipeInFlight: Promise<void> | null = null;
   // Set by an explicit switch once it has confirmed the organization, so the
   // route change that follows does not read the list again.
   private switchConfirmation: { organizationId: string; slug: string } | null =
@@ -327,11 +293,15 @@ export class OrganizationController {
 
   /** Ends everything this controller still has pending (the provider unmounts). */
   public dispose(): void {
+    // A read still in flight must not confirm the shared request gate for a
+    // provider that mounts after this one.
+    this.generation += 1;
     this.clearSwitchConfirmation();
   }
 
   /** The browser listener of the provider is going away. */
   public release(): void {
+    this.generation += 1;
     this.releaseRequestOrganization();
   }
 
@@ -373,14 +343,33 @@ export class OrganizationController {
    * user, another organization behind the slug, a refusal), never on a
    * failure or a navigation.
    */
-  private exitProvisional(options: { wipe: boolean }): void {
-    if (!this.provisional) return;
-    this.releaseRequestOrganization();
-    if (options.wipe) {
-      // Whatever the copy restored leaves the screen with the stores.
-      void this.ports.clearTenantCaches();
-      void this.ports.wipeDeviceStores();
+  private exitProvisional(options: { wipe: boolean }): Promise<void> {
+    if (this.provisional) {
+      this.releaseRequestOrganization();
+      if (options.wipe) this.wipePending = true;
     }
+    return this.payPendingWipe();
+  }
+
+  /** Whatever the copy restored leaves the screen with the stores. */
+  private payPendingWipe(): Promise<void> {
+    if (!this.wipePending) return Promise.resolve();
+    // One cleanup at a time: whoever asks while it runs waits for the same one.
+    this.wipeInFlight ??= this.runPendingWipe().finally(() => {
+      this.wipeInFlight = null;
+    });
+    return this.wipeInFlight;
+  }
+
+  private async runPendingWipe(): Promise<void> {
+    await this.ports.clearTenantCaches();
+    await this.ports.wipeDeviceStores();
+    this.wipePending = false;
+  }
+
+  /** An exit nobody waits for: a cleanup that fails stays owed. */
+  private exitProvisionalWithoutWaiting(options: { wipe: boolean }): void {
+    this.exitProvisional(options).catch(() => undefined);
   }
 
   /**
@@ -395,6 +384,7 @@ export class OrganizationController {
     if (current) {
       const stays =
         !inputs.bypass &&
+        !(inputs.isLoaded && !inputs.isSignedIn) &&
         provisional !== null &&
         current.slug === routeSlug &&
         current.organizationId === provisional.organizationId &&
@@ -402,7 +392,9 @@ export class OrganizationController {
       if (!stays) {
         // Another route is ordinary navigation; the same route with a copy
         // that no longer holds (signed out, another user) is a refusal.
-        this.exitProvisional({ wipe: current.slug === routeSlug });
+        this.exitProvisionalWithoutWaiting({
+          wipe: current.slug === routeSlug,
+        });
       }
       return;
     }
@@ -549,6 +541,10 @@ export class OrganizationController {
     if (!this.isCurrentGeneration(generation, routeSlug)) {
       return;
     }
+    await this.payPendingWipe();
+    if (!this.isCurrentGeneration(generation, routeSlug)) {
+      return;
+    }
     await this.invalidateTenantState();
     const initialService = await getMembershipService();
     const readMembership = membershipReader(initialService);
@@ -561,7 +557,10 @@ export class OrganizationController {
       if (this.isCurrentGeneration(generation, routeSlug)) {
         // The organization is gone or the member was removed: the copy of it
         // on this device goes too, and nothing held for it is ever sent.
-        this.exitProvisional({ wipe: true });
+        await this.exitProvisional({ wipe: true });
+        if (!this.isCurrentGeneration(generation, routeSlug)) {
+          return;
+        }
         this.ports.reportMismatch('route-unauthorized');
         this.setState({
           confirmedOrganizationId: null,
@@ -582,7 +581,11 @@ export class OrganizationController {
     ) {
       // The slug now names another organization than the copy was kept for:
       // nothing of the copy may stay, and the shell remounts for this one.
-      this.exitProvisional({ wipe: true });
+      await this.exitProvisional({ wipe: true });
+      // A provider that unmounted during the wipe no longer owns the gate.
+      if (!this.isCurrentGeneration(generation, routeSlug)) {
+        return;
+      }
       await this.invalidateTenantState();
     }
 
@@ -899,6 +902,12 @@ export class OrganizationController {
 
   private async synchronizeOnce(generation: number): Promise<void> {
     const getMembershipService = this.membership();
+    // A copy this device was refused for must be gone before anything is
+    // confirmed again, whichever way the confirmation is reached.
+    await this.payPendingWipe();
+    if (this.generation !== generation) {
+      return;
+    }
     await this.invalidateTenantState();
     const service = await getMembershipService({ forceRefresh: true });
     const readMembership = membershipReader(service);

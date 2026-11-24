@@ -23,7 +23,8 @@ export type RequestOrganizationPhase =
 interface HeldRequest {
   readonly organizationId: string;
   readonly reject: (error: Error) => void;
-  readonly resolve: () => void;
+  /** Called with the headers of the organization the check confirmed. */
+  readonly resolve: (headers: Record<string, string>) => void;
 }
 
 /**
@@ -115,18 +116,8 @@ export class RequestOrganizationGate {
    * organization, a refusal, a failure, a navigation), so a held request is
    * sent only for the organization it was made for.
    */
-  public whenSettled(): Promise<void> {
-    const phase = this.phase;
-    if (phase.kind !== 'provisional') {
-      return Promise.resolve();
-    }
-    return new Promise<void>((resolve, reject) => {
-      this.held.push({
-        organizationId: phase.organizationId,
-        reject,
-        resolve,
-      });
-    });
+  public async whenSettled(): Promise<void> {
+    await this.whenSettledHeaders();
   }
 
   /** The organization header, or none while no organization is confirmed. Throws while provisional. */
@@ -141,10 +132,24 @@ export class RequestOrganizationGate {
       : {};
   }
 
-  /** `whenSettled`, then the headers the request must carry. */
-  public async whenSettledHeaders(): Promise<Record<string, string>> {
-    await this.whenSettled();
-    return this.getHeaders();
+  /**
+   * `whenSettled`, then the headers the request must carry. A held request
+   * gets the headers of the moment the check confirmed its organization, not
+   * of the moment its continuation runs: scope cleared right after the
+   * confirmation must not turn the request into one with no header.
+   */
+  public whenSettledHeaders(): Promise<Record<string, string>> {
+    const phase = this.phase;
+    if (phase.kind !== 'provisional') {
+      return Promise.resolve(this.getHeaders());
+    }
+    return new Promise<Record<string, string>>((resolve, reject) => {
+      this.held.push({
+        organizationId: phase.organizationId,
+        reject,
+        resolve,
+      });
+    });
   }
 
   private transition(next: RequestOrganizationPhase): void {
@@ -188,7 +193,9 @@ export class RequestOrganizationGate {
         next.kind === 'confirmed' &&
         next.organizationId === request.organizationId
       ) {
-        request.resolve();
+        request.resolve({
+          [ORGANIZATION_CONTEXT_HEADER]: next.organizationId,
+        });
       } else {
         request.reject(createOrganizationNotConfirmedError());
       }

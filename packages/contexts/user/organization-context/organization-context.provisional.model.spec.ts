@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type MembershipService,
   OrganizationController,
+  type OrganizationControllerPorts,
   ROUTE_CONFIRMATION_TIMEOUT_MS,
   type RoutedOrganizationState,
   type RoutedOrganizationSummary,
@@ -34,12 +35,25 @@ import {
  *   request for the refused organization is sent later;
  * - **I6** a failed read never wipes a store and never releases a request;
  * - **I8** every held request ends sent with the header or rejected;
- * - **I10** a confirmation of the same organization keeps what was restored.
+ * - **I10** a confirmation of the same organization keeps what was restored;
+ * - **I11** a store is wiped only after a refusal (a member removed, another
+ *   user), never after a read that failed, even if an earlier read answered.
  *
  * Replays, each against code without the guard it names: **R1** a shell that
  * reads without the gate, **R6** a device copy drawn without checking the
- * session tag.
+ * session tag, **R7** a gate that does not follow the copy the page shows,
+ * **R8** a provider that unmounts without ending its pending read.
  */
+
+const EXPECTED_R7_TRACE: string[] = [
+  'environment: the session answers',
+  'environment: the shell reads workspace data',
+  'main: GET /workspace',
+];
+const EXPECTED_R8_TRACE: string[] = [
+  'environment: the provider remounts',
+  'first provider: first provider reads organizations',
+];
 
 type OrganizationId = 'org-a' | 'org-b';
 type UserId = 'user-1' | 'user-2';
@@ -68,6 +82,8 @@ type World = {
   device: { record: DeviceRecord | null; stores: number };
   eventDelivered: boolean;
   gate: RequestOrganizationGate;
+  /** An answer left the copy's organization out: the member was refused. */
+  refusalSeen: boolean;
   members: OrganizationId[];
   membershipAnswers: number;
   /** A held read the shell has not yet seen settle. */
@@ -79,7 +95,7 @@ type World = {
   sessionAnswered: boolean;
   sessionUser: UserId;
   uses: Use[];
-  wipes: Array<{ afterAnswer: boolean }>;
+  wipes: Array<{ permitted: boolean }>;
   /** A held request was sent although the check did not name its organization. */
   wrongSend: string | null;
 };
@@ -99,6 +115,8 @@ type Options = {
   otherTab?: boolean;
   /** The shell reads workspace data, through the gate. */
   reads: boolean;
+  /** The copy is for the session's user and organization, and nothing disturbs it. */
+  expectKeep?: boolean;
 };
 
 function summaries(world: World): RoutedOrganizationSummary[] {
@@ -129,6 +147,7 @@ function membershipService(
         throw Object.assign(new Error('offline'), { isNetworkError: true });
       }
       world.membershipAnswers += 1;
+      if (!world.members.includes('org-a')) world.refusalSeen = true;
       return summaries(world);
     },
     async switchOrganization(id: string) {
@@ -169,7 +188,12 @@ function screenOrganization(state: RoutedOrganizationState): string | null {
   return state.provisionalOrganizationId ?? state.confirmedOrganizationId;
 }
 
-type Variant = { checksTag: boolean; gatedShell: boolean };
+type Variant = {
+  checksTag: boolean;
+  /** The request gate follows the copy the page shows. */
+  gateFollowsCopy?: boolean;
+  gatedShell: boolean;
+};
 
 function scenarioOf(options: Options, variant: Variant): () => Scenario {
   return () => {
@@ -184,6 +208,7 @@ function scenarioOf(options: Options, variant: Variant): () => Scenario {
       },
       eventDelivered: false,
       gate: new RequestOrganizationGate(),
+      refusalSeen: false,
       members: ['org-a', 'org-b'],
       membershipAnswers: 0,
       pending: 0,
@@ -242,7 +267,11 @@ function scenarioOf(options: Options, variant: Variant): () => Scenario {
         answeredFor: (header as OrganizationId | null) ?? world.active,
         exempt,
         header,
-        provisional: world.gate.isProvisional(),
+        // The page decides: a copy on screen with a gate that is not holding
+        // is as much a leak as a held request that was sent.
+        provisional:
+          world.gate.isProvisional() ||
+          (controller?.getState().provisionalOrganizationId ?? null) !== null,
       };
       world.received.push(received);
       return received;
@@ -299,9 +328,16 @@ function scenarioOf(options: Options, variant: Variant): () => Scenario {
           }
         }
 
-        const earlyWipe = world.wipes.find((wipe) => !wipe.afterAnswer);
+        const earlyWipe = world.wipes.find((wipe) => !wipe.permitted);
         if (earlyWipe) {
-          return 'a store was wiped before the membership check answered';
+          return 'a store was wiped without a refusal';
+        }
+        if (
+          options.expectKeep &&
+          state.status === 'matched' &&
+          (world.query.length === 0 || world.device.record === null)
+        ) {
+          return 'a confirmation of the same organization emptied what the copy restored';
         }
         if (
           world.membershipAnswers === 0 &&
@@ -327,6 +363,7 @@ function scenarioOf(options: Options, variant: Variant): () => Scenario {
           world.wipes,
           world.routeTarget,
           world.membershipAnswers,
+          world.refusalSeen,
           world.eventDelivered,
           vi.getTimerCount(),
           Date.now(),
@@ -346,7 +383,9 @@ function scenarioOf(options: Options, variant: Variant): () => Scenario {
           },
           reportMismatch: () => undefined,
           setProvisionalOrganization: (organizationId, userId) => {
-            world.gate.setProvisional(organizationId, userId);
+            if (variant.gateFollowsCopy !== false) {
+              world.gate.setProvisional(organizationId, userId);
+            }
           },
           setRequestOrganizationId: (organizationId) => {
             if (organizationId) world.gate.setConfirmed(organizationId);
@@ -354,8 +393,8 @@ function scenarioOf(options: Options, variant: Variant): () => Scenario {
           },
           wipeDeviceStores: async () => {
             world.wipes.push({
-              afterAnswer:
-                world.membershipAnswers > 0 ||
+              permitted:
+                world.refusalSeen ||
                 (world.sessionAnswered &&
                   world.device.record?.userId !== world.sessionUser),
             });
@@ -549,6 +588,30 @@ describe('the provisional window, every interleaving', () => {
     });
   });
 
+  it('keeps what the copy restored when the same organization is confirmed (I10)', async () => {
+    const result = await explore(
+      scenarioOf({ copy: true, expectKeep: true, reads: true }, real),
+    );
+
+    expect(result.violation).toBeNull();
+    expect(result.schedules).toBeGreaterThan(3);
+  });
+
+  it('fails on a gate that does not follow the copy the page shows (R7)', async () => {
+    const result = await explore(
+      scenarioOf(
+        { copy: true, reads: true },
+        { checksTag: true, gateFollowsCopy: false, gatedShell: true },
+      ),
+    );
+
+    expect(result.violation).toEqual({
+      message:
+        'a workspace request (header null) reached the server while provisional',
+      trace: EXPECTED_R7_TRACE,
+    });
+  });
+
   it('fails on a device copy drawn without the session tag (R6)', async () => {
     const result = await explore(
       scenarioOf(
@@ -563,6 +626,156 @@ describe('the provisional window, every interleaving', () => {
     expect(result.violation).toEqual({
       message: 'an entry restored for user-1 is on screen for user-2',
       trace: [],
+    });
+  });
+});
+
+/**
+ * A provider that unmounts while its read is still in flight, and a provider
+ * that mounts for the same organization before that read answers. The request
+ * gate is one object for the page; only the provider whose check answered may
+ * confirm it.
+ */
+function handoverScenario(unmounts: boolean): () => Scenario {
+  return () => {
+    const gate = new RequestOrganizationGate();
+    const answers = { first: 0, second: 0 };
+    const progress = { firstStarted: false, remounted: false };
+    let first: OrganizationController | null = null;
+    let second: OrganizationController | null = null;
+    vi.clearAllTimers();
+    vi.setSystemTime(0);
+
+    const portsFor = (): OrganizationControllerPorts => ({
+      broadcastChange: () => undefined,
+      clearTenantCaches: async () => undefined,
+      navigate: () => undefined,
+      reportMismatch: () => undefined,
+      setProvisionalOrganization: (organizationId, userId) => {
+        gate.setProvisional(organizationId, userId);
+      },
+      setRequestOrganizationId: (organizationId) => {
+        if (organizationId) gate.setConfirmed(organizationId);
+        else gate.setUnscoped();
+      },
+      wipeDeviceStores: async () => undefined,
+    });
+
+    const serviceFor = (
+      which: 'first' | 'second',
+      sim: Simulation,
+    ): MembershipService => ({
+      async getMyOrganizations() {
+        await sim.step(`${which} provider reads organizations`);
+        answers[which] += 1;
+        return [
+          {
+            brand: null,
+            id: 'org-a',
+            isActive: true,
+            label: 'org-a',
+            slug: 'a',
+          },
+        ];
+      },
+      async switchOrganization() {
+        return {};
+      },
+    });
+
+    const mount = (
+      controller: OrganizationController,
+      service: MembershipService,
+      provisional: { organizationId: string; userId: string } | null,
+    ): void => {
+      controller.setLatest({
+        getMembershipService: async () => service,
+        pathname: '/a/overview',
+        routeSlug: 'a',
+      });
+      controller.restart({
+        bypass: false,
+        getMembershipService: async () => service,
+        isLoaded: true,
+        isSignedIn: true,
+        provisional,
+        routeSlug: 'a',
+        sessionKey: 'user-1:session',
+      });
+    };
+
+    return {
+      final: () => null,
+      invariant: () => {
+        if (progress.remounted && answers.second === 0) {
+          if (gate.getConfirmedOrganizationId() !== null) {
+            return 'the gate was confirmed for a provider whose check had not answered';
+          }
+        }
+        return null;
+      },
+      snapshot: () =>
+        JSON.stringify([
+          gate.getPhase(),
+          answers,
+          progress,
+          first?.getState(),
+          second?.getState(),
+        ]),
+      start: (sim) => {
+        const firstService = serviceFor('first', sim);
+        const secondService = serviceFor('second', sim);
+
+        sim.spawn('first provider', async () => {
+          first = new OrganizationController(portsFor());
+          mount(first, firstService, null);
+          progress.firstStarted = true;
+        });
+
+        sim.environment(
+          'the provider remounts',
+          () => progress.firstStarted && !progress.remounted,
+          () => {
+            progress.remounted = true;
+            if (unmounts) {
+              first?.dispose();
+              first?.release();
+            }
+            second = new OrganizationController(portsFor());
+            mount(second, secondService, {
+              organizationId: 'org-a',
+              userId: 'user-1',
+            });
+          },
+        );
+      },
+    };
+  };
+}
+
+describe('a provider that unmounts with a read in flight, every interleaving', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('never lets the old provider confirm the gate of the new one', async () => {
+    const result = await explore(handoverScenario(true));
+
+    expect(result.violation).toBeNull();
+    expect(result.schedules).toBeGreaterThan(1);
+  });
+
+  it('fails on a provider that unmounts without ending its read (R8)', async () => {
+    const result = await explore(handoverScenario(false));
+
+    expect(result.violation).toEqual({
+      message:
+        'the gate was confirmed for a provider whose check had not answered',
+      trace: EXPECTED_R8_TRACE,
     });
   });
 });

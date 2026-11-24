@@ -25,6 +25,7 @@ const getMyOrganizationsMock = vi.fn();
 const clearBootstrapCacheMock = vi.hoisted(() => vi.fn());
 const cancelAndClearServicesMock = vi.hoisted(() => vi.fn());
 const setRequestOrganizationIdMock = vi.hoisted(() => vi.fn());
+const setProvisionalOrganizationMock = vi.hoisted(() => vi.fn());
 const loggerWarnMock = vi.hoisted(() => vi.fn());
 const replaceMock = vi.hoisted(() => vi.fn());
 const isDesktopClientMock = vi.hoisted(() => vi.fn(() => false));
@@ -65,7 +66,7 @@ vi.mock(
 
 vi.mock('@genfeedai/services/core/interceptor.service', () => ({
   cancelAndClearAllServiceInstances: cancelAndClearServicesMock,
-  setProvisionalRequestOrganization: vi.fn(),
+  setProvisionalRequestOrganization: setProvisionalOrganizationMock,
   setRequestOrganizationId: setRequestOrganizationIdMock,
 }));
 
@@ -174,6 +175,7 @@ describe('RoutedOrganizationProvider', () => {
     clearBootstrapCacheMock.mockReset();
     cancelAndClearServicesMock.mockReset();
     setRequestOrganizationIdMock.mockReset();
+    setProvisionalOrganizationMock.mockReset();
     loggerWarnMock.mockReset();
     replaceMock.mockReset();
     isDesktopClientMock.mockReturnValue(false);
@@ -200,6 +202,56 @@ describe('RoutedOrganizationProvider', () => {
     expect(getMyOrganizationsMock).toHaveBeenCalled();
     expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
+  });
+
+  it('names a padded provisional organization the way the request gate does', async () => {
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RoutedOrganizationProvider
+          provisional={{ organizationId: ' org_alpha ', userId: 'user-1' }}
+          wipeDeviceStores={async () => undefined}
+        >
+          <ContextProbe />
+        </RoutedOrganizationProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    expect(setProvisionalOrganizationMock).toHaveBeenCalledWith(
+      'org_alpha',
+      'user-1',
+    );
+  });
+
+  it('wipes the device through the latest callback when the check refuses the copy', async () => {
+    getMyOrganizationsMock.mockResolvedValue([]);
+    const firstWipe = vi.fn(async () => undefined);
+    const latestWipe = vi.fn(async () => undefined);
+    const copy = { organizationId: 'org_alpha', userId: 'user-1' };
+    const queryClient = new QueryClient();
+    const tree = (wipeDeviceStores: () => Promise<void>) => (
+      <QueryClientProvider client={queryClient}>
+        <RoutedOrganizationProvider
+          provisional={copy}
+          wipeDeviceStores={wipeDeviceStores}
+        >
+          <ContextProbe />
+        </RoutedOrganizationProvider>
+      </QueryClientProvider>
+    );
+
+    const rendered = render(tree(firstWipe));
+    rendered.rerender(tree(latestWipe));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('unauthorized'),
+    );
+    expect(latestWipe).toHaveBeenCalledTimes(1);
+    expect(firstWipe).not.toHaveBeenCalled();
   });
 
   it('confirms an already-matched route before exposing its organization id', async () => {

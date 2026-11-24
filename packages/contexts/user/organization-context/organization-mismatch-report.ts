@@ -1,10 +1,10 @@
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ContextAuthenticationTokenUnavailableError } from '../internal/context-authed-service';
 import {
-  errorStatusOf,
   type RoutedOrganizationMismatchReason,
   VERIFICATION_FAILED_MESSAGE,
 } from './organization-controller';
+import { errorStatusOf } from './organization-error-status';
 
 const ERROR_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 
