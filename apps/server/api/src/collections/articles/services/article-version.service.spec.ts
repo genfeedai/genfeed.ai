@@ -97,6 +97,39 @@ describe('ArticleVersionService', () => {
     expect(result).toBe(restored);
   });
 
+  it('refuses to restore research notes into a published article', async () => {
+    const promptsService = {
+      findOne: vi.fn().mockResolvedValue({
+        enhanced: JSON.stringify({
+          content: '<h2>What we could not verify</h2><p>x</p>',
+        }),
+      }),
+      findOneSelect: delegateFindOneSelect(),
+    } as unknown as PromptsService;
+    const service = new ArticleVersionService(logger, promptsService);
+    const patched: unknown[] = [];
+    const patchArticle = async (_id: string, updates: unknown) => {
+      patched.push(updates);
+    };
+    const restore = (status: string) =>
+      service.restoreArticleVersion(
+        'article_1',
+        'prompt_1',
+        'user_1',
+        'org_1',
+        vi.fn().mockResolvedValue({ id: 'article_1', status }),
+        patchArticle,
+      );
+
+    await expect(restore('PUBLISHED')).rejects.toThrow(
+      'remove the section "What we could not verify"',
+    );
+    expect(patched).toEqual([]);
+
+    await restore('DRAFT');
+    expect(patched).toHaveLength(1);
+  });
+
   it('rejects corrupted version data without patching the article', async () => {
     const promptsService = {
       findOne: vi.fn().mockResolvedValue({ enhanced: '{broken' }),
