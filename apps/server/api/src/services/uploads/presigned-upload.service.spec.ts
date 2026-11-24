@@ -1031,6 +1031,14 @@ describe('PresignedUploadService', () => {
         ...partial,
       });
 
+    /** First bytes of the object in storage, as the range read sees them. */
+    const PNG_HEAD = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d,
+    ]);
+    const JPEG_HEAD = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]);
+    const SVG_HEAD = new TextEncoder().encode('<svg xmlns="http://www.w3');
+    let storedHead: Uint8Array;
+
     const givenReadableUpload = (pending: IngredientDocument) => {
       ingredientsService.findOne.mockResolvedValue(pending);
       filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
@@ -1053,11 +1061,21 @@ describe('PresignedUploadService', () => {
     beforeEach(() => {
       deployment.isCloud = true;
       publicTree = new Map();
+      storedHead = PNG_HEAD;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(storedHead, { status: 206 })),
+      );
       filesClientService.copyInS3.mockImplementation(
         async (sourceKey: string, destinationKey: string) => {
           publicTree.set(destinationKey, sourceKey);
+          return `https://cdn.genfeed.ai/${destinationKey}`;
         },
       );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
     });
 
     it('copies a confirmed PNG to a permanent public path and returns its URL', async () => {
@@ -1077,6 +1095,7 @@ describe('PresignedUploadService', () => {
     });
 
     it('names a JPEG upload with the jpg extension', async () => {
+      storedHead = JPEG_HEAD;
       givenReadableUpload(pendingUpload({ mimeType: 'image/jpeg' }));
 
       const result = await service.confirmPublicImageUpload(
@@ -1134,6 +1153,100 @@ describe('PresignedUploadService', () => {
         }),
         expect.anything(),
       );
+    });
+
+    it('publishes nothing for a file whose bytes are not the declared image type', async () => {
+      storedHead = SVG_HEAD;
+      givenReadableUpload(pendingUpload({ mimeType: 'image/png' }));
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.FAILED },
+      );
+      expect(filesClientService.deleteStoredObject).toHaveBeenCalledWith(
+        `ingredients/images/${mockIngredientId}`,
+      );
+    });
+
+    it('publishes nothing for a JPEG declared as a PNG', async () => {
+      storedHead = JPEG_HEAD;
+      givenReadableUpload(pendingUpload({ mimeType: 'image/png' }));
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+    });
+
+    it('publishes nothing for an image above the public image cap', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.uploadToExistingObject.mockResolvedValue({
+        height: 900,
+        size: 6 * 1024 * 1024,
+        width: 1600,
+      });
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.PAYLOAD_TOO_LARGE });
+
+      expect(publicTree.size).toBe(0);
+    });
+
+    it('lets a failed copy be repeated instead of stranding the asset', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.copyInS3.mockRejectedValueOnce(
+        new Error('files service timeout'),
+      );
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toThrow('files service timeout');
+
+      expect(publicTree.size).toBe(0);
+      expect(ingredientsService.patch).toHaveBeenLastCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.PROCESSING },
+      );
+
+      // The asset is pending again, so the same call now succeeds.
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({
+          ...pendingUpload(),
+          status: IngredientStatus.UPLOADED,
+        }),
+      );
+      const retried = await service.confirmPublicImageUpload(
+        mockUser,
+        mockIngredientId.toString(),
+      );
+      expect(retried.publicUrl).toBe(
+        `https://cdn.genfeed.ai/assets/articles/${mockOrganizationId}/${mockIngredientId}.png`,
+      );
+      expect(publicTree.size).toBe(1);
+    });
+
+    it('returns the URL the files service reports for its own CDN', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.copyInS3.mockImplementation(
+        async (sourceKey: string, destinationKey: string) => {
+          publicTree.set(destinationKey, sourceKey);
+          return `https://cdn.staging.example/${destinationKey}`;
+        },
+      );
+
+      const result = await service.confirmPublicImageUpload(
+        mockUser,
+        mockIngredientId.toString(),
+      );
+
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.staging\.example\//);
     });
 
     it('publishes nothing when the upload cannot be read as an image', async () => {

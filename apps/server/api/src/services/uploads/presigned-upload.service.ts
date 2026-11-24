@@ -5,6 +5,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { detectImageExtension } from '@api/services/uploads/image-signature.util';
 import {
   assertPresignedUploadAllowed,
   isAudioCategory,
@@ -25,7 +26,6 @@ import {
   normalizeCategory,
 } from '@genfeedai/contracts';
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
-import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -48,6 +48,10 @@ const PUBLIC_IMAGE_EXTENSION_BY_MIME_TYPE: Readonly<Record<string, string>> = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
+
+/** A public article image is a cover or an inline picture, not a download. */
+const PUBLIC_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const IMAGE_SIGNATURE_TIMEOUT_MS = 10_000;
 
 export interface PublicImageUpload {
   ingredient: IngredientDocument;
@@ -169,10 +173,19 @@ export class PresignedUploadService {
     id: string,
     options: PresignedUploadOptions = {},
   ): Promise<IngredientDocument> {
+    return this.confirmPendingUpload(
+      await this.findPendingUpload(user, id),
+      options,
+    );
+  }
+
+  private async confirmPendingUpload(
+    ingredient: IngredientDocument,
+    options: PresignedUploadOptions,
+  ): Promise<IngredientDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
-
-    const ingredient = await this.findPendingUpload(user, id);
+    const id = ingredient.id.toString();
 
     // Extract metadata from the uploaded file
     // Use the same workflow as AI-generated content
@@ -333,8 +346,26 @@ export class PresignedUploadService {
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
+    // The declared type was signed into the upload URL, but the bytes are the
+    // caller's. A file that is not the image it says it is never goes public.
+    if (!(await this.hasImageSignature(pending, extension))) {
+      await this.rejectUpload(id, pending.s3Key ?? '');
+      throw new HttpException(
+        {
+          detail: 'The uploaded file is not the image type it was declared as.',
+          title: 'Image type mismatch',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
 
-    const ingredient = await this.confirmUpload(user, id, options);
+    const ingredient = await this.confirmPendingUpload(pending, {
+      ...options,
+      maxBytes: Math.min(
+        options.maxBytes ?? PUBLIC_IMAGE_MAX_BYTES,
+        PUBLIC_IMAGE_MAX_BYTES,
+      ),
+    });
     const sourceKey = ingredient.s3Key;
     if (!sourceKey) {
       throw new HttpException(
@@ -344,13 +375,63 @@ export class PresignedUploadService {
     }
 
     const destinationKey = `assets/articles/${user.organizationId}/${ingredient.id}.${extension}`;
-    await this.filesClientService.copyInS3(sourceKey, destinationKey);
+    let publicUrl: string | undefined;
+    try {
+      publicUrl = await this.filesClientService.copyInS3(
+        sourceKey,
+        destinationKey,
+      );
+    } catch (error: unknown) {
+      // Confirming already moved the upload out of PROCESSING; put it back so
+      // the same call can be repeated instead of leaving an unpublishable asset.
+      await this.ingredientsService.patch(id, {
+        status: IngredientStatus.PROCESSING,
+      });
+      throw error;
+    }
+    if (!publicUrl) {
+      throw new HttpException(
+        'The files service returned no public URL for the copied image',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
     this.loggerService.log(
       `${this.constructorName} published upload ${ingredient.id} for articles`,
       { destinationKey, organizationId: user.organizationId },
     );
 
-    return { ingredient, publicUrl: cdnAsset(destinationKey) };
+    return { ingredient, publicUrl };
+  }
+
+  /** Reads the first bytes of the stored object and checks its magic number. */
+  private async hasImageSignature(
+    pending: IngredientDocument,
+    extension: string,
+  ): Promise<boolean> {
+    if (!pending.s3Key) {
+      return false;
+    }
+    try {
+      const downloadUrl =
+        await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          pending.s3Key,
+        );
+      const response = await fetch(downloadUrl, {
+        headers: { Range: 'bytes=0-15' },
+        signal: AbortSignal.timeout(IMAGE_SIGNATURE_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        return false;
+      }
+      const head = new Uint8Array(await response.arrayBuffer()).subarray(0, 16);
+      return detectImageExtension(head) === extension;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} could not read the upload to check its type`,
+        error,
+      );
+      return false;
+    }
   }
 
   private async findPendingUpload(
