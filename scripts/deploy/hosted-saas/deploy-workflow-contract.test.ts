@@ -330,9 +330,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('          - storyboard-unbilled-report');
     expect(seed).toContain('          - linkedin-credential-report');
     expect(seed).toContain('          - release-health-report');
-    expect(seed).toContain('          - approvals-page-report');
+    expect(seed).toContain('          - media-key-report');
     expect(seed).toContain(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | media-key-report)',
     );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
@@ -343,7 +343,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     );
     expect(reader).toContain("op ->> 'state' = 'ready'");
     expect(reader).toContain("op ->> 'billing' = 'released'");
-    expect(reader).toContain('pg_column_size(t.*)');
+    expect(reader).toContain(
+      `"isDeleted" = false AND (category::text IN ('IMAGE'`,
+    );
     expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
     expect(reader).toContain(`"canonicalId" = 'scheduled-post.publish'`);
     expect(reader).toContain(`"purgeAt" <= (now() AT TIME ZONE 'UTC')`);
@@ -375,7 +377,7 @@ describe('hosted SaaS on-demand seed contract', () => {
       .slice(start, seed.indexOf('const name = process.argv[1];', start))
       .split('\n')
       .filter((line) =>
-        /^\s+'(storyboard-unbilled|linkedin-credential|release-health|approvals-page|backfill)-report': /.test(
+        /^\s+'(storyboard-unbilled|linkedin-credential|release-health|media-key|backfill)-report': /.test(
           line,
         ),
       );
@@ -387,7 +389,7 @@ describe('hosted SaaS on-demand seed contract', () => {
   test('report seeds select the migrate task and override its command with the reader', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)\n',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | media-key-report)\n',
     );
     const branch = seed.slice(start, seed.indexOf('              ;;', start));
 

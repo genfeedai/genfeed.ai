@@ -1,14 +1,28 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { POST_ENHANCEMENT_CREDITS } from '@genfeedai/contracts/constants';
 import type { PostQuickActionKey } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import { Skeleton } from '@ui/primitives/skeleton';
-import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
-import { Check, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import type {
@@ -45,10 +59,11 @@ type PendingRequest =
   | { kind: 'thread'; label: string };
 
 /**
- * One row of one-tap AI actions under the post: rewrite presets, thread
- * actions and a tone. Every AI result is a proposal the user accepts or
- * discards. Free-form instructions belong to the agent, which "Ask agent"
- * opens on this post's own conversation.
+ * The AI actions under the post: one "Improve" menu holding the rewrite
+ * presets, the thread draft and the tone, plus "Ask agent". Every AI result
+ * is a proposal the user accepts or discards. Free-form instructions belong
+ * to the agent, which "Ask agent" opens on this post's own conversation. The
+ * first comment and the closing @grok question live in the thread footer.
  */
 export default function PostComposerActions({
   targetLabel,
@@ -56,22 +71,14 @@ export default function PostComposerActions({
   platformLabel,
   isBusy,
   canDraftThread = false,
-  canEndWithGrok = false,
-  canAddFirstComment = false,
   onRewrite,
   onApplyRewrite,
   onDraftThread,
   onAddThreadPosts,
-  onEndWithGrok,
-  onAddFirstComment,
   onAskAgent,
   className,
 }: PostComposerActionsProps) {
   const translate = useTranslations('ui.postComposerActions');
-  const toneSelectOptions = TONE_KEYS.map((key) => ({
-    label: translate(`tones.${key}`),
-    value: key,
-  }));
   const [tone, setTone] = useState<TweetTone>('professional');
   const [proposal, setProposal] = useState<RewriteProposal | null>(null);
   const [threadProposal, setThreadProposal] = useState<ThreadProposal | null>(
@@ -117,10 +124,8 @@ export default function PostComposerActions({
   };
 
   const presets: PostComposerPreset[] = [
-    ...(canDraftThread ? [THREAD_PRESETS.thread] : []),
-    ...(canEndWithGrok ? [THREAD_PRESETS.grok] : []),
-    ...(canAddFirstComment ? [THREAD_PRESETS.comment] : []),
     ...REWRITE_PRESETS,
+    ...(canDraftThread ? [THREAD_PRESETS.thread] : []),
   ];
 
   const runPreset = (key: PostComposerPresetKey) => {
@@ -128,15 +133,6 @@ export default function PostComposerActions({
       void run({ kind: 'thread', label: translate('presets.thread') });
       return;
     }
-    if (key === 'grok') {
-      onEndWithGrok?.();
-      return;
-    }
-    if (key === 'comment') {
-      onAddFirstComment?.();
-      return;
-    }
-
     const preset = REWRITE_PRESETS.find((item) => item.key === key);
     if (!preset?.prompt) {
       return;
@@ -303,32 +299,48 @@ export default function PostComposerActions({
     >
       {resultPanel}
       <div className="flex flex-wrap items-center gap-1.5">
-        {presets.map((preset) => {
-          const Icon = preset.icon;
-          return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
-              key={preset.key}
-              label={translate(`presets.${preset.key}`)}
-              icon={<Icon className="size-3.5" />}
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               textTransform="none"
+              withWrapper={false}
               isDisabled={isRunning || !hasTargetContent}
-              onClick={() => runPreset(preset.key)}
-            />
-          );
-        })}
-        <PromptBarCompactSelect
-          ariaLabel={translate('toneAria')}
-          icon="intent"
-          isDisabled={isRunning}
-          options={toneSelectOptions}
-          value={tone}
-          onChange={(value) => setTone(value as TweetTone)}
-        />
-        <span className="ml-auto text-2xs text-muted-foreground">
-          {translate('creditPerRun', { count: POST_ENHANCEMENT_CREDITS })}
-        </span>
+            >
+              <Sparkles className="size-3.5" />
+              {translate('improve')}
+              <ChevronDown className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {presets.map((preset) => {
+              const Icon = preset.icon;
+              return (
+                <DropdownMenuItem
+                  key={preset.key}
+                  onSelect={() => runPreset(preset.key)}
+                >
+                  <Icon aria-hidden="true" className="size-4" />
+                  {translate(`presets.${preset.key}`)}
+                </DropdownMenuItem>
+              );
+            })}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{translate('toneAria')}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              aria-label={translate('toneAria')}
+              value={tone}
+              onValueChange={(value) => setTone(value as TweetTone)}
+            >
+              {TONE_KEYS.map((key) => (
+                <DropdownMenuRadioItem key={key} value={key}>
+                  {translate(`tones.${key}`)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {onAskAgent ? (
           <Button
             label={translate('askAgent')}
@@ -336,6 +348,7 @@ export default function PostComposerActions({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             textTransform="none"
+            className="ml-auto"
             onClick={onAskAgent}
           />
         ) : null}

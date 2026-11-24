@@ -637,3 +637,85 @@ describe('Image editing source URLs under authorized media delivery (#4895)', ()
     ).rejects.toThrow('Authorized media issuer is unavailable');
   });
 });
+
+describe('MAI-Image editing admission', () => {
+  const mai = MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT;
+  const maiFlash = MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT;
+
+  it.each([mai, maiFlash])(
+    'admits %s with its own recipe, one output and the fitted source size',
+    async (key) => {
+      findOne.mockImplementation(async (query: { id: string }) =>
+        ready(query.id, 576, 1024),
+      );
+      const editing = await service.admitImageEdit(
+        primary,
+        dto({ model: key, references: [secondary], size: 'source' }),
+        organizationId,
+        brandId,
+      );
+      expect(editing.recipe).toEqual({
+        contractVersion: 'mai-image-edit-2026-11-24',
+        operation: 'image-edit',
+        model: key,
+        sourceIds: [primary, secondary],
+        outputs: 1,
+      });
+      // 576x1024 is under fal's 768 px minimum; billing and dispatch use the fitted size.
+      expect([editing.width, editing.height]).toEqual([768, 1360]);
+      expect(editing.sourceUrls).toHaveLength(2);
+    },
+  );
+
+  it('caps a large source at fal limit so billing never rests on unrendered pixels', async () => {
+    findOne.mockImplementation(async (query: { id: string }) =>
+      ready(query.id, 4000, 3000),
+    );
+    const editing = await service.admitImageEdit(
+      primary,
+      dto({ model: mai }),
+      organizationId,
+      brandId,
+    );
+    expect(editing.width * editing.height).toBeLessThanOrEqual(4_194_304);
+    expect(editing.width % 16).toBe(0);
+    expect(editing.height % 16).toBe(0);
+  });
+
+  it.each([
+    ['a mask', { maskId: mask }],
+    ['a seed', { seed: 7 }],
+    ['two outputs', { outputs: 2 }],
+    ['a fixed size', { size: '1536x640' as const }],
+    ['a native resolution', { resolution: '1k' }],
+    ['an aspect ratio', { aspectRatio: '1:1' }],
+  ])('refuses %s instead of dropping it', async (_name, patch) => {
+    await expect(
+      service.admitImageEdit(
+        primary,
+        dto({ model: mai, ...patch }),
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow('MAI-Image edits take one output');
+  });
+
+  it('accepts five sources and refuses six', async () => {
+    const ids = [1, 2, 3, 4, 5, 6].map((index) => testId('mai', index));
+    const editing = await service.admitImageEdit(
+      ids[0],
+      dto({ model: mai, references: ids.slice(1, 5) }),
+      organizationId,
+      brandId,
+    );
+    expect(editing.sourceIds).toHaveLength(5);
+    await expect(
+      service.admitImageEdit(
+        ids[0],
+        dto({ model: mai, references: ids.slice(1) }),
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow('one to five distinct source images and one output');
+  });
+});

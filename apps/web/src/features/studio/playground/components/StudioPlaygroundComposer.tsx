@@ -1,6 +1,9 @@
 'use client';
 
-import { isFlux3ImageModel } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  isMaiImageEditModel,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -107,11 +110,13 @@ export default function StudioPlaygroundComposer({
     settings.modelKey,
   );
   const isFlux = isFlux3ImageModel(settings.modelKey ?? '');
+  const isMaiEdit = isMaiImageEditModel(settings.modelKey ?? '');
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
   const selectedModel = models.find((model) => model.key === settings.modelKey);
   const { droppedEditingControls } = useStudioComposerNormalization({
     attachedAssets,
     isFlux,
+    isMaiEdit,
     onRemoveAttachedAsset,
     onSettingsChange,
     selectedModel,
@@ -224,6 +229,7 @@ export default function StudioPlaygroundComposer({
       inputControls?.mediaKind === 'video' &&
       inputControls.videoRules?.referenceMode === 'start-end',
     isFlux,
+    isMaiEdit,
     isUploading,
     labels: {
       audioReference: translate('audioReference'),
@@ -323,6 +329,7 @@ export default function StudioPlaygroundComposer({
         isEditingModelUnavailable={validation.isEditingModelUnavailable}
         isEditSourceMissing={validation.isEditSourceMissing}
         isFlux={isFlux}
+        isMaiEdit={isMaiEdit}
         onSettingsChange={onSettingsChange}
         settings={settings}
         type={type}

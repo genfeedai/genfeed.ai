@@ -792,13 +792,13 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.034816,
   },
   {
-    category: ModelCategory.IMAGE,
+    category: ModelCategory.IMAGE_EDIT,
     cost: 18,
     costTier: CostTier.MEDIUM,
     qualityTier: QualityTier.ULTRA,
     speedTier: SpeedTier.MEDIUM,
     description:
-      'Microsoft MAI-Image-2.7 Edit via fal — instruction editing and reference-guided generation from one to five source images.',
+      'Microsoft MAI-Image-2.7 Edit via fal — instruction editing from one to five source images, one output at a time.',
     endpoint: 'microsoft/mai-image-2.7/edit',
     isDefault: false,
     isHighlighted: false,
@@ -829,7 +829,7 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.01024,
   },
   {
-    category: ModelCategory.IMAGE,
+    category: ModelCategory.IMAGE_EDIT,
     cost: 6,
     costTier: CostTier.LOW,
     qualityTier: QualityTier.HIGH,
