@@ -58,7 +58,8 @@ export function finishWideEvent(
   const { event, startedAt } = started;
   try {
     if (fields) mergeWideEventFields(event, fields);
-    event.duration_ms = Math.round(performance.now() - startedAt);
+    const finishedAt = performance.now();
+    event.duration_ms = Math.round(finishedAt - startedAt);
     const eventLoopLagMaxMs = eventLoopLagSampler.maxLagSince(startedAt);
     if (eventLoopLagMaxMs !== undefined)
       mergeWideEventFields(event, {
@@ -68,6 +69,14 @@ export function finishWideEvent(
     if (gcPauseMaxMs !== undefined)
       mergeWideEventFields(event, {
         runtime: { gc_pause_max_ms: gcPauseMaxMs },
+      });
+    const gcMajorOverlapMs = eventLoopLagSampler.majorGcOverlapMsSince(
+      startedAt,
+      finishedAt,
+    );
+    if (gcMajorOverlapMs !== undefined)
+      mergeWideEventFields(event, {
+        runtime: { gc_major_overlap_ms: gcMajorOverlapMs },
       });
     event.outcome = readWideEventOutcome(
       event.status_code,

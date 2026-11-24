@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import { Button } from '@ui/primitives/button';
@@ -46,7 +50,8 @@ const PromptOutputsButton = memo(function PromptOutputsButton({
     <Button
       label={`${form.watch('outputs') || 1}x`}
       variant={ButtonVariant.GHOST}
-      className="h-8 px-2.5 gap-1 tabular-nums"
+      size={ButtonSize.XS}
+      className="tabular-nums"
       tooltip="Number of outputs"
       tooltipPosition="top"
       icon={
@@ -184,8 +189,9 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             onClick={onToggleCollapse}
             tooltip="Collapse"
             tooltipPosition="left"
-            variant={ButtonVariant.GHOST}
-            className="absolute right-2 top-2 size-8 rounded-md border border-border bg-background/20 p-0 backdrop-blur-sm hover:bg-hover"
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.ICON}
+            className="absolute right-2 top-2 backdrop-blur-sm"
             icon={<ChevronUp className="size-4" />}
             data-testid="collapse-button"
           />
@@ -347,7 +353,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
-                className="h-8 gap-2 px-2 pr-2.5"
+                size={ButtonSize.XS}
                 tooltip={
                   references.length > 1
                     ? `${references.length} references selected`
@@ -441,7 +447,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 variant={
                   isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
                 }
-                className="h-8 px-3 transition-colors duration-300 flex-shrink-0"
+                size={ButtonSize.SM}
+                className="transition-colors duration-300 flex-shrink-0"
                 isPulsing={isRecording}
                 isDisabled={isGenerateBlocked || isProcessing}
                 tooltip={getVoiceTooltip(isRecording, isProcessing)}
@@ -465,7 +472,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltip="Stop"
                 tooltipPosition="top"
                 ariaLabel="Stop generation"
-                className={cn('transition-colors duration-300', 'size-8 p-0')}
+                size={ButtonSize.ICON}
+                className="transition-colors duration-300"
                 data-testid="stop-generation-button"
               />
             ) : null}

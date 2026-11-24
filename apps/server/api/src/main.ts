@@ -5,7 +5,11 @@ import {
 } from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import './instrument';
 
-import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
+import {
+  bootstrap,
+  configureLoadBalancerKeepAlive,
+  setupGracefulShutdown,
+} from '@libs/bootstrap';
 
 bootstrap({ app: 'api' });
 
@@ -20,6 +24,7 @@ import {
   isBetterAuthAdminPath,
   shouldBypassBetterAuthHandler,
 } from '@api/auth/better-auth/better-auth-route-bypass.util';
+import { createLazyBullBoardRouter } from '@api/bull-board/lazy-bull-board-router';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { createShortLinkHostRewrite } from '@api/common/middleware/short-link-host.middleware';
 import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
@@ -47,9 +52,6 @@ import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { buildApiCorsOptionsDelegate } from '@api/oauth/oauth-cors.util';
 import { buildOAuthAuthorizationServerMetadata } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { createBullBoard } from '@bull-board/api';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
-import { ExpressAdapter } from '@bull-board/express';
 import {
   isProductionCloudFromReader,
   resolveTrustProxyFromReader,
@@ -66,7 +68,11 @@ import {
   shouldAllowLocalCorsOrigins,
 } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { eventLoopLagSampler } from '@libs/logger/wide-event/wide-event.event-loop';
+import {
+  createMajorGcLogListener,
+  eventLoopLagSampler,
+  scheduleHeapBaselineLog,
+} from '@libs/logger/wide-event/wide-event.event-loop';
 import { createWideEventMiddleware } from '@libs/logger/wide-event/wide-event.http';
 import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import {
@@ -77,7 +83,6 @@ import {
 import { Logger } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Queue } from 'bullmq';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
@@ -194,8 +199,9 @@ async function main() {
     );
     app.enableShutdownHooks();
 
-    // Lets a slow request's wide event say whether the process was blocked.
-    eventLoopLagSampler.start();
+    // Lets a slow request's wide event say whether the process was blocked,
+    // and logs every full collection with its marking time and live heap.
+    eventLoopLagSampler.start(createMajorGcLogListener(logger));
 
     // One wide event per request, started before CORS, rate limiting and auth
     // so rejected requests are recorded too. Handlers enrich it through
@@ -400,24 +406,17 @@ async function main() {
     app.useGlobalFilters(new DatabaseExceptionFilter(logger, configService));
     app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
 
-    // Bull Board setup — the canonical list automatically includes every
-    // API/workers queue plus explicitly reviewed service-local queues.
-    const serverAdapter = new ExpressAdapter();
-    serverAdapter.setBasePath('/admin/queues');
-
+    // Bull Board — the canonical list automatically includes every
+    // API/workers queue plus explicitly reviewed service-local queues. It is
+    // built on the first authorized request, not at startup.
     const redisConfig = parseRedisConnectionForWorkload(
       configService,
       RedisWorkload.QUEUE,
     );
-    const bullBoardConnection = buildBullMQConnection(redisConfig);
-    createBullBoard({
-      queues: BULL_BOARD_QUEUE_NAMES.map(
-        (name) =>
-          new BullMQAdapter(
-            new Queue(name, { connection: bullBoardConnection }),
-          ),
-      ),
-      serverAdapter,
+    const bullBoardRouter = createLazyBullBoardRouter({
+      basePath: '/admin/queues',
+      connection: buildBullMQConnection(redisConfig),
+      queueNames: BULL_BOARD_QUEUE_NAMES,
     });
 
     const expressApp = app.getHttpAdapter().getInstance();
@@ -480,7 +479,7 @@ async function main() {
       });
     };
 
-    expressApp.use('/admin/queues', bullBoardAuth, serverAdapter.getRouter());
+    expressApp.use('/admin/queues', bullBoardAuth, bullBoardRouter);
 
     // Sentry API-GENFEED-AI-71 / 72: refuse to bind the listener when the
     // running Prisma Article client still selects the retired title column or
@@ -501,6 +500,10 @@ async function main() {
       },
     });
 
+    // The load balancer idles a connection for 60 s; Node's own 5 s would drop
+    // it first and turn a reused connection into a 502 the API never sees.
+    configureLoadBalancerKeepAlive(app.getHttpServer());
+
     bootstrapLogger.log(`API bootstrap: starting listener on port ${port}`);
     await withStartupTimeout(
       app.listen(port),
@@ -508,6 +511,7 @@ async function main() {
       `API listen timed out after ${apiListenTimeoutMs}ms before serving port ${port}`,
     );
     bootstrapLogger.log(`API bootstrap: listener ready on port ${port}`);
+    scheduleHeapBaselineLog(logger);
     logger.debug(`API service is running on port ${port}`);
   } catch (error: unknown) {
     logger?.error('Failed to start API service:', error);

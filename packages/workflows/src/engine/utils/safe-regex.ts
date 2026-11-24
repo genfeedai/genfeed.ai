@@ -1,4 +1,4 @@
-import { checkSync } from 'recheck';
+import type { checkSync as CheckSync } from 'recheck';
 
 /**
  * Maximum character length allowed for a user-supplied regex pattern.
@@ -55,6 +55,21 @@ const VERDICT_CACHE_MAX_ENTRIES = 1_000;
 const verdictCache = new Map<string, boolean>();
 
 /**
+ * The analyzer is a 2.8 MB Scala.js bundle that holds about 9 MB of live heap
+ * once loaded, and only workflows that match a user-written regex use it. It
+ * is loaded on the first analysis instead of at startup, so every process that
+ * imports this file does not pay for it. `createSafeRegExp` is synchronous,
+ * which is why this is a lazy `require` and not a dynamic `import()`.
+ */
+let checkSyncImpl: typeof CheckSync | undefined;
+
+function loadCheckSync(): typeof CheckSync {
+  checkSyncImpl ??= (require('recheck') as { checkSync: typeof CheckSync })
+    .checkSync;
+  return checkSyncImpl;
+}
+
+/**
  * Runs `recheck`'s automaton-based ReDoS analysis on a pattern and caches the
  * verdict. A pattern is considered safe when the analyzer proves it is safe,
  * or when its worst-case backtracking is polynomial of degree
@@ -71,7 +86,7 @@ function isPatternSafe(pattern: string, flags: string): boolean {
 
   let isSafe: boolean;
   try {
-    const diagnostics = checkSync(pattern, flags, {
+    const diagnostics = loadCheckSync()(pattern, flags, {
       checker: 'automaton',
       timeout: ANALYSIS_TIMEOUT_MS,
     });

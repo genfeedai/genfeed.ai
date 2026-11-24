@@ -18,14 +18,12 @@ const mockVideosInsert = vi.fn();
 const mockPlaylistItemsInsert = vi.fn();
 const mockThumbnailsSet = vi.fn();
 
-vi.mock('googleapis', () => ({
-  google: {
-    youtube: () => ({
-      playlistItems: { insert: mockPlaylistItemsInsert },
-      thumbnails: { set: mockThumbnailsSet },
-      videos: { insert: mockVideosInsert },
-    }),
-  },
+vi.mock('@googleapis/youtube', () => ({
+  youtube: () => ({
+    playlistItems: { insert: mockPlaylistItemsInsert },
+    thumbnails: { set: mockThumbnailsSet },
+    videos: { insert: mockVideosInsert },
+  }),
 }));
 
 // Mock htmlToText

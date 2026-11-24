@@ -16,6 +16,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { PublicBrandOsController } from '@api/endpoints/public/controllers/brand-os/public.brand-os.controller';
+import { PublicBrandReachController } from '@api/endpoints/public/controllers/brands/public.brand-reach.controller';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { PublicMediaController } from '@api/endpoints/public/controllers/media/public-media.controller';
@@ -29,7 +30,9 @@ import { PublicVideosController } from '@api/endpoints/public/controllers/videos
 import { PublicWaitlistController } from '@api/endpoints/public/controllers/waitlist/public.waitlist.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
+import { PublicCacheControlInterceptor } from '@api/endpoints/public/interceptors/public-cache-control.interceptor';
 import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
+import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
 import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
@@ -41,10 +44,12 @@ import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   controllers: [
     PublicArticlesController,
+    PublicBrandReachController,
     PublicBrandsController,
     PublicBrandOsController,
     PublicImagesController,
@@ -84,8 +89,11 @@ import { Module } from '@nestjs/common';
     WorkflowsModule,
   ],
   providers: [
+    // Global, like every APP_INTERCEPTOR; it acts only on the public controllers.
+    { provide: APP_INTERCEPTOR, useClass: PublicCacheControlInterceptor },
     PublicMediaService,
     PublicArticleGenerationsService,
+    PublicBrandReachService,
     PublicBrandSocialsService,
     PublicViewsService,
     PublicYoutubeClipperService,

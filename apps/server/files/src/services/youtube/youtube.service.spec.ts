@@ -5,22 +5,21 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';
 
-vi.mock('googleapis', () => ({
-  google: {
-    auth: {
-      OAuth2: vi.fn().mockImplementation(function OAuth2Mock() {
-        return {
-          on: vi.fn(),
-          setCredentials: vi.fn(),
-        };
-      }),
+vi.mock('google-auth-library', () => ({
+  OAuth2Client: vi.fn().mockImplementation(function OAuth2Mock() {
+    return {
+      on: vi.fn(),
+      setCredentials: vi.fn(),
+    };
+  }),
+}));
+
+vi.mock('@googleapis/youtube', () => ({
+  youtube: vi.fn().mockReturnValue({
+    videos: {
+      insert: vi.fn(),
     },
-    youtube: vi.fn().mockReturnValue({
-      videos: {
-        insert: vi.fn(),
-      },
-    }),
-  },
+  }),
 }));
 
 const axiosMock = vi.hoisted(() => ({ get: vi.fn() }));
@@ -40,8 +39,9 @@ vi.mock('fs', () => fsMock);
 vi.mock('node:fs', () => fsMock);
 
 import * as fs from 'node:fs';
+import { youtube } from '@googleapis/youtube';
 import axios from 'axios';
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 
 function createMockOAuth2Client() {
   return {
@@ -89,10 +89,10 @@ describe('YoutubeService', () => {
 
     mockYoutubeAPI = createMockYoutubeAPI();
 
-    vi.mocked(google.auth.OAuth2).mockImplementation(function oauth2Mock() {
+    vi.mocked(OAuth2Client).mockImplementation(function oauth2Mock() {
       return mockOAuth2Client;
     });
-    (google.youtube as Mock).mockReturnValue(mockYoutubeAPI);
+    (youtube as Mock).mockReturnValue(mockYoutubeAPI);
 
     mockConfigService = {
       ingredientsEndpoint: 'https://api.example.com/ingredients',
@@ -152,10 +152,10 @@ describe('YoutubeService', () => {
     vi.clearAllMocks();
 
     // Re-setup mocks after clearAllMocks
-    vi.mocked(google.auth.OAuth2).mockImplementation(function oauth2Mock() {
+    vi.mocked(OAuth2Client).mockImplementation(function oauth2Mock() {
       return mockOAuth2Client;
     });
-    (google.youtube as Mock).mockReturnValue(mockYoutubeAPI);
+    (youtube as Mock).mockReturnValue(mockYoutubeAPI);
     (fs.existsSync as Mock).mockReturnValue(false);
     (fs.readdirSync as Mock).mockReturnValue([]);
     mockYoutubeAPI.videos.insert.mockResolvedValue({
@@ -193,7 +193,7 @@ describe('YoutubeService', () => {
 
     it('uploads each concurrent video with its own account client', async () => {
       const uploads: Array<[string, string | null | undefined]> = [];
-      vi.mocked(google.auth.OAuth2).mockImplementation(function oauth2Mock() {
+      vi.mocked(OAuth2Client).mockImplementation(function oauth2Mock() {
         const client: {
           on: Mock;
           setCredentials: Mock;
@@ -206,7 +206,7 @@ describe('YoutubeService', () => {
         };
         return client;
       });
-      (google.youtube as Mock).mockImplementation(
+      (youtube as Mock).mockImplementation(
         ({ auth }: { auth: { token?: string | null } }) => ({
           videos: {
             insert: vi.fn(
@@ -244,7 +244,7 @@ describe('YoutubeService', () => {
     it('should initialize OAuth2 client with credentials', async () => {
       await service.uploadVideo(mockUploadParams);
 
-      expect(google.auth.OAuth2).toHaveBeenCalledWith(
+      expect(OAuth2Client).toHaveBeenCalledWith(
         mockCredential.clientId,
         mockCredential.clientSecret,
         mockCredential.redirectUri,

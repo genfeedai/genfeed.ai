@@ -42,13 +42,12 @@ vi.mock('axios', () => ({
   post: vi.fn(),
 }));
 
-vi.mock('googleapis', () => ({
-  google: {
-    auth: {
-      OAuth2: oauth2ConstructorMock,
-    },
-    youtube: youtubeFactoryMock,
-  },
+vi.mock('google-auth-library', () => ({
+  OAuth2Client: oauth2ConstructorMock,
+}));
+
+vi.mock('@googleapis/youtube', () => ({
+  youtube: youtubeFactoryMock,
 }));
 
 describe('BotsLivestreamDeliveryService', () => {

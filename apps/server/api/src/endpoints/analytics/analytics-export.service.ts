@@ -15,7 +15,6 @@ import { CredentialPlatform, PublishStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import * as ExcelJS from 'exceljs';
 import type {
   ExportPostData,
   ExportRowData,
@@ -348,7 +347,10 @@ export class AnalyticsExportService {
     data: ProcessedExportData[],
     fields: string[],
   ): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
+    // Loaded on the first xlsx export: the library holds about 6 MB of live
+    // heap, and most processes never write a workbook.
+    const { Workbook } = await import('exceljs');
+    const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Export Data');
 
     // Add headers

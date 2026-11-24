@@ -208,8 +208,8 @@ export default function EvaluationCard({
         <Button
           type="button"
           onClick={() => setIsCardCollapsed(!isCardCollapsed)}
-          variant={ButtonVariant.UNSTYLED}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.INLINE}
         >
           <div
             className={cn(
@@ -307,10 +307,11 @@ export default function EvaluationCard({
             <Button
               type="button"
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.INLINE}
               withWrapper={false}
               ariaLabel={translate('toggleDetails')}
-              className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className="w-fit"
             >
               <ChevronDown
                 className={cn(

@@ -1,5 +1,8 @@
 import { AssetScope } from '@genfeedai/contracts';
-import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
+import type {
+  IPaginatedResponse,
+  IPublicBrandReach,
+} from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Image as ImageModel } from '@models/ingredients/image.model';
@@ -21,7 +24,8 @@ export interface CreatorShowcase {
 
 export interface CreatorProfileData {
   brand: Brand;
-  referralCode: string | null;
+  /** Lifetime totals; null when the API has none or could not answer. */
+  reach: IPublicBrandReach | null;
   showcase: CreatorShowcase;
 }
 
@@ -50,6 +54,33 @@ export const getPublicReferralCode = cache(
   async (brandId: string): Promise<string | null> => {
     try {
       return await PublicService.getInstance().findPublicReferralCode(brandId);
+    } catch {
+      return null;
+    }
+  },
+);
+
+/** The creator's lifetime totals, or null when there are none to show. */
+export const getPublicReach = cache(
+  async (brandId: string): Promise<IPublicBrandReach | null> => {
+    try {
+      return await PublicService.getInstance().findPublicReach(brandId);
+    } catch {
+      return null;
+    }
+  },
+);
+
+/**
+ * The referral code for a handle's sign-up links. Unknown handles, an outage
+ * and a creator without a code all read as null: the footer then offers a
+ * plain sign-up, and the page is never blocked on it.
+ */
+export const getPublicReferralCodeBySlug = cache(
+  async (slug: string): Promise<string | null> => {
+    try {
+      const brand = await getPublicBrandBySlug(slug);
+      return brand ? await getPublicReferralCode(brand.id) : null;
     } catch {
       return null;
     }
@@ -129,7 +160,7 @@ export const getCreatorPlatformPosts = cache(
   },
 );
 
-/** The brand, its referral code and one page of each kind of content. */
+/** The brand, its totals and one page of each kind of content. */
 export const getCreatorProfileData = cache(
   async (
     handle: string,
@@ -142,12 +173,12 @@ export const getCreatorProfileData = cache(
       return null;
     }
 
-    const [showcase, referralCode] = await Promise.all([
+    const [showcase, reach] = await Promise.all([
       getCreatorShowcase(brand.id, pageSize, page),
-      getPublicReferralCode(brand.id),
+      getPublicReach(brand.id),
     ]);
 
-    return { brand, referralCode, showcase };
+    return { brand, reach, showcase };
   },
 );
 

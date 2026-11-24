@@ -1,7 +1,7 @@
 'use client';
 
 import { getFollowSignUpHref } from '@data/app-links';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { ProfileSubscribeProps } from '@props/content/creator.props';
 import { ButtonGroup, ButtonGroupText } from '@ui/primitives/button-group';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
@@ -75,7 +75,6 @@ export default function ProfileSubscribe({
       isDisabled={isDone}
       isLoading={state === 'sending'}
       onClick={() => void handleSubscribe()}
-      size={isCompact ? ButtonSize.SM : undefined}
       trackingData={{
         action: 'profile_subscribe',
         label: 'Subscribe',
