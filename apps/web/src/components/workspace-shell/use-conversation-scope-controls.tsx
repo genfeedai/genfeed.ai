@@ -190,9 +190,9 @@ function ScopeTrigger({
   return (
     <Button
       ariaLabel={`Change ${label} scope`}
-      className="h-7 max-w-44 gap-1.5 px-2 text-2xs"
+      className="max-w-44"
       icon={icon}
-      size={ButtonSize.SM}
+      size={ButtonSize.XS}
       variant={ButtonVariant.GHOST}
       withWrapper={false}
     >
@@ -559,10 +559,9 @@ export function useConversationScopeControls({
       ) : null}
       {isStale ? (
         <Button
-          className="h-7 px-2 text-2xs"
           isDisabled={isMutating}
           onClick={() => void synchronize()}
-          size={ButtonSize.SM}
+          size={ButtonSize.XS}
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
