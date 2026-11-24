@@ -2180,6 +2180,15 @@ describe('StudioPlaygroundComposer', () => {
       />,
     );
 
+    // At 4k a cheaper draft exists and is on by default; this test reads the
+    // full render's quote, so turn it off.
+    act(() =>
+      (
+        setupBarMocks.props.videoDraft as
+          | { onChange: (isEnabled: boolean) => void }
+          | undefined
+      )?.onChange(false),
+    );
     expect(screen.getByText('~125')).toBeVisible();
     expect(estimateMocks.resolve).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2523,7 +2532,8 @@ describe('StudioPlaygroundComposer', () => {
             name: 'Generate a cheap video draft',
           }),
         ).toBeNull();
-        act(() => draftControl().onChange(true));
+        // Video starts as a draft: the first Generate is the cheap preview.
+        expect(draftControl().isEnabled).toBe(true);
         fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
         await waitFor(() =>
@@ -2537,6 +2547,38 @@ describe('StudioPlaygroundComposer', () => {
           }),
           expect.any(AbortSignal),
         );
+      });
+
+      it('renders the full video once the draft is turned off', async () => {
+        estimateMocks.resolve.mockImplementation(
+          (request: { modelKey?: string }) => ({
+            credits: request.modelKey === veoFast.key ? 50 : 134,
+            status: 'estimated',
+          }),
+        );
+        spendMocks.estimateGenerationCredits.mockResolvedValue({
+          credits: 134,
+          isAvailable: true,
+          modelKey: veo.key,
+        });
+        render(
+          <StudioPlaygroundComposer
+            {...baseProps}
+            models={[veo, veoFast] as never}
+            prompt="A cinematic reveal"
+            settings={videoSettings}
+            type="video"
+          />,
+        );
+
+        act(() => draftControl().onChange(false));
+        expect(draftControl().isEnabled).toBe(false);
+        fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+        await waitFor(() =>
+          expect(baseProps.onSubmit).toHaveBeenCalledTimes(1),
+        );
+        expect(baseProps.onSubmit).toHaveBeenCalledWith(undefined);
       });
 
       it('offers no draft when the cheaper sibling is not on offer', () => {
