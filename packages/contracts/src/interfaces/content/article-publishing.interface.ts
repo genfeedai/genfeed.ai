@@ -16,6 +16,8 @@ export interface ArticleUpdateInput {
   summary?: string;
   content?: string;
   coverImageUrl?: string;
+  /** ISO 8601 publication date; changes the date only, never the status. */
+  publishedAt?: string;
 }
 
 /** Expiring bearer link; do not send it to analytics or application logs. */
