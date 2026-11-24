@@ -193,6 +193,14 @@ function cssUrl(value: string): string {
   );
 }
 
+/**
+ * Vertical padding around the play button. The aspect ratio sets the frame's
+ * height and `valign` centres the button in it; this padding only keeps a
+ * client without `aspect-ratio` from collapsing the tile to nothing. It is
+ * small so it never forces a shrunken tile taller than its width.
+ */
+const VIDEO_FRAME_MIN_PADDING_PX = 20;
+
 /** The round play button drawn over a video's first frame. */
 function playButtonHtml(): string {
   return `<table role="presentation" align="center" cellspacing="0" cellpadding="0" style="border-collapse:separate;margin:0 auto;"><tr><td align="center" valign="middle" width="44" style="background:rgba(0,0,0,0.6);border:2px solid ${EMAIL_BLOCK_COLORS.primary};border-radius:24px;color:${EMAIL_BLOCK_COLORS.primary};font-size:16px;height:40px;line-height:40px;padding:0 0 0 3px;width:44px;">&#9654;</td></tr></table>`;
@@ -206,10 +214,11 @@ function playButtonHtml(): string {
  */
 function videoStillHtml(
   src: string,
-  frame: { aspectRatio: string; fit: 'cover' | 'contain'; height: number },
+  frame: { aspectRatio: string; fit: 'cover' | 'contain' },
   maxWidth: number,
+  label: string,
 ): string {
-  return `<div style="aspect-ratio:${frame.aspectRatio};background:${EMAIL_BLOCK_COLORS.panel} url('${cssUrl(src)}') center/${frame.fit} no-repeat;border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${maxWidth}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="padding:${Math.round((frame.height - 44) / 2)}px 0;">${playButtonHtml()}</td></tr></table></div>`;
+  return `<div role="img" aria-label="${esc(label)}" style="aspect-ratio:${frame.aspectRatio};background:${EMAIL_BLOCK_COLORS.panel} url('${esc(cssUrl(src))}') center/${frame.fit} no-repeat;border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${maxWidth}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="padding:${VIDEO_FRAME_MIN_PADDING_PX}px 0;">${playButtonHtml()}</td></tr></table></div>`;
 }
 
 function thumbnailTile(
@@ -224,8 +233,9 @@ function thumbnailTile(
     src && item.kind === 'video'
       ? videoStillHtml(
           src,
-          { aspectRatio: '1/1', fit: 'cover', height: size },
+          { aspectRatio: '1/1', fit: 'cover' },
           size,
+          item.label ?? kindLabel,
         )
       : src
         ? `<img src="${esc(src)}" alt="${esc(item.label ?? kindLabel)}" width="${size}" height="${size}" style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:auto;max-width:${size}px;object-fit:cover;width:100%;">`
@@ -327,8 +337,9 @@ export function buildEmailHero(input: EmailHeroInput): string {
     src && input.kind === 'video'
       ? videoStillHtml(
           src,
-          { aspectRatio: '16/9', fit: 'contain', height: 280 },
+          { aspectRatio: '16/9', fit: 'contain' },
           EMAIL_CONTENT_WIDTH_PX + 2,
+          input.label ?? kindLabel,
         )
       : src
         ? `<img src="${esc(src)}" alt="${esc(input.label ?? kindLabel)}" width="496" style="background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:auto;max-width:100%;width:100%;">`
