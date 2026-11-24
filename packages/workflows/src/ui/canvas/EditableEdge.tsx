@@ -95,11 +95,10 @@ function EdgeMidpointToolbar({
       <div className="h-4 w-px bg-border" />
       <Button
         withWrapper={false}
-        variant={ButtonVariant.GHOST}
+        variant={ButtonVariant.DESTRUCTIVE}
         size={ButtonSize.ICON}
         onClick={handleDelete}
         title={translate('deleteEdge')}
-        className="hover:bg-destructive/10 hover:text-destructive"
       >
         <Trash2 className="size-3.5" />
       </Button>

@@ -88,7 +88,6 @@ function GenerationReferencePreview({
 
 // Every action on the card shares one ghost style, so the row reads as one set.
 const ACTION_CLASS = 'px-2 text-xs';
-const REMOVE_ACTION_CLASS = `${ACTION_CLASS} hover:text-destructive`;
 const AUDIO_TYPES = new Set(['music', 'voice']);
 const VIDEO_TYPES = new Set(['video', 'avatar']);
 const MODEL_GETTER_FIELDS = new Set([
@@ -303,7 +302,6 @@ export default function StudioPlaygroundCard({
             ? translateRecovery('started')
             : translateRecovery(`actions.${recovery.action}`)
         }
-        className={ACTION_CLASS}
         icon={
           recovery.action === 'retry' ? (
             <RotateCcw className="size-3.5" />
@@ -314,7 +312,7 @@ export default function StudioPlaygroundCard({
           )
         }
         withWrapper={false}
-        size={ButtonSize.SM}
+        size={ButtonSize.XS}
         variant={ButtonVariant.GHOST}
         isDisabled={capability.isRecovering || hasRetried}
         onClick={() =>
@@ -449,12 +447,11 @@ export default function StudioPlaygroundCard({
                   prompt: accessibleLabel,
                   type: label,
                 })}
-                className={REMOVE_ACTION_CLASS}
                 icon={<Trash2 className="size-3.5" />}
                 label={translate('remove')}
                 onClick={() => assetActions.onRemoveGeneration(job)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
+                size={ButtonSize.XS}
+                variant={ButtonVariant.DESTRUCTIVE}
                 withWrapper={false}
               />
             ) : null}
@@ -464,11 +461,10 @@ export default function StudioPlaygroundCard({
                   prompt: accessibleLabel,
                   type: label,
                 })}
-                className={ACTION_CLASS}
                 icon={<RotateCcw className="size-3.5" />}
                 label={translate('reprompt')}
                 onClick={() => onReprompt(job)}
-                size={ButtonSize.SM}
+                size={ButtonSize.XS}
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               />
@@ -503,12 +499,11 @@ export default function StudioPlaygroundCard({
                         prompt: accessibleLabel,
                         type: label,
                       })}
-                      className={REMOVE_ACTION_CLASS}
                       icon={<Trash2 className="size-3.5" />}
                       label={translate('remove')}
                       onClick={() => assetActions.onRemoveGeneration(job)}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.XS}
+                      variant={ButtonVariant.DESTRUCTIVE}
                       withWrapper={false}
                     />
                   ) : null}
@@ -518,11 +513,10 @@ export default function StudioPlaygroundCard({
                         prompt: accessibleLabel,
                         type: label,
                       })}
-                      className={ACTION_CLASS}
                       icon={<RotateCcw className="size-3.5" />}
                       label={translate('reprompt')}
                       onClick={() => onReprompt(job)}
-                      size={ButtonSize.SM}
+                      size={ButtonSize.XS}
                       variant={ButtonVariant.GHOST}
                       withWrapper={false}
                     />
