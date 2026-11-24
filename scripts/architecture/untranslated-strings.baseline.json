@@ -380,7 +380,6 @@
     "packages/agent/src/components/AgentOAuthConnectMenu.tsx": 3,
     "packages/agent/src/components/AgentOutputsPanel.tsx": 7,
     "packages/agent/src/components/AgentPanel.tsx": 3,
-    "packages/agent/src/components/AgentRunFailureCard.tsx": 1,
     "packages/agent/src/components/AgentRunsList.tsx": 3,
     "packages/agent/src/components/AgentRuntimeSelector.tsx": 2,
     "packages/agent/src/components/AgentSetupPanel.tsx": 6,
