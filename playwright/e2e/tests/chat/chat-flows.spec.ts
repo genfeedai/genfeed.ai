@@ -416,10 +416,10 @@ test.describe('Agent Chat', () => {
       }),
     ).toBeVisible();
 
-    await agentPage.platformButton('linkedin').click();
+    await agentPage.platformButton('LinkedIn').click();
     await expect(agentPage.confirmPublishButton()).toBeDisabled();
 
-    await agentPage.platformButton('twitter').click();
+    await agentPage.platformButton('X').click();
     await agentPage.publishCaption.fill('Updated launch caption');
     await agentPage.publishSchedule.fill('2026-03-12T09:30');
 
