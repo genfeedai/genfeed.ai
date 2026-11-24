@@ -17,7 +17,6 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { AgentThreadMode } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
@@ -31,8 +30,6 @@ import type { ReactElement, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
-  agentMode: AgentThreadMode;
-  onAgentModeChange: (mode: AgentThreadMode) => void;
   apiService: AgentApiService;
   /** Knowledge selection sent with every turn from the composer. */
   knowledgeSelection?: KnowledgeSelection;
@@ -92,8 +89,6 @@ export function AgentChatPromptBar({
   knowledgeSelection,
   knowledgeSection,
   composerBanner,
-  agentMode,
-  onAgentModeChange,
   apiService,
   layoutMode,
   followUps = [],
@@ -233,8 +228,6 @@ export function AgentChatPromptBar({
       )}
     >
       <AgentChatInput
-        agentMode={agentMode}
-        onAgentModeChange={onAgentModeChange}
         onSend={onSend}
         // A failure notice is its own compact surface. Preserve the prompt's
         // top radius so the two controls do not read as one fused card.

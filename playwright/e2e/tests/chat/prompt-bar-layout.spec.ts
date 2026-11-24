@@ -1,10 +1,9 @@
-import { AgentThreadMode } from '@genfeedai/contracts';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AgentPage } from '../../pages/agent.page';
 
 /**
- * One prompt bar everywhere (#7778): the left group is mode, setup chips, then
+ * One prompt bar everywhere (#7778): the left group is the setup chips, then
  * the `+` that adds context, last. The right group is submit only. Every
  * icon-only control is the same 32px box with its glyph centred, on one shared
  * centre line.
@@ -108,7 +107,7 @@ test.describe('Agent prompt bar', () => {
         }),
     );
 
-    expect(metrics.length).toBeGreaterThan(3);
+    expect(metrics.length).toBeGreaterThan(1);
     const [first] = metrics;
     for (const control of metrics) {
       expect(control.label).toBeTruthy();
@@ -125,35 +124,18 @@ test.describe('Agent prompt bar', () => {
     }
   });
 
-  test('saves the picked agent mode for the thread and the default', async ({
+  test('has no Agent mode picker or setting popover in the bar', async ({
     authenticatedPage,
   }) => {
-    const saved: unknown[] = [];
-    await authenticatedPage.route('**/agent/threads/mode', async (route) => {
-      const body = route.request().postDataJSON() as { mode: string };
-      saved.push(body.mode);
-      await route.fulfill({
-        body: JSON.stringify({ mode: body.mode }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
     const agentPage = new AgentPage(authenticatedPage);
     await agentPage.goto();
 
-    for (const [mode, label] of [
-      [AgentThreadMode.AUTO, 'Auto'],
-      [AgentThreadMode.PLAN, 'Plan'],
-      [AgentThreadMode.MANUAL, 'Manual'],
-    ] as const) {
-      await agentPage.planModeButton.click();
-      await authenticatedPage
-        .getByRole('menuitemradio', { name: new RegExp(`^${label}`) })
-        .click();
-      await expect(agentPage.planModeButton).toHaveAccessibleName(
-        `Agent mode: ${label}`,
-      );
-      await expect.poll(() => saved.at(-1)).toBe(mode);
-    }
+    await expect(agentPage.chatInput).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: /^Agent mode/ }),
+    ).toHaveCount(0);
+    // The only left-group control is the `+` that adds context.
+    const { left } = toolbarGroups(authenticatedPage);
+    expect(await buttonNames(left)).toEqual(['Add context']);
   });
 });

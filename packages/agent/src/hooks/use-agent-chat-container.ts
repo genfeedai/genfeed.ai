@@ -9,7 +9,6 @@ import {
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
-import { useAgentModePersistence } from '@genfeedai/agent/hooks/use-agent-mode-persistence';
 import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
 import { useDesktopCliAgentChat } from '@genfeedai/agent/hooks/use-desktop-cli-agent-chat';
 import { useStalledTurn } from '@genfeedai/agent/hooks/use-stalled-turn';
@@ -180,15 +179,6 @@ export function useAgentChatContainer({
     (s) => s.clearPendingInputRequest,
   );
   const clearStaleActiveRun = useAgentChatStore((s) => s.clearStaleActiveRun);
-  const draftAgentMode = useAgentChatStore((s) => s.draftAgentMode);
-  const savedAgentMode = useAgentChatStore((s) => s.savedAgentMode);
-  const hasExplicitDraftAgentMode = useAgentChatStore(
-    (s) => s.hasExplicitDraftAgentMode,
-  );
-  const sendAgentMode =
-    activeThreadId || savedAgentMode !== null || hasExplicitDraftAgentMode
-      ? draftAgentMode
-      : undefined;
   const latestProposedPlan = useAgentChatStore((s) => s.latestProposedPlan);
   const uiActionStates = useAgentChatStore((s) =>
     activeThreadId ? s.uiActionStatesByThread[activeThreadId] : undefined,
@@ -564,7 +554,6 @@ export function useAgentChatContainer({
   });
 
   const { enqueue: enqueueFollowUp } = followUpQueue;
-  const setAgentMode = useAgentModePersistence(apiService);
 
   const handleSend = useCallback(
     (
@@ -616,7 +605,7 @@ export function useAgentChatContainer({
             generationSettings: options?.generationSettings,
             knowledgeSelection: options?.knowledgeSelection,
             requestedSkillSlugs: options?.requestedSkillSlugs,
-            agentMode: options?.agentMode ?? sendAgentMode,
+            agentMode: options?.agentMode,
           },
         });
         return enqueued.accepted;
@@ -630,12 +619,11 @@ export function useAgentChatContainer({
         generationSettings: options?.generationSettings,
         knowledgeSelection: options?.knowledgeSelection,
         requestedSkillSlugs: options?.requestedSkillSlugs,
-        agentMode: options?.agentMode ?? sendAgentMode,
+        agentMode: options?.agentMode,
       });
       return true;
     },
     [
-      sendAgentMode,
       desktopCliBlockedReason,
       enqueueFollowUp,
       followLatestTurn,
@@ -1222,7 +1210,6 @@ export function useAgentChatContainer({
     streamState,
     activeThreadId,
     activeRunStatus,
-    draftAgentMode,
     latestProposedPlan,
     pendingInputRequest,
     socketConnectionState,
@@ -1259,7 +1246,6 @@ export function useAgentChatContainer({
     // handlers
     sendMessage,
     followLatestTurn,
-    setAgentMode,
     handleSend,
     handleIngredientSelect,
     handleCopy,

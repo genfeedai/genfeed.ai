@@ -41,8 +41,8 @@ export async function expectOpenProjectLayout(page: Page): Promise<void> {
   await expect(page.getByTestId('agent-dock')).toHaveCount(0);
 
   // The prompt bar belongs to the agent column and sits at its bottom.
-  // Its mode picker is the prompt bar's own control, so it stands in for the bar.
-  const promptBar = agent.getByRole('button', { name: /^Agent mode:/ });
+  // Its toolbar row is the prompt bar's own control row, so it stands in for the bar.
+  const promptBar = agent.getByTestId('prompt-bar-toolbar');
   await expect(promptBar).toBeVisible();
   const promptBox = await promptBar.boundingBox();
   if (!promptBox) {

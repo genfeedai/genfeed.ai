@@ -110,7 +110,6 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
           brandId: response.brandId,
           contextVersion: response.contextVersion,
           createdAt: existingThread?.createdAt,
-          mode: existingThread?.mode ?? sendOptions?.agentMode,
           setActiveThread,
           threadId: response.threadId,
           title: existingThread?.title || content.slice(0, 60),
