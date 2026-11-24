@@ -2883,7 +2883,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/prunaai/p-video-2-pro',
-    verifiedAt: '2026-11-24T13:00:00.000Z',
+    verifiedAt: '2026-11-24T11:40:00.000Z',
   },
   {
     endpoint: 'qwen/qwen-image',
