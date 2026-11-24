@@ -38,6 +38,8 @@ import { firstValueFrom, Observable, of } from 'rxjs';
 export class RedisCacheInterceptor implements NestInterceptor {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly logger = new Logger(RedisCacheInterceptor.name);
+  /** Loads running now, by cache key. */
+  private readonly inFlightLoads = new Map<string, Promise<unknown>>();
 
   constructor(
     private readonly cacheService: CacheService,
@@ -86,7 +88,6 @@ export class RedisCacheInterceptor implements NestInterceptor {
     // Only the cache read may fall back to running the handler. The handler
     // runs outside any catch so its own error reaches the client unchanged and
     // its side effects run once.
-    let epochs: string[] | null;
     try {
       const cachedResult = await this.cacheService.get(cacheKey);
 
@@ -96,13 +97,46 @@ export class RedisCacheInterceptor implements NestInterceptor {
       }
 
       this.logger.debug(`Cache miss for key: ${cacheKey}`);
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failed`, error);
+      return next.handle();
+    }
 
+    // A request that misses while a load for the same key is running waits for
+    // it instead of running the handler again. On a small site most page
+    // builds arrive on an expired key together, so without this each of them
+    // paid for its own database lookup. Nothing awaits between the cache read
+    // above and the registration below, so only the first miss starts a load.
+    const inFlight = this.inFlightLoads.get(cacheKey);
+    if (inFlight) {
+      this.logger.debug(`Joining the load in flight for key: ${cacheKey}`);
+      return of(await inFlight);
+    }
+
+    const load = this.load(cacheKey, cacheOptions, next);
+    this.inFlightLoads.set(cacheKey, load);
+    try {
+      return of(await load);
+    } finally {
+      // Removed on success and on error, so a failed load is never reused and
+      // the next request runs the handler again.
+      this.inFlightLoads.delete(cacheKey);
+    }
+  }
+
+  private async load(
+    cacheKey: string,
+    cacheOptions: CacheOptions,
+    next: CallHandler,
+  ): Promise<unknown> {
+    let epochs: string[] | null;
+    try {
       // Read before the handler runs: an invalidation that lands while the
       // handler is reading must stop its result from being stored.
       epochs = await this.cacheService.readTagEpochs(cacheOptions.tags ?? []);
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed`, error);
-      return next.handle();
+      return firstValueFrom(next.handle());
     }
 
     const result = await firstValueFrom(next.handle());
@@ -121,7 +155,7 @@ export class RedisCacheInterceptor implements NestInterceptor {
       );
     }
 
-    return of(result);
+    return result;
   }
 
   private async storeResult(
