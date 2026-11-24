@@ -51,7 +51,6 @@ vi.mock('next-intl', async () => {
 vi.mock('@/features/workflows/hooks/use-turbo-brand-ideas', () => ({
   useTurboBrandIdeas: () => ({
     isBrandApproved: true,
-    isLoading: false,
     proposals: mocks.ideas,
   }),
 }));
