@@ -142,6 +142,33 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
     );
   });
 
+  it('reserves the asset under the brand the caller names, not the member current brand (#11076)', async () => {
+    const { brands, handler, uploads } = fixture();
+    brands.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id ? { id: query.id } : null,
+    );
+    const result = await handler.requestMediaUpload(
+      { ...params, brandId: ' brand-2 ' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(result.success).toBe(true);
+    expect(uploads.getPresignedUploadUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-2', organizationId: 'org-1' }),
+      expect.anything(),
+    );
+  });
+
+  it('rejects a named brand outside the organization instead of using the current brand', async () => {
+    const { brands, handler, uploads } = fixture();
+    brands.findOne.mockResolvedValue(null);
+    const result = await handler.requestMediaUpload(
+      { ...params, brandId: 'foreign-brand' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(result.success).toBe(false);
+    expect(uploads.getPresignedUploadUrl).not.toHaveBeenCalled();
+  });
+
   it('rejects brandless uploads before reserving an asset', async () => {
     const { brands, handler, uploads } = fixture();
     brands.findOne.mockResolvedValue(null);

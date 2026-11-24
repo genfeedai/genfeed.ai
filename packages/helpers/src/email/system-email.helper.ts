@@ -72,6 +72,23 @@ export function escapeSystemEmailHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+// The card's body is 494px wide (560px less its borders and 32px side padding).
+// A heading averages about 0.5em per character in the fallback sans fonts, so
+// 0.52em keeps a margin for the wider ones. Long subjects shrink to a floor of
+// 18px instead of dropping their last word onto a second line.
+const TITLE_WIDTH_PX = 494;
+const TITLE_CHAR_WIDTH_EM = 0.52;
+const TITLE_MAX_FONT_PX = 24;
+const TITLE_MIN_FONT_PX = 18;
+
+/** Largest heading size, up to 24px, at which the title still fits on one line. */
+export function systemEmailTitleFontSize(title: string): number {
+  const fitting = Math.floor(
+    TITLE_WIDTH_PX / (Math.max(title.length, 1) * TITLE_CHAR_WIDTH_EM),
+  );
+  return Math.min(TITLE_MAX_FONT_PX, Math.max(TITLE_MIN_FONT_PX, fitting));
+}
+
 export function buildSystemEmailParagraph(text: string): string {
   return `<p style="margin:0 0 16px;color:${EMAIL_COLORS.textSecondary};font-size:15px;line-height:24px;">${escapeSystemEmailHtml(text)}</p>`;
 }
@@ -107,6 +124,7 @@ export function buildSystemEmailHtml(input: SystemEmailOptions): string {
   const brandMark = appUrl
     ? `<a href="${escapeSystemEmailHtml(appUrl)}" style="text-decoration:none;">${brandLockup}</a>`
     : brandLockup;
+  const titleFontSize = systemEmailTitleFontSize(input.title);
   const preheader =
     input.preheader ??
     `${input.title} - a secure notification from ${BRAND_NAME}.`;
@@ -172,7 +190,7 @@ export function buildSystemEmailHtml(input: SystemEmailOptions): string {
                   </tr>
                   <tr>
                     <td style="padding:32px 32px 16px;">
-                      <h1 style="color:${EMAIL_COLORS.textPrimary};font-size:24px;font-weight:600;letter-spacing:-0.02em;line-height:32px;margin:0;">${escapeSystemEmailHtml(input.title)}</h1>
+                      <h1 style="color:${EMAIL_COLORS.textPrimary};font-size:${titleFontSize}px;font-weight:600;letter-spacing:-0.02em;line-height:32px;margin:0;text-wrap:balance;">${escapeSystemEmailHtml(input.title)}</h1>
                     </td>
                   </tr>
                   <tr>

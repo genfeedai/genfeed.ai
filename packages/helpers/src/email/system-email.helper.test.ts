@@ -5,9 +5,25 @@ import {
   buildSystemEmailParagraph,
   escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
+  systemEmailTitleFontSize,
 } from './system-email.helper';
 
 describe('system email helpers', () => {
+  it('shrinks a long title so it stays on one line instead of dropping its last word', () => {
+    // 49 characters wrapped at 24px in the ready-to-publish email.
+    const title = 'Your Genfeed (Review) content is ready to publish';
+
+    expect(systemEmailTitleFontSize(title)).toBe(19);
+    expect(buildSystemEmailHtml({ bodyHtml: '', title })).toContain(
+      'font-size:19px;font-weight:600',
+    );
+  });
+
+  it('keeps a short title at 24px and never goes below 18px', () => {
+    expect(systemEmailTitleFontSize('Secure Genfeed link')).toBe(24);
+    expect(systemEmailTitleFontSize('x'.repeat(200))).toBe(18);
+  });
+
   it('escapes html-sensitive characters', () => {
     expect(escapeSystemEmailHtml(`<a href="x">'&'</a>`)).toBe(
       '&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;',

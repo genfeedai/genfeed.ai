@@ -1704,6 +1704,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     annotationHint: 'non-destructive-write',
     category: 'content',
+    mcpBrandRequiredWhenMultiple: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'direct',
     name: 'request_media_upload',

@@ -8,12 +8,6 @@ const WIDE_EVENT_WARN_MS = 2_000;
 
 export type WideEventLogLevel = 'error' | 'warn' | 'info';
 
-export function isWideEventInfo(
-  info: Record<string | symbol, unknown>,
-): boolean {
-  return info.type === WIDE_EVENT_TYPE;
-}
-
 export function readWideEventLevel(event: WideEventRecord): WideEventLogLevel {
   if (event.outcome === 'error') return 'error';
   if (

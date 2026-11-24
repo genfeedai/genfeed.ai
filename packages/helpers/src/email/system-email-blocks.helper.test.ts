@@ -95,7 +95,7 @@ describe('system email blocks', () => {
       {
         href: 'https://app.genfeed.ai/library',
         imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
-        kind: 'video',
+        kind: 'image',
       },
     ]);
 
@@ -103,7 +103,90 @@ describe('system email blocks', () => {
       'src="https://cdn.genfeed.ai/ingredients/images/abc"',
     );
     expect(html).toContain('href="https://app.genfeed.ai/library"');
-    expect(html).toContain('Video');
+  });
+
+  it.each([
+    [
+      'a grid tile',
+      () =>
+        buildEmailThumbnailGrid([
+          {
+            href: 'https://app.genfeed.ai/library',
+            imageUrl: 'https://cdn.genfeed.ai/ingredients/thumbnails/abc',
+            kind: 'video',
+            label: 'Launch teaser',
+          },
+        ]),
+    ],
+    [
+      'the hero',
+      () =>
+        buildEmailHero({
+          imageUrl: 'https://cdn.genfeed.ai/ingredients/thumbnails/abc',
+          kind: 'video',
+          label: 'Launch teaser',
+        }),
+    ],
+  ])(
+    'shows a video as its first frame with a play button on %s',
+    (_label, build) => {
+      const html = build();
+
+      expect(html).toContain(
+        "url('https://cdn.genfeed.ai/ingredients/thumbnails/abc')",
+      );
+      expect(html).toContain('&#9654;');
+      expect(html).toContain('aria-label="Launch teaser"');
+    },
+  );
+
+  it('links a video tile to its destination', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        href: 'https://app.genfeed.ai/library',
+        imageUrl: 'https://cdn.genfeed.ai/ingredients/thumbnails/abc',
+        kind: 'video',
+      },
+    ]);
+
+    expect(html).toContain('href="https://app.genfeed.ai/library"');
+  });
+
+  it('puts the play button on a video frame only, never on a still image', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
+        kind: 'image',
+      },
+    ]);
+
+    expect(html).not.toContain('&#9654;');
+  });
+
+  it('cannot be broken out of the frame by a quote or bracket in the URL', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl:
+          "https://cdn.genfeed.ai/a');background:url('https://evil.test",
+        kind: 'video',
+      },
+    ]);
+
+    expect(html).not.toContain("');background");
+    expect(html).toContain('%27%29');
+  });
+
+  it('cannot be broken out of the frame by an HTML character reference in the URL', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl: 'https://cdn.genfeed.ai/frame#&#39;);display:none;/*',
+        kind: 'video',
+      },
+    ]);
+
+    // Escaped, so the browser decodes it back to the same text, not to a quote.
+    expect(html).toContain('frame#&amp;#39;%29;display:none;/*');
+    expect(html).not.toContain('#&#39;');
   });
 
   it.each([

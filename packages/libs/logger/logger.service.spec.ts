@@ -15,13 +15,17 @@ class MessageFormatter extends LoggerService {
 
 describe('LoggerService', () => {
   let service: LoggerService;
-  let mockWinston: Record<'debug' | 'error' | 'info' | 'warn', Mock>;
+  let mockWinston: Record<
+    'debug' | 'error' | 'info' | 'isLevelEnabled' | 'warn',
+    Mock
+  >;
 
   beforeEach(async () => {
     mockWinston = {
       debug: vi.fn(),
       error: vi.fn(),
       info: vi.fn(),
+      isLevelEnabled: vi.fn(() => true),
       warn: vi.fn(),
     };
 
@@ -127,6 +131,15 @@ describe('LoggerService', () => {
   });
 
   describe('debug', () => {
+    it('does not redact or print a line no transport prints', () => {
+      mockWinston.isLevelEnabled.mockReturnValue(false);
+
+      service.debug('Hidden', { password: 'secret', service: 'x' });
+
+      expect(mockWinston.isLevelEnabled).toHaveBeenCalledWith('debug');
+      expect(mockWinston.debug).not.toHaveBeenCalled();
+    });
+
     it('should call winston.debug with formatted message and context', () => {
       const message = 'Test debug message';
       const context = { operation: 'test-op', service: 'test' };
