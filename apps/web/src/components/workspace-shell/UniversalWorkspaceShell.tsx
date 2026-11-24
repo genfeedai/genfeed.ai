@@ -793,6 +793,11 @@ function UniversalWorkspaceShellContent({
     }
     if (isAgentOutputSurface) {
       setIsOutputContextOpen(false);
+      // A record the operator picked goes with its detail, as it does on the
+      // rail; one the page selected on its own stays selected.
+      if (activeContextSidebar?.selection?.origin === 'user') {
+        activeContextSidebar.close();
+      }
       return;
     }
     closeAgentDock?.();

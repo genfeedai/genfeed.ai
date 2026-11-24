@@ -281,6 +281,17 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     page: Page,
     childId: string,
   ): Promise<void> {
+    // A selected record's detail takes the results pane; step back to the
+    // results to find the new card. A click that lands before hydration is
+    // dropped, so retry until Context is closed.
+    const context = page
+      .getByTestId('agent-output-output-pane')
+      .getByRole('tabpanel', { exact: true, name: 'Context' });
+    await expect(async () => {
+      if (await context.isVisible())
+        await page.getByTestId('topbar-context-toggle').click();
+      await expect(context).toBeHidden({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
     const childCard = page.getByTestId(`studio-asset-${childId}`);
     await expect(childCard).toBeVisible();
     await childCard.click();
