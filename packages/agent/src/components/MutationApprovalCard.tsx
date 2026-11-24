@@ -8,7 +8,7 @@ import type {
   AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type { AgentMutationApprovalData } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import Card from '@ui/card/Card';
@@ -286,8 +286,8 @@ export function MutationApprovalCard({
             <div className="mt-3 border-t border-border pt-2">
               <Button
                 variant={ButtonVariant.GHOST}
+                size={ButtonSize.INLINE}
                 withWrapper={false}
-                className="h-auto px-0 py-1"
                 aria-expanded={detailsOpen}
                 aria-controls={detailsId}
                 onClick={() => setDetailsOpen((open) => !open)}

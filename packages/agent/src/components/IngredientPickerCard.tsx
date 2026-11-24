@@ -77,7 +77,6 @@ export function IngredientPickerCard({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           onClick={handleChange}
-          className="underline-offset-2 hover:underline"
         >
           Change
         </Button>
