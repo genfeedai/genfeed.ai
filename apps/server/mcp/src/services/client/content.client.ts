@@ -227,12 +227,16 @@ export class ContentClient {
     return this.base.request(
       'searching articles',
       async (http) => {
+        // The articles API reads flat `search`, `category`, `status`, `limit`
+        // and `page` keys; JSON:API `filter[...]`/`page[...]` keys are ignored.
+        const limit = params.limit || 10;
         const response = await http.get('/articles', {
           params: {
-            'filter[category]': params.category,
-            'filter[search]': params.query,
-            'page[limit]': params.limit || 10,
-            'page[offset]': params.offset || 0,
+            category: params.category,
+            limit,
+            page: Math.floor((params.offset || 0) / limit) + 1,
+            search: params.query,
+            status: ArticleStatus.PUBLISHED,
           },
         });
 

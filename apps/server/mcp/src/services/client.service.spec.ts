@@ -179,11 +179,40 @@ describe('ClientService (MCP)', () => {
       const result = await service.searchArticles({ limit: 10, query: 'AI' });
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/articles', {
-        params: expect.objectContaining({ 'filter[search]': 'AI' }),
+        params: {
+          category: undefined,
+          limit: 10,
+          page: 1,
+          search: 'AI',
+          status: 'PUBLISHED',
+        },
       });
       expect(result).toHaveLength(1);
       expect(result[0].title).toBe('Article 1');
       expect(result[0].excerpt).toBe('Preview...');
+    });
+  });
+
+  describe('searchArticles query keys', () => {
+    it('sends the keys the articles API reads, a page for the offset and published only', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: { data: [] } });
+
+      await service.searchArticles({
+        category: 'guide',
+        limit: 5,
+        offset: 10,
+        query: 'wave five',
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/articles', {
+        params: {
+          category: 'guide',
+          limit: 5,
+          page: 3,
+          search: 'wave five',
+          status: 'PUBLISHED',
+        },
+      });
     });
   });
 
