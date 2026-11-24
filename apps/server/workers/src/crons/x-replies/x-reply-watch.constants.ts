@@ -4,10 +4,11 @@
  * mentions call per account per tick, and only for accounts that published
  * inside the window.
  */
-const X_REPLY_WATCH_INTERVAL_MINUTES = 15;
+const X_REPLY_WATCH_INTERVAL_MINUTES = 60;
 const X_REPLY_WATCH_WINDOW_HOURS = 24;
 
-export const X_REPLY_WATCH_SCHEDULE = `*/${X_REPLY_WATCH_INTERVAL_MINUTES} * * * *`;
+/** Top of every hour: `*/60` is not a valid step for the minute field. */
+export const X_REPLY_WATCH_SCHEDULE = '0 * * * *';
 const X_REPLY_WATCH_INTERVAL_MS = X_REPLY_WATCH_INTERVAL_MINUTES * 60_000;
 export const X_REPLY_WATCH_WINDOW_MS = X_REPLY_WATCH_WINDOW_HOURS * 3_600_000;
 
