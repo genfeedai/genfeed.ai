@@ -164,7 +164,7 @@ locals {
 
   # ── Service catalogue ─────────────────────────────────────────────────
   # Fargate launch type: cpu/mem MUST be valid Fargate task pairs (256→512-2048,
-  # 512→1024-4096, 1024→2048-8192). Each task gets its own ENI from the private
+  # 512→1024-4096, 1024→2048-8192, 2048→4096-16384). Each task gets its own ENI from the private
   # subnets (NAT egress) — no per-instance ENI cap. Every service registers in
   # Cloud Map for internal DNS; api/mcp/notifications are also behind the public
   # ALB. (Tune api/workers cpu up if boot/throughput needs it — these are lean
@@ -173,7 +173,7 @@ locals {
   # runs at 1. The Discord, Slack and Telegram bots are not deployed here; their
   # code stays in the repository and runs from source or the development compose.
   services = {
-    api           = { filter = "@genfeedai/api", port = 3010, cpu = 1024, mem = 2048, alb = true, health_grace = 600, desired = 1 }
+    api           = { filter = "@genfeedai/api", port = 3010, cpu = 2048, mem = 4096, alb = true, health_grace = 600, desired = 1 }
     workers       = { filter = "@genfeedai/workers", port = 3013, cpu = 512, mem = 2048, alb = false, health_grace = 600, desired = 1 }
     files         = { filter = "@genfeedai/files", port = 3012, cpu = 512, mem = 2048, alb = false, health_grace = 60, desired = 1 }
     mcp           = { filter = "@genfeedai/mcp", port = 3014, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }

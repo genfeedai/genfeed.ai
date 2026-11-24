@@ -30,6 +30,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   KNOWLEDGE_CONFLICT_SWEEP: 'knowledge-conflict-sweep',
   BRAND_RELOCATION_RECOVERY: 'brand-relocation-recovery',
   PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
+  ANALYTICS_COLLECT: 'analytics-collect',
   ANALYTICS_SYNC: 'analytics-sync',
   BRANDED_DISPATCH_RECOVERY: 'branded-dispatch-recovery',
   CONTENT_LEARNING_RECONCILE: 'content-learning-reconcile',
@@ -129,6 +130,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  // Collects metrics from the platforms for every organization with a published
+  // post whose collection is due (#11097); X posts are due every half hour.
+  [PLATFORM_SCHEDULED_TASKS.ANALYTICS_COLLECT]: {
+    pattern: '*/30 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC]: {

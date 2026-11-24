@@ -9,7 +9,10 @@ import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tok
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import {
+  TargetExecutionState,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -21,8 +24,8 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
 /**
  * Templates whose sweep only makes sense for an organization with at least
  * one active strategy that is due or has accepted pending work to recover.
- * `analytics-sync` and `content-loop-autopilot` have no per-item due state —
- * they run on their own catalog cadence for every org regardless (AC-5).
+ * `content-loop-autopilot` has no per-item due state: it runs on its own
+ * catalog cadence for every org regardless (AC-5).
  */
 const DUE_STRATEGY_GATED_TEMPLATE_ID = 'proactive-agent-strategies';
 
@@ -34,8 +37,23 @@ const DUE_STRATEGY_GATED_TEMPLATE_ID = 'proactive-agent-strategies';
  */
 const ACTIVE_DISCOVERY_GATED_TEMPLATE_IDS: ReadonlySet<string> = new Set([
   'content-learning.reconcile',
-  'analytics-sync',
   'content-loop-autopilot',
+]);
+
+/**
+ * Measuring the posts an organization published is part of the product, not
+ * background enrichment, so it never waits for a browser session (#11097). An
+ * organization that schedules a week of posts and stays away is measured all
+ * the same; one that published nothing costs one query per page of the sweep.
+ *
+ * `analytics-collect` reads the platforms and so only runs for an organization
+ * with a published post whose next collection is due; `analytics-sync` turns
+ * what was collected into content performance and runs for any organization
+ * that has published a post with an external id.
+ */
+const PUBLISHED_POST_GATED_TEMPLATE_IDS: ReadonlySet<string> = new Set([
+  'analytics-collect',
+  'analytics-sync',
 ]);
 
 const ORGANIZATION_ACTIVITY_WINDOW_MS = 48 * 60 * 60 * 1000;
@@ -48,6 +66,13 @@ const WORKFLOWS = {
   'content-learning.retention': {
     canonicalId: 'content-learning.retention',
     interval: 24 * 60 * 60 * 1000,
+  },
+  // Reads the platforms for every published post whose collection is due and
+  // writes `post_analytics`; the generic `analytics-sync` below only reads
+  // those rows into content performance.
+  'analytics-collect': {
+    canonicalId: 'analytics.organization-refresh',
+    interval: 30 * 60 * 1000,
   },
   'analytics-sync': {
     canonicalId: 'analytics-sync',
@@ -159,11 +184,24 @@ export class PlatformWorkflowSchedulesService {
               new Date(timestamp - ORGANIZATION_ACTIVITY_WINDOW_MS),
             )
           : null;
+      const publishedPostOrganizationIds =
+        PUBLISHED_POST_GATED_TEMPLATE_IDS.has(templateId)
+          ? await this.findOrganizationIdsWithPublishedPosts(
+              organizations.map((organization) => organization.id),
+              templateId === 'analytics-collect' ? new Date(timestamp) : null,
+            )
+          : null;
       for (const organization of organizations) {
         try {
           if (
             activeDiscoveryOrganizationIds &&
             !activeDiscoveryOrganizationIds.has(organization.id)
+          ) {
+            continue;
+          }
+          if (
+            publishedPostOrganizationIds &&
+            !publishedPostOrganizationIds.has(organization.id)
           ) {
             continue;
           }
@@ -296,6 +334,32 @@ export class PlatformWorkflowSchedulesService {
       }
     }
     return eligible;
+  }
+
+  /**
+   * Organizations (within this sweep page) with at least one published,
+   * non-deleted post that has an external id, so the platform can be asked
+   * about it. With `dueBy`, only a post whose next collection is due by then
+   * counts. The database resolves the page in one query and only organization
+   * IDs return.
+   */
+  private async findOrganizationIdsWithPublishedPosts(
+    organizationIds: string[],
+    dueBy: Date | null,
+  ): Promise<Set<string>> {
+    if (organizationIds.length === 0) return new Set();
+    const posts = await this.prisma.post.findMany({
+      where: {
+        organizationId: { in: organizationIds },
+        isDeleted: false,
+        externalId: { not: null },
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        ...(dueBy ? { analyticsNextCollectAt: { lte: dueBy } } : {}),
+      },
+      distinct: ['organizationId'],
+      select: { organizationId: true },
+    });
+    return new Set(posts.map((post) => post.organizationId));
   }
 
   /**
