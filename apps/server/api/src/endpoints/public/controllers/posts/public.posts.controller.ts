@@ -389,6 +389,7 @@ export class PublicPostsController {
   ): Promise<CrossPostCandidate[]> {
     const { prisma } = this.postsService;
     // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
+    // sql-risk-audit: ignore unbounded-read -- `take` is one of the CROSS_POST_*_LIMIT constants (a few hundred ids); the id-only select reads no captions.
     const ordered = await prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
       select: { id: true },
@@ -399,6 +400,7 @@ export class PublicPostsController {
       return [];
     }
     const ids = ordered.map((post) => post.id);
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key lookup of the ids selected above, pinned to one brand and isDeleted = false; `left()` only trims the caption column.
     const rows = await prisma.$queryRaw<CrossPostRow[]>(Prisma.sql`
       SELECT "id", "platform", "url", "createdAt", "publishedAt",
              left("description", ${CROSS_POST_DESCRIPTION_LENGTH}) AS "description"
