@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Pre } from '@genfeedai/ui';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
-import DateText from '@ui/time/DateText';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
@@ -60,7 +60,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
             </Badge>
           </div>
           <div className="text-2xs text-muted-foreground mt-0.5">
-            {payload.model} &bull; <DateText value={payload.timestamp} />
+            {payload.model} &bull; {formatShortDate(payload.timestamp)}
           </div>
         </div>
       </Button>
