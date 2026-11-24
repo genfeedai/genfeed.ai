@@ -82,7 +82,18 @@ test.describe('Agent prompt bar', () => {
   }) => {
     await authenticatedPage.setViewportSize({ height: 800, width: 760 });
     const agentPage = new AgentPage(authenticatedPage);
-    await agentPage.goto();
+    // Below xl a new thread opens on the thread list; bring the conversation
+    // forward to reach the prompt bar.
+    await authenticatedPage.goto(agentPage.url, {
+      waitUntil: 'domcontentloaded',
+    });
+    await authenticatedPage
+      .getByRole('button', { name: 'View: Threads' })
+      .click();
+    await authenticatedPage
+      .getByRole('menuitemradio', { name: 'Conversation' })
+      .click();
+    await agentPage.waitForPageLoad();
     await agentPage.chatInput.click();
     await agentPage.chatInput.pressSequentially('Plan next week');
 

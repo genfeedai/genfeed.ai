@@ -219,20 +219,20 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
       const canvas = settingsPage.canvas;
       await canvas
-        .getByRole('group', { name: 'Scope preset' })
+        .getByRole('radiogroup', { name: 'Scope preset' })
         .getByRole('radio', { name: 'Read' })
         .click();
       await canvas
-        .getByRole('group', { exact: true, name: 'Videos' })
+        .getByRole('radiogroup', { exact: true, name: 'Videos' })
         .getByRole('radio', { name: 'None' })
         .click();
       await canvas
-        .getByRole('group', { exact: true, name: 'Images' })
+        .getByRole('radiogroup', { exact: true, name: 'Images' })
         .getByRole('radio', { name: 'Write' })
         .click();
       await expect(
         canvas
-          .getByRole('group', { name: 'Brands and brand context' })
+          .getByRole('radiogroup', { name: 'Brands and brand context' })
           .getByRole('radio'),
       ).toHaveText(['None', 'Read']);
 
