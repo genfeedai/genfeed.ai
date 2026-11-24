@@ -204,11 +204,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'to-locale-string',
     1,
   ),
-  legacyUiAllowance(
-    'packages/workflows/src/ui/panels/DebugPanel.tsx',
-    'to-locale-time-string',
-    1,
-  ),
 ];
 
 const IMPLICIT_LOCALE_PATTERNS: Array<{
