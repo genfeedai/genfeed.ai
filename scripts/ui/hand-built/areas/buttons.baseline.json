@@ -269,7 +269,7 @@
       "button-restyle": 1
     },
     "apps/web/src/features/posts/list/components/PostsTableColumns.tsx": {
-      "unstyled-look": 1
+      "unstyled-look": 2
     },
     "apps/web/src/features/research/ads/AdsResearchAdCards.tsx": {
       "button-restyle": 1,
