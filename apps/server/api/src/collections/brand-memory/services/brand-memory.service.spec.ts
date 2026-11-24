@@ -394,7 +394,8 @@ describe('BrandMemoryService', () => {
 
     it('creates the day row on the columns the table has, with the day in metadata', async () => {
       const document = await service.logEntry('org-1', 'brand-1', {
-        content: 'Post post-1 on YOUTUBE reached 2 engagements with 50.00% engagement rate.',
+        content:
+          'Post post-1 on YOUTUBE reached 2 engagements with 50.00% engagement rate.',
         key: 'post_performance:post-1',
         metadata: { contentType: 'video', engagementRate: 50 },
         type: 'post_performance',
@@ -436,8 +437,16 @@ describe('BrandMemoryService', () => {
       rows = [
         dailyRow({
           insights: [
-            { createdAt: '2026-09-01T00:00:00.000Z', insight: 'Old', source: 'a' },
-            { createdAt: '2026-09-02T00:00:00.000Z', insight: 'New', source: 'b' },
+            {
+              createdAt: '2026-09-01T00:00:00.000Z',
+              insight: 'Old',
+              source: 'a',
+            },
+            {
+              createdAt: '2026-09-02T00:00:00.000Z',
+              insight: 'New',
+              source: 'b',
+            },
           ],
           metrics: { topPerformingFormat: 'video' },
         }),
@@ -455,7 +464,10 @@ describe('BrandMemoryService', () => {
         insights: expect.any(Array),
         metrics: { topPerformingFormat: 'video' },
       });
-      expect(insights.map((insight) => insight.insight)).toEqual(['New', 'Old']);
+      expect(insights.map((insight) => insight.insight)).toEqual([
+        'New',
+        'Old',
+      ]);
     });
 
     it('fails a daily-row write for another organization than the tenant context', async () => {

@@ -253,7 +253,7 @@ describe('getSentryConfig', () => {
 describe('UNAVAILABLE_SOURCE_VIDEO_PATTERN', () => {
   it.each([
     'yt-dlp exited with code 1: ERROR: [youtube] dQw4w9WgXcQ: This video is unavailable',
-    'Video-to-audio conversion failed: yt-dlp exited with code 1: ERROR: [youtube] abc-DEF_123: Private video. Sign in if you\'ve been granted access to this video',
+    "Video-to-audio conversion failed: yt-dlp exited with code 1: ERROR: [youtube] abc-DEF_123: Private video. Sign in if you've been granted access to this video",
     'Nodes failed: prepare-source: Audio extraction job 345eddc6 failed: yt-dlp exited with code 1: ERROR: [youtube] abc: Video unavailable',
   ])('drops a removed or private source video: %s', (message) => {
     expect(UNAVAILABLE_SOURCE_VIDEO_PATTERN.test(message)).toBe(true);

@@ -334,14 +334,16 @@ export class AgentVoiceToolHandler {
         : null,
     ]);
     const defaults = readBrandDefaultVoice(brand);
-    return rows.map(toSavedVoiceRow).map((row) =>
-      this.toSavedVoice(
-        row,
-        row.id === defaults.internalVoiceId ||
-          (row.externalVoiceId !== null &&
-            row.externalVoiceId === defaults.externalVoiceId),
-      ),
-    );
+    return rows
+      .map(toSavedVoiceRow)
+      .map((row) =>
+        this.toSavedVoice(
+          row,
+          row.id === defaults.internalVoiceId ||
+            (row.externalVoiceId !== null &&
+              row.externalVoiceId === defaults.externalVoiceId),
+        ),
+      );
   }
 
   private select() {

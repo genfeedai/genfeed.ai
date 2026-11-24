@@ -300,10 +300,7 @@ function controlAction(
 function updateScope(args: Record<string, unknown>): 'release' | 'target' {
   const scope = args.scope;
   if (scope !== 'release' && scope !== 'target') {
-    throw new McpToolInputError(
-      'scope must be "release" or "target"',
-      'scope',
-    );
+    throw new McpToolInputError('scope must be "release" or "target"', 'scope');
   }
   return scope;
 }

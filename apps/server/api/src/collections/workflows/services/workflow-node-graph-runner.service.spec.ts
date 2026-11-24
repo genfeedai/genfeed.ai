@@ -444,7 +444,8 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
   it('records the cause of an HttpException with an object body, not its class name', async () => {
     nodeClaimService.runWithLeaseHeartbeat.mockRejectedValue(
       new ConflictException({
-        detail: 'This post is held because the brand Policy check is unavailable.',
+        detail:
+          'This post is held because the brand Policy check is unavailable.',
         title: 'Post held for review',
       }),
     );

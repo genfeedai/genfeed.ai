@@ -94,7 +94,11 @@ describe('WebSocketService (Files)', () => {
     it('publishes the failure to the user room without logging an error of its own', async () => {
       const error = vi.spyOn(Logger.prototype, 'error');
 
-      await service.emitError('/ws/progress/user-123', 'Source is gone', 'user-123');
+      await service.emitError(
+        '/ws/progress/user-123',
+        'Source is gone',
+        'user-123',
+      );
 
       expect(publishedMessage()).toEqual({
         channel: 'media-failed',
