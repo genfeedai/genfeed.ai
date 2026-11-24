@@ -3,6 +3,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
 import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import {
   ArrowRight,
   ChevronDown,
@@ -71,19 +72,13 @@ function PhaseTransitionLogInner() {
           {transitions.map((t) => {
             const config = TRIGGER_CONFIG[t.trigger];
             const TriggerIcon = config.icon;
-            const time = new Date(t.timestamp).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            });
-
             return (
               <div
                 key={t.id}
                 className="flex items-center gap-3 px-3 py-2 text-xs"
               >
                 <span className="text-muted-foreground font-mono w-16 shrink-0">
-                  {time}
+                  <DateText value={t.timestamp} />
                 </span>
                 <TriggerIcon
                   className={cn('size-3.5 shrink-0', config.color)}

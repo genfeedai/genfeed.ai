@@ -3,15 +3,14 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import DateText from '@ui/time/DateText';
 import { Copy, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type AgentChatMessageFooterProps = {
   isUser: boolean;
-  /** Wall-clock label, e.g. "14:37". */
-  time: string;
-  /** ISO timestamp behind the label. */
-  dateTime: string;
+  /** When the message was sent; shown as the short date. */
+  createdAt: string;
   shouldShowAssistantActions: boolean;
   isBusy: boolean;
   copyContent: string;
@@ -32,8 +31,7 @@ const ACTION_ICON_CLASS = 'size-3.5';
  */
 export function AgentChatMessageFooter({
   isUser,
-  time,
-  dateTime,
+  createdAt,
   shouldShowAssistantActions,
   isBusy,
   copyContent,
@@ -56,9 +54,7 @@ export function AgentChatMessageFooter({
       )}
       data-testid="agent-message-footer"
     >
-      <time className="px-1.5 tabular-nums" dateTime={dateTime}>
-        {time}
-      </time>
+      <DateText className="px-1.5" value={createdAt} />
       {hasCopy && onCopy ? (
         <Button
           variant={ButtonVariant.GHOST}
