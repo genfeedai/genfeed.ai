@@ -40,6 +40,14 @@ export class RedisCacheInterceptor implements NestInterceptor {
   private readonly logger = new Logger(RedisCacheInterceptor.name);
   /** Loads running now, by cache key. */
   private readonly inFlightLoads = new Map<string, Promise<unknown>>();
+  /**
+   * Requests this interceptor is working on now. The interceptor is registered
+   * globally, and a controller may name it again with `@UseInterceptors`: the
+   * same instance then runs twice for one request, the inner run with the same
+   * key as the outer. The inner run would join the outer load and wait for the
+   * handler that is waiting for it. It passes through instead.
+   */
+  private readonly takenRequests = new WeakSet<object>();
 
   constructor(
     private readonly cacheService: CacheService,
@@ -76,6 +84,23 @@ export class RedisCacheInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    if (this.takenRequests.has(request)) {
+      return next.handle();
+    }
+    this.takenRequests.add(request);
+    try {
+      return await this.interceptRequest(context, cacheOptions, request, next);
+    } finally {
+      this.takenRequests.delete(request);
+    }
+  }
+
+  private async interceptRequest(
+    context: ExecutionContext,
+    cacheOptions: CacheOptions,
+    request: RequestWithBody,
+    next: CallHandler,
+  ): Promise<Observable<unknown>> {
     const cacheKey = this.generateCacheKey(context, cacheOptions, request);
 
     // A keyGenerator may opt out of caching per-request by returning an empty

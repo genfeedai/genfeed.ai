@@ -4,7 +4,7 @@ import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { defer, firstValueFrom, of, throwError } from 'rxjs';
+import { defer, firstValueFrom, mergeAll, of, throwError } from 'rxjs';
 
 const drainPromises = () =>
   new Promise<void>((resolve) => setImmediate(resolve));
@@ -417,9 +417,43 @@ describe('RedisCacheInterceptor', () => {
       return { promise, reject, resolve };
     }
 
+    // Each HTTP request is its own object; one context per request.
+    function contextForNewRequest(): ExecutionContext {
+      const request = { ...mockRequest };
+      return {
+        ...mockExecutionContext,
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(request),
+        }),
+      } as ExecutionContext;
+    }
+
     beforeEach(() => {
       reflector.get.mockReturnValue({ ttl: 300 } satisfies CacheOptions);
       cacheService.get.mockResolvedValue(null);
+    });
+
+    it('does not wait for itself when the same instance runs twice for one request', async () => {
+      let calls = 0;
+      const handler: CallHandler = {
+        handle: () => {
+          calls += 1;
+          return of({ run: calls });
+        },
+      };
+      // The global registration wraps the controller's own: the outer handle()
+      // runs the same interceptor again for the same request and key.
+      const outer: CallHandler = {
+        handle: () =>
+          defer(() =>
+            interceptor.intercept(mockExecutionContext, handler),
+          ).pipe(mergeAll()),
+      };
+
+      const result$ = await interceptor.intercept(mockExecutionContext, outer);
+
+      await expect(firstValueFrom(result$)).resolves.toEqual({ run: 1 });
+      expect(calls).toBe(1);
     });
 
     it('runs the handler once for 20 concurrent requests and gives each the same body', async () => {
@@ -433,7 +467,7 @@ describe('RedisCacheInterceptor', () => {
 
       const responses = Array.from({ length: 20 }, () =>
         interceptor
-          .intercept(mockExecutionContext, mockCallHandler)
+          .intercept(contextForNewRequest(), mockCallHandler)
           .then((result$) => firstValueFrom(result$)),
       );
       await drainPromises();
@@ -478,7 +512,7 @@ describe('RedisCacheInterceptor', () => {
 
       const waiting = Array.from({ length: 3 }, () =>
         interceptor
-          .intercept(mockExecutionContext, mockCallHandler)
+          .intercept(contextForNewRequest(), mockCallHandler)
           .then((result$) => firstValueFrom(result$))
           .then(
             () => null,
