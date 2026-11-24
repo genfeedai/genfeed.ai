@@ -126,7 +126,7 @@ runs:
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: packages/prisma/generated
-        key: ${{ runner.os }}-prisma-client-${{ hashFiles('packages/prisma/package.json', 'packages/prisma/prisma.config.mjs', 'packages/prisma/prisma/schema.prisma', 'packages/prisma/prisma/generate-client.mjs') }}
+        key: ${{ runner.os }}-prisma-client-${{ hashFiles('packages/prisma/package.json', 'packages/prisma/prisma.config.mjs', 'packages/prisma/prisma/schema.prisma', 'packages/prisma/prisma/generate-client.mjs', 'packages/prisma/prisma/slim-parameterization-schema.mjs') }}
 
     # Retry with exponential backoff as defense against generic registry/CDN
     # transients (the supported ffmpeg-static download is neutralized above via

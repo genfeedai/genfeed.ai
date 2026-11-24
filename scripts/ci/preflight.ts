@@ -11,7 +11,7 @@
  * process work.
  *
  * Works in a cloud container: it needs only `bun install` and the Prisma
- * client (`cd packages/prisma && bunx prisma generate`). It never runs a
+ * client (`cd packages/prisma && bun run postinstall`). It never runs a
  * per-package `tsc` by hand, because that shows false missing-module errors
  * until the workspace packages are built; the spec stage builds them first,
  * as CI does.
