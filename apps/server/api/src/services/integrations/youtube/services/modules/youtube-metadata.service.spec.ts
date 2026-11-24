@@ -98,6 +98,49 @@ describe('YoutubeMetadataService', () => {
     });
   });
 
+  it('reads a video as the connected channel and reports whether a key is set', async () => {
+    mockVideosList.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            snippet: {
+              channelId: 'channel-1',
+              publishedAt: '2024-01-15T10:00:00Z',
+              title: 'Unlisted video',
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.getVideoMetadataAsChannel(
+      'org-1',
+      'brand-1',
+      'vid-owned',
+      'cred-1',
+    );
+
+    expect(result).toMatchObject({
+      channelId: 'channel-1',
+      id: 'vid-owned',
+      publishedAt: new Date('2024-01-15T10:00:00Z'),
+      title: 'Unlisted video',
+    });
+    expect(service.isApiKeyConfigured()).toBe(true);
+  });
+
+  it('returns null for a video the channel cannot see and rejects when the channel cannot authenticate', async () => {
+    mockVideosList.mockResolvedValueOnce({ data: { items: [] } });
+    await expect(
+      service.getVideoMetadataAsChannel('org-1', 'brand-1', 'vid-x'),
+    ).resolves.toBeNull();
+
+    authService.refreshToken.mockRejectedValueOnce(new Error('revoked'));
+    await expect(
+      service.getVideoMetadataAsChannel('org-1', 'brand-1', 'vid-x'),
+    ).rejects.toThrow('revoked');
+  });
+
   it('should return null when video is not found', async () => {
     mockVideosList.mockResolvedValueOnce({
       data: { items: [] },
