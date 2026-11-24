@@ -388,8 +388,8 @@ export class PublicPostsController {
     take: number,
   ): Promise<CrossPostCandidate[]> {
     const { prisma } = this.postsService;
-    // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
     // sql-risk-audit: ignore unbounded-read -- `take` is one of the CROSS_POST_*_LIMIT constants (a few hundred ids); the id-only select reads no captions.
+    // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
     const ordered = await prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
       select: { id: true },
