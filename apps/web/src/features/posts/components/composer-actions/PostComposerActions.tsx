@@ -69,6 +69,7 @@ export default function PostComposerActions({
   targetLabel,
   targetContent,
   platformLabel,
+  platform,
   isBusy,
   canDraftThread = false,
   onRewrite,
@@ -143,7 +144,7 @@ export default function PostComposerActions({
         : null,
       kind: 'rewrite',
       label: translate(`presets.${preset.key}`),
-      prompt: preset.prompt(platformLabel),
+      prompt: preset.prompt(platformLabel, platform),
     });
   };
 

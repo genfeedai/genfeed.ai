@@ -47,6 +47,7 @@ import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-web
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import { Platform } from '@genfeedai/contracts';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   ONBOARDING_BRAND_SCANNED_EVENT,
@@ -98,8 +99,7 @@ const PLATFORM_FORMAT_BRIEF: Record<
   Exclude<OnboardingDraftPlatform, 'twitter'>,
   string
 > = {
-  instagram:
-    'Write an Instagram caption: a hook on the first line, two or three short lines, and at most three relevant hashtags.',
+  instagram: `Write an Instagram caption: a hook on the first line, two or three short lines, and hashtags that name what the post shows (${describeChannelHashtagRule(Platform.INSTAGRAM)}).`,
   linkedin:
     'Write a LinkedIn post: a plain-spoken opener, a few short paragraphs, and no hashtags or emoji.',
   tiktok:

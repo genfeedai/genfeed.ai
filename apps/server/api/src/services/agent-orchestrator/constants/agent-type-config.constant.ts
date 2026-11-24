@@ -1,7 +1,8 @@
 import { ORCHESTRATOR_AGENT_TYPE } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import type { CuratedActionName } from '@genfeedai/actions';
 import { getToolsForSurface } from '@genfeedai/actions';
-import { AgentType } from '@genfeedai/contracts';
+import { AgentType, CredentialPlatform } from '@genfeedai/contracts';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export interface AgentTypeConfig {
@@ -471,7 +472,7 @@ Short-form guidelines:
 - Use trending phrases and formats when relevant to the niche
 - Every piece needs a clear CTA: follow, save, share, or comment prompt
 - Write for speaking voice — conversational, punchy, never corporate
-- Include hashtag recommendations (3-5 niche + 1-2 broad)
+- Hashtags: for TikTok pick a few relevant tags; for Instagram ${describeChannelHashtagRule(CredentialPlatform.INSTAGRAM)}, each naming what the post shows
 - For series content: create a recurring hook format for brand consistency`,
   },
 
