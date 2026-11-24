@@ -33,18 +33,13 @@ export function AgentCardCollapseToggle({
   return (
     <Button
       type="button"
-      variant={ButtonVariant.UNSTYLED}
+      variant={ButtonVariant.GHOST}
       withWrapper={false}
-      size={ButtonSize.ICON}
+      size={ButtonSize.MICRO}
       aria-expanded={!isCollapsed}
       ariaLabel={isCollapsed ? labelExpand : labelCollapse}
       onClick={onToggle}
-      className={cn(
-        'inline-flex size-7 shrink-0 items-center justify-center rounded-md',
-        'p-0 text-muted-foreground transition-colors',
-        'hover:bg-foreground/5 hover:text-foreground',
-        className,
-      )}
+      className={cn('shrink-0', className)}
     >
       <ChevronDown
         aria-hidden
