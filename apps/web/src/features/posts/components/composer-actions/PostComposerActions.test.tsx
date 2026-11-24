@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/vitest';
-import { POST_ENHANCEMENT_CREDITS } from '@genfeedai/contracts/constants';
 import {
   fireEvent,
   render,
@@ -7,6 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PostComposerActions from '@/features/posts/components/composer-actions/PostComposerActions';
 import type { PostComposerActionsProps } from '@/features/posts/components/composer-actions/PostComposerActions.props';
@@ -16,32 +16,6 @@ vi.mock('next-intl', async () => {
 
   return { useTranslations: translateFromCatalog };
 });
-
-vi.mock('@ui/prompt-bars/components/toolbar/PromptBarCompactSelect', () => ({
-  default: ({
-    ariaLabel,
-    value,
-    options,
-    onChange,
-  }: {
-    ariaLabel: string;
-    value: string;
-    options: Array<{ label: string; value: string }>;
-    onChange: (value: string) => void;
-  }) => (
-    <select
-      aria-label={ariaLabel}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  ),
-}));
 
 function renderActions(overrides: Partial<PostComposerActionsProps> = {}) {
   const props: PostComposerActionsProps = {
@@ -56,56 +30,67 @@ function renderActions(overrides: Partial<PostComposerActionsProps> = {}) {
   return { ...render(<PostComposerActions {...props} />), props };
 }
 
+async function chooseFromMenu(name: string) {
+  await userEvent.click(screen.getByRole('button', { name: 'Improve' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name }));
+}
+
 describe('PostComposerActions', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('shows the rewrite presets as one row of buttons', () => {
+  it('collapses the rewrite presets into one Improve menu', async () => {
     renderActions();
 
     expect(
       screen.getByRole('region', { name: 'AI actions' }),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
     for (const name of ['Shorten', 'Simplify', 'Boost', 'Hashtags']) {
-      expect(screen.getByRole('button', { name })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: 'Improve' }));
+
+    for (const name of [
+      'Shorten',
+      'Simplify',
+      'Boost',
+      'Hashtags',
+      'Optimize caption',
+    ]) {
+      expect(await screen.findByRole('menuitem', { name })).toBeInTheDocument();
     }
     expect(
-      screen.queryByRole('button', { name: 'Make Thread' }),
+      screen.queryByRole('menuitem', { name: 'Make Thread' }),
     ).not.toBeInTheDocument();
   });
 
-  it('shows the credits an enhancement is admitted for, not a hard-coded 1', () => {
-    renderActions();
+  it('keeps the credit cost, the first comment and @grok out of the row', async () => {
+    renderActions({ canDraftThread: true });
 
-    // The enhancements route holds the Gemini 3.8 Flash row's flat cost: 3.
-    expect(POST_ENHANCEMENT_CREDITS).toBe(3);
-    expect(screen.getByText('3 credits per run')).toBeInTheDocument();
-    expect(screen.queryByText('1 credit per run')).not.toBeInTheDocument();
+    expect(screen.queryByText(/credits? per run/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Improve' }));
+    await screen.findByRole('menuitem', { name: 'Shorten' });
+    expect(screen.queryByText('Add first comment')).not.toBeInTheDocument();
+    expect(screen.queryByText('End with @grok')).not.toBeInTheDocument();
   });
 
-  it('offers thread presets only when allowed', () => {
-    renderActions({
-      canAddFirstComment: true,
-      canDraftThread: true,
-      canEndWithGrok: true,
-    });
+  it('offers the thread draft only when allowed', async () => {
+    renderActions({ canDraftThread: true });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Improve' }));
 
     expect(
-      screen.getByRole('button', { name: 'Make Thread' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'End with @grok' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Add first comment' }),
+      await screen.findByRole('menuitem', { name: 'Make Thread' }),
     ).toBeInTheDocument();
   });
 
   it('proposes a rewrite as plain text and applies it only on accept', async () => {
     const { props } = renderActions();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
+    await chooseFromMenu('Shorten');
 
     // The region exists while the rewrite is pending; wait for the result.
     await screen.findByText('Shorter text');
@@ -130,7 +115,7 @@ describe('PostComposerActions', () => {
   it('sends non-quick-action presets without an action key', async () => {
     const { props } = renderActions();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hashtags' }));
+    await chooseFromMenu('Hashtags');
 
     await waitFor(() => {
       expect(props.onRewrite).toHaveBeenCalledWith(
@@ -146,7 +131,7 @@ describe('PostComposerActions', () => {
     const onAddThreadPosts = vi.fn().mockResolvedValue(undefined);
     renderActions({ canDraftThread: true, onAddThreadPosts, onDraftThread });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Make Thread' }));
+    await chooseFromMenu('Make Thread');
 
     const proposal = await screen.findByRole('region', {
       name: 'Proposed thread',
@@ -172,7 +157,7 @@ describe('PostComposerActions', () => {
       onDraftThread: vi.fn().mockResolvedValue(['Reply one', 'Reply two']),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Make Thread' }));
+    await chooseFromMenu('Make Thread');
     fireEvent.click(await screen.findByRole('button', { name: 'Add Post' }));
 
     await waitFor(() => {
@@ -192,7 +177,7 @@ describe('PostComposerActions', () => {
       onDraftThread: vi.fn().mockResolvedValue(['Reply one']),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Make Thread' }));
+    await chooseFromMenu('Make Thread');
     fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
 
     expect(onAddThreadPosts).not.toHaveBeenCalled();
@@ -201,30 +186,14 @@ describe('PostComposerActions', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('runs thread actions that need no AI directly', () => {
-    const onEndWithGrok = vi.fn();
-    const onAddFirstComment = vi.fn();
-    renderActions({
-      canAddFirstComment: true,
-      canEndWithGrok: true,
-      onAddFirstComment,
-      onEndWithGrok,
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'End with @grok' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add first comment' }));
-
-    expect(onEndWithGrok).toHaveBeenCalledOnce();
-    expect(onAddFirstComment).toHaveBeenCalledOnce();
-  });
-
   it('rewrites in the chosen tone', async () => {
     const { props } = renderActions();
 
-    fireEvent.change(screen.getByLabelText('Tone'), {
-      target: { value: 'viral' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Simplify' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Improve' }));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', { name: 'Viral' }),
+    );
+    await chooseFromMenu('Simplify');
 
     await waitFor(() => {
       expect(props.onRewrite).toHaveBeenCalledWith(
@@ -238,10 +207,10 @@ describe('PostComposerActions', () => {
   it('shows no proposal when the rewrite fails', async () => {
     renderActions({ onRewrite: vi.fn().mockResolvedValue(null) });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
+    await chooseFromMenu('Shorten');
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Shorten' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Improve' })).toBeEnabled();
     });
     expect(
       screen.queryByRole('region', { name: 'AI rewrite' }),
@@ -269,6 +238,6 @@ describe('PostComposerActions', () => {
   it('disables presets while the page is busy', () => {
     renderActions({ isBusy: true });
 
-    expect(screen.getByRole('button', { name: 'Shorten' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Improve' })).toBeDisabled();
   });
 });

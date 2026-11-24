@@ -325,8 +325,6 @@ export default function PostDetailContent({
           }
           isBusy={enhancingPostId !== null}
           canDraftThread={isTwitter && threadChildren.length === 0}
-          canEndWithGrok={isTwitter && !isLastChildGrokTweet}
-          canAddFirstComment={canAddFirstComment && !firstCommentPost}
           onRewrite={(prompt, actionKey, tone) =>
             actionKey
               ? handleQuickAction(target.id, prompt, actionKey, tone)
@@ -335,8 +333,6 @@ export default function PostDetailContent({
           onApplyRewrite={applyRewrite}
           onDraftThread={(tone) => handleDraftThread(post.id, tone)}
           onAddThreadPosts={handleAddThreadPosts}
-          onEndWithGrok={() => void handleToggleGrokFeedback(true)}
-          onAddFirstComment={() => void handleToggleFirstComment(true)}
           onAskAgent={onAskAgent}
         />
       ) : null}
