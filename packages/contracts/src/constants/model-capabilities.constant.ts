@@ -1687,11 +1687,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
     [MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT]: {
-      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
+      category: ModelCategory.IMAGE_EDIT,
       isBatchSupported: false,
-      maxOutputs: 4,
+      maxOutputs: 1,
       maxReferences: 5,
     },
     [MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH]: {
@@ -1703,11 +1701,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
     [MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT]: {
-      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
+      category: ModelCategory.IMAGE_EDIT,
       isBatchSupported: false,
-      maxOutputs: 4,
+      maxOutputs: 1,
       maxReferences: 5,
     },
     [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]: {

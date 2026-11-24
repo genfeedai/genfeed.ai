@@ -57,6 +57,32 @@ describe('useStudioPlaygroundModels', () => {
     mocks.apiEndpoint = 'https://api.example.test';
   });
 
+  it('offers the MAI-Image edit rows in the editing picker', async () => {
+    mocks.findAll.mockResolvedValue([
+      makeModel(
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+        ModelCategory.IMAGE_EDIT,
+      ),
+      makeModel(MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT, ModelCategory.IMAGE_EDIT),
+      makeModel(
+        MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+        ModelCategory.IMAGE_EDIT,
+      ),
+    ]);
+
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.IMAGE_EDIT, 'org-1'),
+      { wrapper: queryClientWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isModelCatalogReady).toBe(true));
+    expect(result.current.models.map((model) => model.key)).toEqual([
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+    ]);
+  });
+
   it('keeps only speech rows from the VOICE category, dropping avatar rows', async () => {
     mocks.findAll.mockResolvedValue([
       makeModel(MODEL_KEYS.ELEVENLABS_V4, ModelCategory.VOICE),

@@ -7,6 +7,7 @@
     "modelFallback": "{model} isn't an image editor. The editor default is selected, and the source aspect ratio is kept.",
     "autoAspectRatio": "Auto aspect ratio",
     "removedFluxControls": "Mask and seed settings were removed for FLUX.3.",
+    "removedEditControls": "Mask and seed settings were removed for this editor.",
     "targetAria": "Image editing target",
     "targetPlaceholder": "Target image",
     "outputSize": "Editing output size",

@@ -56,6 +56,15 @@ describe('resolveStudioPlaygroundCapabilities', () => {
     );
   });
 
+  it('drops the output count and aspect ratio for a MAI-Image edit', () => {
+    expect(
+      resolveStudioPlaygroundCapabilities(
+        'image-edit',
+        MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      ),
+    ).toMatchObject({ hasAspectRatio: false, hasOutputs: false });
+  });
+
   it('hides model-specific controls when no model is resolved yet', () => {
     const capabilities = resolveStudioPlaygroundCapabilities(
       'music',

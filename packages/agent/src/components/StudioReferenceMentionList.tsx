@@ -1,9 +1,11 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioReferenceMentionListProps } from '@genfeedai/props/studio/studio-reference-mention.props';
-import { Button } from '@ui/primitives/button';
+import {
+  SuggestionEmpty,
+  SuggestionItem,
+  SuggestionList,
+} from '@ui/primitives/suggestion-list';
 import { AudioLines, ImageIcon, User, Video } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -46,16 +48,13 @@ export default function StudioReferenceMentionList({
   }));
 
   return (
-    <div
-      aria-label={translate('listLabel')}
-      className="max-h-64 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-border bg-background shadow-lg"
-      data-testid="studio-reference-mention-list"
-      role="listbox"
+    <SuggestionList
+      ariaLabel={translate('listLabel')}
+      className="max-h-64 w-80 max-w-[calc(100vw-2rem)]"
+      testId="studio-reference-mention-list"
     >
       {!items.length ? (
-        <p className="px-3 py-2 text-xs text-muted-foreground">
-          {translate('empty')}
-        </p>
+        <SuggestionEmpty>{translate('empty')}</SuggestionEmpty>
       ) : (
         items.map((item, index) => {
           const reference = item.kind === 'reference' ? item.reference : null;
@@ -74,21 +73,13 @@ export default function StudioReferenceMentionList({
                   ? ImageIcon
                   : User;
           return (
-            <Button
+            <SuggestionItem
               ariaLabel={`${token}: ${name}. ${reference ? (ROLE_LABELS[reference.role] ?? reference.role) : 'Character'}`}
-              aria-selected={index === selectedIndex % items.length}
-              className={cn(
-                'flex min-h-10 w-full items-center gap-2.5 px-3 py-2 text-left text-sm',
-                index === selectedIndex % items.length
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-foreground hover:bg-hover',
-              )}
+              isSelected={index === selectedIndex % items.length}
               key={`${item.kind}:${reference?.key ?? (item.kind === 'character' ? item.character.id : '')}`}
               onClick={() => command(item)}
               onMouseDown={(event) => event.preventDefault()}
               role="option"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
             >
               <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted text-muted-foreground">
                 {reference?.previewUrl ? (
@@ -117,10 +108,10 @@ export default function StudioReferenceMentionList({
                     : 'Character'}
                 </span>
               </span>
-            </Button>
+            </SuggestionItem>
           );
         })
       )}
-    </div>
+    </SuggestionList>
   );
 }

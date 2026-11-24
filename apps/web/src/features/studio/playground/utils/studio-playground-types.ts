@@ -2,6 +2,7 @@ import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import {
   getEligibleHeyGenAvatarModelKeys,
   isFlux3ImageModel,
+  isMaiImageEditModel,
   MODEL_KEYS,
   resolveMusicSettings,
 } from '@genfeedai/contracts/constants';
@@ -194,7 +195,10 @@ export function resolveStudioPlaygroundCapabilities(
   modelKey: string | undefined,
 ): StudioPlaygroundCapabilities {
   const { capabilities } = getStudioPlaygroundTypeConfig(type);
-  if (modelKey && isFlux3ImageModel(modelKey))
+  if (
+    modelKey &&
+    (isFlux3ImageModel(modelKey) || isMaiImageEditModel(modelKey))
+  )
     return { ...capabilities, hasOutputs: false, hasAspectRatio: false };
   if (type !== 'music') return capabilities;
   const music = resolveMusicSettings(modelKey);
