@@ -132,6 +132,16 @@ export interface IPublicBrandSocial {
   url: string;
 }
 
+/**
+ * Lifetime totals a public profile shows, summed over every connected platform
+ * from the creator's post analytics. A metric no platform reports is null.
+ */
+export interface IPublicBrandReach {
+  engagements: number | null;
+  impressions: number | null;
+  views: number | null;
+}
+
 export interface IBrandAgentVoice {
   canonicalSource?: 'brand' | 'founder' | 'hybrid';
   tone?: string;

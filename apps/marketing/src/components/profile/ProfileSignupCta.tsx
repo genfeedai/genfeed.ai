@@ -1,5 +1,5 @@
 import { getAppSignUpUrl } from '@data/app-links';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { normalizeSignupReferralCode } from '@genfeedai/helpers';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import { ArrowRight } from 'lucide-react';
@@ -23,8 +23,9 @@ export function getProfileSignupHref(referralCode?: string | null): string {
 }
 
 /**
- * Sign-up from a creator's profile. With the owner's referral code the button
- * says so and the link carries it; without one it is a plain sign-up.
+ * Sign-up from a creator's page, a secondary action under the creator's own
+ * content. With the owner's referral code the button says so and the link
+ * carries it; without one it is a plain sign-up.
  */
 export default function ProfileSignupCta({
   handle,
@@ -41,12 +42,8 @@ export default function ProfileSignupCta({
   return (
     <ButtonTracked
       asChild
-      variant={ButtonVariant.DEFAULT}
-      size={ButtonSize.PUBLIC}
-      className="w-full min-w-0 overflow-hidden"
-      // The default wrapper is an inline-flex box that shrink-wraps the
-      // button, so `w-full` resolved against it and the CTA sat left of the
-      // profile column instead of spanning it.
+      variant={ButtonVariant.SECONDARY}
+      className="min-w-0 max-w-full overflow-hidden"
       withWrapper={false}
       trackingName="signup_cta_click"
       trackingData={{

@@ -47,6 +47,7 @@ const { generateMetadata: generateArticlesMetadata } = await import(
   './articles/page'
 );
 const {
+  getPublicReferralCodeBySlug,
   getCreatorPlatformPosts,
   getCreatorProfileData,
   getPublicBrandBySlug,
@@ -115,24 +116,35 @@ describe('getPublicBrandBySlug', () => {
   });
 });
 
+describe('getPublicReferralCodeBySlug', () => {
+  it('answers the owner code for a public handle', async () => {
+    expect(await getPublicReferralCodeBySlug('code-ok')).toBe('owner2345xyz');
+  });
+
+  it('answers null for an unknown handle and for an outage', async () => {
+    findPublicProfileBySlug.mockResolvedValueOnce(null);
+    expect(await getPublicReferralCodeBySlug('code-unknown')).toBeNull();
+
+    findPublicProfileBySlug.mockRejectedValueOnce(new Error('offline'));
+    expect(await getPublicReferralCodeBySlug('code-offline')).toBeNull();
+  });
+});
+
 describe('getCreatorProfileData', () => {
   it('collects every kind of public work with its total', async () => {
     const data = await getCreatorProfileData('data-ok');
 
     expect(data?.brand).toMatchObject({ id: 'brand-1' });
-    expect(data?.referralCode).toBe('owner2345xyz');
     expect(data?.showcase.articles.total).toBe(12);
     expect(data?.showcase.posts.items).toEqual([POST]);
   });
 
   it('reads a failed listing as empty and keeps the profile', async () => {
     findPublicArticlesPage.mockRejectedValue(new Error('articles down'));
-    findPublicReferralCode.mockRejectedValue(new Error('referral down'));
 
     const data = await getCreatorProfileData('data-partial');
 
     expect(data?.showcase.articles).toMatchObject({ items: [], total: 0 });
-    expect(data?.referralCode).toBeNull();
     expect(data?.showcase.posts.total).toBe(3);
   });
 
