@@ -1,4 +1,5 @@
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
   BrandedTextRunOutcomeV1,
@@ -19,6 +20,7 @@ import {
   PostCategory,
   PostFormat,
   TargetExecutionState,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { TextReceiptState } from '@genfeedai/contracts/interfaces';
@@ -68,6 +70,7 @@ export class BrandedTextRunnerService {
     private readonly learningDecisions: LearningDecisionService,
     private readonly modelRegistry: AgentChatModelRegistryService,
     private readonly material: BrandedGenerationArtifactMaterialService,
+    private readonly credentials: CredentialsService,
   ) {}
 
   async run(spec: BrandedTextRunSpecV1): Promise<BrandedTextRunOutcomeV1> {
@@ -206,7 +209,10 @@ export class BrandedTextRunnerService {
     spec: BrandedTextRunSpecV1,
     text: string,
   ): Promise<{ postId: string }> {
-    const post = await this.posts.create(this.draftInput(spec, text));
+    const credentialId = await this.resolveDraftCredentialId(spec);
+    const post = await this.posts.create(
+      this.draftInput(spec, text, credentialId),
+    );
     return { postId: String(post.id) };
   }
 
@@ -220,8 +226,9 @@ export class BrandedTextRunnerService {
     text: string,
   ): Promise<{ postId: string }> {
     const [first, ...replies] = splitReplyVariants(text);
+    const credentialId = await this.resolveDraftCredentialId(spec);
     const root = await this.posts.create({
-      ...this.draftInput(spec, first ?? text),
+      ...this.draftInput(spec, first ?? text, credentialId),
       format: PostFormat.THREAD,
       order: 0,
     });
@@ -229,7 +236,7 @@ export class BrandedTextRunnerService {
     try {
       for (const [index, description] of replies.entries())
         await this.posts.create({
-          ...this.draftInput(spec, description),
+          ...this.draftInput(spec, description, credentialId),
           format: PostFormat.THREAD,
           order: index + 1,
           parentId: rootId,
@@ -244,13 +251,36 @@ export class BrandedTextRunnerService {
     return { postId: rootId };
   }
 
+  /**
+   * The account a draft is for. A brand with exactly one connected account on
+   * the platform has no other place the post can go, so the draft is bound to
+   * it and its page shows that account's picture and handle. With none, or
+   * several, the draft stays unbound until someone picks the account.
+   */
+  private async resolveDraftCredentialId(
+    spec: BrandedTextRunSpecV1,
+  ): Promise<string | undefined> {
+    const platform = toPrismaCredentialPlatform(spec.platform);
+    if (!platform) return undefined;
+    const accounts = await this.credentials.find({
+      brandId: spec.brandId,
+      isConnected: true,
+      isDeleted: false,
+      organizationId: spec.actor.organizationId,
+      platform,
+    });
+    return accounts.length === 1 ? String(accounts[0].id) : undefined;
+  }
+
   private draftInput(
     spec: BrandedTextRunSpecV1,
     description: string,
+    credentialId: string | undefined,
   ): Parameters<PostsService['create']>[0] {
     return {
       brandId: spec.brandId,
       category: PostCategory.TEXT,
+      credentialId,
       description,
       format: PostFormat.STANDARD,
       ingredients: [],
