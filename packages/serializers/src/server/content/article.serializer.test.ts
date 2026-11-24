@@ -80,8 +80,9 @@ describe('PublicArticleSummarySerializer', () => {
       ...PUBLISHED_ARTICLE,
       readingTimeMinutes: 7,
     });
+    const attributes = Array.isArray(data) ? undefined : data?.attributes;
 
-    expect(data.attributes).toEqual({
+    expect(attributes).toEqual({
       category: 'POST',
       coverImageUrl: 'https://cdn.genfeed.ai/cover.jpg',
       label: 'Launch week',
@@ -90,7 +91,7 @@ describe('PublicArticleSummarySerializer', () => {
       slug: 'launch-week',
       summary: 'What shipped.',
     });
-    expect(data.attributes).not.toHaveProperty('content');
+    expect(attributes).not.toHaveProperty('content');
   });
 
   it('keeps a page of 53 long articles under 60 KB', () => {

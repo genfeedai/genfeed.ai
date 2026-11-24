@@ -2,7 +2,7 @@ import { PublicCacheControlInterceptor } from '@api/endpoints/public/interceptor
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { Controller, type ExecutionContext, Get } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { firstValueFrom, type Observable, of, throwError } from 'rxjs';
 
 @Controller('public/things')
 class PublicThingsController {
@@ -35,7 +35,7 @@ function run(
   controller: new () => object,
   method: string,
   request: Partial<FakeRequest> = {},
-  result: () => ReturnType<typeof of> = () => of({ data: 1 }),
+  result: () => Observable<unknown> = () => of({ data: 1 }),
 ) {
   const headers = new Map<string, string>();
   const response = {
