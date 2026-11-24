@@ -5,7 +5,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 const ORG = '/test-org/~';
 const MASTER_ID = 'master-layout-e2e';
 const CHILD_ID = 'child-layout-e2e';
-const SPLIT_STORAGE_KEY = 'genfeed:agent-master-split';
+const SPLIT_STORAGE_KEY = 'genfeed:agent-output-split';
 const now = '2026-11-06T14:00:00.000Z';
 
 const LONG_REPLY = [
