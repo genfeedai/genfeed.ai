@@ -1,3 +1,5 @@
+import type { CreatorFooterProps } from '@props/content/creator.props';
+import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import Link from 'next/link';
 
 const FOOTER_LINKS = [
@@ -9,9 +11,13 @@ const FOOTER_LINKS = [
 
 /**
  * One line under a creator's page. It keeps the page from being a crawl dead
- * end without carrying the whole site's footer.
+ * end without carrying the whole site's footer, and holds the secondary
+ * Join Genfeed action: the creator's own page comes first.
  */
-export default function CreatorFooter(): React.ReactElement {
+export default function CreatorFooter({
+  handle,
+  referralCode = null,
+}: CreatorFooterProps): React.ReactElement {
   return (
     <footer className="relative z-20 mt-auto border-t border-foreground/10">
       <nav
@@ -28,6 +34,13 @@ export default function CreatorFooter(): React.ReactElement {
             {link.label}
           </Link>
         ))}
+        <span className="ml-auto">
+          <ProfileSignupCta
+            handle={handle}
+            label="Join Genfeed"
+            referralCode={referralCode}
+          />
+        </span>
       </nav>
     </footer>
   );

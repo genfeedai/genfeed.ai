@@ -1,3 +1,4 @@
+import { ButtonSize } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,16 +22,19 @@ vi.mock('@ui/primitives/button', () => ({
     children,
     className,
     onClick,
+    size,
   }: {
     ariaLabel?: string;
     children: ReactNode;
     className?: string;
     onClick?: () => void;
+    size?: string;
   }) => (
     <button
       type="button"
       aria-label={ariaLabel}
       className={className}
+      data-size={size}
       onClick={onClick}
     >
       {children}
@@ -102,11 +106,11 @@ describe('CloudSyncIndicator', () => {
     ).toBeInTheDocument();
   });
 
-  it('matches the 32px size of the other topbar controls', () => {
+  it('uses the shared icon button size like the other topbar controls', () => {
     render(<CloudSyncIndicator />);
 
     expect(
       screen.getByRole('button', { name: 'Cloud disconnected' }),
-    ).toHaveClass('size-8');
+    ).toHaveAttribute('data-size', ButtonSize.ICON);
   });
 });

@@ -1,12 +1,11 @@
-import { ButtonVariant } from '@genfeedai/contracts';
 import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers';
 import type { CreatorHeaderProps } from '@props/content/creator.props';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
-import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
 import CreatorAccounts from './CreatorAccounts';
+import CreatorReach from './CreatorReach';
 import SupportCreatorButton from './SupportCreatorButton';
 import ViewTracker from './ViewTracker';
 
@@ -23,7 +22,7 @@ export default function CreatorHeader({
   handle,
   hasBanner,
   profileUrl,
-  referralCode,
+  reach = null,
 }: CreatorHeaderProps): React.ReactElement {
   const label = brand.label?.trim() || `@${handle}`;
 
@@ -66,21 +65,9 @@ export default function CreatorHeader({
         </p>
       ) : null}
 
-      {/* One primary action. Subscribe, Support and the link stay secondary. */}
+      {/* Subscribe is the one primary action; the rest are secondary. */}
       <div className="col-span-2 flex flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2">
-        <div className="w-full sm:w-auto sm:min-w-44">
-          <ProfileSignupCta
-            handle={handle}
-            label="Join Genfeed"
-            referralCode={referralCode}
-          />
-        </div>
-        <ProfileSubscribe
-          handle={handle}
-          layout="compact"
-          source="profile"
-          variant={ButtonVariant.SECONDARY}
-        />
+        <ProfileSubscribe handle={handle} layout="compact" source="profile" />
         {handle === GENFEED_BRAND_HANDLE ? null : (
           <SupportCreatorButton
             handle={handle}
@@ -91,7 +78,8 @@ export default function CreatorHeader({
         <CopyLinkButton url={profileUrl} />
       </div>
 
-      <div className="col-span-2 flex flex-wrap items-center justify-end gap-x-8 gap-y-3 pt-1">
+      <div className="col-span-2 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 pt-1">
+        <CreatorReach reach={reach} />
         <CreatorAccounts brand={brand} handle={handle} />
       </div>
       <ViewTracker id={brand.id} target="profile" />

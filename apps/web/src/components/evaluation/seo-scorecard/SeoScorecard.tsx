@@ -327,10 +327,11 @@ export default function SeoScorecard({
             <Button
               type="button"
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.INLINE}
               withWrapper={false}
               ariaLabel={translate('toggleDetails')}
-              className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className="w-fit"
             >
               <ChevronDown
                 className={cn(
