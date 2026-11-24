@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   DefinitionDetail,
@@ -90,7 +90,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
       {item.workflowExecutionId && isAutomationAvailable ? (
         <Button
           asChild
-          className="h-8 px-0"
+          size={ButtonSize.INLINE}
           variant={ButtonVariant.LINK}
           withWrapper={false}
         >
@@ -107,7 +107,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
       {item.postId ? (
         <Button
           asChild
-          className="h-8 px-0"
+          size={ButtonSize.INLINE}
           variant={ButtonVariant.LINK}
           withWrapper={false}
         >

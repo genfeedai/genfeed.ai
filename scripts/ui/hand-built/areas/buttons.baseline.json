@@ -61,13 +61,7 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/WorkflowExecutionCard.tsx": {
       "button-restyle": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/ClipperWorkspace.tsx": {
-      "button-restyle": 3
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperInputForm.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx": {
       "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperResultCard.tsx": {
@@ -77,7 +71,6 @@
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/newsletter-editor.tsx": {
@@ -107,36 +100,12 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-conversation-sidebar.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewDecisionPanel.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewGrid.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewInboxBulkBar.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewLineagePanel.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewPostHoverPreview.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewQueueView.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewRewriteProgress.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/setup/content.tsx": {
-      "button-restyle": 8,
+      "button-restyle": 3,
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-comments-card.tsx": {
       "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sidebar.tsx": {
-      "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/sub-issue-row.tsx": {
       "unstyled-look": 1
@@ -144,17 +113,8 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-field.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-toolbar.tsx": {
-      "button-restyle": 2
     },
     "apps/web/app/(protected)/[orgSlug]/~/agent/journey/journey-page-content.tsx": {
       "button-restyle": 2
@@ -208,7 +168,7 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/folders/sidebar/FoldersSidebar.tsx": {
-      "button-restyle": 3
+      "button-restyle": 1
     },
     "apps/web/src/components/ingredients/inspector/IngredientPromptBlock.tsx": {
       "unstyled-look": 1

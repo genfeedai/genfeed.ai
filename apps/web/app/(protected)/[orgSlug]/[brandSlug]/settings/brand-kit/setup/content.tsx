@@ -653,7 +653,7 @@ export default function BrandGuidedSetupPage() {
             </div>
             <Button
               size={ButtonSize.SM}
-              className="h-9 shrink-0 gap-1.5 px-3"
+              className="shrink-0"
               isDisabled={isInterviewLoading}
               isLoading={isInterviewLoading}
               onClick={() => {
@@ -701,7 +701,6 @@ export default function BrandGuidedSetupPage() {
             </div>
             <Button
               size={ButtonSize.SM}
-              className="h-9 px-3"
               onClick={() => {
                 window.location.reload();
               }}
@@ -784,7 +783,6 @@ export default function BrandGuidedSetupPage() {
                 <Button
                   type="submit"
                   size={ButtonSize.SM}
-                  className="h-9 px-4"
                   isDisabled={isInterviewLoading || !answerValue.trim()}
                   isLoading={isInterviewLoading}
                 >
@@ -795,7 +793,6 @@ export default function BrandGuidedSetupPage() {
                     type="button"
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
-                    className="h-9 px-3"
                     isDisabled={isInterviewLoading}
                     onClick={() => {
                       void handleSkip();
@@ -808,7 +805,6 @@ export default function BrandGuidedSetupPage() {
                     type="button"
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
-                    className="h-9 px-3"
                     isDisabled={isInterviewLoading || !frontierFieldKey}
                     onClick={() => {
                       if (frontierFieldKey) {

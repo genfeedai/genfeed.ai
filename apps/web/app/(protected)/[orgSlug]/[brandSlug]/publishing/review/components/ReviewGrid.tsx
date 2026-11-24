@@ -56,11 +56,10 @@ export default function ReviewGrid({
           {/* ModalConfirm grammar: primary first, destructive last (right). */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <Button
-              className="h-7 gap-1 px-2"
               isDisabled={isActioning || Boolean(rewriteProgress)}
               onClick={onBulkRewrite}
               isLoading={isRewriteStarting}
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             >
@@ -68,10 +67,9 @@ export default function ReviewGrid({
               {translate('turboRewrite.action')}
             </Button>
             <Button
-              className="h-7 gap-1 px-2"
               isDisabled={isActioning}
               onClick={onBulkApprove}
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
             >
@@ -79,10 +77,9 @@ export default function ReviewGrid({
               {translateReview('decision.approve')}
             </Button>
             <Button
-              className="h-7 gap-1 px-2"
               isDisabled={isActioning}
               onClick={onBulkReject}
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.DESTRUCTIVE}
               withWrapper={false}
             >
