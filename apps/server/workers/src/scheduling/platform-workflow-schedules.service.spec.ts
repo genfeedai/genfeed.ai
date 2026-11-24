@@ -7,6 +7,7 @@ describe('PlatformWorkflowSchedulesService', () => {
     agentStrategy: { findMany: vi.fn() },
     member: { findMany: vi.fn() },
     organization: { findMany: vi.fn() },
+    post: { findMany: vi.fn() },
     session: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
     workflowExecution: { findFirst: vi.fn(), findMany: vi.fn() },
@@ -34,6 +35,8 @@ describe('PlatformWorkflowSchedulesService', () => {
     prisma.workflow.findFirst.mockResolvedValue(null);
     prisma.workflowExecution.findFirst.mockResolvedValue(null);
     prisma.workflowExecution.findMany.mockResolvedValue([]);
+    // The default organization also has a published post that is due.
+    prisma.post.findMany.mockResolvedValue([{ organizationId: 'org-1' }]);
     // Due by default (empty config: no failures, no manual-reactivation gate,
     // no future nextRunAt) so existing proactive-agent-strategies assertions
     // below keep exercising the installed-workflow branch they target.
@@ -48,7 +51,6 @@ describe('PlatformWorkflowSchedulesService', () => {
   describe('active Discovery gate (#5634)', () => {
     const gated = [
       'content-learning.reconcile',
-      'analytics-sync',
       'content-loop-autopilot',
     ] as const;
 
@@ -176,6 +178,119 @@ describe('PlatformWorkflowSchedulesService', () => {
       expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
       expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
     });
+  });
+
+  describe('published-post gate (#11097)', () => {
+    const measured = ['analytics-collect', 'analytics-sync'] as const;
+
+    it.each(measured)(
+      'dispatches %s for an organization that published but has no recent session',
+      async (template) => {
+        await service.sweep(template, Date.UTC(2026, 10, 24));
+        // No session lookup, no Discovery access check: only the published post.
+        expect(prisma.organization.findMany).toHaveBeenCalledOnce();
+        expect(prisma.session.findMany).not.toHaveBeenCalled();
+        expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
+        expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+        expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organizationId: 'org-1',
+            userId: 'owner-1',
+          }),
+          expect.objectContaining({
+            dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+          }),
+        );
+      },
+    );
+
+    it.each(measured)(
+      'skips %s for an organization with no published post',
+      async (template) => {
+        prisma.post.findMany.mockResolvedValue([]);
+        await service.sweep(template, 0);
+        expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+        expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+      },
+    );
+
+    it('asks for a published, external-id post of this page, tenant-scoped', async () => {
+      await service.sweep('analytics-sync', 0);
+      expect(prisma.post.findMany).toHaveBeenCalledWith({
+        distinct: ['organizationId'],
+        select: { organizationId: true },
+        where: {
+          externalId: { not: null },
+          isDeleted: false,
+          organizationId: { in: ['org-1'] },
+          targetExecutionState: 'published',
+        },
+      });
+    });
+
+    it('collects from the platforms only for a post whose collection is due', async () => {
+      const now = Date.UTC(2026, 10, 24, 10);
+      await service.sweep('analytics-collect', now);
+      expect(prisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            analyticsNextCollectAt: { lte: new Date(now) },
+          }),
+        }),
+      );
+      expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          canonicalId: 'analytics.organization-refresh',
+          idempotencyKey: `platform:analytics-collect:org-1:${Math.floor(now / (30 * 60 * 1000))}`,
+        }),
+        expect.objectContaining({ expireAfterMs: expect.any(Number) }),
+      );
+    });
+
+    it('admits only the organizations the database returned, in page order', async () => {
+      prisma.organization.findMany.mockResolvedValueOnce([
+        { id: 'org-1', userId: 'owner-1' },
+        { id: 'org-2', userId: 'owner-2' },
+        { id: 'org-3', userId: 'owner-3' },
+      ]);
+      prisma.post.findMany.mockResolvedValue([
+        { organizationId: 'org-3' },
+        { organizationId: 'org-1' },
+      ]);
+      await service.sweep('analytics-sync', 0);
+      expect(
+        runner.enqueueWorkflow.mock.calls.map(
+          ([input]) => input.organizationId,
+        ),
+      ).toEqual(['org-1', 'org-3']);
+    });
+
+    it('does not read posts for an empty organization page', async () => {
+      prisma.organization.findMany.mockResolvedValueOnce([]);
+      await service.sweep('analytics-collect', 0);
+      expect(prisma.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('preserves a post lookup failure without dispatching work', async () => {
+      const unavailable = new Error('posts database unavailable');
+      prisma.post.findMany.mockRejectedValue(unavailable);
+      await expect(service.sweep('analytics-collect', 0)).rejects.toBe(
+        unavailable,
+      );
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'content-learning.reconcile',
+      'content-loop-autopilot',
+      'proactive-agent-strategies',
+    ] as const)(
+      'leaves %s outside the published-post gate',
+      async (template) => {
+        await service.sweep(template, 120001);
+        expect(prisma.post.findMany).not.toHaveBeenCalled();
+      },
+    );
   });
 
   it('delegates pending-execution reconciliation to its existing owner', async () => {
@@ -429,6 +544,10 @@ describe('PlatformWorkflowSchedulesService', () => {
       { id: 'a', userId: 'u' },
       { id: 'b', userId: 'v' },
     ]);
+    prisma.post.findMany.mockResolvedValue([
+      { organizationId: 'a' },
+      { organizationId: 'b' },
+    ]);
     runner.enqueueWorkflow.mockRejectedValueOnce(
       new Error('queue unavailable'),
     );
@@ -451,7 +570,7 @@ describe('PlatformWorkflowSchedulesService', () => {
       .mockResolvedValueOnce(page)
       .mockResolvedValueOnce(page.map(({ id }) => ({ id })))
       .mockResolvedValueOnce([]);
-    await service.sweep('analytics-sync', 0);
+    await service.sweep('content-learning.reconcile', 0);
     expect(prisma.organization.findMany).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
@@ -472,6 +591,26 @@ describe('PlatformWorkflowSchedulesService', () => {
     );
     expect(prisma.member.findMany).not.toHaveBeenCalled();
     expect(prisma.session.findMany).not.toHaveBeenCalled();
+  });
+
+  it('pages organizations for the published-post gate without a session lookup', async () => {
+    const page = Array.from({ length: 100 }, (_, i) => ({
+      id: `org-${i}`,
+      userId: 'owner',
+    }));
+    prisma.organization.findMany
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce([]);
+    prisma.post.findMany.mockResolvedValue([]);
+    await service.sweep('analytics-sync', 0);
+    expect(prisma.organization.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.organization.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { isDeleted: false, id: { gt: 'org-99' } },
+      }),
+    );
+    expect(prisma.post.findMany).toHaveBeenCalledOnce();
   });
 
   it('runs the workspace task rollup recovery sweep', async () => {

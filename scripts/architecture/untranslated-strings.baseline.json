@@ -171,7 +171,7 @@
     "apps/web/src/components/command-palette/command-palette/CommandPaletteView.tsx": 7,
     "apps/web/src/components/content/filters-button/filters-button-options.constants.tsx": 39,
     "apps/web/src/components/desktop/DesktopLocalProviderSettings.tsx": 7,
-    "apps/web/src/components/editors/RichTextEditorToolbar.tsx": 23,
+    "apps/web/src/components/editors/RichTextEditorToolbar.tsx": 15,
     "apps/web/src/components/evaluation/card/EvaluationCard.tsx": 15,
     "apps/web/src/components/folders/sidebar/FoldersSidebar.tsx": 6,
     "apps/web/src/components/guards/feature/FeatureGate.tsx": 5,

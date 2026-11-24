@@ -8,6 +8,7 @@ import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { IngredientCategory, MemberRole } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
+import { ingredientResponseIds } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -534,6 +535,31 @@ describe('AgentWorkspaceToolHandler.listAssets tags (#6011)', () => {
   });
 });
 
+describe('AgentWorkspaceToolHandler.listAssets uploaded media (#9975)', () => {
+  it('lists an upload that has no URL of its own so the media projection signs it', async () => {
+    // A cloud deployment computes no `cdnUrl`, and an upload carries no
+    // external link, so its URL is null. It must still be recognisable.
+    const upload = {
+      category: 'IMAGE',
+      id: 'upload-1',
+      origin: 'UPLOADED',
+      s3Key: 'ingredients/images/6f1c2d3e-0000-4000-8000-000000000000',
+      status: 'UPLOADED',
+    };
+    const ingredients = {
+      listLibraryAssets: vi.fn().mockResolvedValue([upload]),
+    };
+
+    const result = await buildHandler({ ingredients }).listAssets(
+      { type: 'image' },
+      baseCtx,
+    );
+
+    expect(ingredientResponseIds(result.data)).toEqual(['upload-1']);
+    expect(JSON.stringify(result.data)).not.toContain('6f1c2d3e');
+  });
+});
+
 describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
   const row = {
     category: 'IMAGE',
@@ -566,6 +592,7 @@ describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
       assets: [
         {
           category: 'IMAGE',
+          cdnUrl: 'https://cdn.example.test/img-1.png',
           createdAt: row.createdAt,
           id: 'img-1',
           origin: 'GENERATED',

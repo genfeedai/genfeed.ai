@@ -1,4 +1,5 @@
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { AiActionsController } from '@api/endpoints/ai-actions/ai-actions.controller';
 import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
@@ -30,6 +31,7 @@ import { Module } from '@nestjs/common';
     BrandedTextGenerationModule,
     ByokModule,
     ContentLearningCoreModule,
+    CredentialsCoreModule,
     LoggerModule,
     OpenRouterModule,
     PostsCoreModule,
