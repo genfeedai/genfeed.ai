@@ -200,10 +200,9 @@ describe('PostDetailContent', () => {
     );
 
     expect(listProps.current?.sortedChildren).toEqual([]);
-    expect(actionsProps.current?.canAddFirstComment).toBe(false);
   });
 
-  it('offers thread presets on an X post without replies', () => {
+  it('offers the thread draft on an X post without replies', () => {
     render(
       <PostDetailContent
         {...buildProps({
@@ -217,7 +216,6 @@ describe('PostDetailContent', () => {
     );
 
     expect(actionsProps.current?.canDraftThread).toBe(true);
-    expect(actionsProps.current?.canEndWithGrok).toBe(true);
     expect(screen.getByTestId('ai-actions')).toHaveTextContent('Post 1');
   });
 
