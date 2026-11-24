@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import DateText from '@ui/time/DateText';
 import { Text } from '@ui/typography/text';
 import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Copy, Gift, TriangleAlert } from 'lucide-react';
@@ -226,7 +227,7 @@ export default function SettingsReferralsPage() {
                     })}
                   </Text>
                   <Text as="p" size="xs" color="muted">
-                    {new Date(reward.createdAt).toLocaleDateString('en-US')}
+                    <DateText hasTime={false} value={reward.createdAt} />
                   </Text>
                 </div>
                 <Badge status={reward.status.toLowerCase()}>

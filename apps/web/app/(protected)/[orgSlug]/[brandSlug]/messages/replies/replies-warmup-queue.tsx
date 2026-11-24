@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { ASSISTED_X_REPLY_MAX_LENGTH } from '@genfeedai/contracts/constants';
 import type { IAssistedReplyUsage } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import type { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
 import { BotActivitiesService } from '@genfeedai/services/automation/bot-activities.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -13,7 +14,7 @@ import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { openInNewTab } from '@/lib/navigation/open-in-new-tab';
@@ -30,7 +31,6 @@ const EMPTY_ITEMS: BotActivity[] = [];
  * toward the daily cap once the person confirms they posted it.
  */
 export default function RepliesWarmupQueue() {
-  const locale = useLocale();
   const translate = useTranslations('common.automation.replies.queue');
   const getBotActivitiesService = useAuthedService((token: string) =>
     BotActivitiesService.getInstance(token),
@@ -153,7 +153,7 @@ export default function RepliesWarmupQueue() {
       {usage?.nextAllowedAt ? (
         <p className="text-sm text-muted-foreground">
           {translate('nextAllowed', {
-            time: new Date(usage.nextAllowedAt).toLocaleTimeString(locale),
+            time: formatShortDate(usage.nextAllowedAt),
           })}
         </p>
       ) : null}

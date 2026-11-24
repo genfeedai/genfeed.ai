@@ -8,6 +8,7 @@ import {
   CardVariant,
   isPlatform,
 } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import Card from '@ui/card/Card';
 import { Avatar } from '@ui/primitives/avatar';
@@ -22,12 +23,7 @@ import type { ActivityPostPreviewCardProps } from '@/features/activities/props/a
 
 function formatPublishedDate(value: string | undefined): string | undefined {
   if (!value || !Number.isFinite(new Date(value).getTime())) return undefined;
-  return new Date(value).toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-    year: 'numeric',
-  });
+  return formatShortDate(value, { hasTime: false, timeZone: 'UTC' });
 }
 
 function formatCount(value: number): string {

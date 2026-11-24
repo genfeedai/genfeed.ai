@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
 
 type SchemaProperty = Record<string, unknown>;
@@ -156,13 +157,13 @@ function ContractSnapshot({
           <span className="text-foreground/80">
             {translate('discoveredAtLabel')}
           </span>{' '}
-          {new Date(snapshot.discoveredAt).toLocaleString('en-US')}
+          <DateText value={snapshot.discoveredAt} />
         </p>
         <p>
           <span className="text-foreground/80">
             {translate('lastSeenLabel')}
           </span>{' '}
-          {new Date(snapshot.lastSeenAt).toLocaleString('en-US')}
+          <DateText value={snapshot.lastSeenAt} />
         </p>
         {snapshot.unsupportedReason && (
           <p className="text-destructive">{snapshot.unsupportedReason}</p>

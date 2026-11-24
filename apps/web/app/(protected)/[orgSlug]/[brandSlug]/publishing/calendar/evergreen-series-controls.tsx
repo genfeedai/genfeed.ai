@@ -19,6 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import DateText from '@ui/time/DateText';
 import { useCallback, useMemo, useState } from 'react';
 import type { EvergreenSeriesControlsProps } from '@/features/posts/props/evergreen-series-controls.props';
 
@@ -283,7 +284,7 @@ export default function EvergreenSeriesControls({
                 <ol className="mt-1 list-decimal pl-5 text-sm text-muted-foreground">
                   {preview.occurrences.map((occurrence) => (
                     <li key={occurrence}>
-                      {new Date(occurrence).toLocaleString('en-US')}
+                      <DateText value={occurrence} />
                     </li>
                   ))}
                 </ol>

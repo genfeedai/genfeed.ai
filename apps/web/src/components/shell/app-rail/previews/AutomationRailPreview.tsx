@@ -1,9 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { Badge } from '@ui/primitives/badge';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import {
   createWorkflowApiService,
   type WorkflowApiService,
@@ -23,7 +24,6 @@ export default function AutomationRailPreview({
   href,
 }: AppRailPreviewContentProps) {
   const translate = useTranslations('common.appRail.preview.automation');
-  const locale = useLocale();
   const { brandId } = useBrand();
   const workflows = useAuthedQuery<WorkflowApiService, WorkflowSummary[]>({
     queryFn: async (service) => {
@@ -57,15 +57,7 @@ export default function AutomationRailPreview({
               subtitle={
                 workflow.isScheduleEnabled && workflow.nextRunAt
                   ? translate('nextRun', {
-                      date: new Date(workflow.nextRunAt).toLocaleString(
-                        locale,
-                        {
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          month: 'short',
-                        },
-                      ),
+                      date: formatShortDate(workflow.nextRunAt),
                     })
                   : translate('nodes', { count: workflow.nodeCount })
               }

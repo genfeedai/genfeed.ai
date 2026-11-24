@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import type { IngredientTabsMetadataProps } from '@genfeedai/contracts/interfaces/components/ingredient-tabs.interface';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -168,13 +169,13 @@ export default function IngredientTabsMetadata({
     ingredient.createdAt
       ? {
           label: 'Created At',
-          value: new Date(ingredient.createdAt).toLocaleString(),
+          value: formatShortDate(ingredient.createdAt),
         }
       : null,
     ingredient.updatedAt
       ? {
           label: 'Updated At',
-          value: new Date(ingredient.updatedAt).toLocaleString(),
+          value: formatShortDate(ingredient.updatedAt),
         }
       : null,
     ingredient.user

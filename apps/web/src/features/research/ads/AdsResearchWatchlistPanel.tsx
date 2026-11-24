@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import DateText from '@ui/time/DateText';
 import { Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -136,9 +137,7 @@ function AdvertiserRow({
               })}
             </span>
           ) : null}
-          {lastRun ? (
-            <span>{new Date(lastRun).toLocaleDateString('en-US')}</span>
-          ) : null}
+          {lastRun ? <DateText hasTime={false} value={lastRun} /> : null}
           {advertiser.lastIngestionErrorCode ? (
             <span className="text-destructive">
               {describeBlocker(advertiser.lastIngestionErrorCode)}

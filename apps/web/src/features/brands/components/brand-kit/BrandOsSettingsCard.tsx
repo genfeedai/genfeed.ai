@@ -20,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import type { BrandVideoRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
@@ -38,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useBrandOsDirtyNavigation } from '@/features/brands/hooks/use-brand-os-dirty-navigation';
@@ -71,7 +71,7 @@ export default function BrandOsSettingsCard({
   renderWorkspace,
 }: BrandOsSettingsCardProps) {
   const t = useTranslations('pages.brandOsSettings');
-  const common = useTranslations('common.actions');
+  const _common = useTranslations('common.actions');
   const role = useUserRole();
   const canManage = role === MemberRole.ADMIN || role === MemberRole.OWNER;
   const getService = useAuthedService((token: string) =>
@@ -685,10 +685,10 @@ export default function BrandOsSettingsCard({
           {t('revisionDetails', {
             version: selected.version,
             status: t(`statuses.${selected.status.toLowerCase()}`),
-            date: new Date(selected.updatedAt).toLocaleString('en-US'),
+            date: formatShortDate(selected.updatedAt),
           })}
           {selected.approvedAt
-            ? ` · ${t('approvedDate', { date: new Date(selected.approvedAt).toLocaleString('en-US') })}`
+            ? ` · ${t('approvedDate', { date: formatShortDate(selected.approvedAt) })}`
             : ''}
         </p>
       )}

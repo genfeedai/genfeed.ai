@@ -7,6 +7,7 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
@@ -268,7 +269,7 @@ export default function SubscriptionsList() {
         id: 'periodEnd',
         label: subscriptionT('periodEnd'),
         value: row.currentPeriodEnd
-          ? new Date(row.currentPeriodEnd).toLocaleDateString('en-US')
+          ? formatShortDate(row.currentPeriodEnd, { hasTime: false })
           : undefined,
       },
     ],

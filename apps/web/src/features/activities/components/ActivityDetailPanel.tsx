@@ -3,6 +3,7 @@
 import { ContextSidebarHeaderSlot } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -56,7 +57,7 @@ interface DetailFact {
 
 function formatTimestamp(value: string | undefined | null): string | undefined {
   if (!value || !Number.isFinite(new Date(value).getTime())) return undefined;
-  return `${new Date(value).toLocaleString('en-US', { timeZone: 'UTC' })} UTC`;
+  return `${formatShortDate(value, { timeZone: 'UTC' })} UTC`;
 }
 
 function FactList({ facts }: { facts: DetailFact[] }) {

@@ -3,12 +3,13 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ComponentSize, PageScope, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { PostsService } from '@services/content/posts.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
 import PlatformBadge from '@ui/components/display/platform-badge/PlatformBadge';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { fetchPosts } from '@/features/posts/list/components/posts-query.helpers';
 import type { AppRailPreviewContentProps } from '@/props/ui/app-rail.props';
 import {
@@ -34,7 +35,6 @@ export default function PublishingRailPreview({
   href,
 }: AppRailPreviewContentProps) {
   const translate = useTranslations('common.appRail.preview.publishing');
-  const locale = useLocale();
   const { brandId, organizationId } = useBrand();
   const posts = useAuthedQuery<PublishingServices, IPost[]>({
     enabled: Boolean(organizationId),
@@ -102,12 +102,7 @@ export default function PublishingRailPreview({
               }
               subtitle={
                 post.scheduledDate
-                  ? new Date(post.scheduledDate).toLocaleString(locale, {
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      month: 'short',
-                    })
+                  ? formatShortDate(post.scheduledDate)
                   : undefined
               }
               title={postTitle(post, translate('untitled'))}

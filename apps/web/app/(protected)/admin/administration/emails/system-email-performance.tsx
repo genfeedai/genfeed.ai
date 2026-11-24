@@ -5,6 +5,7 @@ import type {
   IEmailPerformanceQuery,
   IEmailPerformanceRow,
 } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
@@ -168,7 +169,7 @@ export default function SystemEmailPerformance({
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {translate('queuedRange', {
-                asOf: new Date(report.asOf).toLocaleString('en-US'),
+                asOf: formatShortDate(report.asOf),
                 from: report.from.slice(0, 10),
                 to: new Date(new Date(report.to).getTime() - 1)
                   .toISOString()

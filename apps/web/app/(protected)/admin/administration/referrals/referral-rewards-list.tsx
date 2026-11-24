@@ -6,6 +6,7 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IReferralAdminReward } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
@@ -181,7 +182,7 @@ export default function ReferralRewardsList() {
       {
         id: 'eligible',
         label: referralT('eligible'),
-        value: new Date(reward.eligibleAt).toLocaleString('en-US'),
+        value: formatShortDate(reward.eligibleAt),
       },
       {
         id: 'attempts',

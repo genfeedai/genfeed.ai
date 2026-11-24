@@ -23,6 +23,7 @@ import type {
   IActivity,
   IActivityPopulated,
 } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import {
   classifyGenerationFailure,
   type GenerationFailureReason,
@@ -300,13 +301,9 @@ export function getActivityLifecycleText(
     typeof value?.completedAt === 'string' ? value.completedAt : undefined;
   const parts: string[] = [];
   if (start && Number.isFinite(new Date(start).getTime()))
-    parts.push(
-      `Started ${new Date(start).toLocaleString('en-US', { timeZone: 'UTC' })} UTC`,
-    );
+    parts.push(`Started ${formatShortDate(start, { timeZone: 'UTC' })} UTC`);
   if (finish && Number.isFinite(new Date(finish).getTime()))
-    parts.push(
-      `Finished ${new Date(finish).toLocaleString('en-US', { timeZone: 'UTC' })} UTC`,
-    );
+    parts.push(`Finished ${formatShortDate(finish, { timeZone: 'UTC' })} UTC`);
   return parts.length ? parts.join(' · ') : undefined;
 }
 

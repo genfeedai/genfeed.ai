@@ -6,6 +6,7 @@ import {
   SocialSourceHistoryImportStatus,
 } from '@genfeedai/contracts';
 import type { ISocialSource } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AccountHistoryImportPanelProps } from '@props/pages/brand-integrations.props';
@@ -31,9 +32,7 @@ export function ownAccountSourcesQueryKey(brandId: string) {
 }
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-US');
+  return formatShortDate(value);
 }
 
 /**

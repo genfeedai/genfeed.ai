@@ -128,19 +128,9 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/web/app/(protected)/[orgSlug]/~/connectors/api-keys/content.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/credit-top-up-panel.tsx',
     'to-locale-string',
     3,
-  ),
-  legacyUiAllowance(
-    'apps/web/app/(protected)/[orgSlug]/~/connectors/webhooks/content.tsx',
-    'to-locale-string',
-    1,
   ),
   legacyUiAllowance(
     'apps/web/app/(protected)/admin/overview/overview-page.tsx',
@@ -149,11 +139,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   ),
   legacyUiAllowance(
     'apps/web/src/features/research/ads/ads-metric.helpers.ts',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'apps/web/src/features/workflows/workspace/WorkflowSurfaceInspector.tsx',
     'to-locale-string',
     1,
   ),
@@ -223,11 +208,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'apps/web/src/features/studio/components/articles/x-article/XArticleAssetsBar.tsx',
     'to-locale-string',
     1,
-  ),
-  legacyUiAllowance(
-    'apps/web/src/features/ingredients/components/tabs/metadata/IngredientTabsMetadata.tsx',
-    'to-locale-string',
-    2,
   ),
   legacyUiAllowance(
     'packages/workflows/src/ui/panels/DebugPanel.tsx',
