@@ -249,7 +249,7 @@ describe('InstagramPublisherService', () => {
       };
     };
 
-    it.each([2, 10])('passes a %i-image carousel', (count) => {
+    it.each([2, 10, 20])('passes a %i-image carousel', (count) => {
       const context = createPublishContext(
         mockImagePost as unknown as PostEntity,
       );
@@ -258,7 +258,7 @@ describe('InstagramPublisherService', () => {
       ).toBe(true);
     });
 
-    it.each([11, 12])(
+    it.each([21, 25])(
       'rejects a %i-image carousel before any Graph call',
       (count) => {
         const context = createPublishContext(
@@ -266,7 +266,7 @@ describe('InstagramPublisherService', () => {
         );
         const result = service.validatePost(context, carouselMediaInfo(count));
         expect(result.valid).toBe(false);
-        expect(result.error).toBe('Instagram carousels take 2-10 images');
+        expect(result.error).toBe('Instagram carousels take 2-20 images');
         expect(result.errorCode).toBe('carousel_image_count');
       },
     );

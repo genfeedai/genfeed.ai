@@ -35,7 +35,7 @@ export class InstagramPublisherService extends BasePublisherService {
   readonly supportsTextOnly = false;
   readonly supportsImages = true;
   readonly supportsVideos = true;
-  readonly supportsCarousel = true; // 2-10 images
+  readonly supportsCarousel = true; // 2-20 images
   readonly supportsThreads = true; // Supports TEXT children as first comments
 
   constructor(
@@ -158,7 +158,7 @@ export class InstagramPublisherService extends BasePublisherService {
         ) === true;
 
       if (mediaInfo.isCarousel && mediaInfo.isImagePost) {
-        // Carousel of images (2-10 images)
+        // Carousel of images (2-20 images)
         const carouselResult = await this.instagramService.uploadCarousel(
           organizationId,
           brandId,

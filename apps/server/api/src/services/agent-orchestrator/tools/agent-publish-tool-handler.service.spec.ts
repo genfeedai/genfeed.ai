@@ -1301,7 +1301,7 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
 
   it('rejects more images than the target channel carousel takes', async () => {
     const f = mcpDraft({
-      mediaUrls: Array.from({ length: 11 }, (_, index) =>
+      mediaUrls: Array.from({ length: 21 }, (_, index) =>
         url('images', `img-${index}`),
       ),
       platforms: ['instagram'],
@@ -1310,7 +1310,7 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
     const result = await f.run;
 
     expect(result).toMatchObject({
-      error: expect.stringContaining('Instagram carousels take 2-10 images'),
+      error: expect.stringContaining('Instagram carousels take 2-20 images'),
       success: false,
     });
     expect(f.postsService.create).not.toHaveBeenCalled();

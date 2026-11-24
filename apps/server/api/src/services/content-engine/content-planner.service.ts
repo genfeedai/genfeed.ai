@@ -25,7 +25,7 @@ import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PLATFORM_FORMAT_GUIDANCE: Record<string, string> = {
-  instagram: 'carousel (2-10 images) or reel (9:16 video under 90s)',
+  instagram: 'carousel (2-20 images) or reel (9:16 video under 90s)',
   linkedin: 'text-led post with a single supporting image',
   newsletter: 'long-form article with a hero image',
   pinterest: 'vertical image in a 2:3 ratio',

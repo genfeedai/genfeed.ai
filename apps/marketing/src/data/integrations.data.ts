@@ -122,7 +122,7 @@ export const integrations: Integration[] = [
     description:
       'Reels, single images and carousels made from one brief, with the caption written. Genfeed posts them to your Instagram account.',
     features: [
-      'Posts single images, carousels of 2 to 10 images, and Reels',
+      'Posts single images, carousels of 2 to 20 images, and Reels',
       'Writes the caption with the visuals, in your brand voice',
       'Follow-up text posts as comments under the post',
       'Likes, comments and views for each post appear in your Genfeed analytics',
