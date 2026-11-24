@@ -3,6 +3,7 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import { buildMaiImageFalInput } from '@api/collections/images/services/providers/mai-image-fal-input.util';
 import { getFalEndpointFromModelKey } from '@api/collections/models/utils/model-key.util';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import {
@@ -39,8 +40,16 @@ export class FalImageGenerationProviderAdapter
         : {}),
       prompt: request.prompt,
     };
+    const endpoint =
+      request.modelEndpoint ?? getFalEndpointFromModelKey(request.model);
     const input =
       request.routedInput ??
+      buildMaiImageFalInput(endpoint, {
+        height: request.height,
+        prompt: request.prompt,
+        referenceImageUrls: request.referenceImageUrls,
+        width: request.width,
+      }) ??
       (request.modelSchemaFamily && request.modelInputSchema
         ? adaptFalImageRequest(
             request.modelSchemaFamily as FalSchemaFamily,
@@ -64,7 +73,7 @@ export class FalImageGenerationProviderAdapter
       failureLabel: 'FalService generateImage',
       generate: async () => {
         const result = await this.falService.generateImage(
-          request.modelEndpoint ?? getFalEndpointFromModelKey(request.model),
+          endpoint,
           input,
           request.apiKeyOverride,
           request.onProviderSubmissionStarted,

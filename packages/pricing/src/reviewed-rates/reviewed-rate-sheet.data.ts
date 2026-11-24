@@ -4274,6 +4274,117 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-11-05T00:30:00.000Z',
   },
   {
+    // fal bills tokens, not images (page read 2026-11-24): $5 per 1M text input
+    // tokens and $34 per 1M image output tokens; a 1024x1024 output is 1,024
+    // image tokens ($0.034816), so output is $0.034816 per megapixel, billed
+    // from a 1.05 MP floor because the adapter lifts any side under fal's 768 px
+    // minimum (a 9:16 request of 576x1024 is sent as 768x1365, 1.048 MP).
+    // `prompt` allows 200 text tokens ($0.001); fal rounds the request up to
+    // $0.0001.
+    endpoint: 'microsoft/mai-image-2.7/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.034816,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'prompt',
+        unit: 'request',
+        unitPriceUsd: 0.001,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/microsoft/mai-image-2.7/text-to-image',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
+    // fal bills tokens (page read 2026-11-24): $5 per 1M text input, $8 per 1M
+    // image input and $34 per 1M image output tokens. Output is $0.034816 per
+    // megapixel from a 1.05 MP floor (see the text endpoint). `inputs` is a flat
+    // allowance for 200 text tokens and two 1 MP source images (2,048 tokens,
+    // $0.016384): $0.0174. Dispatch cannot meter source sizes, so a larger set
+    // of sources costs fal more than this; five 1 MP sources add $0.025.
+    endpoint: 'microsoft/mai-image-2.7/edit',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.034816,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'inputs',
+        unit: 'request',
+        unitPriceUsd: 0.0174,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/microsoft/mai-image-2.7/edit',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
+    // fal bills tokens (page read 2026-11-24): $1.75 per 1M text input and $10
+    // per 1M image output tokens. Output is $0.01024 per megapixel from a 1.05
+    // MP floor (the adapter lifts any side under fal's 768 px minimum).
+    // `prompt` allows 200 text tokens ($0.00035).
+    endpoint: 'microsoft/mai-image-2.7/flash/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.01024,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'prompt',
+        unit: 'request',
+        unitPriceUsd: 0.00035,
+        when: {},
+      },
+    ],
+    sourceUrl:
+      'https://fal.ai/models/microsoft/mai-image-2.7/flash/text-to-image',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
+    // fal bills tokens (page read 2026-11-24): $1.75 per 1M text input, $2.50
+    // per 1M image input and $10 per 1M image output tokens. Output is $0.01024
+    // per megapixel from a 1.05 MP floor. `inputs` is a flat allowance for 200
+    // text tokens and two 1 MP source images (2,048 tokens, $0.00512): $0.0055.
+    // Five 1 MP sources add $0.0077 over it.
+    endpoint: 'microsoft/mai-image-2.7/flash/edit',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.01024,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'inputs',
+        unit: 'request',
+        unitPriceUsd: 0.0055,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/microsoft/mai-image-2.7/flash/edit',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
     // fal's pricing API (GET /v1/models/pricing, 2026-11-04) and the model page
     // both state a flat $0.25 per image, the same as Replicate's Recraft V4 Pro.
     endpoint: 'fal-ai/recraft/v4/pro/text-to-image',

@@ -2,6 +2,7 @@ import { compileRemainingImageGenerationBrief } from '@api/services/generation-b
 import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
+  FAL_MAI_IMAGE_COMPILER_ID,
   FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID,
   GPT_IMAGE_IMAGE_COMPILER_ID,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
@@ -65,6 +66,33 @@ describe('compileRemainingImageGenerationBrief', () => {
 
     expect(result.dispatch.prompt).toBe('a sunset over the ocean');
     expect(result.evidence.compilerId).toBe(FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID);
+  });
+
+  it.each([
+    MODEL_KEYS.FAL_MAI_IMAGE_2_7,
+    MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+    MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
+    MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+  ])('compiles a %s request on fal to the MAI-Image family', (modelKey) => {
+    const brief = imageGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a ceramic teapot beside a sunlit window' },
+      mediaKind: 'image',
+      output: { aspectRatio: '9:16' },
+      version: 1,
+    });
+
+    const result = compileRemainingImageGenerationBrief({
+      brief,
+      family: familyFor(modelKey),
+      modelKey,
+    });
+
+    expect(result.dispatch.prompt).toBe(
+      'a ceramic teapot beside a sunlit window',
+    );
+    expect(result.evidence.compilerId).toBe(FAL_MAI_IMAGE_COMPILER_ID);
   });
 
   it('maps avoid constraints onto SDXL negative_prompt under guided fidelity', () => {

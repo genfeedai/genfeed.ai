@@ -47,7 +47,6 @@ const mocks = vi.hoisted(() => {
   const resolvers = new Map<unknown, () => Promise<unknown>>();
 
   return {
-    agentDock: null as null | { attachContent: ReturnType<typeof vi.fn> },
     identity: { orgId: 'org-1', sessionId: 'session-1', userId: 'user-1' },
     attachContentToNewConversationDraft: vi.fn(),
     categoryService,
@@ -92,10 +91,6 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
-}));
-
-vi.mock('@contexts/ui/agent-dock-context', () => ({
-  useAgentDock: () => mocks.agentDock,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -1151,46 +1146,6 @@ describe('StudioPlaygroundInspector', () => {
       },
     );
     expect(mocks.push).toHaveBeenCalledWith('/acme/northstar/agent/new');
-  });
-
-  it('hands the asset to the agent dock instead of leaving the page', () => {
-    const attachContent = vi.fn(() => true);
-    mocks.agentDock = { attachContent };
-    const ingredient = {
-      brandId: 'brand-1',
-      category: IngredientCategory.IMAGE,
-      id: 'ing-1',
-      thumbnailUrl: 'https://cdn.example/ing-1.png',
-    } as IIngredient;
-    const job = { ...recipeJob, ingredient };
-
-    try {
-      render(
-        <StudioPlaygroundInspector
-          job={job}
-          onRemix={vi.fn()}
-          onUseInPost={vi.fn()}
-          onSelect={vi.fn()}
-          onVary={vi.fn()}
-          runJobs={[job]}
-        />,
-      );
-
-      fireEvent.click(
-        within(screen.getByRole('group', { name: 'Asset actions' })).getByRole(
-          'button',
-          { name: 'Ask Agent about this' },
-        ),
-      );
-
-      expect(attachContent).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'ing-1', kind: 'ingredient' }),
-      );
-      expect(mocks.attachContentToNewConversationDraft).not.toHaveBeenCalled();
-      expect(mocks.push).not.toHaveBeenCalled();
-    } finally {
-      mocks.agentDock = null;
-    }
   });
 
   it('offers only Generate again while the asset has no persisted ingredient', () => {
