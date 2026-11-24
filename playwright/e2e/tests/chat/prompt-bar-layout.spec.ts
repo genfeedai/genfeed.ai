@@ -124,7 +124,7 @@ test.describe('Agent prompt bar', () => {
     }
   });
 
-  test('has no Agent mode picker or prompt-enhancement popover in the bar', async ({
+  test('has no Agent mode picker or setting popover in the bar', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -134,10 +134,8 @@ test.describe('Agent prompt bar', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: /^Agent mode/ }),
     ).toHaveCount(0);
-    await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Prompt enhancement settings',
-      }),
-    ).toHaveCount(0);
+    // The only left-group control is the `+` that adds context.
+    const { left } = toolbarGroups(authenticatedPage);
+    expect(await buttonNames(left)).toEqual(['Add context']);
   });
 });
