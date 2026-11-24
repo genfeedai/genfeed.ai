@@ -152,6 +152,10 @@ export const MODEL_KEYS = {
   FAL_SEEDREAM_5_5: 'fal-ai/seedream-5.5',
   FAL_GPT_IMAGE_2_6_FLARE: 'fal-ai/gpt-image-2.6-flare',
   FAL_GPT_IMAGE_2_6_SUNBURST: 'fal-ai/gpt-image-2.6-sunburst',
+  FAL_MAI_IMAGE_2_7: 'fal/microsoft/mai-image-2.7/text-to-image',
+  FAL_MAI_IMAGE_2_7_EDIT: 'fal/microsoft/mai-image-2.7/edit',
+  FAL_MAI_IMAGE_2_7_FLASH: 'fal/microsoft/mai-image-2.7/flash/text-to-image',
+  FAL_MAI_IMAGE_2_7_FLASH_EDIT: 'fal/microsoft/mai-image-2.7/flash/edit',
   FAL_KLING_VIDEO_V3_PRO: 'fal-ai/kling-video/v3/pro',
   FAL_KLING_VIDEO_V3_PRO_IMAGE_TO_VIDEO:
     'fal-ai/kling-video/v3/pro/image-to-video',

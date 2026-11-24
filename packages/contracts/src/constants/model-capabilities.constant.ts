@@ -1658,6 +1658,41 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
       qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
     },
+    // MAI-Image-2.7 on fal (checked 2026-11-24). The text endpoints take a
+    // prompt only; the edit endpoints require one to five source images. Both
+    // return one image per call, so more outputs run as separate calls.
+    [MODEL_KEYS.FAL_MAI_IMAGE_2_7]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 0,
+    },
+    [MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 5,
+    },
+    [MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 0,
+    },
+    [MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 5,
+    },
     [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]: {
       aspectRatios: ASPECT_RATIOS.KLING,
       category: ModelCategory.VIDEO,
