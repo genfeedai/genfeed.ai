@@ -2768,6 +2768,9 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-27T18:33:12.195Z',
   },
   {
+    // Replicate billing tiers (read 2026-11-24), per second of output video. The
+    // 1080p tiers are 768p generation plus an upscale; 2K and 4K are listed on
+    // the page but not offered, so they have no rate here.
     endpoint: 'prunaai/p-video-2-pro',
     provider: 'replicate',
     rates: [
@@ -2831,6 +2834,36 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         },
         isPerOutput: true,
       },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.045,
+        when: {
+          model_variant: 'cost',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.055,
+        when: {
+          model_variant: 'speed',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.095,
+        when: {
+          model_variant: 'quality',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
     ],
     variantRules: [
       {
@@ -2850,7 +2883,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/prunaai/p-video-2-pro',
-    verifiedAt: '2026-10-27T18:33:10.964Z',
+    verifiedAt: '2026-11-24T13:00:00.000Z',
   },
   {
     endpoint: 'qwen/qwen-image',

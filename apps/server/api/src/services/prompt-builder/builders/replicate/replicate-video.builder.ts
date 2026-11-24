@@ -19,6 +19,7 @@ import type {
   Hailuo23Input,
   MinimaxH3Input,
   PixVerseV6Input,
+  PVideo2ProInput,
   PVideoInput,
   ReplicateVideoInput,
   Seedance2Input,
@@ -70,6 +71,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       // PrunaAI
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
+      MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
@@ -138,6 +140,9 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       case MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO:
       case MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2:
         return this.buildPVideoPrompt(model, params, promptText);
+
+      case MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO:
+        return this.buildPVideo2ProPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1:
         return buildKlingV21Prompt(params, promptText, negativePrompt);
@@ -499,6 +504,48 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     if (params.resolution) {
       input.resolution = params.resolution === 'high' ? '1080p' : '720p';
     }
+
+    if (params.seed !== undefined) {
+      input.seed = params.seed;
+    }
+
+    if (params.references && params.references.length > 0) {
+      input.image = params.references[0];
+    }
+
+    return input;
+  }
+
+  /**
+   * P-Video 2 Pro bills per second by mode and resolution, so both are always
+   * sent: the quote reads them from this input, never from the provider's
+   * defaults. `quality` draft or low runs the cost mode, high the quality
+   * mode, anything else the provider's own default (speed).
+   */
+  private buildPVideo2ProPrompt(
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+  ): PVideo2ProInput {
+    const calculatedRatio = calculateAspectRatio(params.width, params.height);
+    const requestedResolution = params.resolution?.toLowerCase();
+    const quality = params.quality?.toLowerCase();
+
+    const input: PVideo2ProInput = {
+      aspect_ratio: normalizeAspectRatioForModel(model, calculatedRatio),
+      duration: Math.min(Math.max(params.duration ?? 5, 5), 15),
+      mode:
+        quality === 'draft' || quality === 'low'
+          ? 'cost'
+          : quality === 'high'
+            ? 'quality'
+            : 'speed',
+      prompt: promptText,
+      prompt_upsampler: 'turbo',
+      resolution: ['480p', '768p', '1080p'].includes(requestedResolution ?? '')
+        ? (requestedResolution as string)
+        : '768p',
+    };
 
     if (params.seed !== undefined) {
       input.seed = params.seed;

@@ -506,6 +506,32 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.03,
   },
   /**
+   * P-Video 2 Pro, the short-hook tier. Replicate bills per second of output by
+   * mode and resolution (page read 2026-11-24): speed mode, the provider
+   * default, is $0.035/s at 768p, $0.02/s at 480p and $0.055/s at 1080p. Seeded
+   * at the 768p speed rate; the resolution quote scales 480p and 1080p. Credits
+   * are ceil(usd / 0.003): 5 s at 768p = $0.175.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 59,
+    costPerUnit: 12,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'PrunaAI P-Video 2 Pro — low-cost text-to-video and image-to-video with audio for short social hooks, 5–15 seconds at 480p to 1080p.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    label: 'P-Video 2 Pro',
+    minCost: 34,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'p-video-2-pro', owner: 'prunaai' },
+    providerCostUsd: 0.035,
+  },
+  /**
    * Wan 3 — Replicate list $0.035/s at 480p, $0.07/s at 720p, $0.14/s at 1080p
    * (billing tiers read 2026-11-24). Seeded at the 720p base rate; the reviewed
    * rate sheet quotes the other bands per resolution. Credits are

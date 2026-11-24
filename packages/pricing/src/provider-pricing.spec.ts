@@ -85,6 +85,17 @@ describe('PRICING constants', () => {
     ).toBe(200);
   });
 
+  it('scales P-Video 2 Pro from its 768p speed seed by the Replicate bands', () => {
+    const key = 'prunaai/p-video-2-pro';
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '768p')).toBe(1);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '480p') * 0.035,
+    ).toBeCloseTo(0.02, 6);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '1080p') * 0.035,
+    ).toBeCloseTo(0.055, 6);
+  });
+
   it('bills missing or auto GPT Image 2.5 quality at the max catalog band', () => {
     expect(
       getImageGenerationQualityCreditMultiplier('openai/gpt-image-2.5-flare'),

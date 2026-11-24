@@ -142,6 +142,12 @@ export function getVideoGenerationResolutionCreditMultiplier(
     return normalizedResolution === '768p' ? 0.08 / 0.13 : 1;
   }
   // H3 Lite is seeded at its 768P rate ($0.04/s); 480P is $0.025/s.
+  // P-Video 2 Pro is seeded at its 768p speed rate ($0.035/s).
+  if (modelKey === 'prunaai/p-video-2-pro') {
+    if (normalizedResolution === '480p') return 0.02 / 0.035;
+    if (normalizedResolution === '1080p') return 0.055 / 0.035;
+    return 1;
+  }
   if (modelKey === 'minimax/h3-lite') {
     return normalizedResolution === '480p' ? 0.025 / 0.04 : 1;
   }
