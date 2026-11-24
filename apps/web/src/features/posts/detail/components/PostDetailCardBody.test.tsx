@@ -88,4 +88,44 @@ describe('PostDetailCardBody', () => {
       '<p>edited</p>',
     );
   });
+
+  it('shows a generated plain-text draft as one paragraph per block', () => {
+    const generated = 'A.\n\nB.\n\nC.';
+    render(
+      <PostDetailCardBody
+        {...buildProps({
+          descriptionValue: generated,
+          post: {
+            description: generated,
+            id: 'post-1',
+            isDeleted: false,
+          } as unknown as IPost,
+        })}
+      />,
+    );
+
+    const editorHtml =
+      screen.getByTestId('rich-text-editor').getAttribute('data-value') ?? '';
+    expect(editorHtml).toBe('<p>A.</p><p>B.</p><p>C.</p>');
+    expect(stripHtmlToPlainText(editorHtml)).toBe(generated);
+  });
+
+  it('shows a plain-text draft as paragraphs in the read-only view', () => {
+    const generated = 'A.\n\nB.\n\nC.';
+    const { container } = render(
+      <PostDetailCardBody
+        {...buildProps({
+          descriptionValue: generated,
+          isEditable: false,
+          post: {
+            description: generated,
+            id: 'post-1',
+            isDeleted: false,
+          } as unknown as IPost,
+        })}
+      />,
+    );
+
+    expect(container.querySelectorAll('p')).toHaveLength(3);
+  });
 });

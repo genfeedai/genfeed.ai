@@ -31,7 +31,6 @@ export default function CreatorProfileLayout({
       ) : null}
       <CreatorHeader
         brand={brand}
-        counts={counts}
         handle={handle}
         hasBanner={Boolean(brand.bannerUrl)}
         profileUrl={`${EnvironmentService.apps.website}${creatorProfilePath(handle)}`}

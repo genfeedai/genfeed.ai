@@ -67,6 +67,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
           'content-learning.retention',
           job.timestamp,
         ),
+      [PLATFORM_SCHEDULED_TASKS.ANALYTICS_COLLECT]: (job) =>
+        this.workflowSchedules.sweep('analytics-collect', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC]: (job) =>
         this.workflowSchedules.sweep('analytics-sync', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT]: (job) =>
