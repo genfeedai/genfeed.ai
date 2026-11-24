@@ -64,7 +64,7 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
   };
   const graphRunner = {
     executeNodeGraph: async (
-      workflow: { nodes: Array<{ id: string }> },
+      _workflow: unknown,
       _event: unknown,
       _executionId: string,
       options: { selectedNodeIds?: string[] },
