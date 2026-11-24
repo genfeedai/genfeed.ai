@@ -829,10 +829,9 @@
       "boost": "Boost",
       "hashtags": "Hashtags",
       "caption": "Optimize caption",
-      "comment": "Add first comment",
-      "grok": "End with @grok",
       "thread": "Make Thread"
     },
+    "improve": "Improve",
     "tones": {
       "professional": "Professional",
       "casual": "Casual",
@@ -850,7 +849,6 @@
     "writing": "Writing…",
     "postNumber": "Post {number}",
     "toneAria": "Tone",
-    "creditPerRun": "{count, plural, one {# credit per run} other {# credits per run}}",
     "askAgent": "Ask agent"
   },
   "postDetailInspector": {

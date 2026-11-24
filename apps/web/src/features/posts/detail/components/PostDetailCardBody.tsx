@@ -4,6 +4,7 @@ import { CardGap, CardPadding, PostStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
+import { plainTextToHtml } from '@helpers/security/sanitize-html.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
@@ -66,9 +67,11 @@ export default function PostDetailCardBody({
   footer,
 }: PostDetailCardBodyProps) {
   const translate = useTranslations('pages.posts.detail');
-  const tweetLength = calculateTweetLength(
-    stripHtmlToPlainText(descriptionValue),
-  );
+  // A draft written by generation is plain text with blank lines. TipTap and
+  // HtmlContent read a string as HTML, where newlines are whitespace, so the
+  // text is turned into paragraphs here. Stored HTML passes through sanitized.
+  const editorValue = plainTextToHtml(descriptionValue);
+  const tweetLength = calculateTweetLength(stripHtmlToPlainText(editorValue));
   const tweetLimit = 280;
   const isTweetOverLimit = tweetLength > tweetLimit;
 
@@ -140,7 +143,7 @@ export default function PostDetailCardBody({
                 <LazyRichTextEditor
                   placeholder={placeholder}
                   toolbarMode="hidden"
-                  value={descriptionValue}
+                  value={editorValue}
                   minHeight={{ desktop: 150, mobile: 100 }}
                   onChange={(value) => {
                     onDescriptionChange(value);
@@ -154,7 +157,7 @@ export default function PostDetailCardBody({
 
             {/* Read-only content display for non-publisher scopes */}
             {!isEditable && post.description && (
-              <HtmlContent content={post.description} />
+              <HtmlContent content={plainTextToHtml(post.description)} />
             )}
 
             {/* Carousel validation errors (edit mode only) */}
