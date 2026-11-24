@@ -68,6 +68,13 @@ export const MODEL_CALLERS: Readonly<Record<string, ModelCallerEntry>> =
       ],
     ),
     ...entries(
+      'not-generative',
+      'Reads a reference video or image into shot fields the person edits in the plan (#10578); it describes the reference and adds no brand copy of its own.',
+      [
+        'collections/content-runs/services/storyboard-reference-analysis.service.ts',
+      ],
+    ),
+    ...entries(
       'needs-triage',
       'Rewrites or writes content and shows no brand-context call in this file.',
       [

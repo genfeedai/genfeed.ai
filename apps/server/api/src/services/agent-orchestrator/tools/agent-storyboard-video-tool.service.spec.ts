@@ -121,6 +121,37 @@ function setup() {
     reconcile: async () => current,
   };
   const started: unknown[] = [];
+  const reverse = {
+    reverse: async (
+      _o: string,
+      _b: string,
+      _r: string,
+      body: { expectedRevision: number; assetId: string },
+    ) => {
+      current = {
+        ...current,
+        config: {
+          ...current.config,
+          revision: body.expectedRevision + 1,
+          plan: {
+            ...basePlan,
+            shots: [
+              {
+                ...basePlan.shots[0],
+                action: `Recreated from ${body.assetId}.`,
+                notes: 'On-screen text: "Day 1"',
+                videoPrompt: 'Wide shot, soft light.',
+              },
+            ],
+          },
+        },
+      } as StoryboardRun;
+      return {
+        run: current,
+        analysis: { kind: 'video', overlays: ['Day 1'], style: 'Warm studio' },
+      };
+    },
+  };
   const video = new AgentStoryboardVideoTool(
     runs as never,
     stills as never,
@@ -133,6 +164,7 @@ function setup() {
         shotIds: ['shot-1'],
       }),
     } as never,
+    reverse as never,
   );
   const handler = new AgentStoryboardToolHandler(
     runs as never,
@@ -187,6 +219,27 @@ describe('storyboard_video tools', () => {
           hasCustomPrompt: false,
         },
       ],
+    });
+  });
+
+  it('reverses a Library video into shots and returns what was read from it', async () => {
+    const { call } = setup();
+    const result = await call('storyboard_video', {
+      action: 'reverse',
+      expectedRevision: 3,
+      assetId: 'video-9',
+    });
+    expect(result.data).toMatchObject({
+      revision: 4,
+      shots: [
+        {
+          id: 'shot-1',
+          action: 'Recreated from video-9.',
+          videoPrompt: 'Wide shot, soft light.',
+          notes: 'On-screen text: "Day 1"',
+        },
+      ],
+      reversed: { kind: 'video', overlays: ['Day 1'], style: 'Warm studio' },
     });
   });
 

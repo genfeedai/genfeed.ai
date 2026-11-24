@@ -25,7 +25,14 @@ import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMe
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
+import {
+  Clapperboard,
+  Film,
+  ImageIcon,
+  Plus,
+  RotateCcw,
+  Undo2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useImperativeHandle, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -89,6 +96,7 @@ export default function StoryboardPlanEditor({
   onSaveStatusChange,
   savePlan,
   resetPlan,
+  reversePlan,
   approvePlan,
   quoteStills,
   generateStills,
@@ -475,6 +483,39 @@ export default function StoryboardPlanEditor({
       onConfirm: () => perform((revision) => resetPlan(revision)),
     });
   }
+  /**
+   * Picks a Library video or image and rebuilds the shots from it (#10578). A
+   * video replaces the shots that are written, so that asks first.
+   */
+  function reverseReference(
+    category: IngredientCategory.IMAGE | IngredientCategory.VIDEO,
+  ) {
+    if (!reversePlan) return;
+    const isVideo = category === IngredientCategory.VIDEO;
+    openGallery({
+      category,
+      maxSelectableItems: 1,
+      title: translate(isVideo ? 'reverseVideo' : 'reverseImage'),
+      onSelect: (selected) => {
+        const item = selected.find(
+          (candidate) =>
+            candidate.brandId === run.brandId && !candidate.isDeleted,
+        );
+        if (!item) return;
+        const apply = () =>
+          perform((revision) => reversePlan(revision, item.id));
+        if (!isVideo || !plan.shots.some((shot) => shot.action.length > 0))
+          return void apply();
+        openConfirm({
+          isOpen: true,
+          label: translate('reverseConfirm'),
+          message: translate('reverseMessage'),
+          confirmLabel: translate('reverseVideo'),
+          onConfirm: apply,
+        });
+      },
+    });
+  }
   function addShot(position = plan.shots.length) {
     const remaining =
       (plan.runtimeBudgetSeconds ?? 0) -
@@ -692,6 +733,26 @@ export default function StoryboardPlanEditor({
                 label: translate('resetPlan'),
                 onSelect: reset,
               },
+              ...(reversePlan && !isLongForm && !isSlideshow
+                ? [
+                    {
+                      icon: <Film className="size-4" />,
+                      id: 'reverse-video',
+                      isDisabled,
+                      label: translate('reverseVideo'),
+                      onSelect: () =>
+                        reverseReference(IngredientCategory.VIDEO),
+                    },
+                    {
+                      icon: <ImageIcon className="size-4" />,
+                      id: 'reverse-image',
+                      isDisabled,
+                      label: translate('reverseImage'),
+                      onSelect: () =>
+                        reverseReference(IngredientCategory.IMAGE),
+                    },
+                  ]
+                : []),
             ]}
           />
         }

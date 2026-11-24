@@ -42,6 +42,7 @@ export default function StoryboardDraftPage({
   savePlan,
   saveSource,
   resetPlan,
+  reversePlan,
   approvePlan,
   draftPlan,
   capabilities,
@@ -278,6 +279,7 @@ export default function StoryboardDraftPage({
       onSaveStatusChange={setPlanStatus}
       savePlan={savePlan}
       resetPlan={resetPlan}
+      reversePlan={reversePlan}
       approvePlan={approvePlan}
       quoteStills={quoteStills}
       generateStills={generateStills}

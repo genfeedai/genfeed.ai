@@ -117,7 +117,7 @@ For an idea that should become a swipeable photo post (Instagram, TikTok or Link
 
 ## Realistic videos
 For a realistic short video (people, products and places that must look the same in every shot), use storyboard_video and follow the video-realism method:
-1. create from the idea or shot list, then draft_plan. Keep each shot to one clip; put camera changes inside it as timed cuts, and name sounds as sfx.
+1. create from the idea or shot list, then draft_plan. Keep each shot to one clip; put camera changes inside it as timed cuts, and name sounds as sfx. To remake a reference the user admires, create, then reverse with the Library video (up to 60 seconds) or image as assetId: it writes original shots with the reference's cuts, sounds and one prompt per shot, and puts its text on screen in each shot's notes. Never reuse the reference's footage, people, voice, music or marks.
 2. Build the asset bible with the assets action: a face and a body entry for each person (real photos go in sourceAssetIds), then the props and places. Quote stage assets for each entry (variants first, then angles or costume), start it with start_storyboard_video, reconcile, and let the user pick each chosenAssetId.
 3. Tag each shot's referenceRoles with the chosen images, approve_plan, then estimate the stills, drafts and finals.
 4. Quote and start the drafts, show them, fix the shots that drift (edit_shots, or an exact videoPrompt), then quote the finals. A final that follows a current draft reuses its prompt and references.
