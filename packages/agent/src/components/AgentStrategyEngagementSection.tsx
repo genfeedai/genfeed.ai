@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Switch } from '@ui/primitives/switch';
 import type { ReactElement } from 'react';
 
 const TONE_OPTIONS = [
@@ -86,20 +87,11 @@ export function AgentStrategyEngagementSection({
             <span className="text-xs font-medium text-foreground">
               Enable Engagement
             </span>
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => setIsEngagementEnabled(!isEngagementEnabled)}
-              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                isEngagementEnabled ? 'bg-primary' : 'bg-muted'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
-                  isEngagementEnabled ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </Button>
+            <Switch
+              aria-label="Enable engagement"
+              isChecked={isEngagementEnabled}
+              onCheckedChange={setIsEngagementEnabled}
+            />
           </div>
 
           {isEngagementEnabled && (

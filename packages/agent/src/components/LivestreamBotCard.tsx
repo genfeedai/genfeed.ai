@@ -3,7 +3,7 @@ import type {
   AgentUiActionHandler,
   AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -109,13 +109,13 @@ export function LivestreamBotCard({
               return (
                 <Button
                   key={`${action.id}-bot-action-${cta.action}-${cta.label}`}
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.DEFAULT}
+                  size={ButtonSize.SM}
                   withWrapper={false}
                   isDisabled={isPending || isCompleted}
                   onClick={() => {
                     void handleActionClick(actionName, cta.payload);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-info px-3 py-2 text-xs font-medium text-info-foreground transition-colors hover:bg-info/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>
                     {isPending

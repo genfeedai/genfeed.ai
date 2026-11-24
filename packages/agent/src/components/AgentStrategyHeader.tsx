@@ -1,7 +1,6 @@
 import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
-import { ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
+import { Switch } from '@ui/primitives/switch';
 import type { ReactElement, RefObject } from 'react';
 
 type Props = {
@@ -28,10 +27,10 @@ export function AgentStrategyHeader({
         </p>
       </div>
       {strategy && (
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          onClick={async () => {
+        <Switch
+          aria-label="Enable strategy"
+          isChecked={strategy.isActive}
+          onCheckedChange={async () => {
             abortRef.current?.abort();
             abortRef.current = new AbortController();
             try {
@@ -44,16 +43,7 @@ export function AgentStrategyHeader({
               // Silently ignore toggle errors
             }
           }}
-          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-            strategy.isActive ? 'bg-primary' : 'bg-muted'
-          }`}
-        >
-          <span
-            className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
-              strategy.isActive ? 'translate-x-4' : 'translate-x-0'
-            }`}
-          />
-        </Button>
+        />
       )}
     </div>
   );
