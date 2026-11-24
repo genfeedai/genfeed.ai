@@ -498,7 +498,7 @@ describe('ModelSelectorPopover', () => {
     await openPicker(user);
 
     expect(
-      screen.queryByRole('group', { name: 'Model capabilities' }),
+      screen.queryByRole('radiogroup', { name: 'Model capabilities' }),
     ).not.toBeInTheDocument();
 
     rerender(
@@ -518,7 +518,7 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    const filterGroup = screen.getByRole('group', {
+    const filterGroup = screen.getByRole('radiogroup', {
       name: 'Model capabilities',
     });
     expect(
@@ -551,7 +551,7 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const filterGroup = screen.getByRole('group', {
+    const filterGroup = screen.getByRole('radiogroup', {
       name: 'Model capabilities',
     });
     await user.click(within(filterGroup).getByRole('radio', { name: 'Audio' }));
@@ -601,7 +601,7 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const filterGroup = screen.getByRole('group', {
+    const filterGroup = screen.getByRole('radiogroup', {
       name: 'Model categories',
     });
     expect(
@@ -671,10 +671,10 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const categories = screen.getByRole('group', {
+    const categories = screen.getByRole('radiogroup', {
       name: 'Model categories',
     });
-    const capabilities = screen.getByRole('group', {
+    const capabilities = screen.getByRole('radiogroup', {
       name: 'Model capabilities',
     });
 
@@ -884,7 +884,7 @@ describe('ModelSelectorPopover', () => {
     expect(screen.getByText('Current Alpha')).toBeInTheDocument();
     expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
 
-    const filterGroup = screen.getByRole('group', {
+    const filterGroup = screen.getByRole('radiogroup', {
       name: 'Model capabilities',
     });
     await user.click(
