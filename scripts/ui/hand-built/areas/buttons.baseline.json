@@ -476,9 +476,6 @@
     "apps/web/src/features/workflows/components/editor/WorkflowPromptPicker.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/workflows/components/ui/button/NodeButton.tsx": {
-      "button-restyle": 1
-    },
     "packages/agent/src/components/AgentCardCollapseToggle.tsx": {
       "unstyled-look": 1
     },
