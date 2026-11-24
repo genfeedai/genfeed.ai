@@ -470,18 +470,12 @@ export function useDurableStoryboardRun(runId: string) {
       const service = await getService();
       if (activeScope.current !== scope)
         throw new Error('Storyboard scope changed.');
-      try {
-        return adopt(
-          await service.reverseStoryboardPlan(brandId, runId, {
-            expectedRevision: revision,
-            assetId,
-          }),
-        );
-      } catch (error) {
-        throw new Error(
-          getJsonApiErrorMessage(error, 'Could not reverse the reference.'),
-        );
-      }
+      return adopt(
+        await service.reverseStoryboardPlan(brandId, runId, {
+          expectedRevision: revision,
+          assetId,
+        }),
+      );
     },
     [brandId, runId, getService, adopt, scope],
   );

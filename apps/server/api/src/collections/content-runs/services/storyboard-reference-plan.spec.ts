@@ -3,7 +3,6 @@ import {
   assembleReversedImagePlan,
   assembleReversedVideoPlan,
   referenceRuntimeBudgetSeconds,
-  referenceShotNotes,
 } from '@api/collections/content-runs/services/storyboard-reference-plan';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type {
@@ -203,12 +202,8 @@ describe('referenceRuntimeBudgetSeconds', () => {
   );
 });
 
-describe('referenceShotNotes', () => {
-  it('says nothing when there is nothing to note', () => {
-    expect(referenceShotNotes([], [])).toBeUndefined();
-  });
-
-  it('keeps notes inside the shot limit', () => {
+describe('shot notes', () => {
+  it('keep inside the shot limit', () => {
     const overlays = Array.from({ length: 6 }, (_, index) => ({
       text: `${index} ${'x'.repeat(190)}`,
       startSeconds: null,
@@ -216,7 +211,17 @@ describe('referenceShotNotes', () => {
       position: '',
       arrival: '',
     }));
-    expect(referenceShotNotes(overlays, [])?.length).toBe(1_000);
+    const [shot] = assembleReversedVideoPlan(
+      { current: emptyPlan, model, runtimeBudgetSeconds: 30 },
+      {
+        ...videoAnalysis,
+        shots: [
+          { ...videoAnalysis.shots[0], overlays },
+          videoAnalysis.shots[2],
+        ],
+      },
+    ).shots;
+    expect(shot.notes?.length).toBe(1_000);
   });
 });
 

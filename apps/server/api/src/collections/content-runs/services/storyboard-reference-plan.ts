@@ -26,12 +26,12 @@ const MAX_NOTES_CHARACTERS = 1_000;
 /** A still has no timeline; ask for the shortest clip the video model takes. */
 const IMAGE_SHOT_REQUESTED_SECONDS = 1;
 
-export interface ReferencePlanModel {
+interface ReferencePlanModel {
   hasInterpolation: boolean;
   supportedDurationsSeconds: readonly number[];
 }
 
-export interface ReferencePlanRequest {
+interface ReferencePlanRequest {
   current: StoryboardPlan;
   model: ReferencePlanModel;
 }
@@ -50,7 +50,7 @@ function overlayLine(overlay: ReferenceOverlay): string {
  * The plan has no field for text on screen or the pictures a shot needs, so
  * both go into the shot's notes, where the person edits them.
  */
-export function referenceShotNotes(
+function referenceShotNotes(
   overlays: readonly ReferenceOverlay[],
   needs: readonly ReferenceNeed[],
   composition?: string,
