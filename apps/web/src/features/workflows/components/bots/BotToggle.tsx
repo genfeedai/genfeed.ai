@@ -7,12 +7,11 @@ import { usePrefetchOnIntent } from '@hooks/navigation/use-prefetch-on-intent/us
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { StatusDot } from '@ui/primitives/status-dot';
+import { Switch } from '@ui/primitives/switch';
 import { ArrowLeft, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useState } from 'react';
-
-import Toggle from '@/features/workflows/components/ui/toggle/Toggle';
 
 interface ConfigItem {
   label: string;
@@ -109,10 +108,10 @@ export default function BotToggle({
             </p>
           </div>
 
-          <Toggle
+          <Switch
             checked={isEnabled}
-            onChange={handleToggle}
-            disabled={isLoading}
+            isDisabled={isLoading}
+            onCheckedChange={handleToggle}
             size="md"
           />
         </div>

@@ -1,18 +1,18 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { BaseNode } from '@genfeedai/workflows/ui/nodes';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { OptionSelect } from '@ui/primitives/option-select';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { NodeButton } from '@/features/workflows/components/ui/button';
-import {
-  NodeInput,
-  NodeSelect,
-} from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import {
   buildWorkflowMediaNodePatch,
@@ -75,12 +75,9 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
   );
 
   const handleSourceChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
+    (source: string) => {
       applyConfig(
-        setWorkflowMediaSource(
-          mediaConfig,
-          event.target.value as WorkflowMediaSource,
-        ),
+        setWorkflowMediaSource(mediaConfig, source as WorkflowMediaSource),
       );
     },
     [applyConfig, mediaConfig],
@@ -146,22 +143,18 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
       }
     >
       <div className="space-y-3">
-        <NodeSelect
-          aria-label="Image source"
-          label="Source"
-          value={mediaConfig.source}
-          onChange={handleSourceChange}
-        >
-          {IMAGE_SOURCE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NodeSelect>
+        <FormControl label="Source">
+          <OptionSelect
+            ariaLabel="Image source"
+            onValueChange={handleSourceChange}
+            options={IMAGE_SOURCE_OPTIONS}
+            value={mediaConfig.source}
+          />
+        </FormControl>
 
         {mediaConfig.source === 'url' ? (
           <div key={mediaConfig.url ?? ''} className="space-y-2">
-            <NodeInput
+            <Input
               aria-label="Image URL"
               label="Image URL"
               placeholder="https://..."
@@ -169,29 +162,52 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
               onChange={(event) => setUrlValue(event.target.value)}
             />
             <div className="flex gap-2">
-              <NodeButton
-                fullWidth
+              <Button
+                className="w-full"
+                size={ButtonSize.SM}
+                textTransform="none"
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
                 onClick={handleLoadUrl}
                 disabled={urlValue.trim().length === 0}
               >
                 Load URL
-              </NodeButton>
+              </Button>
               {mediaConfig.resolvedUrl && (
-                <NodeButton variant="ghost" onClick={handleClear}>
+                <Button
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                  onClick={handleClear}
+                >
                   Clear
-                </NodeButton>
+                </Button>
               )}
             </div>
           </div>
         ) : (
           <div className="flex gap-2">
-            <NodeButton fullWidth onClick={handleSelectMedia}>
+            <Button
+              className="w-full"
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+              onClick={handleSelectMedia}
+            >
               {pickerLabel}
-            </NodeButton>
+            </Button>
             {mediaConfig.resolvedUrl && (
-              <NodeButton variant="ghost" onClick={handleClear}>
+              <Button
+                size={ButtonSize.SM}
+                textTransform="none"
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+                onClick={handleClear}
+              >
                 Clear
-              </NodeButton>
+              </Button>
             )}
           </div>
         )}

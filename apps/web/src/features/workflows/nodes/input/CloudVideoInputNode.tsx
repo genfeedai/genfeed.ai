@@ -1,15 +1,17 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { BaseNode } from '@genfeedai/workflows/ui/nodes';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { OptionSelect } from '@ui/primitives/option-select';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback, useMemo } from 'react';
-import { NodeButton } from '@/features/workflows/components/ui/button';
-import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import {
   buildWorkflowMediaNodePatch,
@@ -53,12 +55,9 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
   );
 
   const handleSourceChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
+    (source: string) => {
       applyConfig(
-        setWorkflowMediaSource(
-          mediaConfig,
-          event.target.value as WorkflowMediaSource,
-        ),
+        setWorkflowMediaSource(mediaConfig, source as WorkflowMediaSource),
       );
     },
     [applyConfig, mediaConfig],
@@ -113,18 +112,14 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
       }
     >
       <div className="space-y-3">
-        <NodeSelect
-          aria-label="Video source"
-          label="Source"
-          value={mediaConfig.source}
-          onChange={handleSourceChange}
-        >
-          {VIDEO_SOURCE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NodeSelect>
+        <FormControl label="Source">
+          <OptionSelect
+            ariaLabel="Video source"
+            onValueChange={handleSourceChange}
+            options={VIDEO_SOURCE_OPTIONS}
+            value={mediaConfig.source}
+          />
+        </FormControl>
 
         {mediaConfig.source === 'url' ? (
           <UrlInputSection
@@ -135,13 +130,26 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
           />
         ) : (
           <div className="flex gap-2">
-            <NodeButton fullWidth onClick={handleSelectMedia}>
+            <Button
+              className="w-full"
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+              onClick={handleSelectMedia}
+            >
               Select Media
-            </NodeButton>
+            </Button>
             {mediaConfig.resolvedUrl && (
-              <NodeButton variant="ghost" onClick={handleClear}>
+              <Button
+                size={ButtonSize.SM}
+                textTransform="none"
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+                onClick={handleClear}
+              >
                 Clear
-              </NodeButton>
+              </Button>
             )}
           </div>
         )}

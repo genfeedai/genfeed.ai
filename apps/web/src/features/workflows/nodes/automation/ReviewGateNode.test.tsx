@@ -49,22 +49,6 @@ vi.mock('@/features/workflows/hooks/useNodeExecution', () => ({
   }),
 }));
 
-vi.mock('@/features/workflows/components/ui/button', () => ({
-  NodeButton: ({
-    children,
-    onClick,
-    variant,
-  }: {
-    children?: ReactNode;
-    onClick?: () => void;
-    variant?: string;
-  }) => (
-    <button data-variant={variant} type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('@/features/workflows/components/ui/card', () => ({
   NodeDescription: ({ children }: { children?: ReactNode }) => (
     <p>{children}</p>
@@ -87,27 +71,6 @@ vi.mock('@/features/workflows/components/ui/icons', () => ({
   XIcon: () => <span>x</span>,
 }));
 
-vi.mock('@/features/workflows/components/ui/inputs', () => ({
-  NodeInput: ({
-    onChange,
-    placeholder,
-    value,
-    type,
-  }: {
-    onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-    placeholder?: string;
-    type?: string;
-    value?: string | number | null;
-  }) => (
-    <input
-      placeholder={placeholder}
-      type={type}
-      value={value ?? ''}
-      onChange={onChange}
-    />
-  ),
-}));
-
 vi.mock('@/features/workflows/components/ui/media', () => ({
   MediaPreview: ({
     controls,
@@ -126,24 +89,6 @@ vi.mock('@/features/workflows/components/ui/media', () => ({
 
 vi.mock('@/features/workflows/components/ui/status', () => ({
   HelpText: ({ children }: { children?: ReactNode }) => <p>{children}</p>,
-}));
-
-vi.mock('@/features/workflows/components/ui/toggle/Toggle', () => ({
-  default: ({
-    checked,
-    onChange,
-  }: {
-    checked?: boolean;
-    onChange?: () => void;
-  }) => (
-    <button
-      data-checked={String(Boolean(checked))}
-      type="button"
-      onClick={onChange}
-    >
-      toggle
-    </button>
-  ),
 }));
 
 function renderReviewGate(data: Record<string, unknown> = {}) {
@@ -224,7 +169,7 @@ describe('ReviewGateNode', () => {
       timeoutHours: 24,
     });
 
-    fireEvent.click(screen.getByText('toggle'));
+    fireEvent.click(screen.getByRole('switch'));
     expect(mocks.updateNodeData).toHaveBeenCalledWith('review-node', {
       autoApproveIfNoResponse: true,
     });
