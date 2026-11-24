@@ -168,6 +168,7 @@ export default function AgentOutputShell({
         collapseOutput: translate('collapseOutput'),
         expandOutput: translate('expandOutput'),
         output: translate('output'),
+        resizePanes: translate('resizePanes'),
       }}
       preview={preview}
       tabs={tabs}

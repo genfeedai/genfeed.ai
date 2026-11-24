@@ -189,6 +189,41 @@ test.describe('Storyboard agent + output split', () => {
     ).toBeVisible();
   });
 
+  test('resizes the agent and the board from the divider and remembers it', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await routeSplitRun(page, { drafts: [], run: buildRun(1, originalAction) });
+
+    await page.goto(`${base}/split-run`);
+    await assertNoErrorBoundaryFallback(page);
+
+    const agent = page.getByTestId('agent-output-agent-pane');
+    const divider = page.getByRole('separator', { name: 'Resize panes' });
+    const before = await agent.boundingBox();
+    const handle = await divider.boundingBox();
+
+    await page.mouse.move(
+      (handle?.x ?? 0) + (handle?.width ?? 0) / 2,
+      (handle?.y ?? 0) + 200,
+    );
+    await page.mouse.down();
+    await page.mouse.move((handle?.x ?? 0) + 160, (handle?.y ?? 0) + 200, {
+      steps: 8,
+    });
+    await page.mouse.up();
+
+    const share = Number(await divider.getAttribute('aria-valuenow'));
+    expect(share).toBeGreaterThan(55);
+    await expect
+      .poll(async () => (await agent.boundingBox())?.width ?? 0)
+      .toBeGreaterThan((before?.width ?? 0) + 100);
+
+    // The split is shared by every app, so a reload keeps it.
+    await page.reload();
+    await expect(divider).toHaveAttribute('aria-valuenow', String(share));
+  });
+
   test('keeps the animatic on the board when the preview pane does not fit', async ({
     authenticatedPage: page,
   }) => {

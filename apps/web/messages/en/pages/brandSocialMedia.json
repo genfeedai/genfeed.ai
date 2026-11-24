@@ -10,7 +10,6 @@
   "cancel": "Cancel",
   "channelAvailability": "{connectedCount, plural, one {# connected account} other {# connected accounts}} · {channelCount} channels available",
   "checking": "Checking",
-  "checkingReadyReason": "Checking availability…",
   "connect": "Connect",
   "connectAccount": "Connect account",
   "connectAccountModalDescription": "Choose a platform to connect. Search or browse by category.",
@@ -113,7 +112,6 @@
     "noIdentity": "Sign-in didn't finish. Click to reconnect."
   },
   "noPlatformsFound": "No platforms found.",
-  "notReadyReason": "Not available yet",
   "openProfile": "Open {account}",
   "openProfileAria": "Open {account} on {platform}",
   "settings": "Settings",

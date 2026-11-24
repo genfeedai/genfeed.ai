@@ -3,6 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AgentOutputLayoutProps } from '@genfeedai/props/ui/agent-output-shell.props';
+import {
+  AGENT_OUTPUT_SPLIT_STORAGE_KEY,
+  AGENT_PANE_HEADER_CLASS_NAME as HEADER_CLASS_NAME,
+} from '@ui/layout/agent-output-layout/agent-pane.constant';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { Maximize2, Minimize2 } from 'lucide-react';
@@ -17,11 +21,6 @@ import {
 } from 'react';
 
 type MobileView = 'agent' | 'output';
-
-// One fixed height for every pane header: a header that grows with its content
-// would push the divider lines out of line with the pane beside it.
-const HEADER_CLASS_NAME =
-  'flex h-12 shrink-0 items-center gap-2 border-b border-border px-4';
 
 // The agent pane's share of the two-pane width when the divider is draggable.
 const AGENT_SHARE_DEFAULT = 0.5;
@@ -55,7 +54,8 @@ function storeAgentShare(storageKey: string, share: number): void {
 
 /**
  * The agent on the left and the page output on the right, half the page each
- * on every page. Both panes stay mounted at every width so a draft or a
+ * until the operator drags the divider; the split is remembered and shared by
+ * every app that uses this layout. Both panes stay mounted at every width so a draft or a
  * running stream survives a tab or a mobile switch; below `xl` an Agent /
  * Output switch shows one at a time.
  *
@@ -75,7 +75,7 @@ export default function AgentOutputLayout({
   isOutputHidden = false,
   labels,
   preview,
-  resizeStorageKey,
+  resizeStorageKey = AGENT_OUTPUT_SPLIT_STORAGE_KEY,
   tabs,
 }: AgentOutputLayoutProps) {
   const [mobileView, setMobileView] = useState<MobileView>('agent');
@@ -85,24 +85,19 @@ export default function AgentOutputLayout({
   const panesRef = useRef<HTMLDivElement>(null);
   const isAgentHidden = isOutputExpandable && isOutputExpanded;
   const isOutputCollapsed = isOutputHidden && !isAgentHidden;
-  const isResizable =
-    Boolean(resizeStorageKey) && !isAgentHidden && !isOutputCollapsed;
+  const isResizable = !isAgentHidden && !isOutputCollapsed;
 
   // The stored split is read after mount: the server render has no storage.
   // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
-    if (resizeStorageKey) {
-      setAgentShare(readStoredAgentShare(resizeStorageKey));
-    }
+    setAgentShare(readStoredAgentShare(resizeStorageKey));
   }, [resizeStorageKey]);
 
   const commitAgentShare = useCallback(
     (share: number) => {
       const next = clampAgentShare(share);
       setAgentShare(next);
-      if (resizeStorageKey) {
-        storeAgentShare(resizeStorageKey, next);
-      }
+      storeAgentShare(resizeStorageKey, next);
     },
     [resizeStorageKey],
   );

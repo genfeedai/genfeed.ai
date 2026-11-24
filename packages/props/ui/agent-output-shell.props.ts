@@ -22,7 +22,7 @@ interface AgentOutputLayoutLabels {
   readonly expandOutput: string;
   readonly output: string;
   /** Accessible name of the draggable divider between the two panes. */
-  readonly resizePanes?: string;
+  readonly resizePanes: string;
 }
 
 export interface AgentOutputLayoutProps {
@@ -57,8 +57,9 @@ export interface AgentOutputLayoutProps {
   /** Docked third pane, shown from the `2xl` breakpoint. */
   readonly preview?: AgentOutputPreviewDefinition;
   /**
-   * Makes the divider between the agent and the output draggable. The split
-   * is remembered in this browser under this key.
+   * Where the split is remembered in this browser. Leave out so every app
+   * shares the one split; the divider between the agent and the output is
+   * always draggable.
    */
   readonly resizeStorageKey?: string;
   readonly tabs: readonly AgentOutputTabDefinition[];
@@ -105,4 +106,23 @@ export interface AgentOutputShellProps {
   readonly outputLabel?: string;
   /** Docked third pane for the output's preview or final result. */
   readonly preview?: AgentOutputPreviewDefinition;
+}
+
+export interface AgentThreadListLayoutProps {
+  /** The conversation pane body: transcript and composer. */
+  readonly conversation: ReactNode;
+  /**
+   * Which conversation the pane shows. Below `xl` the list shows first until a
+   * conversation is open, and a new key (another thread) brings the
+   * conversation forward again.
+   */
+  readonly conversationKey: string | null;
+  /** Title and actions above the conversation, such as the way back to the split. */
+  readonly conversationHeader?: ReactNode;
+  readonly labels: {
+    readonly conversation: string;
+    readonly threads: string;
+  };
+  /** The thread list, grouped by state, in the left column. */
+  readonly list: ReactNode;
 }

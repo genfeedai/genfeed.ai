@@ -4,20 +4,7 @@ import type {
   ConnectAccountPlatformGroup,
 } from '@props/pages/brand-integrations.props';
 
-export type ConnectTileStatus = 'connecting' | 'connected' | 'soon' | 'idle';
-
-/** Unavailable platforms stay visible (disabled) rather than disappearing, so
- * a brand owner sees Threads exists before its readiness check clears. */
-export function getConnectReasonKey(
-  item: ConnectAccountPlatform,
-): 'notReadyReason' | 'checkingReadyReason' | null {
-  if (item.isConnectAvailable) {
-    return null;
-  }
-  return item.readiness === 'unavailable'
-    ? 'notReadyReason'
-    : 'checkingReadyReason';
-}
+export type ConnectTileStatus = 'connecting' | 'connected' | 'idle';
 
 export function getConnectTileStatus(
   item: ConnectAccountPlatform,
@@ -26,9 +13,6 @@ export function getConnectTileStatus(
 ): ConnectTileStatus {
   if (connectingPlatform === item.platform) {
     return 'connecting';
-  }
-  if (!item.isConnectAvailable) {
-    return 'soon';
   }
   return connections.length > 0 ? 'connected' : 'idle';
 }

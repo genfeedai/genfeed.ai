@@ -215,7 +215,7 @@ describe('BrandDetailSocialMediaCard', () => {
   });
 
   it.each(['unknown', 'unavailable'] as const)(
-    'disables Threads and cannot issue a connect request when readiness is %s',
+    'does not offer Threads when readiness is %s',
     (readiness) => {
       useOAuthConnectPlatforms.mockReturnValue(
         resolveOAuthConnectPlatformCatalog({ threads: readiness }),
@@ -230,9 +230,10 @@ describe('BrandDetailSocialMediaCard', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
 
-      const threads = screen.getByRole('button', { name: 'Threads' });
-      expect(threads).toBeDisabled();
-      fireEvent.click(threads);
+      expect(
+        screen.queryByRole('button', { name: 'Threads' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'X' })).toBeInTheDocument();
       expect(postConnect).not.toHaveBeenCalled();
     },
   );

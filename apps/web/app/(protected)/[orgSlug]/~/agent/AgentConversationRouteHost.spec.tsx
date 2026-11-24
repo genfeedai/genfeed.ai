@@ -14,13 +14,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(searchState.current),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
-    key === 'exitFullPage' ? 'Back to master and threads' : key,
-}));
-
-vi.mock('./AgentWorkspacePageShell', () => ({
-  AgentWorkspacePageShell: ({ threadId }: { threadId?: string }) => {
+vi.mock('./AgentFullWorkspace', () => ({
+  default: ({
+    onExitFullView,
+    threadId,
+  }: {
+    onExitFullView: () => void;
+    threadId?: string;
+  }) => {
     shellRenderSpy(threadId);
     useEffect(() => {
       shellMountSpy();
@@ -28,7 +29,16 @@ vi.mock('./AgentWorkspacePageShell', () => ({
         shellUnmountSpy();
       };
     }, []);
-    return <div data-testid="conversation-shell">{threadId ?? 'none'}</div>;
+    return (
+      <div data-testid="conversation-shell">
+        {threadId ?? 'none'}
+        {threadId ? (
+          <button onClick={onExitFullView} type="button">
+            Back to master and threads
+          </button>
+        ) : null}
+      </div>
+    );
   },
 }));
 
