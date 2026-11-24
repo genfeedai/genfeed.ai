@@ -172,8 +172,14 @@ export class BaseApiClient {
 
   /** `onError` factory: throw a fixed message (the bare-throw methods). */
   failWith(message: string): (error: ApiError) => never {
-    return () => {
-      throw new Error(message);
+    return (error: ApiError) => {
+      // The message stays fixed so no upstream detail leaks, but the status and
+      // retry hint travel with it: a 4xx is a refusal the caller is told about,
+      // not a server fault, and a bare Error would hide that from the classifier.
+      throw new McpUpstreamError(message, {
+        retryAfterSeconds: readRetryAfterSeconds(error),
+        status: error.response?.status,
+      });
     };
   }
 

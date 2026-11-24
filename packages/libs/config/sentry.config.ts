@@ -30,6 +30,16 @@ export function redactBreadcrumbUrls(breadcrumb: Breadcrumb): Breadcrumb {
   return breadcrumb;
 }
 
+/**
+ * A video the person pointed us at that its host no longer serves: removed,
+ * private or unavailable. The job fails and the person is told; there is
+ * nothing for us to fix, and the same message surfaces in every layer that
+ * carries the failure (the Files job, the API poll, the workflow node), so it
+ * is dropped by message instead of at each of them.
+ */
+export const UNAVAILABLE_SOURCE_VIDEO_PATTERN =
+  /yt-dlp exited with code \d+: ERROR: \[[\w:-]+\] [\w-]+: (?:This video is unavailable|Video unavailable|Private video|This video is private|This video has been removed|This video is no longer available|The uploader has not made this video available)/;
+
 const SPAN_URL_KEYS = ['url.full', 'url.path', 'http.url', 'http.target'];
 
 /**
@@ -109,6 +119,7 @@ export function getSentryConfig(
     beforeSendSpan: redactSpanUrls as NodeOptions['beforeSendSpan'],
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT || 'development',
+    ignoreErrors: [UNAVAILABLE_SOURCE_VIDEO_PATTERN],
     // Send W3C `traceparent` beside `sentry-trace` and `baggage` so services
     // that only speak OpenTelemetry continue our traces.
     propagateTraceparent: true,

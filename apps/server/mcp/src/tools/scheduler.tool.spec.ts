@@ -1,5 +1,7 @@
+import { McpToolInputError } from '@genfeedai/actions';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import type { ClientService } from '@mcp/services/client.service';
+import { isMcpToolRefusal } from '@mcp/tools/mcp-tool-error';
 import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
@@ -287,6 +289,22 @@ describe('handleSchedulerTool', () => {
         targetId: 'target-1',
       }),
     ).rejects.toThrow(/not editable for target scope: headline/);
+  });
+
+  // A model that sends a wrong action is refused as a caller input error: a
+  // plain Error is reported to Sentry as a server fault on every such call.
+  it('refuses an unknown control action as a caller input error', async () => {
+    const client = buildClient();
+
+    const failure = await call(client, 'control_scheduled_release', {
+      action: 'delete',
+      releaseId: 'release-1',
+    }).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(McpToolInputError);
+    expect(failure).toMatchObject({ field: 'action' });
+    expect(isMcpToolRefusal(failure)).toBe(true);
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
   });
 
   it('rejects ambiguous update scope arguments', async () => {

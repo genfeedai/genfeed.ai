@@ -12,7 +12,7 @@ const SAVED_ROWS = [
   {
     externalVoiceId: 'el-1',
     id: 'voice-1',
-    label: 'My voice',
+    metadata: { label: 'My voice' },
     sampleAudioUrl: 'https://cdn.example/voice-1.mp3',
     voiceProvider: 'ELEVENLABS',
     voiceSource: 'imported',
@@ -20,7 +20,7 @@ const SAVED_ROWS = [
   {
     externalVoiceId: 'el-2',
     id: 'voice-2',
-    label: null,
+    metadata: null,
     sampleAudioUrl: null,
     voiceProvider: 'ELEVENLABS',
     voiceSource: 'cloned',
@@ -115,6 +115,28 @@ describe('AgentVoiceToolHandler', () => {
         },
         { id: 'voice-2', isBrandDefault: false, source: 'cloned' },
       ],
+    });
+  });
+
+  it('reads the voice name from the related metadata, never a column the table lacks', async () => {
+    const { handler, ingredient } = setup();
+
+    await handler.list({ type: 'voice' }, ctx);
+
+    // Ingredient has no `label` column: selecting it is a Prisma validation
+    // error on every saved-voice listing.
+    const { select } = ingredient.findMany.mock.calls[0][0];
+    expect(select).not.toHaveProperty('label');
+    expect(select.metadata).toEqual({ select: { label: true } });
+  });
+
+  it('names an unlabelled saved voice Untitled voice', async () => {
+    const { handler } = setup();
+
+    const result = await handler.list({ type: 'voice' }, ctx);
+
+    expect(result.data).toMatchObject({
+      voices: [{ name: 'My voice' }, { name: 'Untitled voice' }],
     });
   });
 

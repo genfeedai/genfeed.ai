@@ -3,6 +3,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { readHttpExceptionDetail } from '@api/helpers/utils/error-response/http-exception-detail.util';
 import { scopedWhere } from '@api/index';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
@@ -73,7 +74,7 @@ import {
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable, Optional } from '@nestjs/common';
+import { HttpException, Injectable, Optional } from '@nestjs/common';
 
 // During live token streaming, cancellation cannot be checked per token
 // (isRunCancelled is a Redis lookup); throttle it to at most once per this
@@ -298,8 +299,13 @@ export class AgentOrchestratorStreamLoopService {
     }
 
     this.loggerService.error(`${this.constructorName} streaming chat failed`, {
-      error: error instanceof Error ? error.message : error,
+      // An HttpException with an object body reports only "Http Exception" as
+      // its message, which hid the cause of every such failure in Sentry.
+      error:
+        readHttpExceptionDetail(error) ??
+        (error instanceof Error ? error.message : error),
       organizationId: context.organizationId,
+      ...(error instanceof HttpException ? { status: error.getStatus() } : {}),
       userId: context.userId,
     });
 

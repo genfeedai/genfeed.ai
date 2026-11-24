@@ -56,7 +56,22 @@ export function describeToolFailureForLog(error: unknown): string {
  */
 export function isDeliberateToolRejection(error: unknown): boolean {
   return (
-    error instanceof HttpException &&
-    error.getStatus() < HttpStatus.INTERNAL_SERVER_ERROR
+    (error instanceof HttpException &&
+      error.getStatus() < HttpStatus.INTERNAL_SERVER_ERROR) ||
+    isToolInputContractViolation(error)
+  );
+}
+
+/**
+ * The model sent arguments the action's input contract refuses (a missing
+ * `type`, an extra `action` wrapper). The agent gets the text back and corrects
+ * the call, so it is the caller's mistake and not a fault. An output violation
+ * is a producer bug and stays an error.
+ */
+function isToolInputContractViolation(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.name === 'ActionContractValidationError' &&
+    error.message.startsWith('Action contract input validation failed')
   );
 }

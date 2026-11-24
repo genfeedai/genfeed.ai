@@ -39,3 +39,21 @@ export function isYoutubeVideoMissingError(error: unknown): boolean {
     readYoutubeFailureReasons(failure).includes('videoNotFound')
   );
 }
+
+/**
+ * The owner switched comments off for this video (HTTP 403, reason
+ * `commentsDisabled`). Nothing can be read until they switch them back on, so
+ * the hourly inbox sweep skips the video instead of reporting a fault each hour.
+ */
+export function isYoutubeCommentsDisabledError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+  const failure = error as YoutubeApiErrorShape;
+  return (
+    readYoutubeFailureReasons(failure).includes('commentsDisabled') ||
+    (readYoutubeFailureStatus(failure) === 403 &&
+      typeof failure.message === 'string' &&
+      failure.message.includes('has disabled comments'))
+  );
+}
