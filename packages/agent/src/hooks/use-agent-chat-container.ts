@@ -667,16 +667,12 @@ export function useAgentChatContainer({
         return;
       }
 
-      try {
-        if (onCopy) {
-          await onCopy(content);
-          return;
-        }
+      const didCopy = await (onCopy
+        ? (async () => onCopy(content))().then(() => true)
+        : ClipboardService.getInstance().copyToClipboard(content)
+      ).catch(() => false);
 
-        if (!(await ClipboardService.getInstance().copyToClipboard(content))) {
-          setError('Failed to copy content to clipboard.');
-        }
-      } catch {
+      if (!didCopy) {
         setError('Failed to copy content to clipboard.');
       }
     },

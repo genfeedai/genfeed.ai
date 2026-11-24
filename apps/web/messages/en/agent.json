@@ -10,6 +10,10 @@
     "worked": "Worked",
     "workedFor": "Worked for {duration}"
   },
+  "toolCallDetail": {
+    "copiedErrorDetails": "Copied error details",
+    "copyErrorDetails": "Copy error details"
+  },
   "markdownCodeBlock": {
     "copied": "Copied",
     "copyAria": "Copy code block"

@@ -3,16 +3,34 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CopyButton } from './CopyButton';
 
-const copyToClipboard = vi.fn<(text?: string) => Promise<boolean>>();
+/** What reached the clipboard, in order, and what the next write answers. */
+const clipboard = vi.hoisted(() => ({
+  isWritable: true,
+  written: [] as Array<string | undefined>,
+}));
 
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
-  ClipboardService: { getInstance: () => ({ copyToClipboard }) },
+  ClipboardService: {
+    getInstance: () => ({
+      copyToClipboard: async (text?: string) => {
+        clipboard.written.push(text);
+        return clipboard.isWritable;
+      },
+    }),
+  },
 }));
+
+async function click(name: string): Promise<void> {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name }));
+  });
+}
 
 describe('CopyButton', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    copyToClipboard.mockReset();
+    clipboard.isWritable = true;
+    clipboard.written = [];
   });
 
   afterEach(() => {
@@ -20,27 +38,20 @@ describe('CopyButton', () => {
   });
 
   it('copies the value, then names itself "Copied" until the label resets', async () => {
-    copyToClipboard.mockResolvedValue(true);
-    const onCopied = vi.fn();
+    const outcomes: string[] = [];
     render(
       <CopyButton
         label="Copy install command"
-        onCopied={onCopied}
+        onCopied={() => outcomes.push('copied')}
         value="bunx skills add genfeedai/skills"
       />,
     );
 
-    await act(async () => {
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Copy install command' }),
-      );
-    });
+    await click('Copy install command');
 
-    expect(copyToClipboard).toHaveBeenCalledWith(
-      'bunx skills add genfeedai/skills',
-    );
+    expect(clipboard.written).toEqual(['bunx skills add genfeedai/skills']);
     expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
-    expect(onCopied).toHaveBeenCalledTimes(1);
+    expect(outcomes).toEqual(['copied']);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
@@ -52,48 +63,46 @@ describe('CopyButton', () => {
   });
 
   it('reads a function value at click time', async () => {
-    copyToClipboard.mockResolvedValue(true);
     let current = 'first';
     render(<CopyButton label="Copy code" value={() => current} />);
     current = 'second';
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Copy code' }));
-    });
+    await click('Copy code');
 
-    expect(copyToClipboard).toHaveBeenCalledWith('second');
+    expect(clipboard.written).toEqual(['second']);
   });
 
   it('keeps its label and reports a failed write', async () => {
-    copyToClipboard.mockResolvedValue(false);
-    const onCopyFailed = vi.fn();
+    clipboard.isWritable = false;
+    const outcomes: string[] = [];
     render(
-      <CopyButton label="Copy link" onCopyFailed={onCopyFailed} value="x" />,
+      <CopyButton
+        label="Copy link"
+        onCopied={() => outcomes.push('copied')}
+        onCopyFailed={() => outcomes.push('failed')}
+        value="x"
+      />,
     );
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
-    });
+    await click('Copy link');
 
     expect(
       screen.getByRole('button', { name: 'Copy link' }),
     ).toBeInTheDocument();
-    expect(onCopyFailed).toHaveBeenCalledTimes(1);
+    expect(outcomes).toEqual(['failed']);
   });
 
   it('does not let the click reach a clickable parent', async () => {
-    copyToClipboard.mockResolvedValue(true);
-    const onRowClick = vi.fn();
+    const rowClicks: string[] = [];
     render(
-      <div onClick={onRowClick}>
+      <div onClick={() => rowClicks.push('row')}>
         <CopyButton label="Copy error" value="boom" />
       </div>,
     );
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
-    });
+    await click('Copy error');
 
-    expect(onRowClick).not.toHaveBeenCalled();
+    expect(rowClicks).toEqual([]);
+    expect(clipboard.written).toEqual(['boom']);
   });
 });

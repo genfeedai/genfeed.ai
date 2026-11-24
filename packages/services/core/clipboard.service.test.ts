@@ -67,6 +67,10 @@ describe('ClipboardService', () => {
     });
 
     it('says what it copied when the caller names the messages', async () => {
+      const shown: string[] = [];
+      notificationsService.success.mockImplementation((message: string) => {
+        shown.push(message);
+      });
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
         value: { writeText: vi.fn().mockResolvedValue(undefined) },
@@ -77,23 +81,29 @@ describe('ClipboardService', () => {
         successMessage: 'API key copied',
       });
 
-      expect(notificationsService.success).toHaveBeenCalledWith(
-        'API key copied',
-      );
+      expect(shown).toEqual(['API key copied']);
     });
 
     it('stays silent when the caller shows the outcome itself', async () => {
+      const shown: string[] = [];
+      notificationsService.success.mockImplementation((message: string) => {
+        shown.push(message);
+      });
+      notificationsService.error.mockImplementation((message: string) => {
+        shown.push(message);
+      });
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
         value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
         writable: true,
       });
 
-      expect(
-        await clipboardService.copyToClipboard('key', { isSilent: true }),
-      ).toBe(false);
-      expect(notificationsService.success).not.toHaveBeenCalled();
-      expect(notificationsService.error).not.toHaveBeenCalled();
+      const didCopy = await clipboardService.copyToClipboard('key', {
+        isSilent: true,
+      });
+
+      expect(didCopy).toBe(false);
+      expect(shown).toEqual([]);
     });
 
     // Safari drops the click's user activation across an awaited import, so

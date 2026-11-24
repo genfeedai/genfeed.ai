@@ -5,6 +5,7 @@ import { Pre } from '@genfeedai/ui';
 import { summarizeAgentToolResult } from '@genfeedai/utils/agent/summarize-agent-tool-result';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 import { CopyButton } from '@ui/buttons/CopyButton';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useMemo } from 'react';
 
@@ -21,6 +22,7 @@ export function ToolCallDetailPanel({
   parameters,
   resultSummary,
 }: ToolCallDetailPanelProps): ReactElement {
+  const translate = useTranslations('agent.toolCallDetail');
   const resolvedParameters = parameters ?? debug?.parameters;
   const rawOutput =
     typeof debug?.rawOutput === 'string' && debug.rawOutput.trim().length > 0
@@ -73,8 +75,8 @@ export function ToolCallDetailPanel({
       {copyValue && (
         <div className="flex items-center justify-end pt-1">
           <CopyButton
-            copiedLabel="Copied error details"
-            label="Copy error details"
+            copiedLabel={translate('copiedErrorDetails')}
+            label={translate('copyErrorDetails')}
             size={ButtonSize.XS}
             tooltipPosition="top"
             value={copyValue}
