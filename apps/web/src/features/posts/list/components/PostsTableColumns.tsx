@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ButtonSize,
   ButtonVariant,
   formatEnumLabel,
   IngredientCategory,
@@ -124,9 +125,10 @@ export function buildPostsTableColumns({
                 />
               ) : ingredient ? (
                 <Button
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.LINK}
+                  size={ButtonSize.INLINE}
                   withWrapper={false}
-                  className="truncate cursor-pointer hover:text-primary transition-colors"
+                  className="truncate"
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenIngredient(ingredient);

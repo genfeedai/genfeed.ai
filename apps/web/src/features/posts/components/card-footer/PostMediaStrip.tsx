@@ -98,40 +98,31 @@ export default function PostMediaStrip({
               <div className="flex">
                 <Button
                   ariaLabel={translate('moveEarlier', { position: index + 1 })}
-                  className={
-                    'size-5 bg-black/60 text-white hover:bg-black/80' /* design-system-allow-content-color -- media overlay */
-                  }
                   icon={<ChevronLeft className="size-3.5" />}
                   isDisabled={index === 0}
                   onClick={() => onChange(moveItem(media, index, index - 1))}
-                  size={ButtonSize.ICON}
-                  variant={ButtonVariant.UNSTYLED}
+                  size={ButtonSize.MICRO}
+                  variant={ButtonVariant.OVERLAY}
                   withWrapper={false}
                 />
                 <Button
                   ariaLabel={translate('moveLater', { position: index + 1 })}
-                  className={
-                    'size-5 bg-black/60 text-white hover:bg-black/80' /* design-system-allow-content-color -- media overlay */
-                  }
                   icon={<ChevronRight className="size-3.5" />}
                   isDisabled={index === media.length - 1}
                   onClick={() => onChange(moveItem(media, index, index + 1))}
-                  size={ButtonSize.ICON}
-                  variant={ButtonVariant.UNSTYLED}
+                  size={ButtonSize.MICRO}
+                  variant={ButtonVariant.OVERLAY}
                   withWrapper={false}
                 />
               </div>
               <Button
                 ariaLabel={translate('removeMedia', { position: index + 1 })}
-                className={
-                  'size-5 bg-black/60 text-white hover:bg-black/80' /* design-system-allow-content-color -- media overlay */
-                }
                 icon={<X className="size-3.5" />}
                 onClick={() =>
                   onChange(media.filter((entry) => entry.id !== item.id))
                 }
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.UNSTYLED}
+                size={ButtonSize.MICRO}
+                variant={ButtonVariant.OVERLAY}
                 withWrapper={false}
               />
             </div>
