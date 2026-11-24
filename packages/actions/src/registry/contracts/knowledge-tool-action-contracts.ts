@@ -254,12 +254,16 @@ const GET_CONTEXT_COVERAGE_DATA_SCHEMA = closedObjectSchema(
 
 const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
   archive_knowledge_source: {
-    inputSchema: closedObjectSchema({ sourceId: STRING_SCHEMA }, ['sourceId']),
+    inputSchema: closedObjectSchema(
+      { brandId: STRING_SCHEMA, sourceId: STRING_SCHEMA },
+      ['sourceId'],
+    ),
     outputSchema: toolActionOutputSchema(MUTATION_KNOWLEDGE_DATA_SCHEMA),
   },
   assign_knowledge_purpose: {
     inputSchema: closedObjectSchema(
       {
+        brandId: STRING_SCHEMA,
         isVisible: BOOLEAN_SCHEMA,
         purpose: KNOWLEDGE_PURPOSE,
         sourceId: STRING_SCHEMA,
@@ -271,6 +275,7 @@ const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
   capture_knowledge: {
     inputSchema: closedObjectSchema(
       {
+        brandId: STRING_SCHEMA,
         kind: KNOWLEDGE_KIND,
         purpose: KNOWLEDGE_PURPOSE,
         referenceUrl: STRING_SCHEMA,
@@ -293,6 +298,7 @@ const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
   },
   get_knowledge_sources: {
     inputSchema: closedObjectSchema({
+      brandId: STRING_SCHEMA,
       limit: INTEGER_SCHEMA,
       page: INTEGER_SCHEMA,
       processingState: KNOWLEDGE_PROCESSING_STATE,
@@ -301,11 +307,17 @@ const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
     outputSchema: toolActionOutputSchema(LIST_KNOWLEDGE_DATA_SCHEMA),
   },
   read_knowledge_source: {
-    inputSchema: closedObjectSchema({ sourceId: STRING_SCHEMA }, ['sourceId']),
+    inputSchema: closedObjectSchema(
+      { brandId: STRING_SCHEMA, sourceId: STRING_SCHEMA },
+      ['sourceId'],
+    ),
     outputSchema: toolActionOutputSchema(READ_KNOWLEDGE_DATA_SCHEMA),
   },
   retry_knowledge_ingestion: {
-    inputSchema: closedObjectSchema({ sourceId: STRING_SCHEMA }, ['sourceId']),
+    inputSchema: closedObjectSchema(
+      { brandId: STRING_SCHEMA, sourceId: STRING_SCHEMA },
+      ['sourceId'],
+    ),
     outputSchema: toolActionOutputSchema(MUTATION_KNOWLEDGE_DATA_SCHEMA),
   },
   search_knowledge: {
