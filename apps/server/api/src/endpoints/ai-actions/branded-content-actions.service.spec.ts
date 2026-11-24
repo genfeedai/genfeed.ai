@@ -295,7 +295,8 @@ describe('BrandedContentActionsService', () => {
 
     it('lets a stand-alone X post run past 280 characters and asks for the long form only when briefed', async () => {
       completed('x');
-      const longPost = `${'A long argument, one idea per line. '.repeat(26)}`.trim();
+      const longPost =
+        `${'A long argument, one idea per line. '.repeat(26)}`.trim();
       expect(longPost.length).toBeGreaterThan(850);
 
       const outcome = await ctx.service.generateSocial({
@@ -307,8 +308,8 @@ describe('BrandedContentActionsService', () => {
 
       expect(outcome).toMatchObject({
         result: {
-          maxCharacters: getChannelCapability('twitter')?.caption
-            .extendedMaxLength,
+          maxCharacters:
+            getChannelCapability('twitter')?.caption.extendedMaxLength,
         },
       });
       expect(seam.input.originalPrompt).toContain(
@@ -327,7 +328,8 @@ describe('BrandedContentActionsService', () => {
         platform: 'twitter',
       });
       const seam = seamOf(ctx.branded);
-      const tooLong = `${'Thread reply sentence that keeps going. '.repeat(8)}`.trim();
+      const tooLong =
+        `${'Thread reply sentence that keeps going. '.repeat(8)}`.trim();
       expect(tooLong.length).toBeGreaterThan(300);
 
       await seam.persistText(`Hook\n---\n${tooLong}`);

@@ -18,8 +18,8 @@ import { scopedWhere } from '@api/index';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
-import { describeCaptionLengthRule } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { describeCaptionLengthRule } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -62,10 +62,7 @@ export class PostVariationService {
     }
 
     const voiceMode = await this.resolveVoiceMode(params);
-    const prompt = this.buildGenerationInstruction(
-      params,
-      capability.caption,
-    );
+    const prompt = this.buildGenerationInstruction(params, capability.caption);
     const generated = await this.contentGeneratorService.generateContent(
       params.organizationId,
       {

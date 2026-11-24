@@ -6,7 +6,6 @@ import {
   parsePlatform,
   ReleaseAttachmentKind,
 } from '@genfeedai/contracts';
-import { getCaptionCeiling } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import {
   type ChannelMediaKind,
   type ChannelPublishMode,
@@ -14,6 +13,7 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { getCaptionCeiling } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   AgentPublishSettingField,
