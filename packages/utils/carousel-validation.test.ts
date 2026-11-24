@@ -38,7 +38,7 @@ describe('carousel-validation', () => {
 
   describe('getCarouselLimits', () => {
     it.each([
-      ['instagram', 2, 10, 'Instagram'],
+      ['instagram', 2, 20, 'Instagram'],
       ['tiktok', 2, 35, 'TikTok'],
       ['twitter', 2, 4, 'X (Twitter)'],
       ['linkedin', 2, 20, 'LinkedIn'],
