@@ -10,10 +10,11 @@ import {
 } from '@genfeedai/workflows/ui';
 import { BaseNode } from '@genfeedai/workflows/ui/nodes';
 import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
+import FormControl from '@ui/primitives/field';
+import { OptionSelect } from '@ui/primitives/option-select';
 import type { NodeProps } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
-import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { useWorkflowActionScope } from '@/features/workflows/hooks/useWorkflowActionDefaults';
 
 const ACTION_NODE_MIN_WIDTH = 300;
@@ -54,6 +55,14 @@ function CloudGenfeedActionNodeComponent(props: NodeProps) {
     (typeof parameters.brandId === 'string' && parameters.brandId) ||
     scope.brandId;
 
+  const brandOptions = (
+    scope.brands.length > 0
+      ? scope.brands
+      : brandValue
+        ? [{ id: brandValue, label: scope.brandLabel }]
+        : []
+  ).map((brand) => ({ label: brand.label, value: brand.id }));
+
   const handleChange = useCallback(
     (field: string, value: unknown) => {
       const nextParameters = { ...parameters };
@@ -91,25 +100,16 @@ function CloudGenfeedActionNodeComponent(props: NodeProps) {
           onPointerDown={(event) => event.stopPropagation()}
         >
           {properties.brandId ? (
-            <NodeSelect
-              className="nodrag"
-              id={`node-brandId-${props.id}`}
-              label={translate('brand')}
-              onChange={(event) => handleChange('brandId', event.target.value)}
-              placeholder={translate('selectBrand')}
-              value={brandValue}
-            >
-              {(scope.brands.length > 0
-                ? scope.brands
-                : brandValue
-                  ? [{ id: brandValue, label: scope.brandLabel }]
-                  : []
-              ).map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.label}
-                </option>
-              ))}
-            </NodeSelect>
+            <FormControl label={translate('brand')}>
+              <OptionSelect
+                ariaLabel={translate('brand')}
+                className="nodrag"
+                onValueChange={(value) => handleChange('brandId', value)}
+                options={brandOptions}
+                placeholder={translate('selectBrand')}
+                value={brandValue}
+              />
+            </FormControl>
           ) : null}
           {Object.keys(onNodeProperties).length > 0 ? (
             <ActionSchemaFields

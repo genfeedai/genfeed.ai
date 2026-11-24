@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudImageInputNode } from './CloudImageInputNode';
@@ -52,53 +53,6 @@ vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl', () => ({
 
 vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPicker', () => ({
   useWorkflowMediaPicker: () => mocks.openPicker,
-}));
-
-vi.mock('@/features/workflows/components/ui/button', () => ({
-  NodeButton: ({
-    children,
-    disabled,
-    onClick,
-  }: {
-    children?: ReactNode;
-    disabled?: boolean;
-    onClick?: () => void;
-  }) => (
-    <button disabled={disabled} type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-}));
-
-vi.mock('@/features/workflows/components/ui/inputs', () => ({
-  NodeInput: ({
-    label,
-    onChange,
-    value,
-    ...props
-  }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string }) => (
-    <label>
-      {label}
-      <input value={value ?? ''} onChange={onChange} {...props} />
-    </label>
-  ),
-  NodeSelect: ({
-    children,
-    label,
-    onChange,
-    value,
-    ...props
-  }: React.SelectHTMLAttributes<HTMLSelectElement> & {
-    children?: ReactNode;
-    label?: string;
-  }) => (
-    <label>
-      {label}
-      <select value={value} onChange={onChange} {...props}>
-        {children}
-      </select>
-    </label>
-  ),
 }));
 
 vi.mock('@/features/workflows/components/ui/status', () => ({
@@ -179,6 +133,20 @@ describe('CloudImageInputNode', () => {
         image: null,
         source: 'url',
       }),
+    );
+  });
+
+  it('switches the image source from the source picker', async () => {
+    renderImageNode();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole('combobox', { name: 'Image source' }));
+    await userEvent.setup().click(screen.getByRole('option', { name: 'URL' }));
+
+    expect(mocks.updateNodeData).toHaveBeenCalledWith(
+      'image-node',
+      expect.objectContaining({ source: 'url' }),
     );
   });
 
