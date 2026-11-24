@@ -673,11 +673,22 @@ export class AgentWorkspaceToolHandler {
       return toolFailure('complete_media_upload requires assetId.');
     }
 
+    const isPublicImage = params.publicImage === true;
+
     try {
-      const ingredient = await this.presignedUploadService.confirmUpload(
-        toUploadUser(ctx),
-        assetId,
-      );
+      const upload = isPublicImage
+        ? await this.presignedUploadService.confirmPublicImageUpload(
+            toUploadUser(ctx),
+            assetId,
+          )
+        : {
+            ingredient: await this.presignedUploadService.confirmUpload(
+              toUploadUser(ctx),
+              assetId,
+            ),
+            publicUrl: undefined,
+          };
+      const { ingredient, publicUrl } = upload;
       const hostedUrl = readHostedUrl(ingredient);
       const media = toCompletedMedia(ingredient, assetId);
 
@@ -690,6 +701,7 @@ export class AgentWorkspaceToolHandler {
           ...(media.length > 0
             ? { media }
             : { media: [{ assetId, order: 0 }] }),
+          ...(publicUrl ? { publicUrl } : {}),
           status: ingredient.status,
           ...(hostedUrl ? { url: hostedUrl } : {}),
         },

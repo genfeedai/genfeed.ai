@@ -40,6 +40,11 @@ export const COMPLETE_MEDIA_UPLOAD_PARAMETERS: ToolParameterSchema = {
       description: 'assetId returned by request_media_upload.',
       type: 'string',
     },
+    publicImage: {
+      description:
+        'Set true for a PNG, JPEG, WebP or GIF that an article needs as its cover or an inline image. After the upload is confirmed it is copied to a permanent public URL, returned as publicUrl, which stays valid without signing. It makes that one image world-readable. Leave it out for anything private.',
+      type: 'boolean',
+    },
   },
   required: ['assetId'],
   type: 'object',
@@ -294,7 +299,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Finalize a presigned media upload. Returns assetId and, when available, the hosted URL. Use assetId to attach media to a scheduled release, or use the hosted URL to attach media to a post draft.',
+      'Finalize a presigned media upload. Returns assetId and, when available, the hosted URL. Use assetId to attach media to a scheduled release, or use the hosted URL to attach media to a post draft. For an image an article needs, pass publicImage true to get a permanent publicUrl for the article cover or an inline image.',
     name: 'complete_media_upload',
     parameters: COMPLETE_MEDIA_UPLOAD_PARAMETERS,
     requiredRole: 'user',

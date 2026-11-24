@@ -14,6 +14,7 @@ export const CDN_BASE_URL = 'https://cdn.genfeed.ai';
  *   branding/logo.*          brand marks (baked into emails and JSON-LD: never move)
  *   cards/default.jpg        default card for apps and the console
  *   cards/articles/*         article card art (URLs are stored on article rows)
+ *   articles/<org>/<id>.<ext>  images an author published into an article through `complete_media_upload` with `publicImage` (one folder per organization, named by the upload's ingredient id)
  *   placeholders/*           empty-state images
  *   starters/<app>/<name>.webp  starter-card thumbnails, one folder per app (playground/, turbo/, clipper/, motion/, editor/, storyboard/)
  *   site/pages/<slug>.webp   landing page heroes (+ <slug>.jpg for social OG art)

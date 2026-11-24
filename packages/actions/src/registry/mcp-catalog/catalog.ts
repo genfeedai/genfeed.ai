@@ -36,7 +36,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'upload_media',
     description:
-      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL. Does not publish or attach media. To delete Library media use control_release(action=remove_asset).',
+      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL; complete with publicImage true also returns a permanent publicUrl for an image that an article uses as its cover or inline image. Does not publish or attach media. To delete Library media use control_release(action=remove_asset).',
     operations: [
       { action: 'request', executes: 'request_media_upload' },
       { action: 'complete', executes: 'complete_media_upload' },
