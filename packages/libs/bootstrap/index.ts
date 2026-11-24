@@ -17,3 +17,9 @@ export {
   drainHttpApplication,
   registerGracefulDrain,
 } from './graceful-drain';
+export {
+  configureLoadBalancerKeepAlive,
+  HEADERS_TIMEOUT_MS,
+  KEEP_ALIVE_TIMEOUT_MS,
+  LOAD_BALANCER_IDLE_TIMEOUT_MS,
+} from './http-keep-alive';

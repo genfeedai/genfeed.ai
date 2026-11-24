@@ -1,5 +1,6 @@
 import {
   bootstrap,
+  configureLoadBalancerKeepAlive,
   setupGracefulShutdown,
   setupServiceShell,
 } from '@libs/bootstrap';
@@ -184,6 +185,9 @@ async function main(): Promise<void> {
 
   app.setGlobalPrefix('v1');
 
+  // Outlast the load balancer's 60 s idle timeout, or a reused connection
+  // that Node just dropped comes back as a 502.
+  configureLoadBalancerKeepAlive(app.getHttpServer());
   await app.listen(port);
 
   logger.debug(`MCP service is running on port ${port}`);

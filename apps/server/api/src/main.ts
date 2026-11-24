@@ -5,7 +5,11 @@ import {
 } from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import './instrument';
 
-import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
+import {
+  bootstrap,
+  configureLoadBalancerKeepAlive,
+  setupGracefulShutdown,
+} from '@libs/bootstrap';
 
 bootstrap({ app: 'api' });
 
@@ -500,6 +504,10 @@ async function main() {
         return rows.map((row) => row.column_name);
       },
     });
+
+    // The load balancer idles a connection for 60 s; Node's own 5 s would drop
+    // it first and turn a reused connection into a 502 the API never sees.
+    configureLoadBalancerKeepAlive(app.getHttpServer());
 
     bootstrapLogger.log(`API bootstrap: starting listener on port ${port}`);
     await withStartupTimeout(
