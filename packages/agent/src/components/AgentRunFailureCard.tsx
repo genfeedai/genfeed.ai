@@ -91,8 +91,8 @@ export function AgentRunFailureCard({
           </div>
           <div className="flex shrink-0 items-start gap-1.5">
             <CopyButton
-              copiedLabel="Error copied"
-              label="Copy error"
+              copiedLabel={translate('errorCopied')}
+              label={translate('copyError')}
               value={() => buildAgentRunFailureCopyText(error)}
               variant={ButtonVariant.DESTRUCTIVE}
             />
@@ -119,7 +119,7 @@ export function AgentRunFailureCard({
                 className="shrink-0 self-start"
                 icon={<RefreshCw className="size-3.5" />}
               >
-                Retry
+                {translate('retry')}
               </Button>
             ) : null}
           </div>

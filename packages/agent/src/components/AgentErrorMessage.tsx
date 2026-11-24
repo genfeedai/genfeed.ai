@@ -3,6 +3,7 @@
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { CopyButton } from '@ui/buttons/CopyButton';
 import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 import { buildAgentRunFailureCopyText } from './AgentRunFailureCard';
 
@@ -15,6 +16,7 @@ export function AgentErrorMessage({
   className,
   message,
 }: AgentErrorMessageProps): ReactElement {
+  const translate = useTranslations('agent.errorMessage');
   const formatted = useMemo(() => formatAgentError(message), [message]);
   const displayMessage = useMemo(() => {
     const parts = [formatted.title, formatted.summary];
@@ -34,8 +36,8 @@ export function AgentErrorMessage({
       </AlertDescription>
       <AlertActions>
         <CopyButton
-          copiedLabel="Error copied"
-          label="Copy error"
+          copiedLabel={translate('errorCopied')}
+          label={translate('copyError')}
           value={() => buildAgentRunFailureCopyText(message)}
         />
       </AlertActions>
