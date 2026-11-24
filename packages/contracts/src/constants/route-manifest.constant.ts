@@ -1143,7 +1143,12 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
         isAgentOutput: true,
       },
       { path: '/clipper/:projectId', title: 'Project', isAgentOutput: true },
-      { path: '/playground', title: 'Canvas', help: 'studioPlayground' },
+      {
+        path: '/playground',
+        title: 'Canvas',
+        help: 'studioPlayground',
+        isAgentOutput: true,
+      },
       { path: '/motion', title: 'Projects', isAgentOutput: true },
       { path: '/motion/:projectId', title: 'Project', isAgentOutput: true },
       {

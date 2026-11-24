@@ -88,6 +88,7 @@
       "softwareLead": "One line on the search, one line on being chosen. No product object."
     }
   },
+  "results": "Results",
   "start": {
     "description": "Pick an idea below or write your own prompt.",
     "title": "Start creating"
