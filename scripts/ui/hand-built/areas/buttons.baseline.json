@@ -365,12 +365,6 @@
     "packages/workflows/src/ui/canvas/GroupOverlay.tsx": {
       "button-restyle": 1
     },
-    "packages/workflows/src/ui/canvas/NodeSearch.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/components/GlobalImageHistory.tsx": {
-      "button-restyle": 2
-    },
     "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
       "button-restyle": 2
     },
@@ -387,12 +381,6 @@
       "button-restyle": 1
     },
     "packages/workflows/src/ui/panels/NodeCatalog.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/toolbar/BottomBar.tsx": {
-      "button-restyle": 2
-    },
-    "packages/workflows/src/ui/ui/grid-position-selector.tsx": {
       "button-restyle": 1
     }
   },

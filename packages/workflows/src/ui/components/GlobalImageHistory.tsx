@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { SimpleTooltip } from '@genfeedai/ui/primitives/tooltip';
 import { Clock3, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -39,31 +40,32 @@ function FanItem({
   const delay = index * 30;
 
   return (
-    <Button
-      withWrapper={false}
-      variant={ButtonVariant.GHOST}
-      draggable
-      onDragStart={(e) => onDragStart(e, item)}
-      className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-ambient-md cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
-      style={
-        {
-          '--fan-x': `${x}px`,
-          '--fan-y': `${y}px`,
-          animationDelay: `${delay}ms`,
-          zIndex: 10 - index,
-        } as React.CSSProperties
-      }
-      title={`${formatElapsedTime(item.timestamp, 'ago')}\n${item.prompt?.substring(0, 50) || ''}...`}
+    <SimpleTooltip
+      label={`${formatElapsedTime(item.timestamp, 'ago')}\n${item.prompt?.substring(0, 50) || ''}...`}
     >
-      <Image
-        src={item.image}
-        alt={`History ${index + 1}`}
-        fill
-        unoptimized
-        sizes="56px"
-        className="object-cover pointer-events-none"
-      />
-    </Button>
+      <div
+        draggable
+        onDragStart={(e) => onDragStart(e, item)}
+        className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-ambient-md cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group"
+        style={
+          {
+            '--fan-x': `${x}px`,
+            '--fan-y': `${y}px`,
+            animationDelay: `${delay}ms`,
+            zIndex: 10 - index,
+          } as React.CSSProperties
+        }
+      >
+        <Image
+          src={item.image}
+          alt={`History ${index + 1}`}
+          fill
+          unoptimized
+          sizes="56px"
+          className="object-cover pointer-events-none"
+        />
+      </div>
+    </SimpleTooltip>
   );
 }
 
@@ -154,14 +156,11 @@ function HistorySidebar({
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {history.map((item, index) => (
-          <Button
-            withWrapper={false}
+          <div
             key={item.id}
-            type="button"
-            variant={ButtonVariant.GHOST}
             draggable
             onDragStart={(e) => onDragStart(e, item)}
-            className="flex h-auto w-full justify-start gap-3 p-2 hover:bg-muted cursor-grab active:cursor-grabbing group transition-colors"
+            className="flex w-full items-center gap-3 p-2 hover:bg-muted cursor-grab active:cursor-grabbing group transition-colors"
           >
             <div className="relative size-14 rounded overflow-hidden shrink-0 border border-border group-hover:border-border-strong transition-colors">
               <Image
@@ -182,7 +181,7 @@ function HistorySidebar({
                 {item.model ? ` · ${item.model}` : ''}
               </p>
             </div>
-          </Button>
+          </div>
         ))}
       </div>
 
