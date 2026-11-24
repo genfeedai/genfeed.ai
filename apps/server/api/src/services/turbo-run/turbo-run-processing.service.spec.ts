@@ -538,6 +538,7 @@ describe('TurboRunProcessingService resume', () => {
     harnessProfiles = {
       getActiveForBrand: vi.fn().mockResolvedValue({
         avoidFeedback: [{ content: 'a' }, { content: 'b' }],
+        examples: { good: ['c'] },
         goodFeedback: [{ content: 'c' }],
       }),
     };
@@ -671,21 +672,19 @@ describe('TurboRunProcessingService resume', () => {
     expect(config.resumeCount).toBe(2);
   });
 
-  it('records the review feedback the brand held when the batch was generated', async () => {
+  it('records the approvals the brand held when the batch was generated', async () => {
     await service.processTurboRun('run-1', 'org-1');
 
     const finalUpdate = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0];
     const config = finalUpdate?.data?.config as {
-      learningSignals?: { approvalCount: number; rejectionCount: number };
+      learningSignals?: { approvalCount: number };
     };
     expect(harnessProfiles.getActiveForBrand).toHaveBeenCalledWith(
       'org-1',
       'brand-1',
     );
-    expect(config.learningSignals).toEqual({
-      approvalCount: 1,
-      rejectionCount: 2,
-    });
+    // The two rejections are audit-only, so the receipt counts the approval alone.
+    expect(config.learningSignals).toEqual({ approvalCount: 1 });
   });
 
   it('still generates when the profile read fails', async () => {

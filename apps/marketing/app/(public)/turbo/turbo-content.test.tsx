@@ -13,8 +13,8 @@ const COPY = [
   'Turbo drafts on-brand images, video and captions, ready to review.',
   'Swipe to approve',
   "Keep what fits, skip what doesn't, schedule the rest.",
-  'Every draft waits for your approval. Reject one and tell us why; the next batch learns from it.',
-  'Turbo learns from what you approve and what performs, so each batch fits your brand better.',
+  'Every draft waits for your approval. Reject one and tell us why; we keep your reason with it.',
+  'Drafts you approve become examples for your next batches, and once you have published posts, the ones that perform guide them too.',
   'Do I need a credit card?',
   'No. Create your account and your first posts come with it.',
   'What if my website says little about my business?',
@@ -37,7 +37,7 @@ describe('TurboContent', () => {
     for (const title of [
       'How it works',
       'Nothing posts without you',
-      'Gets sharper every batch',
+      'Learns from what you approve',
       'Frequently asked questions',
       'Ready when you are',
     ]) {
