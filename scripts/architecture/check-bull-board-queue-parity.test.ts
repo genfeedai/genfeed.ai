@@ -27,6 +27,17 @@ describe('check-bull-board-queue-parity', () => {
     expect(result.auxiliaryQueueNames).toEqual(['file-processing']);
   });
 
+  it('accepts main.ts passing the canonical list to the lazy router', () => {
+    const result = runCheckBullBoardQueueParity({
+      configSource: canonicalConfig,
+      contractQueueNames: ['default'],
+      mainSource:
+        'createLazyBullBoardRouter({ basePath, connection, queueNames: BULL_BOARD_QUEUE_NAMES });',
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
   it('rejects a second hand-maintained monitored list', () => {
     const result = runCheckBullBoardQueueParity({
       configSource: canonicalConfig.replace(

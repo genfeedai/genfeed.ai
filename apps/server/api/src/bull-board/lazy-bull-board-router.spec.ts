@@ -93,11 +93,12 @@ describe('createLazyBullBoardRouter', () => {
   it('passes a failed build to next and tries again on the next request', async () => {
     const handler = create();
     board.failNextBuild = true;
-    const next = vi.fn<NextFunction>();
+    const nextSpy = vi.fn<(error?: unknown) => void>();
+    const next = nextSpy as unknown as NextFunction;
 
     handler(request('/'), {} as Response, next);
-    await vi.waitFor(() => expect(next).toHaveBeenCalledOnce());
-    expect(next.mock.calls[0][0]).toEqual(new Error('redis not reachable'));
+    await vi.waitFor(() => expect(nextSpy).toHaveBeenCalledOnce());
+    expect(nextSpy.mock.calls[0][0]).toEqual(new Error('redis not reachable'));
 
     handler(request('/'), {} as Response, next);
     await vi.waitFor(() => expect(board.handled).toHaveLength(1));
