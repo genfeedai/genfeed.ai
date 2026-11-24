@@ -354,6 +354,17 @@ export interface PVideoInput extends BaseVideoInput {
   audio?: string;
 }
 
+/** PrunaAI P-Video 2 Pro (text/image → video), billed by mode and resolution */
+export interface PVideo2ProInput extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  image?: string;
+  mode: 'cost' | 'quality' | 'speed';
+  prompt_upsampler: 'max' | 'off' | 'turbo';
+  resolution: string;
+  seed?: number;
+}
+
 /** Kwaivgi Kling V3 Video */
 export interface KlingV3VideoInput extends BaseVideoInput {
   aspect_ratio: string;
@@ -548,6 +559,7 @@ export type ReplicateVideoInput =
   | KlingMasterInput
   | KlingV16ProInput
   | PVideoInput
+  | PVideo2ProInput
   | KlingV3VideoInput
   | KlingV4VideoInput
   | KlingV3OmniVideoInput

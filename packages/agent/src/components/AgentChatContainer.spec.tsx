@@ -13,7 +13,6 @@ import {
   IDLE_RUN,
   runKeyFor,
 } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,
@@ -344,7 +343,6 @@ type StoreState = {
   setPendingInputRequest: ReturnType<typeof vi.fn>;
   clearStaleActiveRun: ReturnType<typeof vi.fn>;
   markStreamLive: ReturnType<typeof vi.fn>;
-  draftAgentMode: AgentThreadMode;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
   latestProposedPlan: null | {
@@ -376,7 +374,6 @@ type StoreState = {
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveRunStatus: ReturnType<typeof vi.fn>;
   setCreditsRemaining: ReturnType<typeof vi.fn>;
-  setDraftAgentMode: ReturnType<typeof vi.fn>;
   seedComposer: ReturnType<typeof vi.fn>;
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
@@ -423,7 +420,6 @@ const storeState: StoreState = {
   clearStaleActiveRun: vi.fn(),
   markStreamLive: vi.fn(),
   conversationCacheByThread: {},
-  draftAgentMode: AgentThreadMode.MANUAL,
   draftRuntimeKey: null,
   error: null,
   hasMoreMessages: false,
@@ -461,9 +457,6 @@ const storeState: StoreState = {
   setActiveRunStatus: vi.fn(),
   setActiveThread: vi.fn(),
   setCreditsRemaining: vi.fn(),
-  setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
-    storeState.draftAgentMode = mode;
-  }),
   setDraftRuntimeKey: vi.fn(),
   seedComposer: vi.fn(),
   setError: vi.fn(),
@@ -589,7 +582,6 @@ describe('AgentChatContainer', () => {
     storeState.setActiveRun.mockReset();
     storeState.setActiveRunStatus.mockReset();
     storeState.setCreditsRemaining.mockReset();
-    storeState.setDraftAgentMode.mockReset();
     storeState.seedComposer.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
@@ -601,7 +593,6 @@ describe('AgentChatContainer', () => {
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
-    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.error = null;
     storeState.hasMoreMessages = false;
     storeState.isLoadingOlderMessages = false;
@@ -1969,7 +1960,6 @@ describe('AgentChatContainer', () => {
       'Review this selected asset',
       {
         attachments: undefined,
-        agentMode: AgentThreadMode.MANUAL,
         artifactReferences: [reference],
         brandId: 'brand-1',
       },
@@ -1999,7 +1989,6 @@ describe('AgentChatContainer', () => {
 
     expect(sendNonStreaming).toHaveBeenCalledWith('Review the current branch', {
       attachments: undefined,
-      agentMode: AgentThreadMode.MANUAL,
     });
   });
 
@@ -2468,7 +2457,7 @@ describe('AgentChatContainer', () => {
     await waitFor(() => {
       expect(sendNonStreaming).toHaveBeenCalledWith(
         'Original prompt',
-        expect.objectContaining({ agentMode: AgentThreadMode.MANUAL }),
+        expect.not.objectContaining({ agentMode: expect.anything() }),
       );
     });
     await waitFor(() => {
@@ -2507,7 +2496,6 @@ describe('AgentChatContainer', () => {
       'Use plan mode in this thread',
       {
         attachments: undefined,
-        agentMode: AgentThreadMode.MANUAL,
       },
     );
   });
@@ -2593,7 +2581,7 @@ describe('AgentChatContainer', () => {
     await waitFor(() =>
       expect(sendNonStreaming).toHaveBeenCalledWith(
         'Continue with this plan',
-        expect.objectContaining({ agentMode: AgentThreadMode.MANUAL }),
+        expect.not.objectContaining({ agentMode: expect.anything() }),
       ),
     );
     expect(apiService.respondToUiAction).not.toHaveBeenCalled();

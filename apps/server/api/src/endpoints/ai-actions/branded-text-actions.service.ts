@@ -50,6 +50,7 @@ export class BrandedTextActionsService {
       capability.platform === CredentialPlatform.TWITTER;
     const maxCharacters = resolveTextActionLimit({
       channelLimit: capability.caption.maxLength ?? DEFAULT_CHANNEL_LIMIT,
+      extendedChannelLimit: capability.caption.extendedMaxLength,
       mode: request.mode,
       source: request.text,
       usesWeightedCharacters,

@@ -230,6 +230,31 @@ describe('reviewed rate sheet', () => {
     },
   );
 
+  it.each([
+    // [endpoint, width, height, expected provider USD]
+    ['microsoft/mai-image-2.7/text-to-image', 1024, 1024, 0.037557],
+    ['microsoft/mai-image-2.7/text-to-image', 768, 1360, 0.037557],
+    ['microsoft/mai-image-2.7/text-to-image', 2048, 2048, 0.147029],
+    ['microsoft/mai-image-2.7/edit', 1024, 1024, 0.053957],
+    ['microsoft/mai-image-2.7/flash/text-to-image', 1024, 1024, 0.011102],
+    ['microsoft/mai-image-2.7/flash/edit', 1024, 1024, 0.016252],
+    ['microsoft/mai-image-2.7/flash/edit', 2048, 2048, 0.04845],
+  ])(
+    'prices fal %s at %sx%s for $%s: output per megapixel from a 1.05 MP floor plus the allowance',
+    (endpoint, width, height, expected) => {
+      const entry = findReviewedRateSheetEntry('fal', endpoint);
+      if (!entry) throw new Error(`missing fal entry for ${endpoint}`);
+      const quote = quoteModelBillablePricing(
+        profileFor(entry),
+        { height, modelKey: entry.endpoint, provider: 'fal', width },
+        1,
+        entry.verifiedAt,
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      expect(quote.snapshot.providerCostUsd).toBeCloseTo(expected, 6);
+    },
+  );
+
   it('never lists a model as both priced and unpriced', () => {
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES)
       expect(UNPRICED_MODELS[entry.endpoint], entry.endpoint).toBeUndefined();

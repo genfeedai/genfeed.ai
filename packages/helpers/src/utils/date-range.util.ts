@@ -39,18 +39,20 @@ export function getDateRangeKeys(dateRange: DateRangeInput): {
 }
 
 /**
- * The `days` UTC days ending yesterday, each at UTC midnight. The API reads days
+ * The `days` UTC days ending yesterday (or today with `includeToday`), each at
+ * UTC midnight. The API reads days
  * by their UTC date, so the range is counted in UTC days: counting in local days
  * across a daylight-saving change would add or drop a UTC day.
  */
 export function getTrailingUtcDays(
   days: number,
   now: Date = new Date(),
+  { includeToday = false }: { includeToday?: boolean } = {},
 ): { endDate: Date; startDate: Date } {
   const endTime = Date.UTC(
     now.getUTCFullYear(),
     now.getUTCMonth(),
-    now.getUTCDate() - 1,
+    now.getUTCDate() - (includeToday ? 0 : 1),
   );
 
   return {

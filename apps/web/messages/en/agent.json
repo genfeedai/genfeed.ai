@@ -141,22 +141,6 @@
     "referenceLibrary": "Reference library content",
     "selected": "Selected"
   },
-  "modeDropdown": {
-    "auto": {
-      "description": "Works on its own. Still asks before anything is posted or sent.",
-      "label": "Auto"
-    },
-    "manual": {
-      "description": "Also asks before spending credits or changing brand context.",
-      "label": "Manual"
-    },
-    "plan": {
-      "description": "Drafts a plan first, then runs it once you approve.",
-      "label": "Plan"
-    },
-    "title": "Agent mode",
-    "triggerAria": "Agent mode: {mode}"
-  },
   "generationActionCard": {
     "acceptFullRun": "Accept full run",
     "acceptFullRunAria": "Accept the pilot and generate the full-length video",

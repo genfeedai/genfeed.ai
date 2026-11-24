@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { buildAgentMessageBrandWhere } from '@api/collections/agent-messages/utils/agent-message-brand.util';
 import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
-import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
@@ -43,7 +42,7 @@ import {
 import { AgentScopeContextService } from '@api/index';
 import { setRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
@@ -137,23 +136,6 @@ export class AgentThreadsController {
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }
-  }
-
-  @Patch('mode')
-  @ApiOperation({
-    summary:
-      'Save the agent mode and optionally update the active thread atomically',
-  })
-  async updateAgentMode(
-    @Body() body: UpdateAgentModeDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.agentThreadsService.updateAgentMode(
-      await this.resolveDatabaseUserId(user),
-      this.resolveOrganizationId(user),
-      body.mode,
-      body.threadId,
-    );
   }
 
   @Get(':threadId/messages')
@@ -427,12 +409,6 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      if (
-        body.mode !== undefined &&
-        !Object.values(AgentThreadMode).includes(body.mode)
-      ) {
-        throw new BadRequestException('Invalid agent mode.');
-      }
       const owned = await this.agentThreadsService.findOne({
         id: threadId,
         organizationId,

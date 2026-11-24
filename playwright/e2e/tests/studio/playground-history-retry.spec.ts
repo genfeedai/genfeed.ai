@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { test as base, expect } from '../../fixtures/auth.fixture';
+import { showAgentPane, showOutputPane } from '../../utils/agent-output-layout';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const test = base.extend<{ browserErrors: string[] }>({
@@ -141,6 +142,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
         waitUntil: 'domcontentloaded',
       });
+      // Below `xl` the prompt shows first; the history alert is in the results.
+      await showOutputPane(page);
       const alert = page
         .getByRole('alert')
         .filter({ hasText: 'Generation history couldn’t load' });
@@ -151,7 +154,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const composer = page
         .getByTestId('studio-playground-prompt')
         .getByRole('textbox');
+      // The prompt is in the other pane below `xl`: look, then come back.
+      await showAgentPane(page);
       await expect(composer).toBeEnabled();
+      await showOutputPane(page);
       await expect(
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
       ).toHaveCount(0);
@@ -240,6 +246,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         VIDEO: 2,
         VOICE: 2,
       });
+      await showAgentPane(page);
       await expect(composer).toBeEnabled();
       await composer.fill('Composer remains usable after history recovery');
       await expect(composer).toHaveText(

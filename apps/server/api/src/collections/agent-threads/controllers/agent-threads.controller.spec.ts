@@ -52,7 +52,6 @@ describe('AgentThreadsController', () => {
     findOne: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     resolveSavedMode: ReturnType<typeof vi.fn>;
-    updateAgentMode: ReturnType<typeof vi.fn>;
     updateThreadMetadata: ReturnType<typeof vi.fn>;
   };
   let messagesService: {
@@ -92,7 +91,6 @@ describe('AgentThreadsController', () => {
       archiveThread: vi.fn(),
       create: vi.fn(),
       resolveSavedMode: vi.fn().mockResolvedValue('manual'),
-      updateAgentMode: vi.fn().mockResolvedValue({ mode: 'auto' }),
       updateThreadMetadata: vi.fn().mockResolvedValue({ id: 'thread' }),
       findOne: vi.fn(),
       getUserThreads: vi.fn(),
@@ -739,37 +737,13 @@ describe('AgentThreadsController', () => {
   });
 
   describe('updateThreadContext', () => {
-    it('routes the mode command with authenticated canonical identity', async () => {
-      const res590 = await controller.updateAgentMode(
-        { mode: 'auto' as never, threadId: 'thread' },
-        mockUser,
-      );
-      expect(res590).toEqual({ mode: 'auto' });
-      expect(service.updateAgentMode).toHaveBeenCalledWith(
-        mockUserId,
-        'org_current',
-        'auto',
-        'thread',
-      );
-    });
-    it('rejects invalid generic metadata mode before persistence', async () => {
-      await expect(
-        controller.updateThread(
-          {} as never,
-          'thread',
-          { mode: 'broken' as never },
-          mockUser,
-        ),
-      ).rejects.toThrow();
-      expect(service.updateThreadMetadata).not.toHaveBeenCalled();
-    });
     it('requires ownership for generic metadata patches', async () => {
       service.findOne.mockResolvedValue(null);
       await expect(
         controller.updateThread(
           {} as never,
           'foreign',
-          { mode: 'auto' as never },
+          { title: 'Renamed' },
           mockUser,
         ),
       ).rejects.toBeInstanceOf(NotFoundException);

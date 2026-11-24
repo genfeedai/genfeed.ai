@@ -263,6 +263,8 @@ export interface StudioPlaygroundStarterCharacterCandidate
 export interface StudioPlaygroundEmptyStateProps {
   brandId?: string;
   character?: StudioPlaygroundStarterCharacter;
+  /** Lays out in the flow of the pane, above a prompt bar of its own height. */
+  isInFlow?: boolean;
   isDisabled?: boolean;
   offeringKind?: 'physical' | 'service' | 'software' | 'unknown';
   onSelect: (selection: StudioPlaygroundStarterSelection) => void;

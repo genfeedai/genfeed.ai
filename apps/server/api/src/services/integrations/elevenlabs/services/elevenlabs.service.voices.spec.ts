@@ -139,7 +139,13 @@ describe('ElevenLabsService', () => {
     it('should call ElevenLabs TTS with correct params', async () => {
       ttsConvertMock.mockResolvedValue({ audio: [] });
 
-      await service.textToSpeech('voice1', 'Hello world');
+      await service.textToSpeech(
+        'voice1',
+        'Hello world',
+        undefined,
+        undefined,
+        'customer-key',
+      );
       expect(ttsConvertMock).toHaveBeenCalledWith('voice1', {
         modelId: 'eleven_monolingual_v1',
         outputFormat: 'mp3_44100_128',
@@ -164,6 +170,7 @@ describe('ElevenLabsService', () => {
         'ingredient-123',
         'org-123',
         'user-123',
+        'customer-key',
       );
 
       expect(result).toMatchObject({
@@ -198,6 +205,9 @@ describe('ElevenLabsService', () => {
         'voice1',
         'Text',
         'ing-1',
+        undefined,
+        undefined,
+        'customer-key',
       );
       expect(result.duration).toBe(10);
     });
@@ -213,7 +223,14 @@ describe('ElevenLabsService', () => {
       });
 
       await expect(
-        service.generateAndUploadAudio('voice1', 'Text', 'ing-1'),
+        service.generateAndUploadAudio(
+          'voice1',
+          'Text',
+          'ing-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrow('Failed to get public URL after upload');
     });
   });
@@ -229,6 +246,7 @@ describe('ElevenLabsService', () => {
         'My Voice',
         [Buffer.from('audio')],
         { description: 'Test voice', removeBackgroundNoise: true },
+        'customer-key',
       );
 
       expect(result).toEqual({
@@ -254,7 +272,12 @@ describe('ElevenLabsService', () => {
       voicesAddMock.mockRejectedValue(new Error('Clone limit reached'));
 
       await expect(
-        service.cloneVoice('Voice', [Buffer.from('audio')]),
+        service.cloneVoice(
+          'Voice',
+          [Buffer.from('audio')],
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrow('Clone limit reached');
     });
   });
@@ -263,16 +286,16 @@ describe('ElevenLabsService', () => {
     it('should delete a voice by ID', async () => {
       voicesDeleteMock.mockResolvedValue(undefined);
 
-      await service.deleteVoice('voice_123');
+      await service.deleteVoice('voice_123', 'customer-key');
       expect(voicesDeleteMock).toHaveBeenCalledWith('voice_123');
     });
 
     it('should propagate delete errors', async () => {
       voicesDeleteMock.mockRejectedValue(new Error('Voice not found'));
 
-      await expect(service.deleteVoice('invalid')).rejects.toThrow(
-        'Voice not found',
-      );
+      await expect(
+        service.deleteVoice('invalid', 'customer-key'),
+      ).rejects.toThrow('Voice not found');
     });
   });
 
@@ -291,6 +314,9 @@ describe('ElevenLabsService', () => {
       const srt = await service.forcedAlignment(
         '/tmp/audio.mp3',
         'hello world',
+        undefined,
+        undefined,
+        'customer-key',
       );
 
       expect(forcedAlignmentMock).toHaveBeenCalledWith({
@@ -306,7 +332,13 @@ describe('ElevenLabsService', () => {
       forcedAlignmentMock.mockRejectedValue(new Error('Alignment failed'));
 
       await expect(
-        service.forcedAlignment('/tmp/audio.mp3', 'text'),
+        service.forcedAlignment(
+          '/tmp/audio.mp3',
+          'text',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrow('Alignment failed');
     });
   });

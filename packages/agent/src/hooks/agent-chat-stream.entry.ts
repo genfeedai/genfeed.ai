@@ -62,10 +62,7 @@ import {
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { isMutationApprovalReplacement } from '@genfeedai/agent/utils/is-mutation-approval-replacement.util';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
-import {
-  type AgentThreadMode,
-  isTerminalAgentThreadRunStatus,
-} from '@genfeedai/contracts';
+import { isTerminalAgentThreadRunStatus } from '@genfeedai/contracts';
 
 export type {
   SendStreamMessageOptions,
@@ -264,7 +261,6 @@ export function createAgentStreamController(
     content: string,
     existingThreadTitle?: string,
     createdAt?: string,
-    mode?: AgentThreadMode,
     contextVersion?: number,
     brandId?: string | null,
   ) => {
@@ -273,7 +269,6 @@ export function createAgentStreamController(
       brandId,
       contextVersion,
       createdAt,
-      mode,
       setActiveThread,
       threadId,
       title: existingThreadTitle || content.slice(0, 60),
@@ -671,7 +666,6 @@ export function createAgentStreamController(
         content,
         existingThread?.title,
         existingThread?.createdAt,
-        existingThread?.mode ?? sendOptions?.agentMode,
         response.contextVersion,
         response.brandId,
       );

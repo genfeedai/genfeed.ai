@@ -98,12 +98,14 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
     // kie model page (read 2026-11-23): "Wan3.0 Video is billed per second: 8
     // credits per second at 480P ($0.04), 16 at 720P ($0.08) and 32 at 1080P
-    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20. Reference
-    // videos are billed extra, so the offer adapter never sends reference media.
+    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20; read again
+    // 2026-11-24, unchanged. That is now 14% over Replicate's $0.035 / $0.07 /
+    // $0.14, so this offer never wins a quote. Reference videos are billed
+    // extra, so the offer adapter never sends reference media.
     provider: 'kie',
     endpoint: 'wan/3-0-video',
     sourceUrl: 'https://kie.ai/wan3.0-video',
-    verifiedAt: '2026-11-23',
+    verifiedAt: '2026-11-24',
     rates: [
       {
         component: 'output',
@@ -951,20 +953,47 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:33.916Z',
   },
   {
-    endpoint: 'google/gemini-omni-flash',
+    // fal model page (read 2026-11-24), per second of output video with native
+    // audio: $0.0273 at 360p, $0.0819 at 720p, $0.1229 at 1080p, $0.2457 at
+    // 4K, the same on the text, image and reference endpoints. fal adds $1.50
+    // per 1M input tokens (reference images and videos count), which dispatch
+    // cannot meter, so it is not in the rate: it is under 3% of a 10 s 720p
+    // clip even with three reference videos.
+    endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
     provider: 'fal',
     rates: [
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.13,
-        when: {},
+        unitPriceUsd: 0.0273,
+        when: { resolution: '360p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0819,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1229,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2457,
+        when: { resolution: '4k' },
         isPerOutput: true,
       },
     ],
     sourceUrl:
-      'https://fal.ai/models/google/gemini-omni-flash/reference-to-video',
-    verifiedAt: '2026-10-06T21:45:00.000Z',
+      'https://fal.ai/models/google/gemini-omni-flash/v1.2/text-to-video',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'google/imagen-3',
@@ -2231,6 +2260,46 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T21:45:00.000Z',
   },
   {
+    // fal model page (read 2026-11-24), regular price: $0.02 per second at 480p
+    // and 768p, $0.06 at 1080p and 2K. The page still carries a 50% promotion
+    // that ended 2026-10-31. Text, image and reference endpoints bill alike;
+    // the dispatch adapter picks the endpoint from the media given.
+    endpoint: 'heygen/heygen-video/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { resolution: '768p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: { resolution: '2k' },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/heygen/heygen-video/text-to-video',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
+  },
+  {
     endpoint: 'minimax/h3-max/text-to-video',
     provider: 'fal',
     rates: [
@@ -2766,6 +2835,9 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-27T18:33:12.195Z',
   },
   {
+    // Replicate billing tiers (read 2026-11-24), per second of output video. The
+    // 1080p tiers are 768p generation plus an upscale; 2K and 4K are listed on
+    // the page but not offered, so they have no rate here.
     endpoint: 'prunaai/p-video-2-pro',
     provider: 'replicate',
     rates: [
@@ -2829,6 +2901,36 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         },
         isPerOutput: true,
       },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.045,
+        when: {
+          model_variant: 'cost',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.055,
+        when: {
+          model_variant: 'speed',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.095,
+        when: {
+          model_variant: 'quality',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
     ],
     variantRules: [
       {
@@ -2848,7 +2950,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/prunaai/p-video-2-pro',
-    verifiedAt: '2026-10-27T18:33:10.964Z',
+    verifiedAt: '2026-11-24T11:40:00.000Z',
   },
   {
     endpoint: 'qwen/qwen-image',
@@ -3107,31 +3209,33 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
     endpoint: 'alibaba/wan-3',
     provider: 'replicate',
+    // Replicate billing tiers (read 2026-11-24): $0.035 / $0.07 / $0.14 per
+    // second of output video at 480p / 720p / 1080p. No promotion on the page.
     rates: [
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.05,
+        unitPriceUsd: 0.035,
         when: { resolution: '480p' },
         isPerOutput: true,
       },
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.1,
+        unitPriceUsd: 0.07,
         when: { resolution: '720p' },
         isPerOutput: true,
       },
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.2,
+        unitPriceUsd: 0.14,
         when: { resolution: '1080p' },
         isPerOutput: true,
       },
     ],
     sourceUrl: 'https://replicate.com/alibaba/wan-3',
-    verifiedAt: '2026-10-29T12:50:00.000Z',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'kwaivgi/kling-v4.0',
@@ -4168,6 +4272,117 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     sourceUrl:
       'https://fal.ai/models/openai/gpt-image-2.6/sunburst/text-to-image',
     verifiedAt: '2026-11-05T00:30:00.000Z',
+  },
+  {
+    // fal bills tokens, not images (page read 2026-11-24): $5 per 1M text input
+    // tokens and $34 per 1M image output tokens; a 1024x1024 output is 1,024
+    // image tokens ($0.034816), so output is $0.034816 per megapixel, billed
+    // from a 1.05 MP floor because the adapter lifts any side under fal's 768 px
+    // minimum (a 9:16 request of 576x1024 is sent as 768x1365, 1.048 MP).
+    // `prompt` allows 200 text tokens ($0.001); fal rounds the request up to
+    // $0.0001.
+    endpoint: 'microsoft/mai-image-2.7/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.034816,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'prompt',
+        unit: 'request',
+        unitPriceUsd: 0.001,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/microsoft/mai-image-2.7/text-to-image',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
+    // fal bills tokens (page read 2026-11-24): $5 per 1M text input, $8 per 1M
+    // image input and $34 per 1M image output tokens. Output is $0.034816 per
+    // megapixel from a 1.05 MP floor (see the text endpoint). `inputs` is a flat
+    // allowance for 200 text tokens and two 1 MP source images (2,048 tokens,
+    // $0.016384): $0.0174. Dispatch cannot meter source sizes, so a larger set
+    // of sources costs fal more than this; five 1 MP sources add $0.025.
+    endpoint: 'microsoft/mai-image-2.7/edit',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.034816,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'inputs',
+        unit: 'request',
+        unitPriceUsd: 0.0174,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/microsoft/mai-image-2.7/edit',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
+    // fal bills tokens (page read 2026-11-24): $1.75 per 1M text input and $10
+    // per 1M image output tokens. Output is $0.01024 per megapixel from a 1.05
+    // MP floor (the adapter lifts any side under fal's 768 px minimum).
+    // `prompt` allows 200 text tokens ($0.00035).
+    endpoint: 'microsoft/mai-image-2.7/flash/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.01024,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'prompt',
+        unit: 'request',
+        unitPriceUsd: 0.00035,
+        when: {},
+      },
+    ],
+    sourceUrl:
+      'https://fal.ai/models/microsoft/mai-image-2.7/flash/text-to-image',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
+  },
+  {
+    // fal bills tokens (page read 2026-11-24): $1.75 per 1M text input, $2.50
+    // per 1M image input and $10 per 1M image output tokens. Output is $0.01024
+    // per megapixel from a 1.05 MP floor. `inputs` is a flat allowance for 200
+    // text tokens and two 1 MP source images (2,048 tokens, $0.00512): $0.0055.
+    // Five 1 MP sources add $0.0077 over it.
+    endpoint: 'microsoft/mai-image-2.7/flash/edit',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.01024,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 1.05,
+      },
+      {
+        component: 'inputs',
+        unit: 'request',
+        unitPriceUsd: 0.0055,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/microsoft/mai-image-2.7/flash/edit',
+    verifiedAt: '2026-11-24T11:50:00.000Z',
   },
   {
     // fal's pricing API (GET /v1/models/pricing, 2026-11-04) and the model page

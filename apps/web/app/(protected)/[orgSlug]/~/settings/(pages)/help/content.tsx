@@ -52,44 +52,41 @@ function HelpResourceCard({ resource, selfHosted }: HelpResourceCardProps) {
   );
   const title = translate(`resources.${resource.id}.title`);
 
+  if (resource.url) {
+    return (
+      <LinkCard
+        href={resource.url}
+        icon={RESOURCE_ICONS[resource.id]}
+        title={title}
+        description={description}
+        className="h-full p-4 no-underline text-sm"
+        trailingIcon={
+          <>
+            <ExternalLink
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+            <Text className="sr-only">{translate('external')}</Text>
+          </>
+        }
+      />
+    );
+  }
+
   return (
-    <section
-      aria-labelledby={`help-${resource.id}`}
-      className="flex flex-col gap-3"
-    >
-      <Heading as="h2" id={`help-${resource.id}`} size="md">
+    <Card gap={CardGap.SM} className="h-full">
+      <Heading as="h2" size="sm">
         {title}
       </Heading>
-      {resource.url ? (
-        <LinkCard
-          href={resource.url}
-          icon={RESOURCE_ICONS[resource.id]}
-          title={title}
-          description={description}
-          className="h-full p-4 no-underline text-sm"
-          trailingIcon={
-            <>
-              <ExternalLink
-                aria-hidden="true"
-                className="size-4 shrink-0 text-muted-foreground"
-              />
-              <Text className="sr-only">{translate('external')}</Text>
-            </>
-          }
-        />
-      ) : (
-        <Card gap={CardGap.SM} className="h-full">
-          <Text as="p" size="sm">
-            {description}
-          </Text>
-          <Text as="p" size="sm" color="muted">
-            {selfHosted && resource.id === 'support'
-              ? translate('resources.support.unavailable')
-              : `${translate('unavailable')}. ${translate('unavailableGuidance')}`}
-          </Text>
-        </Card>
-      )}
-    </section>
+      <Text as="p" size="sm">
+        {description}
+      </Text>
+      <Text as="p" size="sm" color="muted">
+        {selfHosted && resource.id === 'support'
+          ? translate('resources.support.unavailable')
+          : `${translate('unavailable')}. ${translate('unavailableGuidance')}`}
+      </Text>
+    </Card>
   );
 }
 

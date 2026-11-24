@@ -35,6 +35,20 @@ export function getCaptionCeiling(caption: CaptionLimits): number {
   return caption.extendedMaxLength ?? caption.maxLength;
 }
 
+/**
+ * The length rule a model prompt gives for a caption, as a clause to follow
+ * "must". A channel with an extended ceiling names the standard length and
+ * allows a longer post only when the brief or the brand voice asks for one, so
+ * the ceiling never becomes the target.
+ */
+export function describeCaptionLengthRule(caption: CaptionLimits): string {
+  const ceiling = getCaptionCeiling(caption);
+  if (ceiling <= caption.maxLength) {
+    return `stay within ${caption.maxLength} characters`;
+  }
+  return `stay within ${caption.maxLength} characters unless the brief or the brand voice asks for a longer post (never more than ${ceiling} characters)`;
+}
+
 export function validateCaption(
   input: CaptionRuleInput,
   capability: CaptionRuleChannel,

@@ -113,16 +113,15 @@ export function CampaignControlCard({
                 <Button
                   key={cta.label}
                   size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
+                  variant={
+                    isDestructive
+                      ? ButtonVariant.DESTRUCTIVE
+                      : ButtonVariant.WARNING
+                  }
                   withWrapper={false}
                   onClick={() => {
                     void onUiAction?.(cta.action as string, cta.payload);
                   }}
-                  className={
-                    isDestructive
-                      ? 'bg-destructive/10 text-destructive hover:bg-destructive/10'
-                      : 'bg-warning/10 text-warning hover:bg-warning/10'
-                  }
                 >
                   {cta.label}
                 </Button>

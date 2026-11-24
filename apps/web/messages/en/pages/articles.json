@@ -16,13 +16,6 @@
   },
   "traffic": {
     "title": "Article traffic",
-    "periodLabel": "Traffic period",
-    "period": {
-      "7d": "7 days",
-      "30d": "30 days",
-      "90d": "90 days",
-      "all": "Since publication"
-    },
     "loading": "Loading website traffic…",
     "loadError": "Unable to load article traffic.",
     "retry": "Retry",

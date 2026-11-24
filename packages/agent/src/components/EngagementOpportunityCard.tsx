@@ -109,11 +109,11 @@ export function EngagementOpportunityCard({
 
       <div className="flex gap-2">
         <Button
-          variant={ButtonVariant.DEFAULT}
+          variant={ButtonVariant.SUCCESS}
           size={ButtonSize.SM}
           onClick={handleApprove}
           isDisabled={!reply.trim()}
-          className="flex-1 bg-success text-success-foreground hover:bg-success/90"
+          className="flex-1"
         >
           <Check className="size-3.5" />
           Approve
@@ -128,10 +128,10 @@ export function EngagementOpportunityCard({
           {isEditing ? 'Save' : 'Edit'}
         </Button>
         <Button
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={handleSkip}
-          className="flex-1 bg-muted hover:bg-muted/80"
+          className="flex-1"
         >
           <FastForward className="size-3.5" />
           Skip

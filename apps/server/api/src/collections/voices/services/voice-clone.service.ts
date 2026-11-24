@@ -3,10 +3,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import {
-  readSavedVoiceBinding,
-  savedVoiceProviderData,
-} from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
+import { savedVoiceProviderData } from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
 import { scopedWhere } from '@api/index';
 import {
   classifyElevenLabsFailure,
@@ -122,7 +119,6 @@ export class VoiceCloneService {
     const voiceRecord = voice as unknown as {
       id: string;
       externalVoiceId?: string;
-      providerData?: unknown;
       voiceProvider?: VoiceProvider;
     };
 
@@ -133,7 +129,6 @@ export class VoiceCloneService {
       await this.deleteRemoteElevenLabsVoice(
         user.organizationId,
         voiceRecord.externalVoiceId,
-        voiceRecord.providerData,
       );
     }
 
@@ -167,25 +162,14 @@ export class VoiceCloneService {
   }
 
   /**
-   * Deletes the remote clone through the account that created it. A clone
-   * bound to the personal connection fails explicitly when that connection is
-   * gone rather than reaching the platform account.
+   * Deletes the remote clone through the organization's own ElevenLabs
+   * account. It fails explicitly when that connection is gone.
    */
   private async deleteRemoteElevenLabsVoice(
     organizationId: string,
     externalVoiceId: string,
-    providerData: unknown,
   ): Promise<void> {
-    const binding = readSavedVoiceBinding(providerData);
-    const connection = binding
-      ? await this.connectionService.resolve(
-          organizationId,
-          binding.connection.kind,
-        )
-      : ((await this.connectionService.findPersonalConnection(
-          organizationId,
-        )) ??
-        (await this.connectionService.resolve(organizationId, 'platform')));
+    const connection = await this.connectionService.resolve(organizationId);
 
     try {
       await this.elevenLabsService.deleteVoice(

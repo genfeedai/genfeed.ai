@@ -962,7 +962,6 @@ const UI_TEST_MESSAGES = {
       promptEnhanced: 'Prompt enhanced',
       refresh: 'Refresh settings',
       requestOverride: 'This generation’s override',
-      settings: 'Prompt enhancement settings',
       sourcePreference: '{source} preference',
       submittedPrompt: 'Submitted prompt',
       systemDefault: 'System default',

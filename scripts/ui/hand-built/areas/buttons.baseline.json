@@ -61,13 +61,7 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/WorkflowExecutionCard.tsx": {
       "button-restyle": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/ClipperWorkspace.tsx": {
-      "button-restyle": 3
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperInputForm.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx": {
       "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperResultCard.tsx": {
@@ -77,11 +71,7 @@
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/edit/article/article-detail-header.tsx": {
-      "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/newsletter-editor.tsx": {
       "unstyled-look": 1
@@ -110,36 +100,12 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-conversation-sidebar.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewDecisionPanel.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewGrid.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewInboxBulkBar.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewLineagePanel.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewPostHoverPreview.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewQueueView.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewRewriteProgress.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/setup/content.tsx": {
-      "button-restyle": 8,
+      "button-restyle": 3,
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-comments-card.tsx": {
       "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sidebar.tsx": {
-      "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/sub-issue-row.tsx": {
       "unstyled-look": 1
@@ -147,17 +113,8 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-field.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-toolbar.tsx": {
-      "button-restyle": 2
     },
     "apps/web/app/(protected)/[orgSlug]/~/agent/journey/journey-page-content.tsx": {
       "button-restyle": 2
@@ -211,7 +168,7 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/folders/sidebar/FoldersSidebar.tsx": {
-      "button-restyle": 3
+      "button-restyle": 1
     },
     "apps/web/src/components/ingredients/inspector/IngredientPromptBlock.tsx": {
       "unstyled-look": 1
@@ -488,9 +445,6 @@
     "packages/agent/src/components/AgentCliTerminal.tsx": {
       "unstyled-look": 4
     },
-    "packages/agent/src/components/AgentCompletionSummaryCard.tsx": {
-      "button-restyle": 4
-    },
     "packages/agent/src/components/AgentComposerStatusStack.tsx": {
       "button-restyle": 1
     },
@@ -534,20 +488,11 @@
     "packages/agent/src/components/AgentThreadListRow.tsx": {
       "button-restyle": 1
     },
-    "packages/agent/src/components/AiTextActionCard.tsx": {
-      "button-restyle": 1
-    },
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/CampaignCard.tsx": {
-      "button-restyle": 1
-    },
     "packages/agent/src/components/CharacterMentionList.tsx": {
       "unstyled-look": 1
-    },
-    "packages/agent/src/components/ClipperRunCard.tsx": {
-      "button-restyle": 2
     },
     "packages/agent/src/components/ContentCalendarCard.tsx": {
       "unstyled-look": 1
@@ -555,17 +500,11 @@
     "packages/agent/src/components/CredentialMentionList.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/EngagementOpportunityCard.tsx": {
-      "button-restyle": 2
-    },
     "packages/agent/src/components/GenerationActionCanvas.tsx": {
       "unstyled-look": 2
     },
     "packages/agent/src/components/GenerationActionCardControls.tsx": {
       "button-restyle": 3
-    },
-    "packages/agent/src/components/GenerationActionCardQualityBadge.tsx": {
-      "button-restyle": 1
     },
     "packages/agent/src/components/IngredientAlternativesCard.tsx": {
       "button-restyle": 1
@@ -578,12 +517,6 @@
     },
     "packages/agent/src/components/MutationApprovalCard.tsx": {
       "button-restyle": 1
-    },
-    "packages/agent/src/components/PublishPostCard.tsx": {
-      "button-restyle": 1
-    },
-    "packages/agent/src/components/ReviewGateCard.tsx": {
-      "button-restyle": 3
     },
     "packages/agent/src/components/StudioReferenceMentionList.tsx": {
       "unstyled-look": 1
@@ -602,9 +535,6 @@
     },
     "packages/agent/src/components/WorkflowCreatedCard.tsx": {
       "unstyled-look": 1
-    },
-    "packages/agent/src/components/WorkflowExecuteCardStatusPanel.tsx": {
-      "button-restyle": 2
     },
     "packages/agent/src/workflow/components/AgentWorkflow.tsx": {
       "unstyled-look": 2
@@ -669,9 +599,6 @@
       "button-restyle": 4
     },
     "packages/workflows/src/ui/toolbar/CostIndicator.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/toolbar/Toolbar.tsx": {
       "button-restyle": 1
     },
     "packages/workflows/src/ui/ui/grid-position-selector.tsx": {

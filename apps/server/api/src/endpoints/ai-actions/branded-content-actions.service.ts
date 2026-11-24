@@ -9,7 +9,10 @@ import type {
 import { outputTokens } from '@api/endpoints/ai-actions/branded-text-output-tokens.util';
 import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
+import {
+  getCaptionCeiling,
+  getChannelCapability,
+} from '@genfeedai/contracts/api-types/contracts';
 import {
   buildSocialContentPrompt,
   buildThreadRepliesPrompt,
@@ -57,7 +60,13 @@ export class BrandedContentActionsService {
   ): Promise<BrandedPostsOutcomeV1> {
     const capability = getChannelCapability(request.platform);
     if (!capability) return UNSUPPORTED_PLATFORM;
-    const maxCharacters = capability.caption.maxLength ?? DEFAULT_CHANNEL_LIMIT;
+    const standardCharacters =
+      capability.caption.maxLength ?? DEFAULT_CHANNEL_LIMIT;
+    // A thread post stays at the standard length; a stand-alone post may use
+    // the channel's extended ceiling (X long posts).
+    const maxCharacters = request.isThread
+      ? standardCharacters
+      : Math.max(standardCharacters, getCaptionCeiling(capability.caption));
     const maxPosts = request.isThread ? MAX_THREAD_POSTS : request.variants;
     return this.run({
       brandId: request.brandId,
@@ -81,6 +90,7 @@ export class BrandedContentActionsService {
           isThread: request.isThread,
           maxCharacters,
           platformLabel: capability.label,
+          standardCharacters,
           topic: request.topic,
           variants: request.variants,
         }),

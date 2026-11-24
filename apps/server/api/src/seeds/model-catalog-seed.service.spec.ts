@@ -802,8 +802,8 @@ describe('ModelCatalogSeedService', () => {
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     expect(callForKey('fal/google/gemini-omni-flash')).toMatchObject({
-      create: { endpoint: 'google/gemini-omni-flash' },
-      update: { endpoint: 'google/gemini-omni-flash' },
+      create: { endpoint: 'google/gemini-omni-flash/v1.2/text-to-video' },
+      update: { endpoint: 'google/gemini-omni-flash/v1.2/text-to-video' },
     });
     expect(callForKey('fal/minimax/h3-max/text-to-video')).toMatchObject({
       create: {

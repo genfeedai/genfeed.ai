@@ -18,7 +18,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeMessage(
@@ -386,7 +386,6 @@ describe('agent-chat.store messages and plans', () => {
     const store = useAgentChatStore.getState();
     store.addMessage(makeMessage('m-1'));
     store.setActiveRun('run-1', { startedAt: '2026-03-26T10:00:00.000Z' });
-    store.setDraftAgentMode(AgentThreadMode.PLAN);
     store.setError('Previous conversation failed');
     store.setIsGenerating(true);
     store.setThreadUiBusy('thread-1', true);
@@ -399,7 +398,6 @@ describe('agent-chat.store messages and plans', () => {
     expect(selectActiveRun(state).runId).toBeNull();
     expect(selectActiveRun(state).status).toBe('idle');
     expect(selectActiveRun(state).startedAt).toBeNull();
-    expect(state.draftAgentMode).toBe(AgentThreadMode.MANUAL);
     expect(state.error).toBeNull();
     expect(selectActiveRun(state).isGenerating).toBe(false);
     expect(state.threadUiBusyById).toEqual({});
@@ -633,21 +631,6 @@ describe('agent-chat.store simple setters', () => {
     ]);
   });
 
-  it('drops an explicit mode pick when switching to another thread', () => {
-    const store = useAgentChatStore.getState();
-    store.setActiveThread('thread-a');
-    useAgentChatStore.setState({
-      draftAgentMode: AgentThreadMode.AUTO,
-      hasExplicitDraftAgentMode: true,
-    });
-
-    store.setActiveThread('thread-a');
-    expect(useAgentChatStore.getState().hasExplicitDraftAgentMode).toBe(true);
-
-    store.setActiveThread('thread-b');
-    expect(useAgentChatStore.getState().hasExplicitDraftAgentMode).toBe(false);
-  });
-
   it('covers scalar setters', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('thread-9');
@@ -657,7 +640,6 @@ describe('agent-chat.store simple setters', () => {
     store.setThreadPrompt('thread-9', 'draft prompt');
     store.setSocketConnectionState('connected');
     store.setPageContext({ pathname: '/library' } as never);
-    store.setDraftAgentMode(AgentThreadMode.PLAN);
     store.setLatestProposedPlan(makePlan('plan-z'));
     store.setWorkEvents([]);
 
@@ -669,7 +651,6 @@ describe('agent-chat.store simple setters', () => {
     expect(state.threadPrompts['thread-9']).toBe('draft prompt');
     expect(state.socketConnectionState).toBe('connected');
     expect(state.pageContext).toEqual({ pathname: '/library' });
-    expect(state.draftAgentMode).toBe(AgentThreadMode.PLAN);
     expect(state.latestProposedPlan?.content).toBe('Plan plan-z');
     expect(state.workEvents).toEqual([]);
   });

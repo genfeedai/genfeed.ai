@@ -51,8 +51,9 @@ export default function AgentOutputShell({
   const selectionKey = selection ? `${selection.kind}:${selection.id}` : null;
   // Only a record the operator picked takes the pane; one the page selected
   // on its own stays out of the way so the output stays where it was.
+  const isUserSelection = selection?.origin === 'user';
   const isUserSelectionOpen =
-    selection?.origin === 'user' &&
+    isUserSelection &&
     (Boolean(contextSidebar?.isOpen) || Boolean(contextSidebar?.isMobileOpen));
   // A selection already registered when the shell mounts belongs to the page
   // the operator just left (the sidebar state outlives a route change), so it
@@ -71,9 +72,39 @@ export default function AgentOutputShell({
       isUserSelectionOpen &&
       selectionKey !== carriedSelectionKeyRef.current
     ) {
+      // Once per selection: the operator steps back to the output with the
+      // topbar's Context icon, and the same record must not pull them in again.
+      carriedSelectionKeyRef.current = selectionKey;
       onOpenContext?.();
     }
   }, [isUserSelectionOpen, onOpenContext, selectionKey]);
+
+  // The record the operator picked is gone (removed, or cleared): there is
+  // nothing left for Context to show, so the output comes back. A record the
+  // page selected on its own can come and go without moving the pane.
+  const wasUserSelectionRef = useRef(isUserSelection);
+  const onCloseContext = host?.onCloseContext;
+  // use-effect-audit: ignore closes the host's Context panel
+  useEffect(() => {
+    if (wasUserSelectionRef.current && !selectionKey) {
+      onCloseContext?.();
+    }
+    wasUserSelectionRef.current = selectionKey ? isUserSelection : false;
+  }, [isUserSelection, onCloseContext, selectionKey]);
+
+  // Stepping back to the output from the topbar's Context icon deselects a
+  // record the operator picked, as closing the rail does; one the page
+  // selected on its own stays selected.
+  const isContextOpen = host?.isContextOpen ?? false;
+  const wasContextOpenRef = useRef(isContextOpen);
+  const closeSelection = contextSidebar?.close;
+  // use-effect-audit: ignore deselects the operator's record when Context closes
+  useEffect(() => {
+    if (wasContextOpenRef.current && !isContextOpen && isUserSelection) {
+      closeSelection?.();
+    }
+    wasContextOpenRef.current = isContextOpen;
+  }, [closeSelection, isContextOpen, isUserSelection]);
 
   if (!host) {
     return <>{children}</>;

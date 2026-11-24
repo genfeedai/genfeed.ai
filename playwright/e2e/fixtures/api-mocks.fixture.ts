@@ -1,6 +1,5 @@
 import {
   ActivityKey,
-  AgentThreadMode,
   type CredentialPlatform,
   FleetReviewStatus,
   IngredientCategory,
@@ -2000,7 +1999,6 @@ export async function mockWorkspaceTasks(
           buildJsonApiDocument('thread', thread.id, {
             createdAt: thread.createdAt,
             id: thread.id,
-            mode: AgentThreadMode.PLAN,
             source: thread.source,
             status: 'active',
             title: thread.title,
@@ -2022,7 +2020,6 @@ export async function mockWorkspaceTasks(
               attributes: {
                 createdAt: thread.createdAt,
                 id: thread.id,
-                mode: AgentThreadMode.PLAN,
                 source: thread.source,
                 status: 'active',
                 title: thread.title,

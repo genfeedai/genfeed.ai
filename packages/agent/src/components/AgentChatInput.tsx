@@ -13,7 +13,6 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   AgentGenerationMode,
-  AgentThreadMode,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
@@ -57,14 +56,11 @@ export type ExtractedMention =
   | { type: 'character'; id: string; handle: string; label: string };
 
 interface AgentChatInputProps {
-  agentMode?: AgentThreadMode;
   /**
    * Hosts that are not an Agent conversation (the storyboard prompt bar) hide
-   * the controls that only make sense there: agent mode, generation setup and
-   * the Library reference picker. Send, voice and the editor stay the same.
+   * the controls that only make sense there: the Library reference picker. Send, voice and the editor stay the same.
    */
   isAgentControlsHidden?: boolean;
-  onAgentModeChange?: (mode: AgentThreadMode) => void;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -89,7 +85,7 @@ interface AgentChatInputProps {
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
   density?: 'compact' | 'default' | 'dock';
-  /** Joins the composer to an expandable mode/settings strip above it. */
+  /** Joins the composer to the status strip above it. */
   isTopAttached?: boolean;
   /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
@@ -114,9 +110,7 @@ function mapAttachmentToTrayAsset(
 }
 
 export function AgentChatInput({
-  agentMode = AgentThreadMode.MANUAL,
   isAgentControlsHidden = false,
-  onAgentModeChange = () => {},
   onSend,
   onPromoteQueuedFollowUp,
   hasQueuedFollowUps = false,
@@ -273,7 +267,6 @@ export function AgentChatInput({
         />
 
         <AgentChatInputToolbar
-          agentMode={agentMode}
           canSendMessage={canSendMessage}
           canUseVoiceInput={canUseVoiceInput}
           disabled={disabled}
@@ -286,7 +279,6 @@ export function AgentChatInput({
           generationMode={generationMode}
           promptText={promptText}
           onAddFiles={addFiles}
-          onAgentModeChange={onAgentModeChange}
           onInsertReference={handleInsertReference}
           onGenerationModeChange={setGenerationMode}
           onSend={handleToolbarSend}

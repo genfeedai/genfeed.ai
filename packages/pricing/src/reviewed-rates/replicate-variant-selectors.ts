@@ -143,8 +143,8 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
     field('model', identity('photon-flash-1', 'photon-1')),
   ],
   'prunaai/p-video': [field('draft', { false: 'base', true: 'draft' })],
-  // Public schema and billingConfig, 2026-10-27: 1080p, 2k and 4k generate at
-  // 768p and upscale, so the provider publishes no tier for them.
+  // Public schema and billingConfig, 2026-11-24: 480p, 768p, 1080p, 2k and 4k
+  // tiers per mode; 1080p, 2k and 4k generate at 768p and upscale.
   'prunaai/p-video-2-pro': [
     field('mode', identity('cost', 'speed', 'quality')),
   ],

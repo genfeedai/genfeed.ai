@@ -1,8 +1,13 @@
-import type { ArticleTrafficPeriod } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsOptional, Matches } from 'class-validator';
+
+const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export class ArticleTrafficQueryDto {
   @IsOptional()
-  @IsIn(['7d', '30d', '90d', 'all'])
-  period: ArticleTrafficPeriod = '30d';
+  @Matches(DAY_PATTERN, { message: 'startDate must be YYYY-MM-DD' })
+  startDate?: string;
+
+  @IsOptional()
+  @Matches(DAY_PATTERN, { message: 'endDate must be YYYY-MM-DD' })
+  endDate?: string;
 }
