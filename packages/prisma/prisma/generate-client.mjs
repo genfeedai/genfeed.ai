@@ -12,6 +12,10 @@
 // an edited schema or config, a Prisma upgrade, and a client that was changed,
 // deleted or left half written all generate again. `--force` always generates.
 //
+// Generating includes cutting the client's query parameterization graph
+// (slim-parameterization-schema.mjs, #11147), so a client from a bare
+// `prisma generate` is not the one this script would leave: run this script.
+//
 // This file lives in prisma/ because the image builds copy only this directory
 // and prisma.config.mjs before they install (docker/Dockerfile.server and
 // docker/Dockerfile.selfhosted).
@@ -26,12 +30,17 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { slimGeneratedClient } from './slim-parameterization-schema.mjs';
 
 const STAMP_FORMAT = 1;
 const CLIENT_DIRECTORY = 'generated/prisma/client';
 const STAMP_FILE = 'generated/prisma/client-stamp.json';
 // prisma.config.mjs names the schema; a contract test keeps the two in step.
-const GENERATION_INPUT_FILES = ['prisma.config.mjs', 'prisma/schema.prisma'];
+const GENERATION_INPUT_FILES = [
+  'prisma.config.mjs',
+  'prisma/schema.prisma',
+  'prisma/slim-parameterization-schema.mjs',
+];
 const GENERATOR_PACKAGES = ['prisma', '@prisma/client'];
 const EXACT_VERSION_PATTERN = /^\d+\.\d+\.\d+$/u;
 
@@ -154,6 +163,12 @@ function runPrismaGenerate(packageRoot) {
       `prisma generate exited with ${result.status ?? result.signal}`,
     );
   }
+  // Cuts the query parameterization graph the client would keep in memory
+  // whole (#11147). Part of generating, so the stamp covers the cut client.
+  const { after, before } = slimGeneratedClient(packageRoot);
+  process.stdout.write(
+    `Slimmed the query parameterization graph: ${before} to ${after} input edges.\n`,
+  );
 }
 
 function main() {
