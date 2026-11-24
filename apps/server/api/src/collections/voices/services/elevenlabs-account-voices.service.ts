@@ -21,10 +21,7 @@ import {
   IngredientStatus,
   VoiceProvider,
 } from '@genfeedai/contracts';
-import type {
-  ElevenLabsAccountVoicePage,
-  ElevenLabsConnectionRef,
-} from '@genfeedai/contracts/interfaces';
+import type { ElevenLabsAccountVoicePage } from '@genfeedai/contracts/interfaces';
 import {
   VoiceProvider as DbVoiceProvider,
   type Prisma,
@@ -42,7 +39,6 @@ import {
 const SAVED_REFERENCE_SOURCES = ['imported', 'cloned'];
 
 export type SpeechVoiceSelection = {
-  connectionKind: ElevenLabsConnectionRef['kind'];
   externalVoiceId: string;
   internalVoiceId?: string;
 };
@@ -162,10 +158,7 @@ export class ElevenLabsAccountVoicesService {
     externalVoiceId: string,
   ): Promise<IngredientDocument> {
     const organizationId = user.organizationId;
-    const connection = await this.connectionService.resolve(
-      organizationId,
-      'byok',
-    );
+    const connection = await this.connectionService.resolve(organizationId);
 
     let voice: Awaited<ReturnType<ElevenLabsService['getAccountVoice']>>;
     try {
@@ -278,10 +271,11 @@ export class ElevenLabsAccountVoicesService {
   }
 
   /**
-   * Resolves a speech request's voice to the account that must speak it.
-   * Saved references keep their own binding; shared-catalog voices use the
-   * platform account. Any other provider id is rejected, so an id alone never
-   * grants access to an account's private voices.
+   * Resolves a speech request's voice. The organization's own ElevenLabs
+   * account speaks every voice. A saved reference must belong to this
+   * organization; a shared-catalog voice id is spoken through the
+   * organization's account. Any other provider id is rejected, so an id alone
+   * never grants access to an account's private voices.
    */
   async resolveSpeechVoice(
     organizationId: string,
@@ -320,7 +314,7 @@ export class ElevenLabsAccountVoicesService {
         'Choose a voice from your Library, or import it from your ElevenLabs account first.',
       );
     }
-    return { connectionKind: 'platform', externalVoiceId: voiceId };
+    return { externalVoiceId: voiceId };
   }
 
   private async selectionForSavedVoice(
@@ -346,22 +340,9 @@ export class ElevenLabsAccountVoicesService {
           'This voice belongs to another organization.',
         );
       }
-      return {
-        connectionKind: binding.connection.kind,
-        externalVoiceId: voice.externalVoiceId,
-        internalVoiceId: voice.id,
-      };
     }
 
-    // References saved before connection provenance existed: a catalog-backed
-    // row speaks through the platform account; a legacy clone through the
-    // personal connection when one is configured, as it was created.
-    const isPersonal =
-      voice.externalVoiceCatalogId === null &&
-      (await this.connectionService.findPersonalConnection(organizationId)) !==
-        undefined;
     return {
-      connectionKind: isPersonal ? 'byok' : 'platform',
       externalVoiceId: voice.externalVoiceId,
       internalVoiceId: voice.id,
     };

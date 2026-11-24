@@ -185,7 +185,7 @@ describe('ElevenLabsAccountVoicesService', () => {
     it('saves an organization-owned reference bound to the personal connection', async () => {
       await service.import(user, 'el-voice-1');
 
-      expect(connections.resolve).toHaveBeenCalledWith(organizationId, 'byok');
+      expect(connections.resolve).toHaveBeenCalledWith(organizationId);
       expect(elevenLabs.getAccountVoice).toHaveBeenCalledWith(
         `key-${organizationId}`,
         'el-voice-1',
@@ -354,13 +354,12 @@ describe('ElevenLabsAccountVoicesService', () => {
       ...overrides,
     });
 
-    it('binds a saved reference by its Library id to its own connection', async () => {
+    it('resolves a saved reference by its Library id', async () => {
       voices.prisma.ingredient.findFirst.mockResolvedValueOnce(savedRow());
 
       await expect(
         service.resolveSpeechVoice(organizationId, savedVoiceId),
       ).resolves.toEqual({
-        connectionKind: 'byok',
         externalVoiceId: 'el-voice-1',
         internalVoiceId: savedVoiceId,
       });
@@ -381,23 +380,23 @@ describe('ElevenLabsAccountVoicesService', () => {
       );
     });
 
-    it('binds a provider id the organization saved', async () => {
+    it('resolves a provider id the organization saved', async () => {
       voices.prisma.ingredient.findFirst.mockResolvedValueOnce(savedRow());
 
       await expect(
         service.resolveSpeechVoice(organizationId, 'el-voice-1'),
-      ).resolves.toMatchObject({ connectionKind: 'byok' });
+      ).resolves.toEqual({
+        externalVoiceId: 'el-voice-1',
+        internalVoiceId: savedVoiceId,
+      });
     });
 
-    it('uses the platform account only for shared-catalog voices', async () => {
+    it('speaks a shared-catalog voice through the organization account', async () => {
       catalog.findActive.mockResolvedValue({ id: 'catalog-1' });
 
       await expect(
         service.resolveSpeechVoice(organizationId, 'premade-voice'),
-      ).resolves.toEqual({
-        connectionKind: 'platform',
-        externalVoiceId: 'premade-voice',
-      });
+      ).resolves.toEqual({ externalVoiceId: 'premade-voice' });
     });
 
     it('rejects a provider id that is neither saved nor public', async () => {
@@ -437,24 +436,17 @@ describe('ElevenLabsAccountVoicesService', () => {
       ).rejects.toThrow('not an ElevenLabs voice');
     });
 
-    it('binds a legacy clone to the personal connection when one exists', async () => {
-      voices.prisma.ingredient.findFirst.mockResolvedValueOnce(
-        savedRow({ providerData: null, voiceSource: 'cloned' }),
-      );
-
-      await expect(
-        service.resolveSpeechVoice(organizationId, savedVoiceId),
-      ).resolves.toMatchObject({ connectionKind: 'byok' });
-    });
-
-    it('keeps a legacy catalog-backed row on the platform account', async () => {
+    it('resolves a legacy row saved without connection provenance', async () => {
       voices.prisma.ingredient.findFirst.mockResolvedValueOnce(
         savedRow({ externalVoiceCatalogId: 'catalog-1', providerData: null }),
       );
 
       await expect(
         service.resolveSpeechVoice(organizationId, savedVoiceId),
-      ).resolves.toMatchObject({ connectionKind: 'platform' });
+      ).resolves.toEqual({
+        externalVoiceId: 'el-voice-1',
+        internalVoiceId: savedVoiceId,
+      });
     });
   });
 });
