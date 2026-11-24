@@ -309,10 +309,12 @@ function setup() {
     );
   }
 
+  /** The one daily row's body: the day's entries, metrics and insights live in `metadata`. */
   function memoryDoc(): Row {
     const docs = [...store.tables.brandMemory.values()];
     expect(docs).toHaveLength(1);
-    return docs[0] as Row;
+    expect(docs[0]?.type).toBe('daily');
+    return docs[0]?.metadata as Row;
   }
 
   return { analyze, collect, memoryDoc, nextPersonaPrompt, store };
