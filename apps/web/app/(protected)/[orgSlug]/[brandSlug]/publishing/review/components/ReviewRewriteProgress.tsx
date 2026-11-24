@@ -48,10 +48,9 @@ export default function ReviewRewriteProgress({
               : translate('progressCount', { handled, total })}
         </p>
         <Button
-          className="h-7 gap-1 px-2"
           isDisabled={isCancelling}
           onClick={onCancel}
-          size={ButtonSize.SM}
+          size={ButtonSize.XS}
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >

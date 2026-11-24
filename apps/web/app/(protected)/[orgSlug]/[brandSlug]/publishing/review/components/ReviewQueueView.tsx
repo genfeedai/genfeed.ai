@@ -207,7 +207,7 @@ export default function ReviewQueueView({
 
     setFiltersNode(
       <Button
-        className="h-8 shrink-0 gap-1.5 px-3"
+        className="shrink-0"
         icon={<Trash2 className="size-3.5" />}
         isDisabled={isActioning}
         label={translateReview('queue.discardBatch')}
