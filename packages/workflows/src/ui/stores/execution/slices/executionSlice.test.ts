@@ -100,6 +100,7 @@ beforeEach(() => {
     isRunning: false,
     jobs: new Map(),
     lastFailedNodeId: null,
+    missingInputRequest: null,
     validationErrors: null,
   });
   useSettingsStore.setState({ debugMode: false });
@@ -425,5 +426,139 @@ describe('jobSlice', () => {
 
     useExecutionStore.getState().clearDebugPayloads();
     expect(useExecutionStore.getState().debugPayloads).toEqual([]);
+  });
+});
+
+describe('executionSlice — missing required inputs', () => {
+  const missingInputs = [
+    { label: 'Visual angle', name: 'visualAngle', type: 'text' },
+    { label: 'Visual style', name: 'visualStyle', type: 'text' },
+  ];
+  /** What the API client throws for the API's typed 400. */
+  const missingInputError = () =>
+    Object.assign(new Error('Missing required workflow inputs'), {
+      data: {
+        errors: [
+          {
+            code: 'WORKFLOW_MISSING_INPUT',
+            detail:
+              'Missing required workflow inputs: visualAngle, visualStyle',
+            meta: { missingInputs },
+            status: '400',
+          },
+        ],
+      },
+    });
+
+  it('keeps a refused selected run as a request for the missing inputs, not an error', async () => {
+    const imageId = seedValidWorkflow();
+    useWorkflowStore.setState({ selectedNodeIds: [imageId] });
+    post.mockRejectedValueOnce(missingInputError());
+
+    await useExecutionStore.getState().executeSelectedNodes();
+
+    const state = useExecutionStore.getState();
+    expect(state.missingInputRequest).toEqual({
+      inputValues: {},
+      missingInputs,
+      target: { kind: 'selected' },
+    });
+    expect(state.isRunning).toBe(false);
+    expect(state.executingNodeIds).toEqual([]);
+    expect(state.validationErrors).toBeNull();
+  });
+
+  it('runs the same selection again with the entered values', async () => {
+    const imageId = seedValidWorkflow();
+    useWorkflowStore.setState({ selectedNodeIds: [imageId] });
+    post.mockRejectedValueOnce(missingInputError());
+    await useExecutionStore.getState().executeSelectedNodes();
+
+    await useExecutionStore
+      .getState()
+      .submitMissingInputs({ visualAngle: 'low angle', visualStyle: 'Flat' });
+
+    expect(post).toHaveBeenLastCalledWith(
+      '/workflows/wf-1/execute',
+      {
+        debugMode: false,
+        inputValues: { visualAngle: 'low angle', visualStyle: 'Flat' },
+        selectedNodeIds: [imageId],
+      },
+      { headers: {} },
+    );
+    expect(useExecutionStore.getState().missingInputRequest).toBeNull();
+    expect(useExecutionStore.getState().isRunning).toBe(true);
+  });
+
+  it('asks again when the run is still missing an input', async () => {
+    const imageId = seedValidWorkflow();
+    useWorkflowStore.setState({ selectedNodeIds: [imageId] });
+    post.mockRejectedValue(missingInputError());
+    await useExecutionStore.getState().executeSelectedNodes();
+
+    await useExecutionStore
+      .getState()
+      .submitMissingInputs({ visualAngle: 'low angle' });
+
+    expect(useExecutionStore.getState().missingInputRequest).toMatchObject({
+      inputValues: { visualAngle: 'low angle' },
+      missingInputs,
+    });
+    expect(useExecutionStore.getState().isRunning).toBe(false);
+  });
+
+  it('sends nothing when the request is dismissed', async () => {
+    const imageId = seedValidWorkflow();
+    useWorkflowStore.setState({ selectedNodeIds: [imageId] });
+    post.mockRejectedValueOnce(missingInputError());
+    await useExecutionStore.getState().executeSelectedNodes();
+    post.mockClear();
+
+    useExecutionStore.getState().dismissMissingInputs();
+    await useExecutionStore
+      .getState()
+      .submitMissingInputs({ visualAngle: 'x' });
+
+    expect(post).not.toHaveBeenCalled();
+    expect(useExecutionStore.getState().missingInputRequest).toBeNull();
+  });
+
+  it('asks for the inputs of a full run and sends it again with them', async () => {
+    seedValidWorkflow();
+    post.mockRejectedValueOnce(missingInputError());
+
+    await useExecutionStore.getState().executeWorkflow();
+    expect(useExecutionStore.getState().missingInputRequest?.target).toEqual({
+      kind: 'workflow',
+    });
+
+    await useExecutionStore
+      .getState()
+      .submitMissingInputs({ visualAngle: 'low angle', visualStyle: 'Flat' });
+
+    expect(post).toHaveBeenLastCalledWith(
+      '/workflows/wf-1/execute',
+      {
+        debugMode: false,
+        inputValues: { visualAngle: 'low angle', visualStyle: 'Flat' },
+      },
+      { headers: {} },
+    );
+  });
+
+  it('asks for the inputs of a single node run without marking the node failed', async () => {
+    const imageId = seedValidWorkflow();
+    post.mockRejectedValueOnce(missingInputError());
+
+    await useExecutionStore.getState().executeNode(imageId);
+
+    expect(useExecutionStore.getState().missingInputRequest?.target).toEqual({
+      kind: 'node',
+      nodeId: imageId,
+    });
+    expect(
+      useWorkflowStore.getState().getNodeById(imageId)?.data.status,
+    ).not.toBe('error');
   });
 });

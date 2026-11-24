@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { WorkflowCanvas } from '../canvas/WorkflowCanvas';
 import { BottomBar } from '../toolbar/BottomBar';
 import { SmallGraphViewportGuard } from './SmallGraphViewportGuard';
+import { WorkflowMissingInputDialog } from './WorkflowMissingInputDialog';
 
 export interface WorkflowEditorShellProps {
   modalContent?: ReactNode;
@@ -45,6 +46,7 @@ export function WorkflowEditorShell({
         </div>
       </div>
 
+      <WorkflowMissingInputDialog />
       {modalContent}
     </>
   );

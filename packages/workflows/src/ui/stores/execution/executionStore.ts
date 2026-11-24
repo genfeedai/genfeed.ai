@@ -38,6 +38,7 @@ export const useExecutionStore = create<ExecutionStore>()((...args) => {
     isRunning: false,
     jobs: new Map(),
     lastFailedNodeId: null,
+    missingInputRequest: null,
     pausedAtNodeId: null,
     validationErrors: null,
 

@@ -1327,4 +1327,48 @@ describe('HTTPBaseService (InterceptorService)', () => {
         Object.defineProperty(EnvironmentService, 'isProduction', descriptor);
     },
   );
+  it('hands the editor the missing-input list in production even when the detail is long', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(
+      EnvironmentService,
+      'isProduction',
+    );
+    Object.defineProperty(EnvironmentService, 'isProduction', {
+      configurable: true,
+      value: true,
+    });
+    const names = Array.from({ length: 30 }, (_, index) => `input${index}`);
+    const responseData = {
+      errors: [
+        {
+          code: 'WORKFLOW_MISSING_INPUT',
+          detail: `Missing required workflow inputs: ${names.join(', ')}`,
+          meta: {
+            missingInputs: names.map((name) => ({
+              label: name,
+              name,
+              type: 'text',
+            })),
+          },
+          status: '400',
+        },
+      ],
+    };
+    const error = {
+      config: {},
+      response: { data: responseData, status: 400, statusText: 'Bad Request' },
+    } as AxiosError;
+    const target = service as unknown as {
+      handleError: (error: AxiosError) => Promise<never>;
+    };
+    let caught: unknown;
+    try {
+      await target.handleError(error);
+    } catch (value) {
+      caught = value;
+    }
+    if (descriptor)
+      Object.defineProperty(EnvironmentService, 'isProduction', descriptor);
+
+    expect(caught).toBe(responseData);
+  });
 });

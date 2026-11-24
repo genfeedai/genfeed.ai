@@ -10,7 +10,9 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { isWorkflowInputNodeType } from '@api/collections/workflows/workflow-node-predicates';
 import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workflow-version-definition';
+import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import { getActionDefinition } from '@genfeedai/actions';
+import type { WorkflowMissingInput } from '@genfeedai/contracts/interfaces';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -130,6 +132,16 @@ export class WorkflowEngineConverterService {
     return true;
   }
 
+  /**
+   * Seed input nodes with the run's values and reject a run that lacks a
+   * required one. Every missing required input is collected and raised at once
+   * as a `WorkflowMissingInputException`, so the caller can ask for all of them.
+   *
+   * A selected-node run executes only the selected nodes and what they depend
+   * on, so only the required inputs on that dependency graph can block it. A
+   * required input the selection never reads is left out of the run instead of
+   * stopping a free node because an unrelated generation branch wants a value.
+   */
   applyRuntimeInputValues(
     workflowDoc: {
       inputVariables?: WorkflowInputVariable[];
@@ -137,6 +149,7 @@ export class WorkflowEngineConverterService {
     },
     executableWorkflow: ExecutableWorkflow,
     inputValues: Record<string, unknown> = {},
+    options: { selectedNodeIds?: readonly string[] } = {},
   ): ExecutableWorkflow {
     const workflowInputNodes = new Map(
       (workflowDoc.nodes ?? [])
@@ -155,6 +168,13 @@ export class WorkflowEngineConverterService {
       ]),
     );
     const lockedNodeIds = new Set(executableWorkflow.lockedNodeIds);
+    const reachableNodeIds = options.selectedNodeIds?.length
+      ? this.collectUpstreamNodeIds(
+          options.selectedNodeIds,
+          executableWorkflow.edges,
+        )
+      : undefined;
+    const missingInputs = new Map<string, WorkflowMissingInput>();
 
     const nodes = executableWorkflow.nodes
       .filter((node) => {
@@ -183,8 +203,18 @@ export class WorkflowEngineConverterService {
           requiredInputs.has(inputName) ||
           sourceNode?.data?.config?.required === true;
 
-        if (isRequired) {
-          throw new Error(`Missing required workflow input: ${inputName}`);
+        if (
+          isRequired &&
+          (!reachableNodeIds || reachableNodeIds.has(node.id))
+        ) {
+          missingInputs.set(
+            inputName,
+            this.describeMissingInput(
+              inputName,
+              sourceNode,
+              workflowDoc.inputVariables,
+            ),
+          );
         }
 
         return false;
@@ -218,6 +248,10 @@ export class WorkflowEngineConverterService {
         return nextNode;
       });
 
+    if (missingInputs.size > 0) {
+      throw new WorkflowMissingInputException([...missingInputs.values()]);
+    }
+
     const nodeIds = new Set(nodes.map((node) => node.id));
 
     return {
@@ -229,6 +263,53 @@ export class WorkflowEngineConverterService {
         nodeIds.has(nodeId),
       ),
       nodes,
+    };
+  }
+
+  private collectUpstreamNodeIds(
+    nodeIds: readonly string[],
+    edges: readonly ExecutableEdge[],
+  ): Set<string> {
+    const upstream = new Map<string, string[]>();
+    for (const edge of edges) {
+      upstream.set(edge.target, [
+        ...(upstream.get(edge.target) ?? []),
+        edge.source,
+      ]);
+    }
+
+    const reachable = new Set<string>();
+    const pending = [...nodeIds];
+    for (let nodeId = pending.pop(); nodeId; nodeId = pending.pop()) {
+      if (reachable.has(nodeId)) {
+        continue;
+      }
+      reachable.add(nodeId);
+      pending.push(...(upstream.get(nodeId) ?? []));
+    }
+
+    return reachable;
+  }
+
+  private describeMissingInput(
+    inputName: string,
+    sourceNode: WorkflowVisualNode | undefined,
+    inputVariables: WorkflowInputVariable[] | undefined,
+  ): WorkflowMissingInput {
+    const variable = inputVariables?.find(
+      (candidate) => candidate.key === inputName,
+    );
+    const config = sourceNode?.data?.config;
+    const description =
+      variable?.description ?? this.readConfigString(config, 'description');
+
+    return {
+      ...(description ? { description } : {}),
+      label: variable?.label ?? sourceNode?.data?.label ?? inputName,
+      name: inputName,
+      type:
+        variable?.type ?? this.readConfigString(config, 'inputType') ?? 'text',
+      ...(variable?.validation ? { validation: variable.validation } : {}),
     };
   }
 
