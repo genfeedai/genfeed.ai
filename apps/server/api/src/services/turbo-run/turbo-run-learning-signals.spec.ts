@@ -9,17 +9,47 @@ function serviceWith(profile: unknown): HarnessProfilesService {
 }
 
 describe('resolveTurboRunLearningSignals', () => {
-  it('counts the rejections and approvals the profile holds', async () => {
+  it('counts the approvals generation reads and leaves rejections out', async () => {
     const result = await resolveTurboRunLearningSignals(
       serviceWith({
         avoidFeedback: [{ content: 'a' }, { content: 'b' }],
+        examples: { good: ['c'] },
         goodFeedback: [{ content: 'c' }],
       }),
       'org-1',
       'brand-1',
     );
 
-    expect(result).toEqual({ approvalCount: 1, rejectionCount: 2 });
+    expect(result).toEqual({ approvalCount: 1 });
+  });
+
+  it('returns nothing for a brand whose only feedback is rejections', async () => {
+    await expect(
+      resolveTurboRunLearningSignals(
+        serviceWith({
+          avoidFeedback: [{ content: 'a' }, { content: 'b' }, { content: 'c' }],
+          examples: { avoid: [], good: [] },
+        }),
+        'org-1',
+        'brand-1',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('does not count an approval that is no longer a positive example', async () => {
+    await expect(
+      resolveTurboRunLearningSignals(
+        serviceWith({
+          examples: { good: ['kept'] },
+          goodFeedback: [
+            { content: 'kept' },
+            { content: 'removed by operator' },
+          ],
+        }),
+        'org-1',
+        'brand-1',
+      ),
+    ).resolves.toEqual({ approvalCount: 1 });
   });
 
   it('returns nothing when the profile has no feedback yet', async () => {

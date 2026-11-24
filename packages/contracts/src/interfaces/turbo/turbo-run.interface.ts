@@ -128,14 +128,14 @@ export interface ITurboRunReviewEvent {
 }
 
 /**
- * What the brand's harness already knew from earlier review decisions when a
- * batch was generated, so the reviewer can see the batch learned from them.
+ * What the brand's harness already held when a batch was generated and that
+ * generation reads, so the reviewer sees only signals that shaped the batch.
+ * Rejections are not counted: they are stored for audit and reach generation
+ * only when the reviewer saves a suggested brand rule.
  */
 export interface ITurboRunLearningSignals {
-  /** Approved drafts fed back as positive examples. */
+  /** Approved drafts that are positive examples in the brand's harness profile. */
   approvalCount: number;
-  /** Rejected / changed drafts fed back as anti-examples. */
-  rejectionCount: number;
 }
 
 /**
