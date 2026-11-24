@@ -40,44 +40,42 @@ const youtube = vi.hoisted(() => ({
   keysUsed: [] as (string | undefined)[],
 }));
 
-vi.mock('googleapis', () => ({
-  google: {
-    youtube: ({ auth }: { auth?: string }) => {
-      const byViews = (a: CatalogVideo, b: CatalogVideo) =>
-        Number(b.statistics?.viewCount ?? 0) -
-        Number(a.statistics?.viewCount ?? 0);
-      return {
-        search: {
-          list: async ({ maxResults, publishedAfter, q }: ListArgs) => {
-            youtube.keysUsed.push(auth);
-            const items = youtube.catalog
-              .filter(
-                (video) =>
-                  video.snippet.title?.includes(q ?? '') &&
-                  video.snippet.publishedAt >= (publishedAfter ?? ''),
-              )
-              .sort(byViews)
-              .slice(0, maxResults)
-              .map((video) => ({ id: { videoId: video.id } }));
-            return { data: { items } };
-          },
+vi.mock('@googleapis/youtube', () => ({
+  youtube: ({ auth }: { auth?: string }) => {
+    const byViews = (a: CatalogVideo, b: CatalogVideo) =>
+      Number(b.statistics?.viewCount ?? 0) -
+      Number(a.statistics?.viewCount ?? 0);
+    return {
+      search: {
+        list: async ({ maxResults, publishedAfter, q }: ListArgs) => {
+          youtube.keysUsed.push(auth);
+          const items = youtube.catalog
+            .filter(
+              (video) =>
+                video.snippet.title?.includes(q ?? '') &&
+                video.snippet.publishedAt >= (publishedAfter ?? ''),
+            )
+            .sort(byViews)
+            .slice(0, maxResults)
+            .map((video) => ({ id: { videoId: video.id } }));
+          return { data: { items } };
         },
-        videos: {
-          list: async ({ chart, id, maxResults, regionCode }: ListArgs) => {
-            youtube.keysUsed.push(auth);
-            const items = youtube.catalog
-              .filter((video) =>
-                chart === 'mostPopular'
-                  ? video.popularIn.includes(regionCode ?? '')
-                  : id?.includes(video.id),
-              )
-              .sort(byViews)
-              .slice(0, maxResults);
-            return { data: { items } };
-          },
+      },
+      videos: {
+        list: async ({ chart, id, maxResults, regionCode }: ListArgs) => {
+          youtube.keysUsed.push(auth);
+          const items = youtube.catalog
+            .filter((video) =>
+              chart === 'mostPopular'
+                ? video.popularIn.includes(regionCode ?? '')
+                : id?.includes(video.id),
+            )
+            .sort(byViews)
+            .slice(0, maxResults);
+          return { data: { items } };
         },
-      };
-    },
+      },
+    };
   },
 }));
 

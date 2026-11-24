@@ -25,7 +25,7 @@ vi.mock('twitter-api-v2', () => ({
     v2 = mocks;
   },
 }));
-vi.mock('googleapis', () => ({ google: { youtube: () => mocks } }));
+vi.mock('@googleapis/youtube', () => ({ youtube: () => mocks }));
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: (value: string) => value },
 }));
