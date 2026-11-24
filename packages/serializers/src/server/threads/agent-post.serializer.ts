@@ -3,6 +3,10 @@ import {
   IngredientCategory,
   parsePlatform,
 } from '@genfeedai/contracts';
+import {
+  isTikTokInboxDelivered,
+  TIKTOK_INBOX_DELIVERY_LABEL,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -11,6 +15,9 @@ function record(value: unknown): Record<string, unknown> {
 }
 function publicText(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+function instant(value: unknown): Date | string | null {
+  return value instanceof Date || typeof value === 'string' ? value : null;
 }
 function httpUrl(value: unknown): string | null {
   try {
@@ -98,6 +105,16 @@ export function serializeAgentPost(
       })
     : [];
   const failure = targetFailure(post);
+  // The target reads `published` for a TikTok Inbox receipt too. Say it is not
+  // live, so an agent never reports the upload as a public post.
+  const isInboxDelivery = isTikTokInboxDelivered({
+    externalId: publicText(post.externalId),
+    platform: publicText(post.platform),
+    publicationDate: instant(post.publicationDate),
+    publishedAt: instant(post.publishedAt),
+    targetExecutionState: publicText(post.targetExecutionState),
+    url: publicText(post.url),
+  });
   return {
     ...(isAccount
       ? {
@@ -115,6 +132,9 @@ export function serializeAgentPost(
     description: post.description ?? null,
     ...(failure ? { error: failure } : {}),
     id: String(post.id),
+    ...(isInboxDelivery
+      ? { isInboxDelivery, stateLabel: TIKTOK_INBOX_DELIVERY_LABEL }
+      : {}),
     label: post.label ?? null,
     media,
     platform: post.platform ?? null,
@@ -132,6 +152,7 @@ export function serializeAgentPost(
           typeof post.credentialId === 'string' ? post.credentialId : null,
         platform: post.platform ?? null,
         scheduledDate: post.scheduledDate ?? null,
+        ...(isInboxDelivery ? { isInboxDelivery } : {}),
         state: post.targetExecutionState ?? null,
         validationState: post.targetValidationState ?? null,
       },

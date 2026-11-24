@@ -1,4 +1,5 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -182,7 +183,7 @@ describe('AccountHealthService', () => {
         by: ['credentialId'],
         where: {
           ...scope,
-          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          ...PUBLISHED_AND_LIVE_WHERE,
         },
       });
       expect(prisma.post.groupBy).toHaveBeenNthCalledWith(2, {
@@ -365,7 +366,7 @@ describe('AccountHealthService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           credentialId: 'credential-1',
-          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          ...PUBLISHED_AND_LIVE_WHERE,
         }),
       }),
     );

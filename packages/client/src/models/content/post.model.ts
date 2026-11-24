@@ -41,6 +41,7 @@ export class Post extends BaseEntity implements IPost {
   declare public format?: PostFormat;
   declare public status: PostStatus;
   declare public targetExecutionState: TargetExecutionState;
+  declare public isInboxDelivery?: boolean;
   declare public targetSettings?: IPost['targetSettings'];
   declare public visibility: PostVisibility;
   declare public platform?: CredentialPlatform;

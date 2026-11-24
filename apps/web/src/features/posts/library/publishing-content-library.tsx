@@ -75,7 +75,10 @@ import { needsPostAttention } from '@/features/posts/list/post-attention.helpers
 import { parsePostsSource } from '@/features/posts/list/posts-list-query';
 import { targetManualPostAction } from '@/features/posts/release/release-actions';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
-import { isTargetBlockedByReadiness } from '@/features/posts/shared/release-status.helpers';
+import {
+  isTargetBlockedByReadiness,
+  isTargetLive,
+} from '@/features/posts/shared/release-status.helpers';
 
 interface PublishingContentCollections {
   articles: Article[];
@@ -474,8 +477,7 @@ export default function PublishingContentLibrary() {
         label: translate('openTarget', { platform: target.platform }),
         href: href(getPublishingPostHref(target.id)),
       },
-      ...(target.executionState === TargetExecutionState.PUBLISHED &&
-      isSourcePostVariationPlatform(target.platform)
+      ...(isTargetLive(target) && isSourcePostVariationPlatform(target.platform)
         ? [
             {
               id: `variations:${target.id}`,
@@ -572,6 +574,7 @@ export default function PublishingContentLibrary() {
           />
           <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden">
             <PublishingContentStatus
+              isInboxDelivery={item.isInboxDelivery}
               publishedAt={item.publishedAt}
               scheduledAt={item.scheduledAt}
               status={item.status}
@@ -588,6 +591,7 @@ export default function PublishingContentLibrary() {
       // it went out or when it goes out.
       render: (item) => (
         <PublishingContentStatus
+          isInboxDelivery={item.isInboxDelivery}
           publishedAt={item.publishedAt}
           scheduledAt={item.scheduledAt}
           status={item.status}

@@ -37,6 +37,8 @@ export interface PublishingContentLibraryItem {
   accounts?: PublishingContentAccount[];
   channels?: string[];
   format?: PublishingContentFormat;
+  /** Every channel is a TikTok Inbox receipt: delivered, not a live post. */
+  isInboxDelivery?: boolean;
   /** First media item of a social post; `null` when the post is text only. */
   media?: PublishingContentMedia | null;
   release?: IReleaseGroup;
@@ -65,6 +67,14 @@ export function publishingContentTitle(value?: string): string {
 function normalizedStatus(status?: string): string {
   const value = status?.trim().toLowerCase() || 'draft';
   return value === 'public' ? 'published' : value;
+}
+
+/** The release holds only TikTok Inbox receipts, so nothing in it is live. */
+function isInboxOnlyRelease(release: IReleaseGroup): boolean {
+  const targets = Array.isArray(release.targets) ? release.targets : [];
+  return (
+    targets.length > 0 && targets.every((target) => target.isInboxDelivery)
+  );
 }
 
 function newestFirst(
@@ -254,6 +264,7 @@ export function createPublishingContentLibraryItems({
       ),
       createdAt: release.createdAt,
       id: release.id,
+      isInboxDelivery: isInboxOnlyRelease(release),
       media: toReleaseMedia(
         release.media,
         ingredientsByAssetId,
@@ -285,6 +296,7 @@ export function createPublishingContentLibraryItems({
       createdAt: post.createdAt,
       format: resolvePostFormat(post),
       id: post.id,
+      isInboxDelivery: post.isInboxDelivery === true,
       media: toPostMedia(firstLiveIngredient(post.ingredients)),
       publishedAt: post.publishedAt
         ? new Date(post.publishedAt).toISOString()
@@ -292,7 +304,8 @@ export function createPublishingContentLibraryItems({
       scheduledAt: post.scheduledDate
         ? new Date(post.scheduledDate).toISOString()
         : null,
-      status: normalizedStatus(post.status),
+      // An Inbox receipt is stored as published; it lists with the drafts.
+      status: post.isInboxDelivery ? 'draft' : normalizedStatus(post.status),
       summary: stripHtmlToSingleLine(post.description),
       title:
         post.label?.trim() ||

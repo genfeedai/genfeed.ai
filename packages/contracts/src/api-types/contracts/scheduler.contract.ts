@@ -410,6 +410,54 @@ export function isTerminalTargetExecutionState(
   );
 }
 
+/** Wording every non-web surface (MCP, agent) uses for an Inbox delivery. */
+export const TIKTOK_INBOX_DELIVERY_LABEL = 'Delivered to TikTok Inbox';
+
+/** The columns that tell a TikTok Inbox receipt from a public post. */
+export interface TikTokInboxDeliverySignal {
+  externalId?: string | null;
+  platform?: string | null;
+  publicationDate?: Date | string | null;
+  publishedAt?: Date | string | null;
+  targetExecutionState?: string | null;
+  url?: string | null;
+}
+
+/**
+ * TikTok's "Publish via TikTok App" upload ends the target as `published` with
+ * the publish id and no public post: no publication date, no `publishedAt` and
+ * no URL. Nothing else marks it, so this is the one definition of "delivered to
+ * the TikTok Inbox, not live". The API serializes it as `isInboxDelivery`; the
+ * SQL and Prisma filters in the API restate the same rule and are tested
+ * against this function.
+ */
+export function isTikTokInboxDelivered(
+  post: TikTokInboxDeliverySignal,
+): boolean {
+  return (
+    post.platform === CredentialPlatform.TIKTOK &&
+    post.targetExecutionState === TargetExecutionState.PUBLISHED &&
+    Boolean(post.externalId) &&
+    !post.publicationDate &&
+    !post.publishedAt &&
+    !post.url
+  );
+}
+
+/**
+ * The state a release roll-up counts a target as. An Inbox receipt is not a
+ * live post, so a release that only holds one rolls up as `draft`, the
+ * creator's to finish in TikTok, and never as `published`. The persisted target
+ * state is left alone.
+ */
+export function releaseRollupTargetState(
+  target: TikTokInboxDeliverySignal,
+): TikTokInboxDeliverySignal['targetExecutionState'] {
+  return isTikTokInboxDelivered(target)
+    ? TargetExecutionState.DRAFT
+    : target.targetExecutionState;
+}
+
 /**
  * Derive the release-level status from the execution states of its targets.
  * Encapsulates the aggregate rules so composer, calendar, workers, and API all

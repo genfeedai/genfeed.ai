@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { getMcpCardKind, type McpToolOutput } from '@genfeedai/actions';
+import { TIKTOK_INBOX_DELIVERY_LABEL } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
   SATOSHI_FONT_RESOURCE_PATH,
   staticSurfaceFontCss,
@@ -184,7 +185,11 @@ function progress(row: Record<string, unknown>): number | undefined {
 }
 
 function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
-  const status = text(row, 'status', 'state', 'executionState');
+  // `published` is also what a TikTok Inbox receipt reads; it is not live.
+  const status =
+    row.isInboxDelivery === true
+      ? TIKTOK_INBOX_DELIVERY_LABEL
+      : text(row, 'status', 'state', 'executionState');
   const url = safeCardUrl(text(row, 'url', 'cdnUrl', 'publishedUrl'));
   const resolvedKind = cardKind(row, kind);
   const isMedia = ['audio', 'image', 'media', 'video'].includes(resolvedKind);
@@ -701,7 +706,10 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
           {
             label: platform,
             platform,
-            status: text(target, 'executionState', 'status'),
+            status:
+              target.isInboxDelivery === true
+                ? TIKTOK_INBOX_DELIVERY_LABEL
+                : text(target, 'executionState', 'status'),
           },
         ]
       : [];

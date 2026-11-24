@@ -18,6 +18,11 @@ import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import { createPost } from '@api/collections/posts/handlers/post-create.handler';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import {
+  NOT_LIVE_WHERE,
+  PUBLISHED_AND_LIVE_WHERE,
+  postRollupExecutionStateFilter,
+} from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -44,7 +49,6 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { ApiKeyScope, TargetExecutionState } from '@genfeedai/contracts';
 import {
-  postExecutionStateReadFilter,
   postVisibilityReadFilter,
   resolveDefaultTargetExecutionState,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -276,16 +280,15 @@ export class PostsController extends BaseCRUDController<
 
     const executionState = query.executionState;
     const axisFilters: Record<string, unknown>[] = [];
+    // An Inbox receipt reads `published` but is not a live post, so it is
+    // listed as a draft and never counted as posted.
     if (executionState) {
-      axisFilters.push(postExecutionStateReadFilter(executionState));
+      axisFilters.push(postRollupExecutionStateFilter(executionState));
     } else if (query.publicationState) {
-      const publishedFilter = postExecutionStateReadFilter(
-        TargetExecutionState.PUBLISHED,
-      );
       axisFilters.push(
         query.publicationState === 'posted'
-          ? publishedFilter
-          : { NOT: publishedFilter },
+          ? PUBLISHED_AND_LIVE_WHERE
+          : NOT_LIVE_WHERE,
       );
     }
 

@@ -12,6 +12,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { postRollupExecutionStateFilter } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -43,7 +44,6 @@ import {
   IngredientCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
@@ -494,10 +494,10 @@ export class AgentWorkspaceToolHandler {
         executionState as TargetExecutionState,
       )
     ) {
-      Object.assign(
-        matchStage,
-        postExecutionStateReadFilter(executionState as TargetExecutionState),
-      );
+      // An Inbox receipt reads `published` but is not live: it lists as a draft.
+      matchStage.AND = [
+        postRollupExecutionStateFilter(executionState as TargetExecutionState),
+      ];
     }
 
     const posts = await this.postsService.findAll(

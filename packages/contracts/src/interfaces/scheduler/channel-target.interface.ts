@@ -116,6 +116,11 @@ export interface IChannelTarget extends IBaseEntity {
   readiness?: IPublishingProviderReadiness | null;
   executionState: TargetExecutionState;
   /**
+   * Derived on the server: the target reads `published` but is a TikTok Inbox
+   * receipt the creator still has to publish in TikTok, not a public post.
+   */
+  isInboxDelivery?: boolean;
+  /**
    * Whether this target was placed by hand, by a workflow run, or by an agent.
    * Derived from the target's provenance columns — never stored on its own — so
    * the calendar can filter automation output without leaking run identifiers.

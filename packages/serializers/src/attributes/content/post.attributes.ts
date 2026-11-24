@@ -67,6 +67,7 @@ export const postAttributes = createEntityAttributes([
   'publishedAt',
   'status',
   'targetExecutionState',
+  'isInboxDelivery',
   'visibility',
   'platform',
   'externalId',

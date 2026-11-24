@@ -129,6 +129,41 @@ describe('PostGroupContractService', () => {
     );
   });
 
+  it('flags a published TikTok Inbox receipt on its target and rolls the release up as a draft', () => {
+    const inboxReceipt = makeTarget({
+      externalId: 'v_inbox_url~receipt',
+      id: 'inbox',
+      platform: CredentialPlatform.TIKTOK,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+    });
+    const livePost = makeTarget({
+      externalId: '7300000000000000000',
+      id: 'live',
+      platform: CredentialPlatform.TIKTOK,
+      publicationDate: new Date('2026-07-19T09:00:00.000Z'),
+      publishedAt: new Date('2026-07-19T09:00:00.000Z'),
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      url: 'https://www.tiktok.com/@brand/video/7300000000000000000',
+    });
+
+    const inboxOnly = service.toReleaseGroup(makeGroup(), [inboxReceipt]);
+    const mixed = service.toReleaseGroup(makeGroup(), [inboxReceipt, livePost]);
+
+    expect(inboxOnly.status).toBe(ReleaseStatus.DRAFT);
+    expect(inboxOnly.targets.map((t) => [t.id, t.isInboxDelivery])).toEqual([
+      ['inbox', true],
+    ]);
+    // The stored target state is untouched; only the roll-up reads it as draft.
+    expect(inboxOnly.targets[0]?.executionState).toBe(
+      TargetExecutionState.PUBLISHED,
+    );
+    expect(mixed.status).toBe(ReleaseStatus.PARTIALLY_PUBLISHED);
+    expect(mixed.targets.map((t) => [t.id, t.isInboxDelivery])).toEqual([
+      ['inbox', true],
+      ['live', false],
+    ]);
+  });
+
   it('projects the first tag color from the first target post', () => {
     const release = service.toReleaseGroup(makeGroup(), [
       makeTarget({
@@ -649,6 +684,7 @@ function makeTarget(
     lastAttemptAt: null,
     order: 0,
     platform: CredentialPlatform.TWITTER,
+    publicationDate: null,
     publishedAt: null,
     publishApprovalId: null,
     retryCount: 0,

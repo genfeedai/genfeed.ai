@@ -7,7 +7,6 @@ import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import { MediaCarousel } from '@ui/posts/platform-preview/PlatformPreviewMedia';
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
 import { Avatar } from '@ui/primitives/avatar';
-import { Badge } from '@ui/primitives/badge';
 import { Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -21,11 +20,8 @@ import {
   useReleaseTargetPost,
   useReleaseWithPostMedia,
 } from '@/features/posts/release/use-release-target-post';
-import {
-  badgeVariantForTone,
-  releaseTargets,
-  targetStateBadge,
-} from '@/features/posts/shared/release-status.helpers';
+import ReleaseTargetStateBadge from '@/features/posts/shared/ReleaseTargetStateBadge';
+import { releaseTargets } from '@/features/posts/shared/release-status.helpers';
 
 const GLOBAL_VIEW = 'global';
 
@@ -90,7 +86,6 @@ function ReleaseGlobalPreview({
       <ul className="divide-y divide-border border-t border-border">
         {targets.map((target) => {
           const Icon = getPlatformPreviewIcon(target.platform);
-          const badge = targetStateBadge(target.executionState);
           return (
             <li
               className="flex items-center gap-2 px-3 py-2 text-sm"
@@ -100,12 +95,11 @@ function ReleaseGlobalPreview({
               <span className="font-medium text-foreground">
                 {formatPlatformLabel(target.platform) ?? target.platform}
               </span>
-              <Badge
+              <ReleaseTargetStateBadge
                 className="ml-auto"
-                variant={badgeVariantForTone(badge.tone)}
-              >
-                {badge.label}
-              </Badge>
+                executionState={target.executionState}
+                isInboxDelivery={target.isInboxDelivery}
+              />
             </li>
           );
         })}

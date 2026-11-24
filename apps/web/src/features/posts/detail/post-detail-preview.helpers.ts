@@ -9,7 +9,10 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/contracts';
-import { displayedYouTubeAudience } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  displayedYouTubeAudience,
+  isTikTokInboxDelivered,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   ICredential,
   IPost,
@@ -17,10 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import type { TargetPreviewProps } from '@/props/ui/previews.props';
-import {
-  isPostPublished,
-  isTikTokInboxDelivered,
-} from './post-published.helper';
+import { isPostPublished } from './post-published.helper';
 
 function resolveIngredientMediaKind(
   category: IngredientCategory | undefined,

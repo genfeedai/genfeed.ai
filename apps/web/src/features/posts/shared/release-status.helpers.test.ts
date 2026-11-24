@@ -18,6 +18,7 @@ import {
   isReleaseDraggable,
   isReleaseReschedulable,
   isTargetBlockedByReadiness,
+  isTargetLive,
   isTargetReschedulable,
   releasePlatformIndicators,
   releaseScheduledInstant,
@@ -233,6 +234,27 @@ describe('hasLivePublishedTarget / releaseScheduledInstant', () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it('does not treat a TikTok Inbox delivery as live', () => {
+    const inbox = target({
+      executionState: TargetExecutionState.PUBLISHED,
+      id: 'target-inbox',
+      isInboxDelivery: true,
+      platform: CredentialPlatform.TIKTOK,
+    });
+
+    expect(isTargetLive(inbox)).toBe(false);
+    expect(
+      hasLivePublishedTarget(release({ targets: [target(), inbox] })),
+    ).toBe(false);
+  });
+
+  it('treats a published target that is not an Inbox delivery as live', () => {
+    expect(
+      isTargetLive(target({ executionState: TargetExecutionState.PUBLISHED })),
+    ).toBe(true);
+    expect(isTargetLive(target())).toBe(false);
   });
 
   it('falls back to the first target instant when the release has none', () => {

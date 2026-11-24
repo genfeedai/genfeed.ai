@@ -13,6 +13,7 @@ import {
   PageScope,
   PostRepurposeMode,
 } from '@genfeedai/contracts';
+import { isTikTokInboxDelivered } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
   APP_ROUTES,
   createPublishingApprovalsRoute,
@@ -41,7 +42,6 @@ import PostDetailNeedsYou from '@/features/posts/detail/components/PostDetailNee
 import PostDetailPublished from '@/features/posts/detail/components/PostDetailPublished';
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@/features/posts/detail/post-detail-preview.helpers';
-import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import { usePostAgent } from '@/features/posts/hooks/use-post-agent/use-post-agent';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
 import type { PostReviewSummary } from '@/props/components/post-detail-sidebar.props';
@@ -80,6 +80,7 @@ export default function PostDetail({
   const { openPostRepurposeModal } = usePostRepurposeModal();
   const hookData = usePostDetail({ postId, scope });
   const translate = useTranslations('pages.posts.detail');
+  const translateInspector = useTranslations('ui.postDetailInspector');
   const postsListHref =
     scope === PageScope.SUPERADMIN
       ? APP_ROUTES.ADMIN.CONTENT.POSTS
@@ -663,7 +664,13 @@ export default function PostDetail({
             {!isStandalonePage ? (
               <RecordFactLine
                 className="mb-6"
-                facts={buildPostDetailFacts(post, isPublished)}
+                facts={buildPostDetailFacts(
+                  post,
+                  isPublished,
+                  isTikTokInboxDelivered(post)
+                    ? translateInspector('tiktokInboxDelivered')
+                    : undefined,
+                )}
               />
             ) : null}
 

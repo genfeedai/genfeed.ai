@@ -19,6 +19,8 @@ export interface PostResponse {
   platform?: Platform;
   status: PostStatus;
   executionState: TargetExecutionState;
+  /** A TikTok Inbox receipt: `executionState` reads published, the post is not live. */
+  isInboxDelivery?: boolean;
   visibility: PostVisibility;
   publishedUrl?: string;
   scheduledAt?: string;

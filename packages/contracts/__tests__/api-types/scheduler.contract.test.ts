@@ -17,6 +17,7 @@ import {
   displayedYouTubeAudience,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
+  isTikTokInboxDelivered,
   MAX_THREAD_DELAY_MINUTES,
   mapPostStatusToCanonicalWrite,
   normalizeThreadDelayMinutes,
@@ -24,6 +25,7 @@ import {
   postVisibilityReadFilter,
   projectLegacyPostStatus,
   recurrenceInputSchema,
+  releaseRollupTargetState,
   resolveDefaultTargetExecutionState,
   resolvePostVisibility,
   resolveYouTubeUploadVisibility,
@@ -748,5 +750,60 @@ describe('comment delay bounds', () => {
     expect(normalizeThreadDelayMinutes(null)).toBe(0);
     expect(normalizeThreadDelayMinutes(-5)).toBe(0);
     expect(normalizeThreadDelayMinutes(Number.NaN)).toBe(0);
+  });
+});
+
+describe('TikTok Inbox delivery', () => {
+  const inboxReceipt = {
+    externalId: 'v_inbox_url~receipt',
+    platform: CredentialPlatform.TIKTOK,
+    targetExecutionState: TargetExecutionState.PUBLISHED,
+  };
+
+  test('reads a published TikTok target with a receipt and no public post as an Inbox delivery', () => {
+    expect(isTikTokInboxDelivered(inboxReceipt)).toBe(true);
+    expect(
+      isTikTokInboxDelivered({
+        ...inboxReceipt,
+        publicationDate: null,
+        publishedAt: null,
+        url: '',
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    ['a public URL', { url: 'https://www.tiktok.com/@brand/video/1' }],
+    ['a publication date', { publicationDate: '2026-11-20T10:00:00Z' }],
+    [
+      'a published timestamp',
+      { publishedAt: new Date('2026-11-20T10:00:00Z') },
+    ],
+    ['no receipt', { externalId: '' }],
+    ['another platform', { platform: CredentialPlatform.INSTAGRAM }],
+    ['a target still publishing', { targetExecutionState: 'publishing' }],
+  ])('does not read a post with %s as an Inbox delivery', (_name, change) => {
+    expect(isTikTokInboxDelivered({ ...inboxReceipt, ...change })).toBe(false);
+  });
+
+  test('rolls an Inbox receipt up as a draft, so a release holding only one is not published', () => {
+    const states = [
+      releaseRollupTargetState(inboxReceipt),
+      releaseRollupTargetState({
+        ...inboxReceipt,
+        platform: CredentialPlatform.INSTAGRAM,
+      }),
+    ];
+
+    expect(states).toEqual([
+      TargetExecutionState.DRAFT,
+      TargetExecutionState.PUBLISHED,
+    ]);
+    expect(deriveReleaseStatusFromTargets([states[0]])).toBe(
+      ReleaseStatus.DRAFT,
+    );
+    expect(deriveReleaseStatusFromTargets(states)).toBe(
+      ReleaseStatus.PARTIALLY_PUBLISHED,
+    );
   });
 });

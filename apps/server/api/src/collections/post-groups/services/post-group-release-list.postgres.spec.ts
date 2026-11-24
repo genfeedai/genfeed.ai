@@ -5,6 +5,13 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { buildReleaseListPageSql } from '@api/collections/post-groups/services/post-group-release-list.query';
+import {
+  NOT_LIVE_WHERE,
+  NOT_TIKTOK_INBOX_DELIVERY_WHERE,
+  PUBLISHED_AND_LIVE_WHERE,
+  postRollupExecutionStateFilter,
+  TIKTOK_INBOX_DELIVERY_WHERE,
+} from '@api/collections/posts/services/post-inbox-delivery.filter';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -13,7 +20,10 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { deriveReleaseStatusFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  deriveReleaseStatusFromTargets,
+  isTikTokInboxDelivered,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { afterAll, describe, expect, it, vi } from 'vitest';
@@ -71,6 +81,7 @@ type PostSeed = {
   createdAt?: Date;
   credentialId?: string | null;
   description?: string;
+  externalId?: string | null;
   groupId?: string | null;
   id: string;
   isDeleted?: boolean;
@@ -78,9 +89,12 @@ type PostSeed = {
   organizationId?: string;
   parentId?: string | null;
   platform?: string | null;
+  publicationDate?: Date | null;
+  publishedAt?: Date | null;
   scheduledDate?: Date | null;
   state?: string;
   updatedAt?: Date;
+  url?: string | null;
   workflowExecutionId?: string | null;
 };
 
@@ -111,7 +125,8 @@ async function insertPost(
       ("id", "organizationId", "brandId", "userId", "description", "label",
        "groupId", "parentId", "credentialId", "platform", "category",
        "scheduledDate", "targetExecutionState", "workflowExecutionId",
-       "agentThreadId", "campaignId", "isDeleted", "createdAt", "updatedAt")
+       "agentThreadId", "campaignId", "isDeleted", "createdAt", "updatedAt",
+       "externalId", "publicationDate", "publishedAt", "url")
     VALUES (
       ${seed.id}, ${seed.organizationId ?? ORG}, ${seed.brandId ?? 'brand-1'},
       'user-1', ${seed.description ?? 'body'}, ${seed.label ?? null},
@@ -123,7 +138,9 @@ async function insertPost(
       ${seed.state ?? TargetExecutionState.SCHEDULED},
       ${seed.workflowExecutionId ?? null}, ${seed.agentThreadId ?? null},
       ${seed.campaignId ?? null}, ${seed.isDeleted ?? false},
-      ${seed.createdAt ?? EPOCH}, ${seed.updatedAt ?? EPOCH})`);
+      ${seed.createdAt ?? EPOCH}, ${seed.updatedAt ?? EPOCH},
+      ${seed.externalId ?? null}, ${seed.publicationDate ?? null},
+      ${seed.publishedAt ?? null}, ${seed.url ?? null})`);
 }
 
 /** A group with one target per state. */
@@ -553,6 +570,241 @@ describe.skipIf(!connectionString)(
         ]);
         expect(result.docs[0]?.status).toBe(ReleaseStatus.PUBLISHED);
         expect(result).toMatchObject({ hasNextPage: true, totalDocs: 3 });
+      });
+    });
+
+    describe('TikTok Inbox delivery', () => {
+      const inboxReceipt = {
+        externalId: 'v_inbox_url~receipt',
+        platform: CredentialPlatform.TIKTOK,
+        state: TargetExecutionState.PUBLISHED,
+      };
+
+      it('lists an Inbox receipt as a draft and never as posted', async () => {
+        await inRolledBackTransaction(async (tx) => {
+          await insertGroup(tx, { id: 'inbox-release' });
+          await insertPost(tx, {
+            ...inboxReceipt,
+            groupId: 'inbox-release',
+            id: 'inbox-target',
+          });
+          await insertPost(tx, { ...inboxReceipt, id: 'inbox-solo' });
+          await insertGroup(tx, { id: 'live-release' });
+          await insertPost(tx, {
+            ...inboxReceipt,
+            groupId: 'live-release',
+            id: 'live-target',
+            publicationDate: EPOCH,
+            publishedAt: EPOCH,
+            url: 'https://www.tiktok.com/@brand/video/1',
+          });
+
+          expect(
+            (await listIdList(tx, { publicationState: 'posted' })).sort(),
+          ).toEqual(['live-release']);
+          expect(
+            (await listIdList(tx, { publicationState: 'not-posted' })).sort(),
+          ).toEqual(['inbox-release', 'inbox-solo']);
+          expect(
+            (
+              await listIdList(tx, { statuses: [ReleaseStatus.PUBLISHED] })
+            ).sort(),
+          ).toEqual(['live-release']);
+          expect(
+            (await listIdList(tx, { statuses: [ReleaseStatus.DRAFT] })).sort(),
+          ).toEqual(['inbox-release', 'inbox-solo']);
+          expect(
+            (
+              await listIdList(tx, {
+                executionStates: [TargetExecutionState.PUBLISHED],
+              })
+            ).sort(),
+          ).toEqual(['live-release']);
+          expect(
+            (
+              await listIdList(tx, {
+                executionStates: [TargetExecutionState.DRAFT],
+              })
+            ).sort(),
+          ).toEqual(['inbox-release', 'inbox-solo']);
+        });
+      });
+
+      it('serves the Inbox flag on the release target and rolls the release up as a draft', async () => {
+        await inRolledBackTransaction(async (tx) => {
+          await insertGroup(tx, { id: 'inbox-release' });
+          await insertPost(tx, {
+            ...inboxReceipt,
+            groupId: 'inbox-release',
+            id: 'inbox-target',
+          });
+          await insertGroup(tx, { id: 'mixed-release' });
+          await insertPost(tx, {
+            ...inboxReceipt,
+            groupId: 'mixed-release',
+            id: 'mixed-inbox',
+          });
+          await insertPost(tx, {
+            groupId: 'mixed-release',
+            id: 'mixed-live',
+            platform: CredentialPlatform.INSTAGRAM,
+            publicationDate: EPOCH,
+            publishedAt: EPOCH,
+            state: TargetExecutionState.PUBLISHED,
+            url: 'https://www.instagram.com/p/1',
+          });
+
+          const service = new PostGroupPersistenceService(
+            tx as unknown as PrismaService,
+            new PostGroupContractService(),
+            {} as never,
+          );
+          const { docs } = await service.listReleaseGroups({
+            limit: 10,
+            organizationId: ORG,
+          });
+          const byId = new Map(docs.map((release) => [release.id, release]));
+
+          expect(byId.get('inbox-release')?.status).toBe(ReleaseStatus.DRAFT);
+          expect(
+            byId.get('inbox-release')?.targets.map((t) => t.isInboxDelivery),
+          ).toEqual([true]);
+          expect(byId.get('mixed-release')?.status).toBe(
+            ReleaseStatus.PARTIALLY_PUBLISHED,
+          );
+          expect(
+            byId
+              .get('mixed-release')
+              ?.targets.map((t) => [t.id, t.isInboxDelivery]),
+          ).toEqual(
+            expect.arrayContaining([
+              ['mixed-inbox', true],
+              ['mixed-live', false],
+            ]),
+          );
+        });
+      });
+
+      it('keeps a post with no platform out of the Inbox filter and inside the live one', async () => {
+        await inRolledBackTransaction(async (tx) => {
+          await insertPost(tx, {
+            externalId: 'ext',
+            id: 'no-platform',
+            platform: null,
+            state: TargetExecutionState.PUBLISHED,
+          });
+          const idsWhere = async (where: Prisma.PostWhereInput) =>
+            (await tx.post.findMany({ select: { id: true }, where })).map(
+              (post) => post.id,
+            );
+
+          expect(await idsWhere(TIKTOK_INBOX_DELIVERY_WHERE)).toEqual([]);
+          expect(await idsWhere(NOT_TIKTOK_INBOX_DELIVERY_WHERE)).toEqual([
+            'no-platform',
+          ]);
+          expect(await idsWhere(PUBLISHED_AND_LIVE_WHERE)).toEqual([
+            'no-platform',
+          ]);
+        });
+      });
+
+      it('restates isTikTokInboxDelivered for every combination of the columns it reads', async () => {
+        const platforms = [
+          CredentialPlatform.TIKTOK,
+          CredentialPlatform.INSTAGRAM,
+        ];
+        const states = [
+          TargetExecutionState.PUBLISHED,
+          TargetExecutionState.DRAFT,
+        ];
+        const externalIds = [null, '', 'ext'];
+        const dates = [null, EPOCH];
+        const urls = [null, '', 'https://www.tiktok.com/@brand/video/1'];
+        const rows: PostSeed[] = [];
+        for (const platform of platforms) {
+          for (const state of states) {
+            for (const externalId of externalIds) {
+              for (const publicationDate of dates) {
+                for (const publishedAt of dates) {
+                  for (const url of urls) {
+                    rows.push({
+                      externalId,
+                      id: `row-${rows.length}`,
+                      platform,
+                      publicationDate,
+                      publishedAt,
+                      state,
+                      url,
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        await inRolledBackTransaction(async (tx) => {
+          for (const row of rows) {
+            await insertPost(tx, row);
+          }
+          const posted = new Set(
+            await listIdList(tx, { publicationState: 'posted' }),
+          );
+          const inbox = new Set(
+            (
+              await listIdList(tx, {
+                executionStates: [TargetExecutionState.DRAFT],
+              })
+            ).filter((id) =>
+              rows.some(
+                (row) =>
+                  row.id === id && row.state === TargetExecutionState.PUBLISHED,
+              ),
+            ),
+          );
+
+          // The Prisma filters the posts list, the public profile and the
+          // counts use read the same rows the SQL above does.
+          const idsWhere = async (where: Prisma.PostWhereInput) =>
+            new Set(
+              (await tx.post.findMany({ select: { id: true }, where })).map(
+                (post) => post.id,
+              ),
+            );
+          const inboxRows = await idsWhere(TIKTOK_INBOX_DELIVERY_WHERE);
+          const notInboxRows = await idsWhere(NOT_TIKTOK_INBOX_DELIVERY_WHERE);
+          const liveRows = await idsWhere(PUBLISHED_AND_LIVE_WHERE);
+          const notLiveRows = await idsWhere(NOT_LIVE_WHERE);
+          const rollupDraftRows = await idsWhere(
+            postRollupExecutionStateFilter(TargetExecutionState.DRAFT),
+          );
+
+          for (const row of rows) {
+            const isInbox = isTikTokInboxDelivered({
+              externalId: row.externalId,
+              platform: row.platform,
+              publicationDate: row.publicationDate,
+              publishedAt: row.publishedAt,
+              targetExecutionState: row.state,
+              url: row.url,
+            });
+            expect(inbox.has(row.id), JSON.stringify(row)).toBe(isInbox);
+            expect(posted.has(row.id), JSON.stringify(row)).toBe(
+              row.state === TargetExecutionState.PUBLISHED && !isInbox,
+            );
+            const isLive =
+              row.state === TargetExecutionState.PUBLISHED && !isInbox;
+            expect(inboxRows.has(row.id), JSON.stringify(row)).toBe(isInbox);
+            expect(notInboxRows.has(row.id), JSON.stringify(row)).toBe(
+              !isInbox,
+            );
+            expect(liveRows.has(row.id), JSON.stringify(row)).toBe(isLive);
+            expect(notLiveRows.has(row.id), JSON.stringify(row)).toBe(!isLive);
+            expect(rollupDraftRows.has(row.id), JSON.stringify(row)).toBe(
+              row.state === TargetExecutionState.DRAFT || isInbox,
+            );
+          }
+        });
       });
     });
   },

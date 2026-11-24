@@ -26,8 +26,10 @@ import {
   type CreateReleaseGroupInput,
   createReleaseGroupSchema,
   deriveReleaseStatusProjectionFromTargets,
+  isTikTokInboxDelivered,
   type ReleaseAttachmentInput,
   type ReleaseMediaReferenceInput,
+  releaseRollupTargetState,
   resolvePostVisibility,
   type UpdateChannelTargetInput,
   type UpdateReleaseGroupInput,
@@ -267,7 +269,7 @@ export class PostGroupContractService {
     );
     const status = this.deriveReleaseStatus(
       group.id,
-      targets.map((target) => target.targetExecutionState),
+      targets.map(releaseRollupTargetState),
     );
 
     return {
@@ -672,6 +674,7 @@ export class PostGroupContractService {
       id: target.id,
       idempotencyKey: target.targetIdempotencyKey,
       isDeleted: target.isDeleted,
+      isInboxDelivery: isTikTokInboxDelivered(target),
       lastAttemptAt: this.toIso(target.lastAttemptAt),
       order: target.order,
       platform: target.platform as CredentialPlatform,

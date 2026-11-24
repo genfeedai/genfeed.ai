@@ -17,6 +17,8 @@ export interface PublishingContentThumbnailProps {
 
 /** A row's status badge; its publish or schedule time shows on hover. */
 export interface PublishingContentStatusProps {
+  /** A TikTok Inbox receipt: the badge says so instead of the status. */
+  isInboxDelivery?: boolean;
   status: string;
   publishedAt?: string | null;
   scheduledAt?: string | null;
