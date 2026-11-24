@@ -18,6 +18,7 @@ vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({ openModal }));
 
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
+    'aria-label'?: string;
     ariaLabel?: string;
     children?: ReactNode;
     icon?: ReactNode;
@@ -26,7 +27,7 @@ vi.mock('@ui/primitives/button', () => ({
     return (
       <button
         type="button"
-        aria-label={props.ariaLabel}
+        aria-label={props.ariaLabel ?? props['aria-label']}
         onClick={props.onClick}
       >
         {props.icon}
