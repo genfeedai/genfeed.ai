@@ -278,7 +278,6 @@
     "apps/web/src/features/brands/components/brand-kit/writing-voice/AgentProfilePlatformOverrideWideFields.tsx": 9,
     "apps/web/src/features/brands/components/brand-kit/writing-voice/AgentProfileVoiceFields.tsx": 35,
     "apps/web/src/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor.tsx": 29,
-    "apps/web/src/features/brands/components/sidebar/BrandDetailAccountSettingsCard.tsx": 3,
     "apps/web/src/features/brands/components/sidebar/BrandDetailDefaultModelsCard.tsx": 5,
     "apps/web/src/features/brands/components/sidebar/BrandDetailManualKitCard.tsx": 45,
     "apps/web/src/features/brands/components/sidebar/BrandDetailReferencesCard.tsx": 5,

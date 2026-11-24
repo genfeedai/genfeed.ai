@@ -95,17 +95,15 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock(
-  '@/features/brands/components/detail-sidebar/BrandDetailSidebar',
+  '@/features/brands/components/sidebar/BrandDetailExternalLinksCard',
   () => ({
     __esModule: true,
     default: ({
       onOpenLinkModal,
-      onTogglePublicProfile,
     }: {
       onOpenLinkModal: (link?: ILink) => void;
-      onTogglePublicProfile: (isPublic: boolean) => void;
     }) => (
-      <div data-testid="brand-detail-sidebar">
+      <div data-testid="brand-links-card">
         <button type="button" onClick={() => onOpenLinkModal()}>
           Add link
         </button>
@@ -114,9 +112,6 @@ vi.mock(
           onClick={() => onOpenLinkModal(existingLink as unknown as ILink)}
         >
           Edit link
-        </button>
-        <button type="button" onClick={() => onTogglePublicProfile(true)}>
-          Make public
         </button>
       </div>
     ),
@@ -212,7 +207,7 @@ describe('BrandSidebarPanel', () => {
     const onChange = vi.fn();
     render(<BrandSidebarPanel brand={brand} onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Make public' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Public Profile' }));
 
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
     expect(patchBrandMock).toHaveBeenCalledWith('brand-1', {
