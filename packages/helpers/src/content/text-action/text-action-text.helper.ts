@@ -112,14 +112,31 @@ export function createTextActionGate(input: {
   };
 }
 
-/** Proofreading never shortens the room an over-long draft already uses. */
+const PROOFREAD_GROWTH = 1.05;
+const REWRITE_GROWTH = 1.25;
+
+/**
+ * Proofreading never shortens the room an over-long draft already uses.
+ * A channel with an extended ceiling (X long posts) lets a draft past the
+ * standard length keep its length, up to that ceiling: proofreading by 5%,
+ * a rewrite by 25%. Without a ceiling a rewrite is held to the channel limit.
+ */
 export function resolveTextActionLimit(input: {
   channelLimit: number;
+  /** The longest a post may be on a channel that allows long posts. */
+  extendedChannelLimit?: number;
   mode: 'proofread' | 'rewrite';
   source: string;
   usesWeightedCharacters: boolean;
 }): number {
-  if (input.mode === 'rewrite') return input.channelLimit;
+  const extended = input.extendedChannelLimit;
+  if (input.mode === 'rewrite' && extended === undefined) {
+    return input.channelLimit;
+  }
   const used = measureChannelText(input.source, input.usesWeightedCharacters);
-  return Math.max(input.channelLimit, Math.ceil(used * 1.05));
+  const grown = Math.ceil(
+    used * (input.mode === 'rewrite' ? REWRITE_GROWTH : PROOFREAD_GROWTH),
+  );
+  const room = extended === undefined ? grown : Math.min(extended, grown);
+  return Math.max(input.channelLimit, room);
 }

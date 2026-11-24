@@ -769,6 +769,23 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
+    /**
+     * P-Video 2 Pro (Replicate schema read 2026-11-24): text or a first image,
+     * 5-15 s, 480p, 768p and 1080p (1080p generates at 768p and upscales).
+     */
+    [MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO]: {
+      aspectRatios: ['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'],
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
     [MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST]: {
       aspectRatios: ASPECT_RATIOS.VEO,
       category: ModelCategory.VIDEO,
@@ -1836,12 +1853,33 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       defaultDuration: 8,
-      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       hasDurationEditing: true,
+      hasResolutionOptions: true,
       hasSpeech: true,
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 3,
+    },
+    /**
+     * HeyGen Video 1 through fal: text, first image or references (up to nine
+     * images, three clips). fal takes 5-30 s; the catalog stops at 15 s, the
+     * same cap as HeyGen's own route.
+     */
+    [MODEL_KEYS.FAL_HEYGEN_VIDEO]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN_VIDEO,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 9,
+      maxVideoReferences: 3,
     },
     [MODEL_KEYS.FAL_MINIMAX_H3_MAX]: {
       aspectRatios: ASPECT_RATIOS.H3_MAX,

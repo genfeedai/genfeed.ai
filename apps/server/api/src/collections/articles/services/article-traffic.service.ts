@@ -1,5 +1,6 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   ArticleTraffic,
@@ -20,6 +21,8 @@ const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DIGITS_ONLY_PATTERN = /^\d+$/;
 
 const DAY_MS = 86_400_000;
+const DEFAULT_RANGE_DAYS = 30;
+const MAX_RANGE_DAYS = 366;
 const QUERY_ORIGINS = new Set([
   'https://eu.posthog.com',
   'https://us.posthog.com',
@@ -57,26 +60,16 @@ export class ArticleTrafficService {
       publication && Number.isFinite(publication.getTime())
         ? publication
         : null;
-    const endDate = now.toISOString();
-    const days =
-      input.period === 'all' ? null : Number(input.period.slice(0, -1));
-    const midnight = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-    );
-    const requestedStart =
-      days === null
-        ? (publishedAt?.getTime() ?? now.getTime())
-        : midnight - (days - 1) * DAY_MS;
-    const start = new Date(
-      Math.max(requestedStart, publishedAt?.getTime() ?? requestedStart),
-    );
+    const { endDay, startDay } = this.resolveRange(input, now);
+    // The last day is partial while it is today, so it ends at the present.
+    const endDate = new Date(
+      Math.min(endDay + DAY_MS - 1, now.getTime()),
+    ).toISOString();
+    const start = new Date(Math.max(startDay, publishedAt?.getTime() ?? 0));
     const base: ArticleTraffic = {
       articleId: input.articleId,
       days: [],
       endDate,
-      period: input.period,
       reason: null,
       startDate: start.toISOString(),
       status: 'unavailable',
@@ -101,6 +94,11 @@ export class ArticleTrafficService {
     const canonical = await this.articlesService.findPublicArticleBySlug(slug);
     if (!canonical) return unavailable('not_published');
     if (canonical.id !== article.id) return unavailable('not_canonical');
+
+    if (start.getTime() > Date.parse(endDate)) {
+      // The range ends before the article went live: no traffic is possible.
+      return this.buildReport({ results: [] }, base, endDay);
+    }
 
     const apiKey = this.configService.get('POSTHOG_QUERY_API_KEY') as
       | string
@@ -169,7 +167,7 @@ export class ArticleTrafficService {
       );
       if (!response.ok) throw new Error('Query unavailable');
       const payload: unknown = await response.json();
-      return this.buildReport(payload, base, midnight);
+      return this.buildReport(payload, base, endDay);
     } catch {
       // Do not log upstream bodies, query text, credentials or reader identities.
       this.logger.warn('Article website traffic query unavailable');
@@ -177,10 +175,61 @@ export class ArticleTrafficService {
     }
   }
 
+  /** The requested days as UTC midnights; the end day is never in the future. */
+  private resolveRange(
+    input: Pick<ArticleTrafficInput, 'endDate' | 'startDate'>,
+    now: Date,
+  ): { endDay: number; startDay: number } {
+    const today = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+    );
+    const endDay = Math.min(
+      this.parseDay(input.endDate, 'endDate') ?? today,
+      today,
+    );
+    const startDay =
+      this.parseDay(input.startDate, 'startDate') ??
+      endDay - (DEFAULT_RANGE_DAYS - 1) * DAY_MS;
+    if (startDay > endDay) {
+      throw new ValidationException(
+        'startDate must not be after endDate',
+        'startDate',
+        input.startDate,
+      );
+    }
+    if ((endDay - startDay) / DAY_MS >= MAX_RANGE_DAYS) {
+      throw new ValidationException(
+        `The range is at most ${MAX_RANGE_DAYS} days`,
+        'startDate',
+        input.startDate,
+      );
+    }
+    return { endDay, startDay };
+  }
+
+  private parseDay(value: string | undefined, field: string): number | null {
+    if (value === undefined) return null;
+    const time = Date.parse(`${value}T00:00:00Z`);
+    // Date.parse rolls 2026-02-31 over to March; the round trip catches that.
+    if (
+      !Number.isFinite(time) ||
+      new Date(time).toISOString().slice(0, 10) !== value
+    ) {
+      throw new ValidationException(
+        `${field} is not a valid date`,
+        field,
+        value,
+      );
+    }
+    return time;
+  }
+
   private buildReport(
     payload: unknown,
     base: ArticleTraffic,
-    midnight: number,
+    endDay: number,
   ): ArticleTraffic {
     if (
       !payload ||
@@ -228,7 +277,7 @@ export class ArticleTrafficService {
     const history: ArticleTrafficDay[] = [];
     for (
       let cursor = Date.parse(`${base.startDate.slice(0, 10)}T00:00:00Z`);
-      cursor <= midnight;
+      cursor <= endDay;
       cursor += DAY_MS
     ) {
       const date = new Date(cursor).toISOString().slice(0, 10);

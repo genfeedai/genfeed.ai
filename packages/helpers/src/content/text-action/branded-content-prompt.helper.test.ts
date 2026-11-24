@@ -36,6 +36,28 @@ describe('buildSocialContentPrompt', () => {
     expect(prompt).toContain('Output only the finished text');
   });
 
+  it('names the standard length and allows a longer post only when asked', () => {
+    const prompt = buildSocialContentPrompt({
+      ...social,
+      maxCharacters: 25_000,
+      standardCharacters: 280,
+    });
+    expect(prompt).toContain(
+      'Each post is 280 characters or fewer unless the brief or the brand voice asks for a longer post, and never more than 25000 characters',
+    );
+    expect(prompt).not.toContain('at most 25000 characters');
+  });
+
+  it('holds every thread post to the standard length', () => {
+    const prompt = buildSocialContentPrompt({
+      ...social,
+      isThread: true,
+      maxCharacters: 280,
+      standardCharacters: 280,
+    });
+    expect(prompt).toContain('Each post is at most 280 characters');
+  });
+
   it('asks for one thread of separated posts', () => {
     const prompt = buildSocialContentPrompt({ ...social, isThread: true });
     expect(prompt).toContain('one X (Twitter) thread of three to seven posts');

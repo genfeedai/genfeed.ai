@@ -25,6 +25,7 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { describeCaptionLengthRule } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import {
   type ChannelRepurposeAdjustment,
   type ChannelRepurposeMedia,
@@ -410,7 +411,7 @@ export class PostRepurposeService {
     const constraints: string[] = [];
 
     if (capability) {
-      constraints.push(`stay under ${capability.caption.maxLength} characters`);
+      constraints.push(describeCaptionLengthRule(capability.caption));
     }
     if (policy.maxHashtags !== undefined) {
       constraints.push(`use at most ${policy.maxHashtags} hashtags`);

@@ -24,8 +24,18 @@ const SEEDANCE_MODEL_PATTERN =
 const SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN =
   /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/;
 
-const GEMINI_OMNI_FLASH_ENDPOINT = 'google/gemini-omni-flash';
+const GEMINI_OMNI_FLASH_VERSION = 'google/gemini-omni-flash/v1.2';
+const GEMINI_OMNI_FLASH_ENDPOINT = `${GEMINI_OMNI_FLASH_VERSION}/text-to-video`;
+const GEMINI_OMNI_FLASH_RESOLUTIONS = ['360p', '720p', '1080p', '4k'];
 const MINIMAX_H3_MAX_TEXT_ENDPOINT = 'minimax/h3-max/text-to-video';
+const HEYGEN_VIDEO_TEXT_ENDPOINT = 'heygen/heygen-video/text-to-video';
+const HEYGEN_VIDEO_RESOLUTIONS = ['480p', '768p', '1080p', '2k'];
+
+function httpsUrls(value: unknown): string[] {
+  return optionalStringArray(Array.isArray(value) ? value : [value]).filter(
+    (entry) => entry.startsWith('https://'),
+  );
+}
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -106,21 +116,31 @@ export function prepareFalVideoDispatch(
       ]),
     ].filter((value): value is string => Boolean(value));
     const aspectRatio = optionalString(params.promptParams.aspect_ratio);
+    const requestedResolution = optionalString(
+      params.promptParams.resolution,
+    )?.toLowerCase();
     const duration =
       optionalNumber(params.promptParams.duration) ?? params.duration;
     const input: Record<string, unknown> = {
       prompt: optionalString(params.promptParams.prompt) ?? params.prompt,
       ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
       ...(duration ? { duration } : {}),
+      // Always sent: the reviewed rate is per resolution, and fal's own
+      // default (720p) must not decide the price.
+      resolution: GEMINI_OMNI_FLASH_RESOLUTIONS.includes(
+        requestedResolution ?? '',
+      )
+        ? requestedResolution
+        : '720p',
     };
     if (referenceImages.length > 1)
       return {
-        endpoint: `${endpoint}/reference-to-video`,
+        endpoint: `${GEMINI_OMNI_FLASH_VERSION}/reference-to-video`,
         input: { ...input, image_urls: referenceImages },
       };
     if (firstImage)
       return {
-        endpoint: `${endpoint}/image-to-video`,
+        endpoint: `${GEMINI_OMNI_FLASH_VERSION}/image-to-video`,
         input: { ...input, image_url: firstImage },
       };
     return { endpoint, input };
@@ -161,6 +181,66 @@ export function prepareFalVideoDispatch(
           image_url: firstImage,
           ...(endImage ? { end_image_url: endImage } : {}),
         },
+      };
+    return {
+      endpoint,
+      input: {
+        ...input,
+        aspect_ratio: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'].includes(
+          requestedAspectRatio ?? '',
+        )
+          ? requestedAspectRatio
+          : '16:9',
+      },
+    };
+  }
+  if (endpoint === HEYGEN_VIDEO_TEXT_ENDPOINT) {
+    const firstImage =
+      httpsUrls(params.promptParams.image)[0] ??
+      httpsUrls(params.promptParams.image_url)[0] ??
+      httpsUrls(params.imageUrl)[0];
+    const extraImages = httpsUrls(params.promptParams.reference_images);
+    const referenceImages = [
+      ...new Set([...(firstImage ? [firstImage] : []), ...extraImages]),
+    ];
+    const referenceVideos = httpsUrls(params.promptParams.reference_video_urls);
+    const requestedAspectRatio = optionalString(
+      params.promptParams.aspect_ratio,
+    );
+    const requestedResolution = optionalString(
+      params.promptParams.resolution,
+    )?.toLowerCase();
+    const seed = optionalNumber(params.promptParams.seed);
+    const input: Record<string, unknown> = {
+      duration: optionalNumber(params.promptParams.duration) ?? params.duration,
+      // The compiled brief is the prompt; fal must not rewrite it.
+      prompt_enhancement: 'disabled',
+      prompt: optionalString(params.promptParams.prompt) ?? params.prompt,
+      resolution: HEYGEN_VIDEO_RESOLUTIONS.includes(requestedResolution ?? '')
+        ? requestedResolution
+        : '768p',
+      ...(seed !== undefined ? { seed } : {}),
+    };
+    // fal splits HeyGen Video by mode: one image is the first frame, anything
+    // more (or any clip) is a reference request.
+    if (referenceVideos.length > 0 || referenceImages.length > 1)
+      return {
+        endpoint: 'heygen/heygen-video/reference-to-video',
+        input: {
+          ...input,
+          ...(requestedAspectRatio
+            ? { aspect_ratio: requestedAspectRatio }
+            : {}),
+          ...(referenceImages.length > 0
+            ? { reference_image_urls: referenceImages }
+            : {}),
+          reference_video_urls: referenceVideos,
+        },
+      };
+    if (referenceImages.length === 1)
+      return {
+        endpoint: 'heygen/heygen-video/image-to-video',
+        input: { ...input, image_url: referenceImages[0] },
       };
     return {
       endpoint,

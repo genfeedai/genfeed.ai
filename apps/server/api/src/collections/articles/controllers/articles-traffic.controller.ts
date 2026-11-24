@@ -30,7 +30,8 @@ export class ArticlesTrafficController {
       articleId,
       brandId: readScope.brandId,
       organizationId: readScope.organizationId,
-      period: query.period,
+      endDate: query.endDate,
+      startDate: query.startDate,
       userId: user.userId ?? user.id,
     });
   }

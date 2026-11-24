@@ -92,7 +92,7 @@ const falFamilies: readonly [string, ModelCategory, readonly string[]][] = [
     ['text-to-video', 'image-to-video', 'reference-to-video'],
   ],
   [
-    'google/gemini-omni-flash/v1.1',
+    'google/gemini-omni-flash/v1.2',
     ModelCategory.VIDEO,
     ['text-to-video', 'image-to-video', 'reference-to-video', 'edit'],
   ],

@@ -953,20 +953,47 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:33.916Z',
   },
   {
-    endpoint: 'google/gemini-omni-flash',
+    // fal model page (read 2026-11-24), per second of output video with native
+    // audio: $0.0273 at 360p, $0.0819 at 720p, $0.1229 at 1080p, $0.2457 at
+    // 4K, the same on the text, image and reference endpoints. fal adds $1.50
+    // per 1M input tokens (reference images and videos count), which dispatch
+    // cannot meter, so it is not in the rate: it is under 3% of a 10 s 720p
+    // clip even with three reference videos.
+    endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
     provider: 'fal',
     rates: [
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.13,
-        when: {},
+        unitPriceUsd: 0.0273,
+        when: { resolution: '360p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0819,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1229,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2457,
+        when: { resolution: '4k' },
         isPerOutput: true,
       },
     ],
     sourceUrl:
-      'https://fal.ai/models/google/gemini-omni-flash/reference-to-video',
-    verifiedAt: '2026-10-06T21:45:00.000Z',
+      'https://fal.ai/models/google/gemini-omni-flash/v1.2/text-to-video',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'google/imagen-3',
@@ -2233,6 +2260,46 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T21:45:00.000Z',
   },
   {
+    // fal model page (read 2026-11-24), regular price: $0.02 per second at 480p
+    // and 768p, $0.06 at 1080p and 2K. The page still carries a 50% promotion
+    // that ended 2026-10-31. Text, image and reference endpoints bill alike;
+    // the dispatch adapter picks the endpoint from the media given.
+    endpoint: 'heygen/heygen-video/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { resolution: '768p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: { resolution: '2k' },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/heygen/heygen-video/text-to-video',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
+  },
+  {
     endpoint: 'minimax/h3-max/text-to-video',
     provider: 'fal',
     rates: [
@@ -2768,6 +2835,9 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-27T18:33:12.195Z',
   },
   {
+    // Replicate billing tiers (read 2026-11-24), per second of output video. The
+    // 1080p tiers are 768p generation plus an upscale; 2K and 4K are listed on
+    // the page but not offered, so they have no rate here.
     endpoint: 'prunaai/p-video-2-pro',
     provider: 'replicate',
     rates: [
@@ -2831,6 +2901,36 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         },
         isPerOutput: true,
       },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.045,
+        when: {
+          model_variant: 'cost',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.055,
+        when: {
+          model_variant: 'speed',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.095,
+        when: {
+          model_variant: 'quality',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
     ],
     variantRules: [
       {
@@ -2850,7 +2950,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/prunaai/p-video-2-pro',
-    verifiedAt: '2026-10-27T18:33:10.964Z',
+    verifiedAt: '2026-11-24T11:40:00.000Z',
   },
   {
     endpoint: 'qwen/qwen-image',

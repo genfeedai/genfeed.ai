@@ -7,7 +7,10 @@ import {
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
-import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
+import {
+  describeCaptionLengthRule,
+  getChannelCapability,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -65,9 +68,11 @@ export class TrendRemixHandler implements SkillHandler {
       ? trend.metadata.hashtags.slice(0, 5).join(' ')
       : '';
 
-    const charLimit =
-      getChannelCapability(platform ?? '')?.caption.maxLength ??
-      FALLBACK_CHAR_LIMIT;
+    const lengthRule = describeCaptionLengthRule(
+      getChannelCapability(platform ?? '')?.caption ?? {
+        maxLength: FALLBACK_CHAR_LIMIT,
+      },
+    );
     const tone =
       typeof params.tone === 'string' ? params.tone : 'engaging and authentic';
 
@@ -81,7 +86,7 @@ export class TrendRemixHandler implements SkillHandler {
       `You are a social media content expert specializing in trend-based content creation.`,
       harnessBrief,
       `Tone: ${tone}.`,
-      `Platform: ${platform ?? 'social media'} (max ${charLimit} characters).`,
+      `Platform: ${platform ?? 'social media'}.`,
       `Your task: create a remix of the given trend that feels native to the platform while matching the brand brief.`,
     ].join('\n\n');
 
@@ -92,7 +97,7 @@ export class TrendRemixHandler implements SkillHandler {
       hashtags ? `Trending hashtags: ${hashtags}` : null,
       ``,
       `Requirements:`,
-      `- Stay within ${charLimit} characters`,
+      `- The post must ${lengthRule}`,
       `- Follow the brand brief`,
       `- Keep tone: ${tone}`,
       `- Include 2-3 relevant hashtags naturally`,
