@@ -1,14 +1,9 @@
 'use client';
 
-import {
-  ButtonVariant,
-  CardEmptySize,
-  ComponentSize,
-} from '@genfeedai/contracts';
+import { CardEmptySize, ComponentSize } from '@genfeedai/contracts';
 import type { WorkflowNode } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { Kbd } from '@genfeedai/ui';
-import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Dialog,
   DialogBody,
@@ -18,6 +13,7 @@ import {
 } from '@genfeedai/ui/primitives/dialog';
 import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
 import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
+import { SuggestionItem } from '@genfeedai/ui/primitives/suggestion-list';
 import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -172,16 +168,10 @@ export function NodeSearch() {
                   const comment = (node.data as { comment?: string }).comment;
 
                   return (
-                    <Button
-                      withWrapper={false}
+                    <SuggestionItem
                       key={node.id}
-                      variant={ButtonVariant.GHOST}
+                      isSelected={index === selectedIndex}
                       onClick={() => handleSelectNode(node)}
-                      className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
-                        index === selectedIndex
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-muted/50 border border-transparent'
-                      }`}
                     >
                       <div className="flex-shrink-0 size-8 rounded bg-muted flex items-center justify-center text-xs font-medium">
                         {nodeDef?.label?.charAt(0) || '?'}
@@ -195,7 +185,7 @@ export function NodeSearch() {
                           {comment && ` · ${comment}`}
                         </div>
                       </div>
-                    </Button>
+                    </SuggestionItem>
                   );
                 })
               )}

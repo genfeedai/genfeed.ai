@@ -1,5 +1,5 @@
 import type { ConversationComposerContextReferenceKind } from '@genfeedai/agent/models/conversation-composer.model';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
@@ -102,13 +102,14 @@ export function AgentChatInputAttachmentTray({
                   </div>
                 )}
                 <Button
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.OVERLAY}
+                  size={ButtonSize.MICRO}
                   withWrapper={false}
                   onClick={() => onRemoveAttachedAsset(asset.id)}
                   isDisabled={isDisabled}
                   ariaLabel={translate('removeAttachment', { name: assetName })}
                   className={cn(
-                    'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
+                    'absolute right-1 top-1 transition-opacity',
                     hoverRevealClassName({ focus: 'visible' }),
                   )}
                 >
@@ -168,7 +169,8 @@ export function AgentChatInputAttachmentTray({
               )}
               {onRemoveReference ? (
                 <Button
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.OVERLAY}
+                  size={ButtonSize.MICRO}
                   withWrapper={false}
                   onClick={() => onRemoveReference(reference)}
                   isDisabled={isDisabled}
@@ -176,7 +178,7 @@ export function AgentChatInputAttachmentTray({
                     label: reference.label,
                   })}
                   className={cn(
-                    'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
+                    'absolute right-1 top-1 transition-opacity',
                     hoverRevealClassName({ focus: 'visible' }),
                   )}
                 >

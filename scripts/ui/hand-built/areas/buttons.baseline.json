@@ -317,30 +317,17 @@
     "packages/agent/src/components/AgentChatContainerThreadView.tsx": {
       "button-restyle": 2
     },
-    "packages/agent/src/components/AgentChatInputAttachmentTray.tsx": {
-      "unstyled-look": 2
-    },
-    "packages/agent/src/components/AgentCliTerminal.tsx": {
-      "unstyled-look": 4
-    },
     "packages/agent/src/components/AgentComposerStatusStack.tsx": {
       "button-restyle": 1
     },
     "packages/agent/src/components/AgentInputRequestOverlay.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/AgentOAuthConnectMenu.tsx": {
-      "button-restyle": 1,
-      "unstyled-look": 1
-    },
     "packages/agent/src/components/AgentOutputsPanel.tsx": {
-      "unstyled-look": 3
+      "unstyled-look": 1
     },
     "packages/agent/src/components/AgentSidebar.tsx": {
       "unstyled-look": 1
-    },
-    "packages/agent/src/components/GenerationActionCanvas.tsx": {
-      "unstyled-look": 2
     },
     "packages/agent/src/components/TimelineWorkGroup.tsx": {
       "unstyled-look": 1
@@ -354,12 +341,6 @@
     "packages/workflows/src/ui/canvas/GroupOverlay.tsx": {
       "button-restyle": 1
     },
-    "packages/workflows/src/ui/canvas/NodeSearch.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/components/GlobalImageHistory.tsx": {
-      "button-restyle": 2
-    },
     "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
       "button-restyle": 1
     },
@@ -370,12 +351,6 @@
       "button-restyle": 1
     },
     "packages/workflows/src/ui/panels/NodeCatalog.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/toolbar/BottomBar.tsx": {
-      "button-restyle": 2
-    },
-    "packages/workflows/src/ui/ui/grid-position-selector.tsx": {
       "button-restyle": 1
     }
   },

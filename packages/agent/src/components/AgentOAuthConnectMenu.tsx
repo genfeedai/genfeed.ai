@@ -1,6 +1,6 @@
 'use client';
 
-import { type ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   groupOAuthConnectPlatforms,
   isApiKeyConnectPlatform,
@@ -47,8 +47,8 @@ export function AgentOAuthConnectMenu({
   contentAlign = 'end',
   triggerLabel = 'Connect',
   triggerClassName,
-  triggerVariant = ButtonVariant.UNSTYLED,
-  triggerSize,
+  triggerVariant = ButtonVariant.SECONDARY,
+  triggerSize = ButtonSize.XS,
   hideIcon = false,
 }: AgentOAuthConnectMenuProps): ReactElement | null {
   const [open, setOpen] = useState(false);
@@ -110,8 +110,6 @@ export function AgentOAuthConnectMenu({
     return null;
   }
 
-  const isShellControl = triggerVariant === ButtonVariant.UNSTYLED;
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -119,25 +117,11 @@ export function AgentOAuthConnectMenu({
           variant={triggerVariant}
           size={triggerSize}
           withWrapper={false}
-          className={cn(
-            isShellControl
-              ? 'gen-shell-control flex items-center gap-1 rounded-md px-2 py-1 text-left'
-              : undefined,
-            triggerClassName,
-          )}
-          data-active={open ? 'true' : 'false'}
+          className={triggerClassName}
           ariaLabel="Connect a social channel"
         >
           {!hideIcon ? <Link className="size-3.5 text-foreground/60" /> : null}
-          <span
-            className={
-              isShellControl
-                ? 'text-2xs font-medium text-foreground'
-                : undefined
-            }
-          >
-            {triggerLabel}
-          </span>
+          {triggerLabel}
           <ChevronDown
             className={cn(
               'size-3.5 text-muted-foreground transition-transform',
@@ -180,12 +164,12 @@ export function AgentOAuthConnectMenu({
                   return (
                     <Button
                       key={connectKey}
-                      variant={ButtonVariant.UNSTYLED}
+                      variant={ButtonVariant.GHOST}
                       withWrapper={false}
                       onClick={() => void handleConnect(item)}
                       isDisabled={connectingPlatform !== null}
                       isLoading={connectingPlatform === connectKey}
-                      className="gen-shell-surface flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
+                      className="w-full justify-start"
                     >
                       <Icon
                         className={`mr-1.5 size-3.5 ${item.iconClassName}`}

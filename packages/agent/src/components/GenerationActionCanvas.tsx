@@ -7,7 +7,11 @@ import {
   extractThreadAssets,
   type ThreadAsset,
 } from '@genfeedai/agent/utils/extract-thread-assets';
-import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryAssetRoute,
@@ -16,6 +20,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import { Button } from '@ui/primitives/button';
+import { Toggle } from '@ui/primitives/toggle';
 import {
   Check,
   ExternalLink,
@@ -136,10 +141,10 @@ export function GenerationActionCanvas({
         {onOpenCanvas ? (
           <Button
             type="button"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.XS}
             withWrapper={false}
             onClick={onOpenCanvas}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-medium text-primary hover:bg-primary/10"
           >
             <Paintbrush className="size-3.5" />
             {translate('expand')}
@@ -175,14 +180,12 @@ export function GenerationActionCanvas({
                 ]}
                 displayMode="featured"
               />
-              <Button
-                type="button"
-                isDisabled={isDisabled}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => onToggleReference(asset)}
-                className="flex w-full items-center justify-center gap-1 border-t border-border px-1 py-1 text-2xs"
-                aria-pressed={isSelected}
+              <Toggle
+                disabled={isDisabled}
+                onPressedChange={() => onToggleReference(asset)}
+                className="w-full rounded-none border-0 border-t border-border"
+                pressed={isSelected}
+                size="sm"
                 aria-label={
                   isSelected
                     ? translate('removeReferenceAria', {
@@ -195,9 +198,9 @@ export function GenerationActionCanvas({
                       })
                 }
               >
-                {isSelected ? <Check className="size-3.5" /> : null}
+                {isSelected ? <Check /> : null}
                 {resolvedSelectionLabel}
-              </Button>
+              </Toggle>
 
               {asset.type === 'image' && asset.assetId ? (
                 <SaveAsCharacter assetId={asset.assetId} imageUrl={asset.url} />
