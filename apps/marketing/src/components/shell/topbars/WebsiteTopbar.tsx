@@ -28,6 +28,7 @@ import {
   MessageSquare,
   MonitorDown,
   Plug,
+  Puzzle,
   Rocket,
   Scissors,
   Send,
@@ -142,6 +143,13 @@ const AGENT_LINKS = [
     href: '/mcp',
     icon: Terminal,
     label: 'MCP server',
+  },
+  {
+    description: 'Free skills for Claude Code, Codex and Cursor',
+    group: 'Build on it',
+    href: '/skills',
+    icon: Puzzle,
+    label: 'Agent skills',
   },
 ];
 
@@ -290,6 +298,7 @@ const SOLUTIONS_LINKS = [
 
 const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
+  { href: '/tools', label: 'Free tools' },
   { href: '/community/articles', label: 'Blog' },
 ];
 
