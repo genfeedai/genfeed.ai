@@ -542,19 +542,16 @@ export class AgentMediaAssetGenerationService {
         typeof params.endFrame === 'string' ? params.endFrame : undefined,
       extraReferences: resolvedReferences.references,
       imageUrl,
+      isDraft: params.isDraft === true,
       model: requestedModel,
       prompt,
+      requestedSkillSlugs: params.requestedSkillSlugs,
       resolution:
         typeof params.resolution === 'string' ? params.resolution : undefined,
       videoReferences: readMediaReferenceStrings(params.videoReferences, 10),
     });
     const promptPreview = rawPrompt.substring(0, 80);
     let response: Record<string, unknown>;
-    if (params.requestedSkillSlugs)
-      body.requestedSkillSlugs = params.requestedSkillSlugs;
-    // The draft run is flagged so retry accounting and the Library tell the
-    // cheap first pass from the full render; its price follows its settings.
-    if (params.isDraft === true) body.isDraft = true;
     Object.assign(body, pickMediaGenerationOverrides(params));
     try {
       response = toMediaResponseRecord(
@@ -792,8 +789,11 @@ export class AgentMediaAssetGenerationService {
     endFrame?: string;
     extraReferences?: string[];
     imageUrl?: string;
+    /** The cheap first pass; flagged so retry accounting can tell it from the full render. */
+    isDraft?: boolean;
     model?: string;
     prompt: string;
+    requestedSkillSlugs?: unknown;
     resolution?: string;
     videoReferences?: string[];
   }): Record<string, unknown> {
@@ -813,6 +813,10 @@ export class AgentMediaAssetGenerationService {
         ? { agentStrategyId: params.ctx.strategyId }
         : {}),
       ...(params.endFrame ? { endFrame: params.endFrame } : {}),
+      ...(params.isDraft ? { isDraft: true } : {}),
+      ...(params.requestedSkillSlugs
+        ? { requestedSkillSlugs: params.requestedSkillSlugs }
+        : {}),
       ...(params.resolution ? { resolution: params.resolution } : {}),
       ...(params.videoReferences && params.videoReferences.length > 0
         ? { videoReferences: params.videoReferences }

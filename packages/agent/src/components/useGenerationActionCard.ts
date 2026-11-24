@@ -1,5 +1,5 @@
 import { findUiActionState } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
-import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
+import { useGenerationDraftQuote } from '@genfeedai/agent/hooks/use-generation-draft-quote';
 import type {
   AgentUiActionHandler,
   AgentUiActionOf,
@@ -49,7 +49,6 @@ import {
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
 import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import { buildVideoDraftSettings } from '@genfeedai/helpers/media/video-draft/video-draft.helper';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
@@ -555,72 +554,35 @@ export function useGenerationActionCard({
       resolution,
     ],
   );
-  const referenceFingerprint = [
-    referenceIds,
-    startFrameId,
-    endFrameId,
-    videoReferenceIds,
-    organizationId,
-    brandId,
-    activeThreadId,
-  ];
-  // #7727 A video starts as a draft: the same cheap settings Studio drafts
-  // with (a fast sibling, the lowest resolution, the shortest length), quoted
-  // and run first. Accepting the draft arms the full render, which is quoted
-  // at the settings above. A picked model drafts at once; Auto drafts the
-  // model its own full quote routed to, so that quote stays on for Auto.
-  const isDraftRequested =
-    generationType === 'video' && !isFullRun && initParams?.isDraft !== false;
-  const draftFor = (draftModelKey: string | null | undefined) =>
-    isDraftRequested && draftModelKey
-      ? buildVideoDraftSettings(
-          {
-            duration,
-            isAudioEnabled: false,
-            modelKey: draftModelKey,
-            outputs: 1,
-            resolution,
-          },
-          filteredModels,
-        )
-      : null;
-  const pickedModelDraft = isAutoMode ? null : draftFor(modelKey);
-  const fullQuote = useGenerationQuote(
-    apiService,
-    fullEstimateInput,
-    JSON.stringify([fullEstimateInput, isAutoMode, referenceFingerprint]),
-    (isAutoMode || Boolean(modelKey)) && pickedModelDraft === null,
-  );
-  const draft = isAutoMode
-    ? draftFor(fullQuote.resolvedModelKey)
-    : pickedModelDraft;
-  // Scalars, so the quote input stays referentially stable across renders.
-  const isDraftRun = draft !== null;
-  const draftModelKey = draft?.modelKey;
-  const draftDuration = draft?.duration;
-  const draftResolution = draft?.resolution;
-  const draftEstimateInput = useMemo(
-    () => ({
-      ...fullEstimateInput,
-      duration: draftDuration ?? fullEstimateInput.duration,
-      modelKey: draftModelKey,
-      resolution: draftResolution || undefined,
-    }),
-    [draftDuration, draftModelKey, draftResolution, fullEstimateInput],
-  );
-  const draftQuote = useGenerationQuote(
-    apiService,
-    draftEstimateInput,
-    JSON.stringify([draftEstimateInput, referenceFingerprint]),
-    isDraftRun,
-  );
   const {
+    draftDuration,
+    draftResolution,
     estimatedCredits,
+    isDraftRun,
     isEstimateAvailable,
     isEstimatePending,
     resolvedModelKey,
     unavailableReason: estimateUnavailableReason,
-  } = isDraftRun ? draftQuote : fullQuote;
+  } = useGenerationDraftQuote({
+    apiService,
+    duration,
+    fullEstimateInput,
+    isAutoMode,
+    isDraftAllowed: initParams?.isDraft !== false,
+    isFullRun,
+    modelKey,
+    models: filteredModels,
+    quoteScope: [
+      referenceIds,
+      startFrameId,
+      endFrameId,
+      videoReferenceIds,
+      organizationId,
+      brandId,
+      activeThreadId,
+    ],
+    resolution,
+  });
 
   const handleGenerate = useCallback(async () => {
     if (
