@@ -49,3 +49,19 @@ export function workflowFailureFingerprint(
 
   return undefined;
 }
+
+const EXPECTED_PUBLISH_REFUSAL_PATTERN =
+  /^Nodes failed: claim-publish: (?:Branded Publish Hold Exception|This post is held: |Publish approval is not queued\.|Publish approval cannot transition from \w+ to queued)/;
+
+/**
+ * A scheduled publish the claim refused on purpose: the post is held for review
+ * or its approval was already invalidated or settled. The run's compensation
+ * records the outcome on the post, so the refusal is a handled state and not a
+ * fault to page on. Any other claim failure still reaches Sentry.
+ */
+export function isExpectedPublishRefusal(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    EXPECTED_PUBLISH_REFUSAL_PATTERN.test(error.message)
+  );
+}
