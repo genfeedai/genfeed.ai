@@ -595,7 +595,11 @@
   },
   "strategyStatus": {
     "emptyDescription": "Create one in the configuration above.",
-    "emptyTitle": "No strategy configured yet"
+    "emptyTitle": "No strategy configured yet",
+    "enableStrategy": "Enable strategy"
+  },
+  "contentCalendarCard": {
+    "fillGap": "Fill gap"
   },
   "pageControlChangeCard": {
     "apply": "Apply changes",

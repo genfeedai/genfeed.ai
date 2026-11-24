@@ -1,5 +1,5 @@
 import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Flame, SquarePen, TrendingUp } from 'lucide-react';
@@ -64,12 +64,13 @@ export function TrendingTopicsCard({
                 </div>
               </div>
               <Button
-                variant={ButtonVariant.UNSTYLED}
+                variant={ButtonVariant.WARNING}
+                size={ButtonSize.XS}
                 withWrapper={false}
                 onClick={() =>
                   onCreatePost?.({ id: trend.id, label: trend.label })
                 }
-                className="ml-2 flex shrink-0 items-center gap-1 rounded bg-warning/10 px-2 py-1 text-2xs font-medium text-warning transition-colors hover:bg-warning/10   "
+                className="ml-2 shrink-0"
               >
                 <SquarePen className="size-3.5" />
                 Create Post

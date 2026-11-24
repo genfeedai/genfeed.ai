@@ -11,6 +11,7 @@ import { Textarea } from '@genfeedai/ui';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { SegmentedControl } from '@genfeedai/ui/primitives/segmented-control';
+import { SuggestionItem } from '@genfeedai/ui/primitives/suggestion-list';
 import type { NodeProps } from '@xyflow/react';
 import { Braces, Expand, Type } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -356,27 +357,23 @@ function PromptConstructorNodeComponent(props: NodeProps) {
               }}
             >
               {filteredAutocompleteVars.map((variable, index) => (
-                <Button
-                  withWrapper={false}
+                <SuggestionItem
                   key={variable.nodeId}
-                  variant={ButtonVariant.GHOST}
+                  isSelected={index === selectedAutocompleteIndex}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     handleAutocompleteSelect(variable.name);
                   }}
-                  className={`w-full px-3 py-2 text-left text-2xs flex flex-col gap-0.5 h-auto items-start ${
-                    index === selectedAutocompleteIndex
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent'
-                  }`}
                 >
-                  <div className="font-medium text-primary">
-                    @{variable.name}
+                  <div className="flex flex-col gap-0.5 text-2xs">
+                    <div className="font-medium text-primary">
+                      @{variable.name}
+                    </div>
+                    <div className="max-w-[200px] truncate text-muted-foreground">
+                      {variable.value || '(empty)'}
+                    </div>
                   </div>
-                  <div className="text-muted-foreground truncate max-w-[200px]">
-                    {variable.value || '(empty)'}
-                  </div>
-                </Button>
+                </SuggestionItem>
               ))}
             </div>
           )}
