@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useExecutionStore } from '../stores/execution';
 import type { MissingInputRequest } from '../stores/execution/types';
 import { WorkflowMissingInputDialog } from './WorkflowMissingInputDialog';
@@ -24,8 +24,15 @@ vi.mock('next-intl', () => ({
     },
 }));
 
-const submitMissingInputs = vi.fn();
-const dismissMissingInputs = vi.fn();
+// The store actions the dialog calls, recorded so tests read what happened.
+const submitted: Record<string, unknown>[] = [];
+let dismissCount = 0;
+const submitMissingInputs = async (inputValues: Record<string, unknown>) => {
+  submitted.push(inputValues);
+};
+const dismissMissingInputs = () => {
+  dismissCount += 1;
+};
 
 const request: MissingInputRequest = {
   inputValues: {},
@@ -47,15 +54,13 @@ const request: MissingInputRequest = {
 };
 
 beforeEach(() => {
+  submitted.length = 0;
+  dismissCount = 0;
   useExecutionStore.setState({
     dismissMissingInputs,
     missingInputRequest: request,
     submitMissingInputs,
   });
-});
-
-afterEach(() => {
-  vi.clearAllMocks();
 });
 
 describe('WorkflowMissingInputDialog', () => {
@@ -94,7 +99,7 @@ describe('WorkflowMissingInputDialog', () => {
 
     expect(screen.getByText('Visual angle is required')).toBeInTheDocument();
     expect(screen.getByText('Visual style is required')).toBeInTheDocument();
-    expect(submitMissingInputs).not.toHaveBeenCalled();
+    expect(submitted).toEqual([]);
   });
 
   it('sends the entered values to run again', async () => {
@@ -110,12 +115,11 @@ describe('WorkflowMissingInputDialog', () => {
     );
 
     await waitFor(() =>
-      expect(submitMissingInputs).toHaveBeenCalledWith({
-        visualAngle: 'low angle',
-        visualStyle: 'Flat',
-      }),
+      expect(submitted).toEqual([
+        { visualAngle: 'low angle', visualStyle: 'Flat' },
+      ]),
     );
-    expect(dismissMissingInputs).not.toHaveBeenCalled();
+    expect(dismissCount).toBe(0);
   });
 
   it('drops the run without sending anything when canceled', () => {
@@ -123,7 +127,7 @@ describe('WorkflowMissingInputDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(dismissMissingInputs).toHaveBeenCalledTimes(1);
-    expect(submitMissingInputs).not.toHaveBeenCalled();
+    expect(dismissCount).toBe(1);
+    expect(submitted).toEqual([]);
   });
 });

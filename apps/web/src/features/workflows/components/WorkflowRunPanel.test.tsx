@@ -11,9 +11,28 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+type Run = {
+  options: { saveDefaults: boolean };
+  values: Record<string, unknown>;
+};
+
+/** An `onRun` that keeps what the panel ran with, so tests read the result. */
+function recordRuns() {
+  const runs: Run[] = [];
+  return {
+    onRun: (
+      values: Record<string, unknown>,
+      options: { saveDefaults: boolean },
+    ) => {
+      runs.push({ options, values });
+    },
+    runs,
+  };
+}
+
 describe('WorkflowRunPanel', () => {
   it('associates one visible label with a boolean input and submits its value', async () => {
-    const onRun = vi.fn();
+    const { onRun, runs } = recordRuns();
 
     render(
       <WorkflowRunPanel
@@ -39,15 +58,17 @@ describe('WorkflowRunPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Run' }));
 
     await waitFor(() =>
-      expect(onRun).toHaveBeenCalledWith(
-        { includeWatermark: true },
-        { saveDefaults: false },
-      ),
+      expect(runs).toEqual([
+        {
+          options: { saveDefaults: false },
+          values: { includeWatermark: true },
+        },
+      ]),
     );
   });
 
   it('runs only once every required input has a value', async () => {
-    const onRun = vi.fn();
+    const { onRun, runs } = recordRuns();
 
     render(
       <WorkflowRunPanel
@@ -69,7 +90,7 @@ describe('WorkflowRunPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Run' }));
 
     expect(screen.getByText('Visual angle is required')).toBeInTheDocument();
-    expect(onRun).not.toHaveBeenCalled();
+    expect(runs).toEqual([]);
 
     fireEvent.change(screen.getByRole('textbox', { name: /Visual angle/ }), {
       target: { value: ' low angle ' },
@@ -80,10 +101,12 @@ describe('WorkflowRunPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Run' }));
 
     await waitFor(() =>
-      expect(onRun).toHaveBeenCalledWith(
-        { duration: 8, visualAngle: 'low angle' },
-        { saveDefaults: false },
-      ),
+      expect(runs).toEqual([
+        {
+          options: { saveDefaults: false },
+          values: { duration: 8, visualAngle: 'low angle' },
+        },
+      ]),
     );
   });
 });

@@ -37,11 +37,18 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
       ...args: Parameters<typeof converter.convertToExecutableWorkflow>
     ) => converter.convertToExecutableWorkflow(...args),
   };
+  // What the run leaves behind: the executions it created and the node
+  // graphs it dispatched. `graphRunner` is the provider-dispatch boundary.
+  const createdExecutions: string[] = [];
+  const dispatchedGraphs: string[][] = [];
   const executionsService = {
     captureMissingCostEstimate: vi.fn(),
     completeExecution: vi.fn(),
-    createExecution: vi.fn(),
-    startExecution: vi.fn(),
+    createExecution: async () => {
+      createdExecutions.push('execution-1');
+      return { id: 'execution-1' };
+    },
+    startExecution: async () => true,
   };
   const documentService = { getWorkflowLabel: vi.fn() };
   const progressService = {
@@ -55,7 +62,25 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
     finalizeExecution: vi.fn(),
     mapRunResultToExecutionStatus: vi.fn(),
   };
-  const graphRunner = { executeNodeGraph: vi.fn() };
+  const graphRunner = {
+    executeNodeGraph: async (
+      workflow: { nodes: Array<{ id: string }> },
+      _event: unknown,
+      _executionId: string,
+      options: { selectedNodeIds?: string[] },
+    ) => {
+      dispatchedGraphs.push(options.selectedNodeIds ?? []);
+      return {
+        completedAt: new Date(),
+        nodeResults: new Map(),
+        runId: 'execution-1',
+        startedAt: new Date(),
+        status: 'completed',
+        totalCreditsUsed: 0,
+        workflowId: 'workflow-1',
+      };
+    },
+  };
 
   const workflowDoc = {
     brandId: null,
@@ -137,22 +162,13 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    createdExecutions.length = 0;
+    dispatchedGraphs.length = 0;
     documentService.getWorkflowLabel.mockReturnValue('Review workflow');
-    executionsService.createExecution.mockResolvedValue({ id: 'execution-1' });
-    executionsService.startExecution.mockResolvedValue(true);
     finalizer.finalizeExecution.mockResolvedValue({ metadata: undefined });
     finalizer.mapRunResultToExecutionStatus.mockReturnValue(
       WorkflowExecutionStatus.COMPLETED,
     );
-    graphRunner.executeNodeGraph.mockResolvedValue({
-      completedAt: new Date(),
-      nodeResults: new Map(),
-      runId: 'execution-1',
-      startedAt: new Date(),
-      status: 'completed',
-      totalCreditsUsed: 0,
-      workflowId: 'workflow-1',
-    });
     runner = new WorkflowExecutionRunnerService(
       prisma as never,
       logger as never,
@@ -171,7 +187,7 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
     const result = await runSelected(['library-video'], {});
 
     expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
-    expect(graphRunner.executeNodeGraph).toHaveBeenCalledTimes(1);
+    expect(dispatchedGraphs).toEqual([['library-video']]);
   });
 
   it('stops before the run exists when a selected node needs required inputs that are missing', async () => {
@@ -185,9 +201,8 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
         (input) => input.name,
       ),
     ).toEqual(['visualAngle', 'visualStyle']);
-    expect(executionsService.createExecution).not.toHaveBeenCalled();
-    expect(executionsService.startExecution).not.toHaveBeenCalled();
-    expect(graphRunner.executeNodeGraph).not.toHaveBeenCalled();
+    expect(createdExecutions).toEqual([]);
+    expect(dispatchedGraphs).toEqual([]);
   });
 
   it('dispatches the selected node once the missing inputs are supplied', async () => {
@@ -197,6 +212,7 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
     });
 
     expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
-    expect(graphRunner.executeNodeGraph).toHaveBeenCalledTimes(1);
+    expect(createdExecutions).toEqual(['execution-1']);
+    expect(dispatchedGraphs).toEqual([['generate']]);
   });
 });
