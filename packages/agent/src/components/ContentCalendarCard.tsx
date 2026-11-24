@@ -2,6 +2,7 @@ import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Calendar, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 interface ContentCalendarCardProps {
@@ -20,6 +21,7 @@ export function ContentCalendarCard({
   action,
   onFillGap,
 }: ContentCalendarCardProps): ReactElement {
+  const translate = useTranslations('agent.contentCalendarCard');
   const days = action.calendarDays ?? [];
 
   return (
@@ -70,7 +72,7 @@ export function ContentCalendarCard({
                     onClick={() => onFillGap?.(day.date)}
                     className="mt-1"
                     tooltip="Fill Gap"
-                    ariaLabel="Fill gap"
+                    ariaLabel={translate('fillGap')}
                   >
                     <Plus className="size-3.5" />
                   </Button>

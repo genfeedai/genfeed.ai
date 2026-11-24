@@ -137,7 +137,7 @@ export function AgentStrategyStatus({
             {strategy.isActive && strategy.isEnabled ? 'Active' : 'Inactive'}
           </Badge>
           <Switch
-            aria-label="Enable strategy"
+            aria-label={translate('enableStrategy')}
             isChecked={strategy.isEnabled}
             isDisabled={isToggling}
             onCheckedChange={handleToggleEnabled}

@@ -1,6 +1,7 @@
 import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { Switch } from '@ui/primitives/switch';
+import { useTranslations } from 'next-intl';
 import type { ReactElement, RefObject } from 'react';
 
 type Props = {
@@ -16,6 +17,7 @@ export function AgentStrategyHeader({
   apiService,
   setStrategy,
 }: Props): ReactElement {
+  const translate = useTranslations('agent.strategyStatus');
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -28,7 +30,7 @@ export function AgentStrategyHeader({
       </div>
       {strategy && (
         <Switch
-          aria-label="Enable strategy"
+          aria-label={translate('enableStrategy')}
           isChecked={strategy.isActive}
           onCheckedChange={async () => {
             abortRef.current?.abort();
