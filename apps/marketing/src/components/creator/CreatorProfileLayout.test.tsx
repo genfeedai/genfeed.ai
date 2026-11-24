@@ -25,7 +25,6 @@ function renderLayout(overrides: Partial<CreatorProfileLayoutProps> = {}) {
       brand={brand}
       counts={{ articles: 0, images: 0, posts: 3, videos: 0 }}
       handle="acme"
-      referralCode={null}
       {...overrides}
     >
       <p>Posts</p>
