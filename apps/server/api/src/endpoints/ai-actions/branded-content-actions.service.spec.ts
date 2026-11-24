@@ -293,6 +293,55 @@ describe('BrandedContentActionsService', () => {
       );
     });
 
+    it('lets a stand-alone X post run past 280 characters and asks for the long form only when briefed', async () => {
+      completed('x');
+      const longPost =
+        `${'A long argument, one idea per line. '.repeat(26)}`.trim();
+      expect(longPost.length).toBeGreaterThan(850);
+
+      const outcome = await ctx.service.generateSocial({
+        ...social,
+        platform: 'twitter',
+        variants: 1,
+      });
+      const seam = seamOf(ctx.branded);
+
+      expect(outcome).toMatchObject({
+        result: {
+          maxCharacters:
+            getChannelCapability('twitter')?.caption.extendedMaxLength,
+        },
+      });
+      expect(seam.input.originalPrompt).toContain(
+        '280 characters or fewer unless the brief or the brand voice asks for a longer post',
+      );
+      expect(seam.acceptText(longPost)).toBe(true);
+      await seam.persistText(longPost);
+      expect(ctx.posts.create.mock.calls[0][0].description).toBe(longPost);
+    });
+
+    it('keeps every post of an X thread at 280 characters', async () => {
+      completed('x');
+      await ctx.service.generateSocial({
+        ...social,
+        isThread: true,
+        platform: 'twitter',
+      });
+      const seam = seamOf(ctx.branded);
+      const tooLong =
+        `${'Thread reply sentence that keeps going. '.repeat(8)}`.trim();
+      expect(tooLong.length).toBeGreaterThan(300);
+
+      await seam.persistText(`Hook\n---\n${tooLong}`);
+
+      const reply = ctx.posts.create.mock.calls[1][0].description as string;
+      expect(reply.length).toBeLessThanOrEqual(280);
+      expect(reply).not.toBe(tooLong);
+      expect(seam.input.originalPrompt).toContain(
+        'Each post is at most 280 characters',
+      );
+    });
+
     it('turns a gate rejection into a stable failure that keeps the receipt', async () => {
       ctx.branded.generate.mockResolvedValue({
         hasNewDispatch: true,

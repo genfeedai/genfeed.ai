@@ -35,8 +35,15 @@ export interface SocialContentPromptInput {
   additionalContext?: readonly string[];
   /** True for one multi-post thread; false for stand-alone posts. */
   isThread: boolean;
+  /** The longest a post may be. */
   maxCharacters: number;
   platformLabel: string;
+  /**
+   * The length a stand-alone post has by default, when the channel allows a
+   * longer one. Below `maxCharacters`, a post goes past it only when the brief
+   * or the brand voice asks, so the ceiling is never the target.
+   */
+  standardCharacters?: number;
   topic: string;
   /** Stand-alone posts to write; ignored for a thread. */
   variants: number;
@@ -53,9 +60,15 @@ export function buildSocialContentPrompt(
   const context = (input.additionalContext ?? [])
     .map((line) => fenced(line, CONTEXT_LINE_LIMIT))
     .filter((line) => line.length > 0);
+  const postLength =
+    !input.isThread &&
+    input.standardCharacters !== undefined &&
+    input.standardCharacters < input.maxCharacters
+      ? `Each post is ${input.standardCharacters} characters or fewer unless the brief or the brand voice asks for a longer post, and never more than ${input.maxCharacters} characters`
+      : `Each post is at most ${input.maxCharacters} characters`;
   const task = input.isThread
     ? `Write one ${input.platformLabel} thread of three to seven posts about the topic below. Each post is at most ${input.maxCharacters} characters, makes one point, and builds on the one before it. The first post is a strong hook.`
-    : `Write ${input.variants} distinct ${input.variants === 1 ? 'post' : 'posts'} for ${input.platformLabel} about the topic below. Each post is at most ${input.maxCharacters} characters, opens with an engaging hook and ends with a subtle call to action.`;
+    : `Write ${input.variants} distinct ${input.variants === 1 ? 'post' : 'posts'} for ${input.platformLabel} about the topic below. ${postLength}, opens with an engaging hook and ends with a subtle call to action.`;
   const separator =
     input.isThread || input.variants > 1
       ? `Separate the ${input.isThread ? 'posts' : 'variations'} with a line containing only ---. No numbering, labels, quotation marks or explanations.`

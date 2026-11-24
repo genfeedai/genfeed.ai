@@ -864,6 +864,7 @@ describe('compileRemainingVideoGenerationBrief', () => {
       image_url: 'frame-1',
       image_urls: ['subject-1', 'style-1'],
       prompt: 'a drummer performing under neon lights',
+      resolution: '720p',
     });
     expect(result.evidence.output).toMatchObject({
       aspectRatio: '9:16',
@@ -872,23 +873,23 @@ describe('compileRemainingVideoGenerationBrief', () => {
     });
   });
 
-  it('rejects resolution for Gemini Omni Flash because fal publishes none', () => {
-    const brief = videoGenerationBriefSchema.parse({
-      constraints: [],
-      fidelityMode: 'off',
-      intent: { objective: 'a cinematic city flyover' },
-      mediaKind: 'video',
-      output: { resolution: '720p' },
-      version: 1,
-    });
-
-    expect(() =>
+  it('compiles a Gemini Omni Flash 1.2 resolution and rejects one fal does not list', () => {
+    const compile = (resolution: string) =>
       compileRemainingVideoGenerationBrief({
-        brief,
+        brief: videoGenerationBriefSchema.parse({
+          constraints: [],
+          fidelityMode: 'off',
+          intent: { objective: 'a cinematic city flyover' },
+          mediaKind: 'video',
+          output: { resolution },
+          version: 1,
+        }),
         family: familyFor(MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH),
         modelKey: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
-      }),
-    ).toThrow(GenerationBriefCompileError);
+      });
+
+    expect(compile('1080p').dispatch).toMatchObject({ resolution: '1080p' });
+    expect(() => compile('480p')).toThrow(GenerationBriefCompileError);
   });
 
   it('rejects more image references than Gemini Omni Flash publishes', () => {

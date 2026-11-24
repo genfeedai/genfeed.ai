@@ -154,9 +154,9 @@ function FoldersSidebar({
           {onCreateFolder ? (
             <Button
               ariaLabel="New folder"
-              className="size-6 shrink-0 p-0 hover:bg-foreground/5"
+              className="shrink-0"
               onClick={onCreateFolder}
-              size={ButtonSize.ICON}
+              size={ButtonSize.MICRO}
               textTransform="none"
               // Right — sidebar is a left rail; bottom dumps the tooltip onto
               // the folder list and collides with "All assets".
@@ -201,7 +201,7 @@ function FoldersSidebar({
       {onCreateFolder && (
         <Button
           variant={ButtonVariant.SECONDARY}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg px-3"
+          className="w-full justify-center"
           onClick={onCreateFolder}
           textTransform="none"
           withWrapper={false}

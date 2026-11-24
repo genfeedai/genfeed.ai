@@ -56,13 +56,13 @@ describe('model-capabilities.constant', () => {
       aspectRatios: ['16:9', '9:16'],
       category: ModelCategory.VIDEO,
       defaultDuration: 8,
-      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       hasDurationEditing: true,
+      hasResolutionOptions: true,
       hasSpeech: true,
       maxReferences: 3,
     });
     expect(capability).not.toHaveProperty('hasEndFrame');
-    expect(capability).not.toHaveProperty('hasResolutionOptions');
     expect(capability).not.toHaveProperty('hasVideoReferences');
   });
 

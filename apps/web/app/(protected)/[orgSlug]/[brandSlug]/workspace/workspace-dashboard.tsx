@@ -316,12 +316,7 @@ export function DashboardRecentActivity({
       data-testid="dashboard-recent-activity"
       flush
       actions={
-        <Button
-          asChild
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          className="h-auto px-0 text-2xs font-normal hover:bg-transparent"
-        >
+        <Button asChild variant={ButtonVariant.LINK} size={ButtonSize.INLINE}>
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX)}>
             {translate('recentViewAll')}
           </Link>
@@ -403,12 +398,7 @@ export function DashboardRecentTasks({
       data-testid="dashboard-recent-tasks"
       flush
       actions={
-        <Button
-          asChild
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          className="h-auto px-0 text-2xs font-normal hover:bg-transparent"
-        >
+        <Button asChild variant={ButtonVariant.LINK} size={ButtonSize.INLINE}>
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX)}>
             {translate('recentViewAll')}
           </Link>
