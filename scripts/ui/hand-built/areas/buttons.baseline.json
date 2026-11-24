@@ -359,37 +359,13 @@
     "packages/agent/src/components/AgentSidebar.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/AgentStrategyEngagementSection.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/AgentStrategyHeader.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/AgentStrategyStatus.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/ContentCalendarCard.tsx": {
-      "unstyled-look": 1
-    },
     "packages/agent/src/components/GenerationActionCanvas.tsx": {
       "unstyled-look": 2
-    },
-    "packages/agent/src/components/LivestreamBotCard.tsx": {
-      "unstyled-look": 1
     },
     "packages/agent/src/components/TimelineWorkGroup.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/TrendingTopicsCard.tsx": {
-      "unstyled-look": 1
-    },
     "packages/agent/src/components/VoiceCloneDropzone.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/WorkflowCreatedCard.tsx": {
       "unstyled-look": 1
     },
     "packages/workflows/src/ui/canvas/ConnectionDropMenu.tsx": {
@@ -405,12 +381,6 @@
       "button-restyle": 2
     },
     "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
-      "button-restyle": 2
-    },
-    "packages/workflows/src/ui/nodes/input/PromptConstructorNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/ImageGridSplitNode.tsx": {
       "button-restyle": 1
     },
     "packages/workflows/src/ui/nodes/processing/OutputGalleryNode.tsx": {
