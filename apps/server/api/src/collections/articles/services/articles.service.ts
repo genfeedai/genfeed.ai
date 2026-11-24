@@ -415,8 +415,7 @@ export class ArticlesService
         updateArticleDto.status,
       );
 
-      // The copy a reader will see is the new content, or the stored content
-      // when this update only publishes.
+      // Readers see the new content, or the stored content when only publishing.
       if (
         isPublishingUpdate ||
         ArticleFilterUtil.isPublicArticleStatus(accessible.status)
