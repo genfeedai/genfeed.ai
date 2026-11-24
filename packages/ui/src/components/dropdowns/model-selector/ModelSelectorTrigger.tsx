@@ -28,7 +28,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
   ...buttonProps
 }: ModelSelectorTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
-  // Same trigger metrics as ButtonDropdown so a model picker sitting next to an
+  // Same trigger metrics as the other prompt-bar controls so a model picker sitting next to an
   // aspect-ratio / duration control lines up instead of standing a few pixels taller.
   const triggerClassName = cn(
     buttonVariants({

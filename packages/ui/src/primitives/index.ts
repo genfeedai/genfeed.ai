@@ -109,14 +109,6 @@ export {
   DrawerTrigger,
 } from './drawer';
 export {
-  type DropdownFieldProps,
-  default as DropdownField,
-} from './dropdown-field';
-export type {
-  DropdownFieldOption,
-  DropdownFieldTab,
-} from './dropdown-field.types';
-export {
   type DropzoneFieldProps,
   default as DropzoneField,
 } from './dropzone-field';

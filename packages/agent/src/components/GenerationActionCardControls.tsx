@@ -7,12 +7,10 @@ import {
 import {
   ButtonSize,
   ButtonVariant,
-  DropdownDirection,
   type RouterPriority,
 } from '@genfeedai/contracts';
 import type { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
@@ -30,6 +28,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Label } from '@ui/primitives/label';
+import { OptionSelect } from '@ui/primitives/option-select';
 import {
   Select,
   SelectContent,
@@ -306,28 +305,22 @@ export function GenerationActionCardControls({
               onChange={onAspectRatioChange}
               className="border-0 bg-transparent shadow-none hover:bg-hover"
               isDisabled={isDisabled}
-              direction={DropdownDirection.UP}
               placeholder="Aspect ratio"
             />
           </div>
           {isImage ? (
             <div className="shrink-0">
-              <ButtonDropdown
-                name="outputs"
-                value={String(outputs)}
-                options={Array.from({ length: maxOutputs }, (_, index) => {
-                  const count = index + 1;
-                  return {
-                    label: `${count}x`,
-                    value: String(count),
-                  };
-                })}
-                onChange={(_name, value) => onOutputsChange(Number(value))}
+              <OptionSelect
+                ariaLabel="Number of outputs"
                 className="border-0 bg-transparent shadow-none hover:bg-hover"
                 isDisabled={isDisabled}
-                direction={DropdownDirection.UP}
+                onValueChange={(value) => onOutputsChange(Number(value))}
+                options={Array.from({ length: maxOutputs }, (_, index) => {
+                  const count = index + 1;
+                  return { label: `${count}x`, value: String(count) };
+                })}
                 placeholder="1x"
-                tooltip="Number of outputs"
+                value={String(outputs)}
               />
             </div>
           ) : null}

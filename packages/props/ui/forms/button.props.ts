@@ -5,27 +5,6 @@ import type {
 } from '@genfeedai/contracts';
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
-interface ButtonDropdownOption {
-  value: string;
-  label: string;
-  icon?: ReactNode;
-}
-
-export interface ButtonDropdownProps {
-  name: string;
-  value: string;
-  options: readonly ButtonDropdownOption[];
-  onChange: (name: string, value: string) => void;
-  placeholder?: string;
-  className?: string;
-  isDisabled?: boolean;
-  icon?: ReactNode;
-  tooltip?: string;
-  triggerDisplay?: 'default' | 'icon-only';
-  variant?: ButtonVariant;
-  direction?: DropdownDirection;
-}
-
 /**
  * Base button props shared across all button components
  */
