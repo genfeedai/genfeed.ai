@@ -150,18 +150,20 @@ describe('PostGroupContractService', () => {
     const mixed = service.toReleaseGroup(makeGroup(), [inboxReceipt, livePost]);
 
     expect(inboxOnly.status).toBe(ReleaseStatus.DRAFT);
-    expect(inboxOnly.targets.map((t) => [t.id, t.isInboxDelivery])).toEqual([
-      ['inbox', true],
-    ]);
+    expect(
+      (inboxOnly.targets ?? []).map((t) => [t.id, t.isInboxDelivery]),
+    ).toEqual([['inbox', true]]);
     // The stored target state is untouched; only the roll-up reads it as draft.
-    expect(inboxOnly.targets[0]?.executionState).toBe(
+    expect(inboxOnly.targets?.[0]?.executionState).toBe(
       TargetExecutionState.PUBLISHED,
     );
     expect(mixed.status).toBe(ReleaseStatus.PARTIALLY_PUBLISHED);
-    expect(mixed.targets.map((t) => [t.id, t.isInboxDelivery])).toEqual([
-      ['inbox', true],
-      ['live', false],
-    ]);
+    expect((mixed.targets ?? []).map((t) => [t.id, t.isInboxDelivery])).toEqual(
+      [
+        ['inbox', true],
+        ['live', false],
+      ],
+    );
   });
 
   it('projects the first tag color from the first target post', () => {

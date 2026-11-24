@@ -116,7 +116,7 @@ END`;
  * the creator's TikTok Inbox and is not a public post. Restates
  * `isTikTokInboxDelivered`, which the spec checks it against row for row.
  */
-export const TARGET_IS_INBOX_DELIVERY_SQL = Prisma.sql`(COALESCE(p."platform", '') = ${text(Platform.TIKTOK)}
+const TARGET_IS_INBOX_DELIVERY_SQL = Prisma.sql`(COALESCE(p."platform", '') = ${text(Platform.TIKTOK)}
   AND p."targetExecutionState" = ${text(TargetExecutionState.PUBLISHED)}
   AND COALESCE(p."externalId", '') <> ''
   AND p."publicationDate" IS NULL
@@ -127,7 +127,7 @@ export const TARGET_IS_INBOX_DELIVERY_SQL = Prisma.sql`(COALESCE(p."platform", '
  * The state a release counts a target as, mirroring `releaseRollupTargetState`:
  * an Inbox receipt is still the creator's draft, never a published post.
  */
-export const TARGET_ROLLUP_STATE_SQL = Prisma.sql`(CASE WHEN ${TARGET_IS_INBOX_DELIVERY_SQL}
+const TARGET_ROLLUP_STATE_SQL = Prisma.sql`(CASE WHEN ${TARGET_IS_INBOX_DELIVERY_SQL}
   THEN ${text(TargetExecutionState.DRAFT)}
   ELSE p."targetExecutionState" END)`;
 

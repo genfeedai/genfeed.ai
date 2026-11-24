@@ -667,7 +667,7 @@ describe.skipIf(!connectionString)(
 
           expect(byId.get('inbox-release')?.status).toBe(ReleaseStatus.DRAFT);
           expect(
-            byId.get('inbox-release')?.targets.map((t) => t.isInboxDelivery),
+            byId.get('inbox-release')?.targets?.map((t) => t.isInboxDelivery),
           ).toEqual([true]);
           expect(byId.get('mixed-release')?.status).toBe(
             ReleaseStatus.PARTIALLY_PUBLISHED,
@@ -675,7 +675,7 @@ describe.skipIf(!connectionString)(
           expect(
             byId
               .get('mixed-release')
-              ?.targets.map((t) => [t.id, t.isInboxDelivery]),
+              ?.targets?.map((t) => [t.id, t.isInboxDelivery]),
           ).toEqual(
             expect.arrayContaining([
               ['mixed-inbox', true],
