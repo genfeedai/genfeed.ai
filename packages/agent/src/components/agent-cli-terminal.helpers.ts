@@ -24,11 +24,6 @@ export const TERMINAL_PRESETS: Array<{
   { description: 'Open the Codex CLI', kind: 'codex', label: 'Codex CLI' },
 ];
 
-export const TERMINAL_CONTROL_CLASS =
-  'inline-flex h-7 shrink-0 items-center rounded-md border border-border/60 bg-background/20 px-2 text-2xs leading-none text-foreground/60 transition-colors hover:border-foreground/20 hover:bg-foreground/5 hover:text-foreground/90';
-export const TERMINAL_ICON_CONTROL_CLASS =
-  'inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/20 text-foreground/50 transition-colors hover:border-foreground/20 hover:bg-foreground/5 hover:text-foreground/90';
-
 export interface TerminalCreatePayload {
   cols?: number;
   cwd?: string;

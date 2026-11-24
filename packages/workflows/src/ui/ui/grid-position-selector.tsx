@@ -1,7 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@genfeedai/ui/primitives/button';
+import { Toggle } from '@genfeedai/ui/primitives/toggle';
 import { memo, useCallback } from 'react';
 import { cn } from './utils';
 
@@ -63,20 +62,15 @@ function GridPositionSelectorComponent({
         </legend>
         <div className="grid grid-cols-3 gap-1 p-2 bg-background border border-input">
           {GRID_POSITIONS.map((pos) => (
-            <Button
-              withWrapper={false}
+            <Toggle
               aria-label={getPositionTitle(pos)}
               key={`${pos.x}-${pos.y}`}
-              variant={ButtonVariant.GHOST}
-              type="button"
-              onClick={() => onPositionChange(pos)}
-              className={cn(
-                'size-5 border p-0 min-w-0',
-                isSelected(pos)
-                  ? 'bg-primary border-primary hover:bg-primary/90'
-                  : 'bg-muted border-input hover:border-primary',
-              )}
+              onPressedChange={() => onPositionChange(pos)}
+              pressed={isSelected(pos)}
+              size="sm"
               title={getPositionTitle(pos)}
+              variant="outline"
+              className="size-5 min-w-0 p-0"
             />
           ))}
         </div>

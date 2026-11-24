@@ -676,14 +676,15 @@ describe('AppRail', () => {
       />,
     );
     // Clips and Automation are unreleased and Storyboard is not installed.
-    // Playground is built in. Trends needs a plan, so the
-    // dashboard shows it only once the organization has one.
+    // Playground is built in. Trends needs a plan but stays in the rail, so
+    // it opens its locked page.
     expect(
       screen
         .getAllByTestId(/^app-rail-item-/)
         .map((item) => item.dataset.testid),
     ).toEqual([
       'app-rail-item-workspace',
+      'app-rail-item-discovery',
       'app-rail-item-library',
       'app-rail-item-publishing',
       'app-rail-item-analytics',
@@ -968,7 +969,7 @@ describe('AppRail', () => {
     ).toBe(true);
   });
 
-  it('hides subscription apps until the organization has a paid plan', () => {
+  it('keeps Trends in the rail without a paid plan so it opens the locked page', () => {
     const unpaid = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: false,
@@ -988,9 +989,7 @@ describe('AppRail', () => {
     expect(
       screen.getByRole('link', { name: 'Playground' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Trends' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trends' })).toBeInTheDocument();
   });
 
   it('keeps unreleased apps out of a customer rail the organization shows', () => {

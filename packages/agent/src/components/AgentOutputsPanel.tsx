@@ -10,6 +10,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import {
   Download,
   ExternalLink,
@@ -229,31 +230,25 @@ export function AgentOutputsPanel({
 
         {selectedGroup && selectedGroup.variants.length > 1 ? (
           <div className="flex flex-wrap gap-2">
-            {selectedGroup.variants.map((variant, index) => (
-              <Button
-                key={variant.id}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => setSelectedVariantId(variant.id)}
-                textTransform="none"
-                className="gen-shell-control inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold"
-                data-active={
-                  variant.id === selectedVariantId ? 'true' : 'false'
-                }
-              >
-                <VariantIcon kind={variant.kind} />
-                {getVariantLabel(selectedGroup, variant, index)}
-              </Button>
-            ))}
+            <SegmentedControl
+              ariaLabel={selectedGroup.title}
+              onValueChange={setSelectedVariantId}
+              options={selectedGroup.variants.map((variant, index) => ({
+                icon: <VariantIcon kind={variant.kind} />,
+                label: getVariantLabel(selectedGroup, variant, index),
+                value: variant.id,
+              }))}
+              size="sm"
+              value={selectedVariantId ?? undefined}
+            />
           </div>
         ) : null}
 
         {selectedGroup && selectedVariant ? (
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.SECONDARY}
               withWrapper={false}
-              className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
               onClick={() =>
                 seedComposer(
                   buildRefineContent(selectedGroup, selectedVariant),
