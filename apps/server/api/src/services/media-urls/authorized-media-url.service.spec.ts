@@ -454,6 +454,33 @@ describe('AuthorizedMediaUrlService', () => {
       expect(logger.warn).toHaveBeenCalledOnce();
     });
 
+    it('logs an invalid stored key once per ingredient, however often it is read', async () => {
+      const { service, prisma, logger } = await setup();
+      prisma.ingredient.findMany.mockResolvedValue([brokenSource, source]);
+
+      for (let poll = 0; poll < 5; poll += 1) {
+        await service.projectIngredients(scope, [
+          brokenSource.id,
+          ingredientId,
+        ]);
+      }
+      expect(logger.warn).toHaveBeenCalledOnce();
+
+      const other = { ...brokenSource, id: testId('ingredient', 3) };
+      prisma.ingredient.findMany.mockResolvedValue([other]);
+      await service.projectIngredients(scope, [other.id]);
+      await service.projectIngredients(scope, [other.id]);
+      expect(logger.warn).toHaveBeenCalledTimes(2);
+    });
+
+    it('answers a public projection of no ids without a database round trip', async () => {
+      const { service, prisma } = await setup();
+
+      expect(await service.projectPublicIngredients([])).toEqual([]);
+      expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
+      expect(prisma.mediaDeliveryVariant.findMany).not.toHaveBeenCalled();
+    });
+
     it('degrades public derivatives and brand assets per item', async () => {
       const { service, prisma, urls } = await setup();
       urls.buildUrl.mockImplementation(() => {

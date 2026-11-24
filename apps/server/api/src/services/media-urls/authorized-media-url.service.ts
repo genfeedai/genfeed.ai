@@ -39,11 +39,15 @@ import * as Sentry from '@sentry/nestjs';
 
 const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
 
+/** Most ingredients whose invalid stored key is remembered, so it logs once. */
+const MAX_LOGGED_GRANT_SKIPS = 10_000;
+
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
 @Traced()
 @Injectable()
 export class AuthorizedMediaUrlService implements OnModuleInit {
   private hasReportedMisconfiguration = false;
+  private readonly loggedGrantSkips = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -330,6 +334,9 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     ingredientIds: readonly string[],
     purpose: 'public-share' | 'public-og' = 'public-share',
   ): Promise<MediaResourceProjection[]> {
+    // Most public responses carry no media id. Without this return each one,
+    // the health check included, took a pool connection for an `IN ()` query.
+    if (ingredientIds.length === 0) return [];
     if (ingredientIds.length > 500) {
       const projections: MediaResourceProjection[] = [];
       for (let index = 0; index < ingredientIds.length; index += 500) {
@@ -697,6 +704,17 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     }
   }
 
+  /** True the first time `id` is skipped for `reason` in this process. */
+  private shouldLogGrantSkip(id: string, reason: string): boolean {
+    const key = `${reason}:${id}`;
+    if (this.loggedGrantSkips.has(key)) return false;
+    // Bounded: a repair job that fixes keys leaves entries nobody asks for.
+    if (this.loggedGrantSkips.size >= MAX_LOGGED_GRANT_SKIPS)
+      this.loggedGrantSkips.clear();
+    this.loggedGrantSkips.add(key);
+    return true;
+  }
+
   private reportGrantFailure(
     error: unknown,
     id: string,
@@ -706,11 +724,15 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     // A stored key we refuse to sign is a data defect (the repair job's
     // input), not an outage: log it, but keep Sentry for real failures.
     if (error instanceof ForbiddenException) {
-      this.logger.warn('Media grant skipped: invalid stored key', {
-        id,
-        organizationId,
-        reason,
-      });
+      // The same defective key is met again on every poll of the same list
+      // (100,577 lines in 7 days), so say it once per ingredient and reason.
+      if (this.shouldLogGrantSkip(id, reason)) {
+        this.logger.warn('Media grant skipped: invalid stored key', {
+          id,
+          organizationId,
+          reason,
+        });
+      }
       return;
     }
     if (this.reportMisconfiguration(reason)) return;
