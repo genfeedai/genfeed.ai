@@ -59,6 +59,7 @@ function planAction(action: NativeHostAction, hasBrandVoice: boolean): ActionPla
   if (action.action === 'refine_text') {
     const maxCharacters = resolveTextActionLimit({
       channelLimit: capability.caption.maxLength ?? DEFAULT_CHANNEL_LIMIT,
+      extendedChannelLimit: capability.caption.extendedMaxLength,
       mode: action.mode,
       source: action.text,
       usesWeightedCharacters,

@@ -18,6 +18,7 @@ import { scopedWhere } from '@api/index';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { describeCaptionLengthRule } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
@@ -63,7 +64,7 @@ export class PostVariationService {
     const voiceMode = await this.resolveVoiceMode(params);
     const prompt = this.buildGenerationInstruction(
       params,
-      capability.caption.maxLength,
+      capability.caption,
     );
     const generated = await this.contentGeneratorService.generateContent(
       params.organizationId,
@@ -242,9 +243,9 @@ export class PostVariationService {
 
   private buildGenerationInstruction(
     params: GeneratePostVariationsParams,
-    maxLength: number,
+    caption: Parameters<typeof describeCaptionLengthRule>[0],
   ): string {
-    return `Create ${params.count} genuinely distinct ${params.platform} posts inspired by the authorized source. Preserve only its useful idea and factual meaning; do not reproduce, closely paraphrase, quote, or identify the source. Give every variation a different angle, opening, narrative structure, and call to action. Each complete post must stay within ${maxLength} characters. Return fewer outputs instead of padding with duplicates.`;
+    return `Create ${params.count} genuinely distinct ${params.platform} posts inspired by the authorized source. Preserve only its useful idea and factual meaning; do not reproduce, closely paraphrase, quote, or identify the source. Give every variation a different angle, opening, narrative structure, and call to action. Each complete post must ${describeCaptionLengthRule(caption)}. Return fewer outputs instead of padding with duplicates.`;
   }
 
   private buildSourceContext(sourceText: string): string[] {
