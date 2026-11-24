@@ -49,8 +49,8 @@ function countThreads(groups: ChildThreadGroups): number {
 }
 
 /**
- * The work queue beside the master conversation: every thread the master (or
- * the operator) started, with only what needs the operator, what is running and
+ * The work queue: beside the master conversation in the split, and in the left
+ * column at full size. Every thread the master (or the operator) started, with only what needs the operator, what is running and
  * what is ready for review in sight. Everything older folds under Earlier, and
  * a search reaches it. The brand is the topbar's, so the list takes it as
  * `brandId` and has no filter of its own. Picking a thread opens it in place,

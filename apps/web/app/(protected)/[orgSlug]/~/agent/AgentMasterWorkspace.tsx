@@ -4,19 +4,12 @@ import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  getBrandEntityId,
-  getBrandOrganizationId,
-} from '@contexts/user/brand-context/brand-context.helpers';
-import {
   AgentThreadOpenProvider,
   AgentThreadResolutionProvider,
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { useAgentThreadPrefetch } from '@genfeedai/agent/components/useAgentThreadPrefetch';
-import {
-  APP_ROUTES,
-  createBrandAppRoute,
-} from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentOutputTabDefinition } from '@props/ui/agent-output-shell.props';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
@@ -25,15 +18,14 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo } from 'react';
 import AgentThreadsPanel from '@/components/workspace-shell/AgentThreadsPanel';
 import type { AgentMasterWorkspaceProps } from '@/features/agents/props/agent-master-workspace.props';
-import { buildAgentThreadHref } from '@/lib/navigation/operator-shell';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 import { useAgentWorkspace } from './agent-workspace-context';
+import { useAgentThreadLinks } from './use-agent-thread-links';
 import { useMasterThread } from './use-master-thread';
 import { useThreadResolution } from './use-thread-resolution';
 
 const THREADS_TAB_ID = 'threads';
 const CONTEXT_TAB_ID = 'context';
-const AGENT_SPLIT_STORAGE_KEY = 'genfeed:agent-master-split';
 
 /**
  * `/agent`, `/agent/threads` and `/agent/[id]`: the master conversation on the
@@ -51,7 +43,7 @@ export default function AgentMasterWorkspace({
   const translateWorkspace = useTranslations('common.agentWorkspace');
   const { push } = useRouter();
   const { activeHref, orgSlug } = useOrgUrl();
-  const { brandId, brands, organizationId } = useBrand();
+  const { brandId } = useBrand();
   const { agentApiService, isLoaded } = useAgentWorkspace();
   const host = useAgentOutputHost();
   const contextSidebar = useContextSidebar();
@@ -99,32 +91,8 @@ export default function AgentMasterWorkspace({
     }
   }, [isUserSelectionOpen, onOpenContext, selectionKey]);
 
-  // A thread opens in its own brand: the link carries the owning brand's slug,
-  // so the topbar follows the thread. A thread with no brand (or one the
-  // brand list does not know) stays in the scope the operator is in.
-  const buildThreadHref = useCallback(
-    (threadId: string, options?: { isFull?: boolean }) => {
-      const thread =
-        threads.find((item) => item.id === threadId) ??
-        resolvedThreads.find((item) => item.id === threadId);
-      const ownerBrand = thread?.brandId
-        ? brands.find(
-            (brand) =>
-              getBrandEntityId(brand) === thread.brandId &&
-              getBrandOrganizationId(brand) === organizationId,
-          )
-        : undefined;
-      if (ownerBrand?.slug && orgSlug) {
-        return createBrandAppRoute(
-          orgSlug,
-          ownerBrand.slug,
-          buildAgentThreadHref(threadId, options),
-        );
-      }
-      return activeHref(buildAgentThreadHref(threadId, options));
-    },
-    [activeHref, brands, orgSlug, organizationId, resolvedThreads, threads],
-  );
+  const { buildThreadHref, openFullThread } =
+    useAgentThreadLinks(resolvedThreads);
 
   // A thread chip in the master's transcript, or a row in the list, opens that
   // thread in the panel by moving the URL to it; Back returns to the list.
@@ -145,22 +113,6 @@ export default function AgentMasterWorkspace({
       push(activeHref(APP_ROUTES.AGENT.THREADS));
     },
     [activeHref, openThreadInPanel, push],
-  );
-
-  // Full view is `?view=full` on the thread's own URL. When that URL is the
-  // page already open, rewrite it in place: the App Router follows
-  // `history.pushState` without a route request, so the swap is immediate.
-  const openFullThread = useCallback(
-    (threadId: string) => {
-      const href = buildThreadHref(threadId, { isFull: true });
-      const [hrefPathname] = href.split('?');
-      if (hrefPathname === window.location.pathname) {
-        window.history.pushState(null, '', href);
-        return;
-      }
-      push(href);
-    },
-    [buildThreadHref, push],
   );
 
   const tabs = useMemo<AgentOutputTabDefinition[]>(
@@ -236,7 +188,6 @@ export default function AgentMasterWorkspace({
         output: translate('threads'),
         resizePanes: translate('resizePanes'),
       }}
-      resizeStorageKey={AGENT_SPLIT_STORAGE_KEY}
       tabs={tabs}
     />
   );
