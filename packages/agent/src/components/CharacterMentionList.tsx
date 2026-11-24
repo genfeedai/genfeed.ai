@@ -4,18 +4,15 @@ import type {
   CharacterMentionItem,
   CharacterMentionListProps,
 } from '@genfeedai/agent/types/mention.types';
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import { useTranslations } from 'next-intl';
 import {
-  type ReactElement,
-  useEffect,
-  useImperativeHandle,
-  useState,
-} from 'react';
+  SuggestionEmpty,
+  SuggestionItem,
+  SuggestionList,
+} from '@ui/primitives/suggestion-list';
+import { useTranslations } from 'next-intl';
+import { type ReactElement, useImperativeHandle, useState } from 'react';
 
 export function CharacterMentionList({
   items,
@@ -54,26 +51,19 @@ export function CharacterMentionList({
 
   if (items.length === 0) {
     return (
-      <div className="border border-foreground/10 bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
-        {translate('empty')}
-      </div>
+      <SuggestionList>
+        <SuggestionEmpty>{translate('empty')}</SuggestionEmpty>
+      </SuggestionList>
     );
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto border border-foreground/10 bg-background shadow-lg">
+    <SuggestionList>
       {items.map((item: CharacterMentionItem, index) => (
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
+        <SuggestionItem
+          isSelected={index === selectedIndex}
           key={item.id}
           onClick={() => command(item)}
-          className={cn(
-            'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
-            index === selectedIndex
-              ? 'bg-accent text-accent-foreground'
-              : 'text-popover-foreground hover:bg-accent/50',
-          )}
         >
           <div className="flex min-w-0 flex-col">
             <span className="font-medium">{item.label}</span>
@@ -89,8 +79,8 @@ export function CharacterMentionList({
               })}
             </Badge>
           ) : null}
-        </Button>
+        </SuggestionItem>
       ))}
-    </div>
+    </SuggestionList>
   );
 }

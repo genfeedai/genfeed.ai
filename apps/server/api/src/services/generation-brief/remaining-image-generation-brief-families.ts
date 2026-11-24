@@ -306,9 +306,8 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
       },
     },
     {
-      // MAI-Image-2.7 on fal. The text rows take a prompt; the edit rows take
-      // one to five source images, which the fal adapter sends as `image_urls`
-      // from the resolved references, so the compiled payload carries none.
+      // MAI-Image-2.7 text-to-image on fal. The edit rows are image-edit rows,
+      // which skip brief compilation.
       compilerId: FAL_MAI_IMAGE_COMPILER_ID,
       compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
       profiles: [
@@ -321,21 +320,9 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           },
         ),
         profile(
-          'fal-mai-image-2-7-edit-capability',
-          MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
-          5,
-          { seedSupported: false },
-        ),
-        profile(
           'fal-mai-image-2-7-flash-capability',
           MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
           0,
-          { seedSupported: false },
-        ),
-        profile(
-          'fal-mai-image-2-7-flash-edit-capability',
-          MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
-          5,
           { seedSupported: false },
         ),
       ],

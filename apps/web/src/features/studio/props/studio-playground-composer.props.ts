@@ -64,6 +64,8 @@ export interface StudioReferenceSourcesInput {
   isCrunStartEnd: boolean;
   isAutoMode: boolean;
   isFlux: boolean;
+  /** A MAI-Image edit takes no mask, seed or size, like FLUX. */
+  isMaiEdit?: boolean;
   isUploading: boolean;
   labels: StudioReferenceSourceLabels;
   modelKey: string;
@@ -91,6 +93,7 @@ export interface StudioComposerImageControlsProps {
   isEditingModelUnavailable: boolean;
   isEditSourceMissing: boolean;
   isFlux: boolean;
+  isMaiEdit?: boolean;
   onSettingsChange: StudioSettingsPatchHandler;
   settings: StudioPlaygroundSettings;
   type: StudioPlaygroundType;

@@ -495,7 +495,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only when grantedAvatarOwners.has(id).
     {
       file: 'apps/server/api/src/collections/images/services/image-generation-admission.service.ts',
-      line: 134,
+      line: 137,
     },
     // #6120: superadmin-only routes read every organization's subscriptions
     // and wallets.
