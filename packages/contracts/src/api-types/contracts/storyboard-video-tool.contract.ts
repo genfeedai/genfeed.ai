@@ -164,6 +164,15 @@ export const storyboardVideoToolSchema = z.discriminatedUnion('action', [
   z
     .object({
       ...run,
+      action: z.literal('reverse'),
+      expectedRevision,
+      /** The Library video (up to 60 s) or image to reverse engineer. */
+      assetId: storyboardIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...run,
       action: z.literal('assets'),
       expectedRevision,
       entries: z

@@ -917,6 +917,78 @@ describe('VideoProcessor', () => {
   });
 
   // ==========================================================================
+  // Durable completion of reverse, mirror and text overlay (#10881)
+  // ==========================================================================
+  describe.each([
+    {
+      handler: 'handleReverse',
+      mock: () => ffmpegService.reverseVideo,
+      type: JOB_TYPES.REVERSE_VIDEO,
+    },
+    {
+      handler: 'handleMirror',
+      mock: () => ffmpegService.mirrorVideo,
+      type: JOB_TYPES.MIRROR_VIDEO,
+    },
+    {
+      handler: 'handleTextOverlay',
+      mock: () => ffmpegService.addTextOverlay,
+      type: JOB_TYPES.ADD_TEXT_OVERLAY,
+    },
+  ] as const)('$handler queues its completion', ({ handler, mock, type }) => {
+    it('stores the completed event so an API restart cannot lose it', async () => {
+      const data = createMockJobData({ params: { text: 'Hi' } });
+
+      await processor[handler](createMockJob(type, data));
+
+      expect(completionPublisher.publish).toHaveBeenCalledTimes(1);
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredientId: data.ingredientId,
+          organizationId: data.organizationId,
+          result: expect.objectContaining({ s3Key: expect.any(String) }),
+          status: 'completed',
+          userId: data.userId,
+        }),
+      );
+    });
+
+    it('fails the job again when the completed event was not stored', async () => {
+      completionPublisher.publish.mockRejectedValueOnce(
+        new Error('redis down'),
+      );
+
+      await expect(
+        processor[handler](createMockJob(type, createMockJobData())),
+      ).rejects.toThrow('redis down');
+    });
+
+    it('queues one failed event, on the last attempt only', async () => {
+      const data = createMockJobData();
+      mock().mockRejectedValue(new Error('ffmpeg failed'));
+
+      await expect(
+        processor[handler](createMockJob(type, data)),
+      ).rejects.toThrow('ffmpeg failed');
+      expect(completionPublisher.publish).not.toHaveBeenCalled();
+
+      await expect(
+        processor[handler](
+          createMockJob(type, data, 'job-123', { attemptsMade: 2 }),
+        ),
+      ).rejects.toThrow('ffmpeg failed');
+      expect(completionPublisher.publish).toHaveBeenCalledTimes(1);
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'ffmpeg failed',
+          ingredientId: data.ingredientId,
+          status: 'failed',
+        }),
+      );
+    });
+  });
+
+  // ==========================================================================
   // handleMirror
   // ==========================================================================
   describe('handleMirror', () => {

@@ -463,6 +463,22 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, adopt, scope],
   );
+  const reversePlan = useCallback(
+    async (revision: number, assetId: string) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      if (activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      return adopt(
+        await service.reverseStoryboardPlan(brandId, runId, {
+          expectedRevision: revision,
+          assetId,
+        }),
+      );
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
   const approvePlan = useCallback(
     async (revision: number) => {
       if (!brandId || activeScope.current !== scope)
@@ -958,6 +974,7 @@ export function useDurableStoryboardRun(runId: string) {
     savePlan,
     saveSource,
     resetPlan,
+    reversePlan,
     approvePlan,
     draftPlan,
     quoteStills,

@@ -25,6 +25,7 @@ const CHAT_ID_PATTERN = /^-?\d{1,20}$/;
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 
 const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
+  'alerts',
   'billing',
   'deployments',
   'models',

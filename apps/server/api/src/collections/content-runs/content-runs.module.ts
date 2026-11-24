@@ -4,6 +4,7 @@ import { ContentIntelligenceModule } from '@api/collections/content-intelligence
 import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
 import { StoryboardAssetBibleController } from '@api/collections/content-runs/controllers/storyboard-asset-bible.controller';
+import { StoryboardReverseController } from '@api/collections/content-runs/controllers/storyboard-reverse.controller';
 import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
 import { StoryboardShotRendersController } from '@api/collections/content-runs/controllers/storyboard-shot-renders.controller';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
@@ -44,6 +45,8 @@ import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
 import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
+import { StoryboardReferenceAnalysisService } from '@api/collections/content-runs/services/storyboard-reference-analysis.service';
+import { StoryboardReversePlanService } from '@api/collections/content-runs/services/storyboard-reverse-plan.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
@@ -80,6 +83,7 @@ import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatch
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
+import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
@@ -93,6 +97,7 @@ import { Module } from '@nestjs/common';
     StoryboardRunsController,
     StoryboardShotRendersController,
     StoryboardAssetBibleController,
+    StoryboardReverseController,
     BrandRemixGenerationController,
     ContentRunsController,
   ],
@@ -108,6 +113,7 @@ import { Module } from '@nestjs/common';
     StoryboardVideoAssemblyService,
     StoryboardLongFormEstimateService,
     StoryboardLongFormTranslationService,
+    StoryboardReversePlanService,
     StoryboardSlideshowPostService,
     BrandRemixSceneService,
     BrandRemixRunsService,
@@ -119,6 +125,7 @@ import { Module } from '@nestjs/common';
     PlatformSettingsModule,
     PostsCoreModule,
     FileQueueModule,
+    MediaPerceptionModule,
     MediaUrlsModule,
     LlmDispatcherModule,
     RouterModule,
@@ -152,6 +159,8 @@ import { Module } from '@nestjs/common';
   providers: [
     StoryboardCharacterReplaceService,
     StoryboardPlanDraftService,
+    StoryboardReferenceAnalysisService,
+    StoryboardReversePlanService,
     StoryboardRunCapabilitiesService,
     StoryboardRunsService,
     StoryboardRunStoreService,

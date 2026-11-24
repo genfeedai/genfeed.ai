@@ -145,7 +145,11 @@ describe('StreamableHttpService (real SDK integration)', () => {
     const inputs: Record<string, Record<string, unknown>> = {
       capabilities: {},
       validate: { platform: 'youtube' },
-      request: { filename: 'photo.png', contentType: 'image/png' },
+      request: {
+        brandId: 'brand-1',
+        filename: 'photo.png',
+        contentType: 'image/png',
+      },
       complete: { assetId: 'fixture-asset' },
     };
     try {

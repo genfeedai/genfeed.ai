@@ -79,6 +79,7 @@ export * from './storyboard-asset-bible.contract';
 export * from './storyboard-character-replace.contract';
 export * from './storyboard-long-form-tool.contract';
 export * from './storyboard-plan.contract';
+export * from './storyboard-reference-analysis.contract';
 export * from './storyboard-run.contract';
 export * from './storyboard-run-capabilities.contract';
 export * from './storyboard-run-quote.contract';

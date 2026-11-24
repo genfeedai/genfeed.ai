@@ -226,6 +226,14 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  async getAlertsWebhook(): Promise<WebhookClient | null> {
+    if (!this.hasWebhookAccess()) return null;
+    return this.getOrCreateWebhook(
+      (await this.runtimeSettings.get()).discordChannelIdAlerts ?? undefined,
+      await this.getWebhookName('Alerts'),
+    );
+  }
+
   async getDeploymentsWebhook(): Promise<WebhookClient | null> {
     if (!this.hasWebhookAccess()) return null;
     return this.getOrCreateWebhook(
@@ -437,6 +445,12 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     }>;
   }> {
     const channels = [
+      {
+        channelId:
+          (await this.runtimeSettings.get()).discordChannelIdAlerts ??
+          undefined,
+        name: 'ALERTS',
+      },
       {
         channelId:
           (await this.runtimeSettings.get()).discordChannelIdPosts ?? undefined,

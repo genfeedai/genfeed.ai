@@ -52,6 +52,11 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
+  {
+    name: 'request_media_upload',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
   { name: 'get_posts', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
@@ -776,7 +781,7 @@ describe('ToolRegistryService', () => {
           code: 'brand_required',
         },
       });
-      expect(JSON.stringify(result)).toContain('Choose a brand for this draft');
+      expect(JSON.stringify(result)).toContain('Choose a brand for this call');
       expect(JSON.stringify(result)).toContain(
         'Acme (brand-1), Beta (brand-2)',
       );
@@ -818,6 +823,25 @@ describe('ToolRegistryService', () => {
       });
 
       expect(JSON.stringify(result)).not.toContain('brand_required');
+    });
+
+    it('asks request_media_upload for a brand when the organization has several, so an upload never lands in the wrong brand (#11076)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce(brandListing);
+
+      const result = await service.handleToolCall({
+        arguments: { contentType: 'image/png', filename: 'photo.png' },
+        name: 'request_media_upload',
+      });
+
+      expect(clientService.executeAgentTool).toHaveBeenCalledTimes(1);
+      expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+        'get_brands',
+        {},
+      );
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: { code: 'brand_required' },
+      });
     });
 
     it('binds the single brand into the create_post arguments before dispatch or approval (#10071)', async () => {
