@@ -23,11 +23,31 @@ const PROCESS_NOTE_HEADINGS: readonly RegExp[] = [
 const PLACEHOLDER_PATTERN =
   /\[(?:TODO|TBD|FIXME|PLACEHOLDER|VIDEO LINK|INSERT[^\]]*)[^\]]*\]/;
 
+const NAMED_ENTITIES: Readonly<Record<string, string>> = {
+  amp: '&',
+  apos: "'",
+  gt: '>',
+  lt: '<',
+  nbsp: ' ',
+  quot: '"',
+  rsquo: '’',
+};
+
+function decodeEntities(text: string): string {
+  return text.replace(
+    /&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/gi,
+    (entity, decimal?: string, hex?: string, name?: string) => {
+      if (name) return NAMED_ENTITIES[name.toLowerCase()] ?? entity;
+      const code = Number.parseInt(decimal ?? hex ?? '', decimal ? 10 : 16);
+      return Number.isFinite(code) && code <= 0x10ffff
+        ? String.fromCodePoint(code)
+        : entity;
+    },
+  );
+}
+
 function headingText(rawHeading: string): string {
-  return rawHeading
-    .replace(TAG_PATTERN, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&#x27;|&#39;|&apos;/g, "'")
+  return decodeEntities(rawHeading.replace(TAG_PATTERN, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -45,7 +65,11 @@ export function findArticleProcessNote(
     }
   }
 
-  const placeholder = html.match(PLACEHOLDER_PATTERN);
+  // Readers see the rendered text, so a placeholder split by markup or written
+  // with character references counts: "[<strong>TODO</strong>]", "&#91;TODO&#93;".
+  const placeholder = decodeEntities(html.replace(TAG_PATTERN, '')).match(
+    PLACEHOLDER_PATTERN,
+  );
   if (placeholder) return `the placeholder ${placeholder[0]}`;
 
   return undefined;

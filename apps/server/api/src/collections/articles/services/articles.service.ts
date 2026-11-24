@@ -416,10 +416,8 @@ export class ArticlesService
       );
 
       // Readers see the new content, or the stored content when only publishing.
-      if (
-        isPublishingUpdate ||
-        ArticleFilterUtil.isPublicArticleStatus(accessible.status)
-      ) {
+      const destinationStatus = updateArticleDto.status ?? accessible.status;
+      if (ArticleFilterUtil.isPublicArticleStatus(destinationStatus)) {
         assertArticleIsReaderCopy(
           updateArticleDto.content ?? accessible.content,
         );

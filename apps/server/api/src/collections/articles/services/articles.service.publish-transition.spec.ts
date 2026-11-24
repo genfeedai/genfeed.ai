@@ -290,6 +290,28 @@ describe('ArticlesService publish-state transition', () => {
       expect(delegate.update).not.toHaveBeenCalled();
     });
 
+    it('lets a published article with notes go back to draft', async () => {
+      const { delegate, service } = buildService();
+      delegate.findFirst.mockResolvedValue({
+        content: '<p>Watch it: [VIDEO LINK]</p>',
+        id: articleId,
+        organizationId,
+        publishedAt: new Date('2026-11-10T08:00:00.000Z'),
+        status: 'PUBLISHED',
+        userId,
+      });
+
+      await service.update(
+        articleId,
+        { status: ArticleStatus.DRAFT } as UpdateArticleDto,
+        userId,
+        organizationId,
+        brandId,
+      );
+
+      expect(readPatchedData(delegate).status).toBe('DRAFT');
+    });
+
     it('keeps a draft with notes saveable while it is being written', async () => {
       const { delegate, service } = buildService();
 
