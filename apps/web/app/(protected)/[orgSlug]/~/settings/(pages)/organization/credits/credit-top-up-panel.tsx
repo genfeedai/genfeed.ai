@@ -109,7 +109,7 @@ export default function CreditTopUpPanel({
             >
               {PAYG_CREDIT_PACKS.map((pack) => (
                 <OptionTile
-                  ariaLabel={`Select ${pack.label} credit pack`}
+                  ariaLabel={`${pack.label}, ${pack.credits.toLocaleString('en-US')} credits`}
                   className="w-auto"
                   description={`${pack.credits.toLocaleString()} credits`}
                   key={pack.label}
@@ -120,7 +120,7 @@ export default function CreditTopUpPanel({
                 />
               ))}
               <OptionTile
-                ariaLabel="Select custom credit amount"
+                ariaLabel="Custom credit amount"
                 className="w-auto"
                 layout="stack"
                 size="sm"
