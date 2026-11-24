@@ -488,13 +488,7 @@
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/CharacterMentionList.tsx": {
-      "unstyled-look": 1
-    },
     "packages/agent/src/components/ContentCalendarCard.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/CredentialMentionList.tsx": {
       "unstyled-look": 1
     },
     "packages/agent/src/components/GenerationActionCanvas.tsx": {
@@ -514,12 +508,6 @@
     },
     "packages/agent/src/components/MutationApprovalCard.tsx": {
       "button-restyle": 1
-    },
-    "packages/agent/src/components/StudioReferenceMentionList.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/TeamMentionList.tsx": {
-      "unstyled-look": 1
     },
     "packages/agent/src/components/TimelineWorkGroup.tsx": {
       "unstyled-look": 1

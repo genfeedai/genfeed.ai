@@ -1,9 +1,11 @@
 import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
+import {
+  SuggestionEmpty,
+  SuggestionItem,
+  SuggestionList,
+} from '@ui/primitives/suggestion-list';
 import {
   type ReactElement,
   type Ref,
@@ -51,26 +53,19 @@ export function TeamMentionList({
 
   if (items.length === 0) {
     return (
-      <div className="border border-foreground/10 bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
-        No team members found
-      </div>
+      <SuggestionList>
+        <SuggestionEmpty>No team members found</SuggestionEmpty>
+      </SuggestionList>
     );
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto border border-foreground/10 bg-background shadow-lg">
+    <SuggestionList>
       {items.map((item, index) => (
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
+        <SuggestionItem
+          isSelected={index === selectedIndex}
           key={item.id}
           onClick={() => command(item)}
-          className={cn(
-            'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
-            index === selectedIndex
-              ? 'bg-accent text-accent-foreground'
-              : 'text-popover-foreground hover:bg-accent/50',
-          )}
         >
           {item.avatar && (
             <Avatar
@@ -91,8 +86,8 @@ export function TeamMentionList({
           >
             {item.isAgent ? 'agent' : 'human'}
           </Badge>
-        </Button>
+        </SuggestionItem>
       ))}
-    </div>
+    </SuggestionList>
   );
 }
