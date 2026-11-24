@@ -100,7 +100,6 @@ export interface MenuItemProps {
   outline?: IconComponent;
   solid?: IconComponent;
   isActive?: boolean;
-  isComingSoon?: boolean;
   onClick?: () => void;
   chevronIcon?: ReactNode;
   variant?: 'default' | 'icon';

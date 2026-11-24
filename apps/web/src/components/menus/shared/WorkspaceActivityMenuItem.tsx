@@ -8,7 +8,6 @@ import { useUnreadActivityCount } from '@/hooks/data/activities/use-unread-activ
 export default function WorkspaceActivityMenuItem({
   href,
   isActive,
-  isComingSoon,
   label,
   onClick,
   outline,
@@ -16,7 +15,6 @@ export default function WorkspaceActivityMenuItem({
 }: {
   href?: string;
   isActive: boolean;
-  isComingSoon?: boolean;
   label: string;
   onClick?: () => void;
   outline?: MenuItemConfig['outline'];
@@ -33,7 +31,6 @@ export default function WorkspaceActivityMenuItem({
       href={href}
       isActive={isActive}
       isCollapsed={false}
-      isComingSoon={isComingSoon}
       label={label}
       onClick={onClick}
       outline={outline}

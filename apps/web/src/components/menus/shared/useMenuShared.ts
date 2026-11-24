@@ -90,7 +90,7 @@ export function useMenuShared({
   // not wait on a server render.
   const destinationHrefs = useMemo(() => {
     const itemHrefs = [...config.items, ...secondaryItems].flatMap((item) => {
-      const itemHref = item.isComingSoon ? undefined : prefixHref(item);
+      const itemHref = prefixHref(item);
       return itemHref ? [itemHref] : [];
     });
     const resolvedBackHref = backHref

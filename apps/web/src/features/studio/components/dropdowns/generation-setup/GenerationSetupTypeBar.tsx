@@ -48,8 +48,7 @@ export default function GenerationSetupTypeBar({
   const translate = useTranslations('agent.generationSetup');
   const currentType = setup.values.type;
   const isImageActive = currentType === 'image' || currentType === 'image-edit';
-  // Edit is a mode of Image and Video. Video has no edit flow in Studio yet,
-  // so its toggle shows but stays off.
+  // Edit is a mode of Image only; Video has no edit flow, so it offers none.
   const isVideoActive = currentType === 'video';
   const isEditing = imageEditing?.isEnabled === true && isImageActive;
   const activeOption =
@@ -132,22 +131,15 @@ export default function GenerationSetupTypeBar({
               );
             })}
           </DropdownMenuRadioGroup>
-          {(imageEditing && (isImageActive || isVideoActive)) ||
-          (videoDraft && isVideoActive) ? (
+          {(imageEditing && isImageActive) || (videoDraft && isVideoActive) ? (
             <DropdownMenuSeparator />
           ) : null}
-          {imageEditing && (isImageActive || isVideoActive) ? (
+          {imageEditing && isImageActive ? (
             <DropdownMenuCheckboxItem
               checked={isEditing}
-              disabled={isVideoActive}
               onCheckedChange={(isChecked) => imageEditing.onChange(isChecked)}
             >
               <span className="text-xs">{translate('modeEdit')}</span>
-              {isVideoActive ? (
-                <span className="ml-auto pl-2 text-xs text-muted-foreground">
-                  {translate('modeEditVideoSoon')}
-                </span>
-              ) : null}
             </DropdownMenuCheckboxItem>
           ) : null}
           {videoDraft && isVideoActive ? (

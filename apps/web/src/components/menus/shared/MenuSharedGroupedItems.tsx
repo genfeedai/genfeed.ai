@@ -58,7 +58,6 @@ export default function MenuSharedGroupedItems({
                         key={itemKey}
                         href={itemHref}
                         isActive={isActiveItem(item)}
-                        isComingSoon={item.isComingSoon}
                         label={item.label}
                         onClick={handleLinkClick}
                         outline={item.outline}
@@ -72,7 +71,6 @@ export default function MenuSharedGroupedItems({
                       key={itemKey}
                       href={itemHref}
                       isActive={isActiveItem(item)}
-                      isComingSoon={item.isComingSoon}
                       label={item.label}
                       onClick={handleLinkClick}
                       outline={item.outline}
@@ -87,7 +85,6 @@ export default function MenuSharedGroupedItems({
                       outline={item.outline}
                       solid={item.solid}
                       isActive={isActiveItem(item)}
-                      isComingSoon={item.isComingSoon}
                       onClick={handleLinkClick}
                       variant="icon"
                       isCollapsed={false}

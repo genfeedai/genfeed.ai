@@ -8,7 +8,6 @@ import { useWorkspaceInboxCount } from '@/hooks/data/tasks/use-workspace-inbox-c
 export default function WorkspaceInboxMenuItem({
   href,
   isActive,
-  isComingSoon,
   label,
   onClick,
   outline,
@@ -16,7 +15,6 @@ export default function WorkspaceInboxMenuItem({
 }: {
   href?: string;
   isActive: boolean;
-  isComingSoon?: boolean;
   label: string;
   onClick?: () => void;
   outline?: MenuItemConfig['outline'];
@@ -33,7 +31,6 @@ export default function WorkspaceInboxMenuItem({
       href={href}
       isActive={isActive}
       isCollapsed={false}
-      isComingSoon={isComingSoon}
       label={label}
       onClick={onClick}
       outline={outline}
