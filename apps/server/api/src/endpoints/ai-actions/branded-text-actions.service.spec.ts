@@ -61,6 +61,7 @@ function createService() {
         resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text'),
       } as never,
       material as never,
+      { find: vi.fn().mockResolvedValue([]) } as never,
     ),
   );
   return { branded, modeResolver, posts, service };
