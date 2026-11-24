@@ -75,6 +75,7 @@ import {
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
+  hasLivePosts,
   type PostsPublicationState,
   type PublishingPostsView,
 } from '@/features/posts/list/posts-list-query';
@@ -412,13 +413,7 @@ export function usePostsList({
     searchParamsString,
   ]);
 
-  const hasPublicPosts = useMemo(
-    () =>
-      posts.some(
-        (post) => post.targetExecutionState === TargetExecutionState.PUBLISHED,
-      ),
-    [posts],
-  );
+  const hasPublicPosts = useMemo(() => hasLivePosts(posts), [posts]);
 
   const handleDelete = useCallback(
     (post: IPost) => {

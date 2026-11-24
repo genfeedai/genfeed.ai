@@ -1,8 +1,13 @@
-import { type PageScope, PostStatus } from '@genfeedai/contracts';
+import {
+  type PageScope,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import {
   PUBLISHING_POSTS_PUBLICATION_STATES,
   type PublishingPostsPublicationState,
 } from '@genfeedai/contracts/constants';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 
 export type PostsPublicationState = PublishingPostsPublicationState;
 export type PublishingPostsView =
@@ -96,4 +101,18 @@ export function buildPostsListQueryKey({
     adminOrg,
     adminBrand,
   ] as const;
+}
+
+/**
+ * Whether any post in the list is live. A TikTok Inbox receipt is stored as
+ * published but waits for the creator to publish it, so it is not live.
+ */
+export function hasLivePosts(
+  posts: Array<Pick<IPost, 'isInboxDelivery' | 'targetExecutionState'>>,
+): boolean {
+  return posts.some(
+    (post) =>
+      post.targetExecutionState === TargetExecutionState.PUBLISHED &&
+      !post.isInboxDelivery,
+  );
 }

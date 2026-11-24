@@ -99,6 +99,18 @@ describe('release-rail-row.helpers', () => {
       ).toBe('success');
     });
 
+    it('maps a TikTok Inbox delivery to info, not success', () => {
+      expect(
+        targetTone(
+          buildTarget({
+            executionState: TargetExecutionState.PUBLISHED,
+            isInboxDelivery: true,
+            platform: CredentialPlatform.TIKTOK,
+          }),
+        ),
+      ).toBe('info');
+    });
+
     it('maps failed to destructive', () => {
       expect(
         targetTone(
@@ -181,6 +193,28 @@ describe('release-rail-row.helpers', () => {
         failed: 1,
         pending: 1,
         published: 2,
+      });
+    });
+
+    it('counts a TikTok Inbox delivery as pending, not published', () => {
+      const release = buildRelease({
+        targets: [
+          buildTarget({
+            id: 't1',
+            executionState: TargetExecutionState.PUBLISHED,
+          }),
+          buildTarget({
+            id: 't2',
+            executionState: TargetExecutionState.PUBLISHED,
+            isInboxDelivery: true,
+            platform: CredentialPlatform.TIKTOK,
+          }),
+        ],
+      });
+      expect(releaseOutcomeSummary(release)).toEqual({
+        failed: 0,
+        pending: 1,
+        published: 1,
       });
     });
 

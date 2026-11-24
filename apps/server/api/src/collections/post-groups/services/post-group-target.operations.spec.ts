@@ -629,6 +629,7 @@ function makeTarget(
     lastAttemptAt: null,
     order: 0,
     platform: 'twitter',
+    publicationDate: null,
     publishedAt: null,
     publishApprovalId: null,
     retryCount: 0,

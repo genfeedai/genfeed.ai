@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -12,10 +13,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { postVisibilityReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -341,7 +339,7 @@ describe('PublicPostsController', () => {
       };
       expect(callArgs.where).toEqual({
         AND: [
-          postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          PUBLISHED_AND_LIVE_WHERE,
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
@@ -479,7 +477,7 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
           AND: [
-            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            PUBLISHED_AND_LIVE_WHERE,
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
@@ -579,7 +577,7 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
           AND: [
-            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            PUBLISHED_AND_LIVE_WHERE,
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },

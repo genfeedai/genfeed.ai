@@ -11,6 +11,7 @@ import type {
   ReleaseRailOutcomeSummary,
   ReleaseRailTargetTone,
 } from '@/features/posts/props/release-rail.props';
+import { isTargetLive } from '@/features/posts/shared/release-status.helpers';
 
 const DEFAULT_VISIBLE_TARGET_CAP = 6;
 
@@ -72,6 +73,11 @@ export function targetTone(target: IChannelTarget): ReleaseRailTargetTone {
     return 'warning';
   }
 
+  // Delivered to the TikTok Inbox, not yet a public post.
+  if (target.isInboxDelivery) {
+    return 'info';
+  }
+
   switch (target.executionState) {
     case TargetExecutionState.PUBLISHED:
       return 'success';
@@ -97,7 +103,7 @@ export function releaseOutcomeSummary(
   const targets = release.targets ?? [];
   return targets.reduce<ReleaseRailOutcomeSummary>(
     (summary, target) => {
-      if (target.executionState === TargetExecutionState.PUBLISHED) {
+      if (isTargetLive(target)) {
         return { ...summary, published: summary.published + 1 };
       }
       if (target.executionState === TargetExecutionState.FAILED) {

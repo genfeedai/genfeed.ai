@@ -848,6 +848,7 @@ function makeTarget(
     lastAttemptAt: null,
     order: 0,
     platform: CredentialPlatform.TWITTER,
+    publicationDate: null,
     publishedAt: null,
     publishApprovalId: null,
     retryCount: 0,

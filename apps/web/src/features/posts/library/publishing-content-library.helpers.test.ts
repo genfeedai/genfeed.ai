@@ -160,6 +160,69 @@ describe('publishing content library federation', () => {
     ).toHaveLength(2);
   });
 
+  it('lists a TikTok Inbox delivery with the drafts and flags it, not as published', () => {
+    const items = createPublishingContentLibraryItems({
+      ...collections,
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          id: 'inbox-post',
+          isInboxDelivery: true,
+          platform: Platform.TIKTOK,
+          status: PostStatus.PUBLIC,
+        } as IPost,
+        {
+          createdAt: '2026-08-07T10:00:00.000Z',
+          id: 'live-post',
+          platform: Platform.TIKTOK,
+          status: PostStatus.PUBLIC,
+        } as IPost,
+      ],
+    });
+
+    expect(
+      items.map(({ id, isInboxDelivery, status }) => ({
+        id,
+        isInboxDelivery,
+        status,
+      })),
+    ).toEqual([
+      { id: 'inbox-post', isInboxDelivery: true, status: 'draft' },
+      { id: 'live-post', isInboxDelivery: false, status: 'published' },
+    ]);
+  });
+
+  it('flags a release whose every target is a TikTok Inbox delivery', () => {
+    const release = (targets: Array<{ isInboxDelivery?: boolean }>) =>
+      ({
+        createdAt: '2026-08-09T10:00:00Z',
+        id: 'group-inbox',
+        status: 'draft',
+        targets: targets.map((target, index) => ({
+          id: `t${index}`,
+          platform: Platform.TIKTOK,
+          ...target,
+        })),
+        title: 'Inbox release',
+      }) as unknown as IReleaseGroup;
+    const flagOf = (releases: IReleaseGroup[]) =>
+      createPublishingContentLibraryItems({
+        articles: [],
+        newsletters: [],
+        posts: [],
+        releases,
+      })[0]?.isInboxDelivery;
+
+    expect(flagOf([release([{ isInboxDelivery: true }])])).toBe(true);
+    expect(
+      flagOf([
+        release([{ isInboxDelivery: true }, { isInboxDelivery: false }]),
+      ]),
+    ).toBe(false);
+  });
+
   it('applies type, channel, lifecycle, and search filters together', () => {
     const items = createPublishingContentLibraryItems(collections);
 

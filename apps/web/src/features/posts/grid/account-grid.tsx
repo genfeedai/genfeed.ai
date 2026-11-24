@@ -30,7 +30,6 @@ import TargetPreview from '@/components/previews/TargetPreview';
 import {
   accountLabel,
   buildAccountGridLanes,
-  isTargetPublished,
 } from '@/features/posts/grid/account-grid.helpers';
 import type {
   AccountGridLaneColumnProps,
@@ -38,6 +37,7 @@ import type {
   AccountGridTileProps,
 } from '@/features/posts/props/account-grid.props';
 import { releaseDisplayTitle } from '@/features/posts/rail/release-rail-row.helpers';
+import { isTargetLive } from '@/features/posts/shared/release-status.helpers';
 
 function tileTone(
   target: IChannelTarget,
@@ -48,7 +48,7 @@ function tileTone(
   if (target.executionState === TargetExecutionState.PAUSED) {
     return 'review';
   }
-  if (isTargetPublished(target)) {
+  if (isTargetLive(target)) {
     return 'published';
   }
   return 'upcoming';

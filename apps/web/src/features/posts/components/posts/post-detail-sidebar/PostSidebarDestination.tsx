@@ -1,13 +1,13 @@
 'use client';
 
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { isTikTokInboxDelivered } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Badge } from '@ui/primitives/badge';
 import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
-import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import type { PostSidebarDestinationProps } from '@/props/components/post-detail-sidebar.props';
 
 export function getPlatformLabel(

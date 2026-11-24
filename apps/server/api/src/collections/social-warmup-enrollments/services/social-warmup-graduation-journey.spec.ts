@@ -37,6 +37,20 @@ const context = {
 
 type StoreRow = Record<string, unknown>;
 
+function isNullish(value: unknown): boolean {
+  return value === null || value === undefined;
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  return isNullish(left) && isNullish(right) ? true : left === right;
+}
+
+/**
+ * Evaluates the Prisma `where` shapes the code under test sends: plain
+ * equality (`null` matches a missing column), `in`, `gte`, `not`, and the
+ * `AND` and `OR` lists. A shape it does not know throws, so a new filter can
+ * never read as "matches nothing" and pass silently.
+ */
 function matches(
   row: StoreRow,
   where: Record<string, unknown> | undefined,
@@ -46,8 +60,32 @@ function matches(
   }
 
   for (const [key, value] of Object.entries(where)) {
+    if (key === 'AND' || key === 'OR') {
+      const branches = value as Record<string, unknown>[];
+      const hit =
+        key === 'AND'
+          ? branches.every((branch) => matches(row, branch))
+          : branches.some((branch) => matches(row, branch));
+      if (!hit) {
+        return false;
+      }
+      continue;
+    }
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const filter = value as { gte?: Date; in?: unknown[] };
+      const filter = value as {
+        gte?: Date;
+        in?: unknown[];
+        not?: unknown;
+      };
+      const operators = Object.keys(filter);
+      const unknown = operators.filter(
+        (operator) => !['gte', 'in', 'not'].includes(operator),
+      );
+      if (unknown.length > 0) {
+        throw new Error(
+          `memory prisma does not know the filter ${unknown.join(', ')} on ${key}`,
+        );
+      }
       if (filter.in && !filter.in.includes(row[key])) {
         return false;
       }
@@ -57,11 +95,12 @@ function matches(
       ) {
         return false;
       }
-      if (filter.in || filter.gte) {
-        continue;
+      if ('not' in filter && sameValue(row[key], filter.not)) {
+        return false;
       }
+      continue;
     }
-    if (row[key] !== value) {
+    if (!sameValue(row[key], value)) {
       return false;
     }
   }

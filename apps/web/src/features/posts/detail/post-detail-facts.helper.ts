@@ -27,11 +27,13 @@ function formatPostStatus(status: string): string {
 /**
  * The post's own known facts for the record detail fact line (#5483). Empty
  * fields are left `undefined` — `RecordFactLine` omits them rather than
- * showing a placeholder.
+ * showing a placeholder. `inboxDeliveryLabel` replaces the status of a TikTok
+ * Inbox receipt, which is stored as published but is not a live post.
  */
 export function buildPostDetailFacts(
   post: IPost,
   isPublished: boolean,
+  inboxDeliveryLabel?: string,
 ): RecordFact[] {
   const scheduledOrPublishedAt = isPublished
     ? post.publicationDate
@@ -47,7 +49,9 @@ export function buildPostDetailFacts(
     {
       id: 'status',
       label: 'Status',
-      value: post.status ? formatPostStatus(post.status) : undefined,
+      value:
+        inboxDeliveryLabel ??
+        (post.status ? formatPostStatus(post.status) : undefined),
     },
     {
       id: 'when',

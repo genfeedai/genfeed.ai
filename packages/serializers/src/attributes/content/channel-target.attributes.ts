@@ -18,6 +18,7 @@ export const channelTargetAttributes = createEntityAttributes([
   'validationIssues',
   'readiness',
   'executionState',
+  'isInboxDelivery',
   'source',
   'analytics',
   'externalProviderId',

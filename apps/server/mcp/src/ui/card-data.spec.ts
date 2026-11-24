@@ -88,6 +88,32 @@ describe('MCP Apps card contract', () => {
     ).toBe('p2');
   });
 
+  it('labels a TikTok Inbox receipt as delivered to the Inbox instead of published', () => {
+    const view = buildCardView('get_posts', {
+      posts: [
+        {
+          id: 'inbox',
+          isInboxDelivery: true,
+          label: 'Inbox clip',
+          platform: 'tiktok',
+          state: 'published',
+        },
+        {
+          id: 'live',
+          label: 'Live clip',
+          platform: 'tiktok',
+          state: 'published',
+        },
+      ],
+      total: 2,
+    });
+
+    expect(view?.cards.map((card) => [card.id, card.status])).toEqual([
+      ['inbox', 'Delivered to TikTok Inbox'],
+      ['live', 'published'],
+    ]);
+  });
+
   it.each([
     ['image', 'image'],
     ['video', 'video'],

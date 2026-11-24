@@ -33,6 +33,17 @@ describe('buildPostDetailFacts', () => {
     expect(byId.get('views')).toBeUndefined();
   });
 
+  it('reads the Inbox delivery label in place of the stored status', () => {
+    const facts = buildPostDetailFacts(
+      buildPost({ status: PostStatus.PUBLIC }),
+      true,
+      'Delivered to TikTok Inbox',
+    );
+
+    const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
+    expect(byId.get('status')).toBe('Delivered to TikTok Inbox');
+  });
+
   it('includes the known platform, status and category', () => {
     const facts = buildPostDetailFacts(
       buildPost({

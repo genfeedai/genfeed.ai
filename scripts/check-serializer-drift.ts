@@ -399,6 +399,9 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'analytics',
     'avgEngagementRate',
     'evalScore',
+    // Derived on read from platform, state, externalId and the publish markers
+    // (isTikTokInboxDelivered), never stored.
+    'isInboxDelivery',
     'totalComments',
     'totalLikes',
     'totalSaves',
