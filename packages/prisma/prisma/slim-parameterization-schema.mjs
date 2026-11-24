@@ -31,7 +31,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 /** Levels of nested input and output nodes kept below a read root. */
-export const READ_DEPTH = 2;
+const READ_DEPTH = 2;
 
 /**
  * Models whose reads keep their plans: the account, brand and content models
