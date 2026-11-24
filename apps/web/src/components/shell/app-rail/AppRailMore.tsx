@@ -27,7 +27,6 @@ export function AppRailMore({ items, onOpen, onTogglePin }: AppRailMoreProps) {
       <PopoverTrigger asChild>
         <Button
           ariaLabel={t('more')}
-          className="size-8 text-foreground/50"
           data-testid="app-rail-more"
           size={ButtonSize.ICON}
           type="button"
@@ -71,10 +70,10 @@ export function AppRailMore({ items, onOpen, onTogglePin }: AppRailMoreProps) {
                 {onTogglePin ? (
                   <Button
                     ariaLabel={t('pin', { app: item.label })}
-                    className="mr-1 size-7 text-foreground/50"
+                    className="mr-1"
                     data-testid={`app-rail-more-pin-${item.app.id}`}
                     onClick={() => onTogglePin(item.app.id)}
-                    size={ButtonSize.ICON}
+                    size={ButtonSize.MICRO}
                     type="button"
                     variant={ButtonVariant.GHOST}
                     withWrapper={false}

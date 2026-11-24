@@ -69,10 +69,10 @@ function PromptBarContextChip({
       {select}
       <Button
         ariaLabel={item.removeLabel ?? item.label}
-        className="size-6 shrink-0 p-0"
+        className="shrink-0"
         icon={<X className="size-3.5" />}
         onClick={item.onRemove}
-        size={ButtonSize.ICON}
+        size={ButtonSize.MICRO}
         variant={ButtonVariant.GHOST}
         withWrapper={false}
       />

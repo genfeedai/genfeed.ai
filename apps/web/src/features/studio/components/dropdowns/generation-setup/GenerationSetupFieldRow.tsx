@@ -38,10 +38,9 @@ export default function GenerationSetupFieldRow({
           {canReset ? (
             <Button
               ariaLabel={`Reset ${label} to agent`}
-              className="size-5 p-0 [&_svg]:size-3"
               icon={<Undo2 />}
               onClick={() => onReset?.(fieldKey)}
-              size={ButtonSize.ICON}
+              size={ButtonSize.MICRO}
               variant={ButtonVariant.GHOST}
             />
           ) : null}
