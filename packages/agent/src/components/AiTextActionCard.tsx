@@ -107,7 +107,7 @@ export function AiTextActionCard({
         withWrapper={false}
         onClick={handleApply}
         isDisabled={!selectedAction}
-        className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-semibold"
+        className="w-full justify-center"
       >
         Apply
       </Button>

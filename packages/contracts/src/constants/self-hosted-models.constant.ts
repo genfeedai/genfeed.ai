@@ -533,14 +533,15 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.03,
   },
   /**
-   * Wan 3 — Replicate list $0.05/s at 480p, $0.10/s at 720p, $0.20/s at 1080p.
-   * Seeded at the 720p base rate; the reviewed rate sheet quotes the other
-   * bands per resolution. Live credit pricing turns $0.10/s into 34 credits/s.
+   * Wan 3 — Replicate list $0.035/s at 480p, $0.07/s at 720p, $0.14/s at 1080p
+   * (billing tiers read 2026-11-24). Seeded at the 720p base rate; the reviewed
+   * rate sheet quotes the other bands per resolution. Credits are
+   * ceil(usd / 0.003): $0.07/s is 24 credits/s, 5 s is 117.
    */
   {
     category: ModelCategory.VIDEO,
-    cost: 167,
-    costPerUnit: 34,
+    cost: 117,
+    costPerUnit: 24,
     costTier: CostTier.MEDIUM,
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.MEDIUM,
@@ -550,11 +551,11 @@ export const SELF_HOSTED_MODELS = [
     isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
     label: 'Wan 3',
-    minCost: 34,
+    minCost: 24,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'wan-3', owner: 'alibaba' },
-    providerCostUsd: 0.1,
+    providerCostUsd: 0.07,
   },
   /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).

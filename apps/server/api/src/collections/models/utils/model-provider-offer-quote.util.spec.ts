@@ -457,12 +457,12 @@ describe('Wan 3.0 routing to kie', () => {
   }
 
   it.each([
-    ['480p', 0.25],
-    ['720p', 0.5],
-    ['1080p', 1],
+    ['480p', 5 * 0.04],
+    ['720p', 5 * 0.08],
+    ['1080p', 5 * 0.16],
   ])(
-    'sends a %s request to kie with Replicate (which costs $%s for 5 s) as the fallback',
-    async (resolution, replicateCost) => {
+    'keeps a %s request on Replicate, with kie (which costs $%s for 5 s) as the dearer fallback',
+    async (resolution, kieCost) => {
       const quote = await wanFixture()({
         aspect_ratio: '16:9',
         duration: 5,
@@ -471,17 +471,14 @@ describe('Wan 3.0 routing to kie', () => {
       });
 
       expect(quote?.routedDispatch).toMatchObject({
-        endpoint: WAN,
-        fallback: {
-          endpoint: 'alibaba/wan-3',
-          provider: 'replicate',
-          providerCostUsd: replicateCost,
-        },
-        provider: 'kie',
+        endpoint: 'alibaba/wan-3',
+        fallback: { endpoint: WAN, provider: 'kie' },
+        provider: 'replicate',
       });
-      expect(quote?.preparedProviderInput).toMatchObject({
-        resolution: resolution.toUpperCase(),
-      });
+      expect(quote?.routedDispatch?.fallback?.providerCostUsd).toBeCloseTo(
+        kieCost,
+        6,
+      );
     },
   );
 

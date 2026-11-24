@@ -1,7 +1,11 @@
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IReviewInboxItemPreview } from '@genfeedai/contracts/interfaces';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Button } from '@ui/primitives/button';
+import { Play } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { isReviewInboxVideoUrl } from './review-inbox.helpers';
 
 /**
@@ -14,6 +18,7 @@ export default function ReviewInboxPreview({
   preview: IReviewInboxItemPreview;
 }) {
   const translate = useTranslations('pages.publishing.review.inbox');
+  const [isVideoRequested, setIsVideoRequested] = useState(false);
   const { caption, mediaUrl } = preview;
 
   if (!caption && !mediaUrl) {
@@ -29,18 +34,36 @@ export default function ReviewInboxPreview({
       {mediaUrl ? (
         <span className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-md bg-card shadow-border">
           {isReviewInboxVideoUrl(mediaUrl) ? (
-            <VideoPlayer
-              ariaLabel={translate('previewVideo')}
-              className="size-full"
-              config={{
-                controls: true,
-                loop: false,
-                muted: true,
-                playsInline: true,
-                preload: 'metadata',
-              }}
-              src={mediaUrl}
-            />
+            // The clip mounts, and so loads, only once the reviewer asks for
+            // it: a queue of video approvals must not decode every clip.
+            isVideoRequested ? (
+              <VideoPlayer
+                ariaLabel={translate('previewVideo')}
+                className="size-full"
+                config={{
+                  autoPlay: true,
+                  controls: true,
+                  loop: false,
+                  muted: true,
+                  playsInline: true,
+                  preload: 'auto',
+                }}
+                src={mediaUrl}
+              />
+            ) : (
+              <Button
+                ariaLabel={translate('previewVideo')}
+                className="size-full"
+                icon={<Play className="size-5" />}
+                onClick={() => {
+                  setIsVideoRequested(true);
+                }}
+                size={ButtonSize.ICON}
+                type="button"
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              />
+            )
           ) : (
             <Image
               alt={translate('previewImage')}

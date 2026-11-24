@@ -98,12 +98,14 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
     // kie model page (read 2026-11-23): "Wan3.0 Video is billed per second: 8
     // credits per second at 480P ($0.04), 16 at 720P ($0.08) and 32 at 1080P
-    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20. Reference
-    // videos are billed extra, so the offer adapter never sends reference media.
+    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20; read again
+    // 2026-11-24, unchanged. That is now 14% over Replicate's $0.035 / $0.07 /
+    // $0.14, so this offer never wins a quote. Reference videos are billed
+    // extra, so the offer adapter never sends reference media.
     provider: 'kie',
     endpoint: 'wan/3-0-video',
     sourceUrl: 'https://kie.ai/wan3.0-video',
-    verifiedAt: '2026-11-23',
+    verifiedAt: '2026-11-24',
     rates: [
       {
         component: 'output',
@@ -3147,31 +3149,33 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
     endpoint: 'alibaba/wan-3',
     provider: 'replicate',
+    // Replicate billing tiers (read 2026-11-24): $0.035 / $0.07 / $0.14 per
+    // second of output video at 480p / 720p / 1080p. No promotion on the page.
     rates: [
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.05,
+        unitPriceUsd: 0.035,
         when: { resolution: '480p' },
         isPerOutput: true,
       },
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.1,
+        unitPriceUsd: 0.07,
         when: { resolution: '720p' },
         isPerOutput: true,
       },
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.2,
+        unitPriceUsd: 0.14,
         when: { resolution: '1080p' },
         isPerOutput: true,
       },
     ],
     sourceUrl: 'https://replicate.com/alibaba/wan-3',
-    verifiedAt: '2026-10-29T12:50:00.000Z',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'kwaivgi/kling-v4.0',
