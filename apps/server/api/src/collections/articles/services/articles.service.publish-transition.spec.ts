@@ -46,7 +46,11 @@ describe('ArticlesService publish-state transition', () => {
     const delegate = {
       create: vi.fn(),
       findFirst: vi.fn(
-        async ({ where }: { where?: { slug?: string; status?: string } }) =>
+        async ({
+          where,
+        }: {
+          where?: { slug?: string; status?: string };
+        }): Promise<Record<string, unknown> | null> =>
           // The public-slug availability probe finds no other holder.
           where?.slug && where.status === 'PUBLISHED'
             ? null
