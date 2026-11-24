@@ -44,7 +44,7 @@ async function openClipper(page: Page) {
 
 async function openTallClipperBar(page: Page) {
   const bar = await openClipper(page);
-  await page.getByRole('button', { name: /upload audio or video/i }).click();
+  await page.getByRole('radio', { name: /upload audio or video/i }).click();
   await page.getByLabel(/audio or video file/i).setInputFiles({
     buffer: Buffer.from('fixture-video'),
     mimeType: 'video/mp4',
