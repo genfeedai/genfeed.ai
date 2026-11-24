@@ -36,6 +36,16 @@ export const videoModelResolutions: VideoModelResolution[] = [
     ],
   },
   {
+    default: '768p',
+    model: MODEL_KEYS.FAL_HEYGEN_VIDEO,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '768p', value: '768p' },
+      { label: '1080p', value: '1080p' },
+      { label: '2K', value: '2k' },
+    ],
+  },
+  {
     default: '768P',
     model: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
     resolutions: [

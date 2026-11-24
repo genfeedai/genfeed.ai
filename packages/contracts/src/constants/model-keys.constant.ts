@@ -162,6 +162,7 @@ export const MODEL_KEYS = {
   FAL_PIXVERSE_V6: 'fal-ai/pixverse/v6',
   FAL_SEEDANCE_2_0: 'fal-ai/seedance-2.0',
   FAL_GOOGLE_GEMINI_OMNI_FLASH: 'fal/google/gemini-omni-flash',
+  FAL_HEYGEN_VIDEO: 'fal/heygen/heygen-video/text-to-video',
   FAL_MINIMAX_H3_MAX: 'fal/minimax/h3-max/text-to-video',
   FAL_MINIMAX_H3_MAX_DIRECTOR: 'fal/minimax/h3-max/director',
   FAL_STABLE_VIDEO: 'fal-ai/stable-video-diffusion',

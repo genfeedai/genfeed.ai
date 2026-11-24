@@ -52,7 +52,7 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'fal-ai/topaz/upscale/video':
     'fal prices per second by output resolution band and frame rate; dispatch does not supply the output band.',
   'heygen/heygen-video-1':
-    'HeyGen publishes no per-video list price for this legacy endpoint; the priced HeyGen avatar engines replace it.',
+    'HeyGen publishes no per-video list price for its own v3 route (docs read 2026-11-24). HeyGen Video 1 runs through fal at its published rate, as fal/heygen/heygen-video/text-to-video.',
   'higgsfield-ai/dop/lite': HIGGSFIELD_DOP_NOT_LISTED,
   'higgsfield-ai/dop/standard': HIGGSFIELD_DOP_NOT_LISTED,
   'higgsfield-ai/dop/turbo': HIGGSFIELD_DOP_NOT_LISTED,
