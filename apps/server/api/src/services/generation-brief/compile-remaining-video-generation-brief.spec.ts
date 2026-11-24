@@ -70,6 +70,40 @@ describe('compileRemainingVideoGenerationBrief', () => {
     });
   });
 
+  it('compiles P-Video 2 Pro with its mode, upsampler, 15 s ceiling and 1080p', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a reaction shot, then a phone screen' },
+      mediaKind: 'video',
+      output: {
+        aspectRatio: '9:16',
+        durationSeconds: 12,
+        resolution: '1080p',
+      },
+      references: [
+        { assetId: 'https://cdn.example.com/start.png', role: 'first_frame' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO),
+      modelKey: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    });
+
+    expect(result.dispatch).toEqual({
+      aspect_ratio: '9:16',
+      duration: 12,
+      image: 'https://cdn.example.com/start.png',
+      mode: 'speed',
+      prompt: 'a reaction shot, then a phone screen',
+      prompt_upsampler: 'turbo',
+      resolution: '1080p',
+    });
+  });
+
   it('appends brandContext to the prompt and evidence when present (#4676)', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],
@@ -830,6 +864,7 @@ describe('compileRemainingVideoGenerationBrief', () => {
       image_url: 'frame-1',
       image_urls: ['subject-1', 'style-1'],
       prompt: 'a drummer performing under neon lights',
+      resolution: '720p',
     });
     expect(result.evidence.output).toMatchObject({
       aspectRatio: '9:16',
@@ -838,23 +873,23 @@ describe('compileRemainingVideoGenerationBrief', () => {
     });
   });
 
-  it('rejects resolution for Gemini Omni Flash because fal publishes none', () => {
-    const brief = videoGenerationBriefSchema.parse({
-      constraints: [],
-      fidelityMode: 'off',
-      intent: { objective: 'a cinematic city flyover' },
-      mediaKind: 'video',
-      output: { resolution: '720p' },
-      version: 1,
-    });
-
-    expect(() =>
+  it('compiles a Gemini Omni Flash 1.2 resolution and rejects one fal does not list', () => {
+    const compile = (resolution: string) =>
       compileRemainingVideoGenerationBrief({
-        brief,
+        brief: videoGenerationBriefSchema.parse({
+          constraints: [],
+          fidelityMode: 'off',
+          intent: { objective: 'a cinematic city flyover' },
+          mediaKind: 'video',
+          output: { resolution },
+          version: 1,
+        }),
         family: familyFor(MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH),
         modelKey: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
-      }),
-    ).toThrow(GenerationBriefCompileError);
+      });
+
+    expect(compile('1080p').dispatch).toMatchObject({ resolution: '1080p' });
+    expect(() => compile('480p')).toThrow(GenerationBriefCompileError);
   });
 
   it('rejects more image references than Gemini Omni Flash publishes', () => {

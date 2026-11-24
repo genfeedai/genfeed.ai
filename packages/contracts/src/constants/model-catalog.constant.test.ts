@@ -470,17 +470,18 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(row).toMatchObject({
       aspectRatios: ['16:9', '9:16'],
       defaultDuration: 8,
-      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
+      hasResolutionOptions: true,
       isActive: true,
       key: 'fal/google/gemini-omni-flash',
-      label: 'Gemini Omni Flash',
+      label: 'Gemini Omni Flash 1.2',
       maxReferences: 3,
       pricingType: 'per-second',
       provider: ModelProvider.FAL,
-      providerCostUsd: 0.13,
+      providerCostUsd: 0.0819,
     });
     expect(row).not.toHaveProperty('hasEndFrame');
-    expect(row).not.toHaveProperty('hasResolutionOptions');
   });
 
   it.each([
@@ -549,6 +550,26 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       pricingType: 'per-second',
       provider: ModelProvider.FAL,
       providerCostUsd: 0.08,
+    });
+  });
+
+  it('lists P-Video 2 Pro as an active, public Replicate row priced at the speed mode', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    );
+
+    expect(row).toMatchObject({
+      cost: 59,
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasResolutionOptions: true,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'P-Video 2 Pro',
+      pricingType: 'per-second',
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.035,
     });
   });
 

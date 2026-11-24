@@ -13,6 +13,7 @@ import {
   MINIMAX_H3_VARIANT_VIDEO_COMPILER_ID,
   PIXVERSE_VIDEO_COMPILER_ID,
   PRUNAAI_P_VIDEO_2_COMPILER_ID,
+  PRUNAAI_P_VIDEO_2_PRO_COMPILER_ID,
   REMAINING_VIDEO_COMPILER_VERSION,
   RUNWAY_VIDEO_COMPILER_ID,
   SEEDANCE_VIDEO_COMPILER_ID,
@@ -641,6 +642,32 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       },
     },
     {
+      compilerId: PRUNAAI_P_VIDEO_2_PRO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'prunaai-p-video-2-pro-capability',
+          MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+          {
+            aspectRatios: PRUNAAI_P_VIDEO_ASPECT_RATIOS,
+            audioSupported: true,
+            maxSeconds: 15,
+            minSeconds: 5,
+            nativeFields: ['image'],
+            seedSupported: true,
+          },
+        ),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        extraDefaults: { mode: 'speed', prompt_upsampler: 'turbo' },
+        firstFrameField: 'image',
+        modelLabel: 'PrunaAI P-Video 2 Pro',
+        resolutionField: 'resolution',
+      },
+    },
+    {
       compilerId: GROK_IMAGINE_VIDEO_COMPILER_ID,
       compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
       profiles: [
@@ -714,7 +741,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             audioSupported: true,
             defaultSeconds: 8,
             maxReferences: 3,
-            maxSeconds: 10,
+            maxSeconds: 15,
             minSeconds: 3,
             nativeFields: ['image_url', 'image_urls'],
             seedSupported: false,
@@ -727,6 +754,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         extraReferenceField: 'image_urls',
         firstFrameField: 'image_url',
         modelLabel: 'Gemini Omni Flash',
+        resolutionField: 'resolution',
       },
     },
     {

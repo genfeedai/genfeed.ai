@@ -5,6 +5,10 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
+import {
+  formatApiDate,
+  getTrailingUtcDays,
+} from '@helpers/utils/date-range.util';
 import type { Article } from '@models/content/article.model';
 import { act, render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,7 +30,10 @@ function IntlWrapper({ children }: PropsWithChildren) {
   return (
     <NextIntlClientProvider
       locale="en"
-      messages={{ pages: { articles: pagesMessages } }}
+      messages={{
+        pages: { articles: pagesMessages },
+        ui: { dateRangePicker: { quickRanges: 'Quick ranges' } },
+      }}
     >
       {children}
     </NextIntlClientProvider>
@@ -63,7 +70,6 @@ const available = {
   articleId: 'article-1',
   status: 'available',
   reason: null,
-  period: '30d',
   totalViews: 0,
   totalResourceClicks: 0,
   days: [],
@@ -96,7 +102,7 @@ it('renders missing configuration as unavailable without zero totals', async () 
   expect(screen.queryByText('0')).not.toBeInTheDocument();
 });
 
-it('aborts the old range and ignores its result after switching periods', async () => {
+it('aborts the old range and ignores its result after picking a new range', async () => {
   let resolveFirst: (value: unknown) => void = () => {};
   getWebsiteTraffic
     .mockImplementationOnce(
@@ -108,13 +114,15 @@ it('aborts the old range and ignores its result after switching periods', async 
     .mockResolvedValueOnce({ ...available, totalViews: 7 });
   render(<ArticleTrafficPanel article={article} />);
   await screen.findByRole('status', { name: 'Loading website traffic…' });
-  await userEvent.click(
-    screen.getByRole('combobox', { name: 'Traffic period' }),
-  );
-  await userEvent.click(screen.getByRole('option', { name: '7 days' }));
+  await userEvent.click(screen.getByRole('button', { name: /\b20\d{2}\b/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
   await screen.findByText('7');
+  const lastWeek = getTrailingUtcDays(7, new Date(), { includeToday: true });
   expect(getWebsiteTraffic.mock.calls[0][2].aborted).toBe(true);
-  expect(getWebsiteTraffic.mock.calls[1][1]).toBe('7d');
+  expect(getWebsiteTraffic.mock.calls[1][1]).toEqual({
+    endDate: formatApiDate(lastWeek.endDate),
+    startDate: formatApiDate(lastWeek.startDate),
+  });
   await act(async () => {
     resolveFirst({ ...available, totalViews: 999 });
   });
