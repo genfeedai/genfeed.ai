@@ -11,6 +11,13 @@ const X_REPLY_WATCH_WINDOW_HOURS = 24;
 export const X_REPLY_WATCH_SCHEDULE = '0 * * * *';
 const X_REPLY_WATCH_INTERVAL_MS = X_REPLY_WATCH_INTERVAL_MINUTES * 60_000;
 export const X_REPLY_WATCH_WINDOW_MS = X_REPLY_WATCH_WINDOW_HOURS * 3_600_000;
+/**
+ * Posts stay in the sweep for one interval past the window, so the last tick
+ * after a post's final hour still reads replies that arrived since the tick
+ * before it.
+ */
+export const X_REPLY_WATCH_DISCOVERY_WINDOW_MS =
+  X_REPLY_WATCH_WINDOW_MS + X_REPLY_WATCH_INTERVAL_MS;
 
 /** Mentions per page; X caps the mentions page at 100. */
 export const X_REPLY_WATCH_MAX_RESULTS = 100;

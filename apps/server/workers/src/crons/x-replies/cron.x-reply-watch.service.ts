@@ -21,6 +21,7 @@ import { Injectable } from '@nestjs/common';
 import {
   X_REPLY_WATCH_CONCURRENCY,
   X_REPLY_WATCH_CURSOR_TTL_SECONDS,
+  X_REPLY_WATCH_DISCOVERY_WINDOW_MS,
   X_REPLY_WATCH_LOCK_KEY,
   X_REPLY_WATCH_LOCK_TTL_SECONDS,
   X_REPLY_WATCH_MAX_PAGES,
@@ -220,7 +221,9 @@ export class CronXReplyWatchService {
    * organization and brand.
    */
   async discoverTargets(now: Date): Promise<XReplyWatchTarget[]> {
-    const windowStart = new Date(now.getTime() - X_REPLY_WATCH_WINDOW_MS);
+    const windowStart = new Date(
+      now.getTime() - X_REPLY_WATCH_DISCOVERY_WINDOW_MS,
+    );
     // tenant-scope-ignore: platform sweep discovers connected X accounts across tenants; each target is paired with posts from its own organization below
     const credentials = await this.prisma.credential.findMany({
       select: {
