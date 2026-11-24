@@ -8,13 +8,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 const mockChannelsList = vi.fn();
 const mockVideosList = vi.fn();
 
-vi.mock('googleapis', () => ({
-  google: {
-    youtube: () => ({
-      channels: { list: mockChannelsList },
-      videos: { list: mockVideosList },
-    }),
-  },
+vi.mock('@googleapis/youtube', () => ({
+  youtube: () => ({
+    channels: { list: mockChannelsList },
+    videos: { list: mockVideosList },
+  }),
 }));
 
 describe('YoutubeAnalyticsService', () => {
