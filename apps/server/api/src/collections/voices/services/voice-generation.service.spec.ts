@@ -61,12 +61,6 @@ describe('VoiceGenerationService', () => {
       provider: 'heygen',
     },
   };
-  const elevenLabsPlatformBinding = {
-    credentialVersionId: 'platform',
-    kind: 'platform' as const,
-    organizationId,
-    provider: 'elevenlabs' as const,
-  };
   const elevenLabsPersonalBinding = {
     credentialVersionId: 'credential-v1',
     kind: 'byok' as const,
@@ -74,9 +68,7 @@ describe('VoiceGenerationService', () => {
     provider: 'elevenlabs' as const,
   };
   const speechReceipt = (
-    binding:
-      | typeof elevenLabsPlatformBinding
-      | typeof elevenLabsPersonalBinding,
+    binding: typeof elevenLabsPersonalBinding,
     state: 'accepted' | 'submitted' | 'completed' = 'accepted',
   ) => ({
     connection: binding,
@@ -181,16 +173,14 @@ describe('VoiceGenerationService', () => {
   beforeEach(() => {
     accountVoices = {
       resolveSpeechVoice: vi.fn().mockResolvedValue({
-        connectionKind: 'platform',
         externalVoiceId: 'voice-1',
       }),
     };
     connections = {
-      resolve: vi.fn(async (_organizationId: string, kind: string) =>
-        kind === 'byok'
-          ? { apiKey: 'personal-key', binding: elevenLabsPersonalBinding }
-          : { apiKey: 'platform-key', binding: elevenLabsPlatformBinding },
-      ),
+      resolve: vi.fn(async () => ({
+        apiKey: 'personal-key',
+        binding: elevenLabsPersonalBinding,
+      })),
     };
     elevenLabs = {
       generateAndUploadAudio: vi.fn().mockResolvedValue({
@@ -463,7 +453,7 @@ describe('VoiceGenerationService', () => {
       expect(shared.createMediaDocuments).not.toHaveBeenCalled();
     });
 
-    it('holds the quoted credits for platform-funded speech', async () => {
+    it('holds no platform credits for ElevenLabs speech, which the own account pays', async () => {
       credits.quoteSpeech.mockResolvedValue({
         costSource: 'reviewed-provider',
         credits: 27,
@@ -480,6 +470,25 @@ describe('VoiceGenerationService', () => {
         organizationId,
         provider: 'elevenlabs',
       });
+      expect(credits.assertOrganizationCanAfford).not.toHaveBeenCalled();
+    });
+
+    it('holds the quoted credits for HeyGen speech on the platform key', async () => {
+      router.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.HEYGEN_VOICE,
+      });
+      credits.quoteSpeech.mockResolvedValue({
+        costSource: 'reviewed-provider',
+        credits: 27,
+        rateVersion: 'rate-v1',
+      });
+
+      await service.generate(user, {
+        text: 'Hello',
+        voiceId: 'public-voice',
+        voiceProvider: VoiceProvider.HEYGEN,
+      });
+
       expect(credits.assertOrganizationCanAfford).toHaveBeenCalledWith(
         organizationId,
         27,
@@ -682,7 +691,7 @@ describe('VoiceGenerationService', () => {
     );
   });
 
-  it('renders ElevenLabs speech with the chosen model and settles the exact quote', async () => {
+  it('renders ElevenLabs speech with the chosen model on the own account and settles no credits', async () => {
     processingThenGenerated();
 
     const result = await service.executeQueuedGeneration(
@@ -701,7 +710,7 @@ describe('VoiceGenerationService', () => {
       ingredientId,
       organizationId,
       userId,
-      'platform-key',
+      'personal-key',
       { modelId: 'eleven_flash_v2_5' },
     );
     expect(voices.patchAll).toHaveBeenCalledWith(
@@ -710,7 +719,7 @@ describe('VoiceGenerationService', () => {
         duration: 90,
         providerData: {
           speechBilling: {
-            billingMode: 'platform',
+            billingMode: 'byok',
             characters: 5,
             credits: 2,
             modelKey: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
@@ -721,12 +730,7 @@ describe('VoiceGenerationService', () => {
         status: IngredientStatus.GENERATED,
       }),
     );
-    expect(credits.settleSpeechCredits).toHaveBeenCalledWith({
-      credits: 2,
-      ingredientId,
-      organizationId,
-      userId,
-    });
+    expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
     expect(result).toMatchObject({ id: ingredientId });
   });
 
@@ -752,7 +756,7 @@ describe('VoiceGenerationService', () => {
       ingredientId,
       organizationId,
       userId,
-      'platform-key',
+      'personal-key',
       { modelId: 'eleven_v4' },
     );
   });
@@ -895,7 +899,9 @@ describe('VoiceGenerationService', () => {
     );
 
     await expect(
-      service.executeQueuedGeneration(queued()),
+      service.executeQueuedGeneration(
+        queued({ model: MODEL_KEYS.HEYGEN_VOICE, voiceId: 'public-voice' }),
+      ),
     ).rejects.toMatchObject({
       response: { detail: 'Insufficient credits' },
       status: HttpStatus.PAYMENT_REQUIRED,
@@ -1135,7 +1141,7 @@ describe('VoiceGenerationService', () => {
     it('does not resend a submitted request whose result is unknown', async () => {
       voices.findOne.mockResolvedValue({
         generationProvider: speechReceipt(
-          elevenLabsPlatformBinding,
+          elevenLabsPersonalBinding,
           'submitted',
         ),
         id: ingredientId,
@@ -1189,7 +1195,7 @@ describe('VoiceGenerationService', () => {
           }),
       );
       const processing = {
-        generationProvider: speechReceipt(elevenLabsPlatformBinding),
+        generationProvider: speechReceipt(elevenLabsPersonalBinding),
         id: ingredientId,
         status: IngredientStatus.PROCESSING,
       };
@@ -1199,7 +1205,7 @@ describe('VoiceGenerationService', () => {
         .mockResolvedValueOnce({ count: 0 });
       voices.prisma.ingredient.findFirst.mockResolvedValue({
         generationProvider: {
-          ...speechReceipt(elevenLabsPlatformBinding, 'submitted'),
+          ...speechReceipt(elevenLabsPersonalBinding, 'submitted'),
           submittedAt: new Date().toISOString(),
         },
         s3Key: null,
@@ -1235,7 +1241,7 @@ describe('VoiceGenerationService', () => {
       await expect(first).resolves.toMatchObject({
         status: IngredientStatus.GENERATED,
       });
-      expect(credits.settleSpeechCredits).toHaveBeenCalledTimes(1);
+      expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
     });
   });
 });

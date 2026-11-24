@@ -135,7 +135,7 @@ Review gates also remain separate from this documentation repair.
 
 ## Shared generation preferences
 
-Studio and the Agent composer expose **Prompt enhancement settings**. The
+Studio exposes **Prompt enhancement settings**. The
 organization switch sets the default for image and video generation across
 clients. A brand can inherit that default or override it. Resetting removes the
 saved override; the system default is on. Reopen the control to see changes made

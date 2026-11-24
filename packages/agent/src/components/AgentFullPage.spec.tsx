@@ -15,7 +15,7 @@ import {
   conversationHydrationFlights,
 } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { StrictMode } from 'react';
@@ -153,7 +153,6 @@ interface StoreState {
   setError: ReturnType<typeof vi.fn>;
   setMessagesPage: ReturnType<typeof vi.fn>;
   setModelCosts: ReturnType<typeof vi.fn>;
-  setDraftAgentMode: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
   setPendingInputRequest: ReturnType<typeof vi.fn>;
   setRunStartedAt: ReturnType<typeof vi.fn>;
@@ -164,7 +163,6 @@ interface StoreState {
   threads: Array<{
     brandId?: string | null;
     id: string;
-    mode?: AgentThreadMode;
     source?: string;
   }>;
   upsertThread: ReturnType<typeof vi.fn>;
@@ -195,7 +193,6 @@ const storeState: StoreState = {
   setActiveRun: vi.fn(),
   setActiveThread: vi.fn(),
   setCreditsRemaining: vi.fn(),
-  setDraftAgentMode: vi.fn(),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn(),
   setMessagesPage: vi.fn(),
@@ -304,7 +301,6 @@ describe('AgentFullPage', () => {
     storeState.setActiveRun.mockReset();
     storeState.setActiveThread.mockReset();
     storeState.setCreditsRemaining.mockReset();
-    storeState.setDraftAgentMode.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
     storeState.setMessagesPage.mockReset();
@@ -510,12 +506,11 @@ describe('AgentFullPage', () => {
     expect(storeState.setError).not.toHaveBeenCalled();
   });
 
-  it('hydrates the planning task and plan mode from the listed thread when the cache is fresh (#2799)', async () => {
+  it('hydrates the planning task from the listed thread when the cache is fresh (#2799)', async () => {
     storeState.isConversationCacheFresh.mockReturnValue(true);
     storeState.threads = [
       {
         id: 'thread-1',
-        mode: AgentThreadMode.PLAN,
         source: 'workspace-planning:task-42',
       },
     ];
@@ -540,9 +535,6 @@ describe('AgentFullPage', () => {
     await waitFor(() => {
       expect(screen.getByText('planning-task-task-42')).toBeDefined();
     });
-    expect(storeState.setDraftAgentMode).toHaveBeenCalledWith(
-      AgentThreadMode.PLAN,
-    );
     expect(apiService.getThread).not.toHaveBeenCalled();
   });
 
@@ -1595,7 +1587,6 @@ describe('AgentFullPage', () => {
 
     storeState.resetActiveConversationState.mockClear();
     storeState.setActiveThread.mockClear();
-    storeState.setDraftAgentMode.mockClear();
     storeState.setLatestProposedPlan.mockClear();
     storeState.activeThreadId = 'thread-1';
     storeState.messages = [
@@ -1614,7 +1605,6 @@ describe('AgentFullPage', () => {
 
     expect(storeState.resetActiveConversationState).not.toHaveBeenCalled();
     expect(storeState.setActiveThread).not.toHaveBeenCalled();
-    expect(storeState.setDraftAgentMode).not.toHaveBeenCalled();
     expect(storeState.setLatestProposedPlan).not.toHaveBeenCalled();
   });
 

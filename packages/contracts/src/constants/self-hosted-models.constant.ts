@@ -354,6 +354,33 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.11,
   },
   /**
+   * HeyGen Video 1 on fal, the volume and draft tier: regular price $0.02/s at
+   * 480p and 768p, $0.06/s at 1080p and 2K (fal model page, read 2026-11-24;
+   * the 50% promotion on the page ended 2026-10-31). Seeded at the 768p
+   * default; the resolution quote triples 1080p and 2K. Credits are
+   * ceil(usd / 0.003): 5 s at 768p = $0.10. Not a default.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 34,
+    costPerUnit: 7,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
+    description:
+      'HeyGen Video 1 via fal — low-cost video with native audio from text, a first image or references, 5–15 seconds at 480p to 2K.',
+    endpoint: 'heygen/heygen-video/text-to-video',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_HEYGEN_VIDEO,
+    label: 'HeyGen Video 1',
+    minCost: 34,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'heygen-video/text-to-video', owner: 'heygen' },
+    providerCostUsd: 0.02,
+  },
+  /**
    * fal list price after the October 15, 2026 promotion: $0.05/s at 480P,
    * $0.08/s at 768P, $0.16/s at 1080P. Text and image endpoints match.
    * Seed the default 768P band; the resolution quote discounts 480P and
@@ -506,14 +533,15 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.03,
   },
   /**
-   * Wan 3 — Replicate list $0.05/s at 480p, $0.10/s at 720p, $0.20/s at 1080p.
-   * Seeded at the 720p base rate; the reviewed rate sheet quotes the other
-   * bands per resolution. Live credit pricing turns $0.10/s into 34 credits/s.
+   * Wan 3 — Replicate list $0.035/s at 480p, $0.07/s at 720p, $0.14/s at 1080p
+   * (billing tiers read 2026-11-24). Seeded at the 720p base rate; the reviewed
+   * rate sheet quotes the other bands per resolution. Credits are
+   * ceil(usd / 0.003): $0.07/s is 24 credits/s, 5 s is 117.
    */
   {
     category: ModelCategory.VIDEO,
-    cost: 167,
-    costPerUnit: 34,
+    cost: 117,
+    costPerUnit: 24,
     costTier: CostTier.MEDIUM,
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.MEDIUM,
@@ -523,11 +551,11 @@ export const SELF_HOSTED_MODELS = [
     isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
     label: 'Wan 3',
-    minCost: 34,
+    minCost: 24,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'wan-3', owner: 'alibaba' },
-    providerCostUsd: 0.1,
+    providerCostUsd: 0.07,
   },
   /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).

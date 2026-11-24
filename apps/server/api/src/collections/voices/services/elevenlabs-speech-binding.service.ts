@@ -45,10 +45,7 @@ export class ElevenLabsSpeechBindingService {
       organizationId,
       voiceId,
     );
-    const connection = await this.connectionService.resolve(
-      organizationId,
-      voice.connectionKind,
-    );
+    const connection = await this.connectionService.resolve(organizationId);
     return {
       connection: connection.binding,
       organizationId,
@@ -70,10 +67,9 @@ export class ElevenLabsSpeechBindingService {
   ): Promise<ResolvedElevenLabsConnection> {
     const connection = await this.connectionService.resolve(
       receipt.organizationId,
-      receipt.connection.kind,
     );
     if (
-      receipt.connection.kind === 'byok' &&
+      receipt.connection.kind !== 'byok' ||
       connection.binding.credentialVersionId !==
         receipt.connection.credentialVersionId
     ) {

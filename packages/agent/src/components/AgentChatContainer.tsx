@@ -170,13 +170,11 @@ export function AgentChatContainer({
             }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
-        agentMode: container.draftAgentMode,
       });
     },
     [
       composerShell?.artifactReferences,
       composerShell?.brandId,
-      container.draftAgentMode,
       sendConversationMessage,
     ],
   );
@@ -252,8 +250,6 @@ export function AgentChatContainer({
         activeWorkEvent={activeWorkEvent}
         workEvents={container.workEvents}
         addFiles={container.addFiles}
-        agentMode={container.draftAgentMode}
-        onAgentModeChange={container.setAgentMode}
         apiService={apiService}
         knowledgeSelection={knowledgeSelection}
         knowledgeSection={knowledgeSection}
@@ -343,8 +339,6 @@ export function AgentChatContainer({
         ) : container.isEmpty ? (
           <AgentChatEmptyState
             addFiles={container.addFiles}
-            agentMode={container.draftAgentMode}
-            onAgentModeChange={container.setAgentMode}
             apiService={apiService}
             knowledgeSelection={knowledgeSelection}
             knowledgeSection={knowledgeSection}

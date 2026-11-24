@@ -30,12 +30,7 @@ import {
   THREAD_SWITCH_DEBOUNCE_MS,
 } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import {
-  type AgentThreadMode,
-  AgentThreadStatus,
-  DEFAULT_AGENT_THREAD_MODE,
-  type MemberRole,
-} from '@genfeedai/contracts';
+import { AgentThreadStatus, type MemberRole } from '@genfeedai/contracts';
 import { Calendar, ChartColumn, ClipboardCheck } from 'lucide-react';
 import {
   createElement,
@@ -147,7 +142,6 @@ export function useAgentFullPage({
   );
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
-  const setDraftAgentMode = useAgentChatStore((s) => s.setDraftAgentMode);
   const setLatestProposedPlan = useAgentChatStore(
     (s) => s.setLatestProposedPlan,
   );
@@ -274,10 +268,6 @@ export function useAgentFullPage({
       setActiveThreadStatus(null);
       setWorkspacePlanningTaskId(null);
       setActiveThread(null);
-      setDraftAgentMode(
-        useAgentChatStore.getState().savedAgentMode ??
-          DEFAULT_AGENT_THREAD_MODE,
-      );
       setLatestProposedPlan(null);
       resetActiveConversationState();
       return;
@@ -292,7 +282,6 @@ export function useAgentFullPage({
     threadId,
     resetActiveConversationState,
     setActiveThread,
-    setDraftAgentMode,
     setLatestProposedPlan,
   ]);
 
@@ -385,11 +374,9 @@ export function useAgentFullPage({
     // cached conversation, `storeThreadStatus`, `useAgentThreadList`'s prompt
     // write). These two do not: `workspacePlanningTaskId` is local state whose
     // only populating writer is the skipped handler below, and
-    // `restoreCachedConversation` forces `draftAgentMode` back to Manual. Left
-    // unset, a warm open hides the follow-up-tasks affordance and shows the
-    // composer's mode dropdown wrong. A thread can only be cache-fresh if it
-    // was prefetched or opened from the list, so its row is in the store — and
-    // the list serializes both `source` and `mode`. Read at effect
+    // Left unset, a warm open hides the follow-up-tasks affordance. A thread
+    // can only be cache-fresh if it was prefetched or opened from the list, so
+    // its row is in the store, and the list serializes `source`. Read at effect
     // time rather than through a selector so this never re-runs the switch.
     if (isThreadDataFresh) {
       const listedThread = useAgentChatStore
@@ -398,21 +385,7 @@ export function useAgentFullPage({
       setWorkspacePlanningTaskId(
         parseWorkspacePlanningTaskId(listedThread?.source),
       );
-      setDraftAgentMode(listedThread?.mode ?? DEFAULT_AGENT_THREAD_MODE);
     }
-
-    // The thread response describes the mode as of when the server read it.
-    // The composer is interactive before it lands (the plan decision and the
-    // transcript render from the snapshot and the cache), so a mode picked in
-    // that window is newer than the response: applying it would put the
-    // picker back on the old mode after the PATCH succeeded.
-    const hasPickedMode = () =>
-      useAgentChatStore.getState().hasExplicitDraftAgentMode;
-    const hydrateDraftAgentMode = (mode: AgentThreadMode | undefined) => {
-      if (!hasPickedMode()) {
-        setDraftAgentMode(mode ?? DEFAULT_AGENT_THREAD_MODE);
-      }
-    };
 
     const switchStartedAt = Date.now();
     const shouldDelay = shouldDelayThreadSwitchFetch({
@@ -587,9 +560,6 @@ export function useAgentFullPage({
               contextVersion: thread.contextVersion,
               id: threadId,
               organizationId: thread.organizationId,
-              mode: hasPickedMode()
-                ? (listedThread?.mode ?? thread.mode)
-                : thread.mode,
               source: thread.source,
               status: thread.status,
               title:
@@ -607,7 +577,6 @@ export function useAgentFullPage({
                 now,
               }),
             });
-            hydrateDraftAgentMode(thread.mode);
           })
           .catch(reportHydrationFailure);
       } else if (threadRequest) {
@@ -621,7 +590,6 @@ export function useAgentFullPage({
               parseWorkspacePlanningTaskId(thread.source),
             );
             setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
-            hydrateDraftAgentMode(thread.mode);
           })
           .catch(reportLoadFailure);
       }
@@ -654,7 +622,6 @@ export function useAgentFullPage({
     setError,
     setMessagesPage,
     setLatestProposedPlan,
-    setDraftAgentMode,
     setPendingInputRequest,
     setRunStartedAt,
     setThreadPrompt,

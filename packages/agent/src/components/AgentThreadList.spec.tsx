@@ -7,7 +7,6 @@ import {
   runKeyFor,
   selectActiveRun,
 } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,
@@ -84,7 +83,6 @@ interface AgentChatStoreState {
     nonce: number;
     threadId: string | null;
   } | null;
-  draftAgentMode: AgentThreadMode;
   isConversationCacheFresh: ReturnType<typeof vi.fn>;
   latestProposedPlan: Record<string, unknown> | null;
   messages: Array<Record<string, unknown>>;
@@ -121,7 +119,6 @@ const storeState: AgentChatStoreState = {
   clearMessages: vi.fn(),
   clearThreadAttention: vi.fn(),
   composerSeed: null,
-  draftAgentMode: AgentThreadMode.MANUAL,
   isConversationCacheFresh: vi.fn(() => false),
   latestProposedPlan: null,
   messages: [],
@@ -133,7 +130,6 @@ const storeState: AgentChatStoreState = {
       [runKeyFor(storeState.activeThreadId)]: IDLE_RUN,
     };
     storeState.composerSeed = null;
-    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.latestProposedPlan = null;
     storeState.messages = [];
     storeState.pendingInputRequest = null;
@@ -270,7 +266,6 @@ describe('AgentThreadList', () => {
     storeState.runsByThread = {};
     storeState.activeThreadId = null;
     storeState.composerSeed = null;
-    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.latestProposedPlan = null;
     storeState.messages = [];
     storeState.pendingInputRequest = null;
@@ -1248,7 +1243,6 @@ describe('AgentThreadList', () => {
       nonce: 1,
       threadId: 'conv-a',
     };
-    storeState.draftAgentMode = AgentThreadMode.PLAN;
     storeState.latestProposedPlan = { id: 'plan-a' };
     storeState.messages = [{ id: 'message-a' }];
     storeState.pendingInputRequest = { id: 'input-a' };
@@ -1289,7 +1283,6 @@ describe('AgentThreadList', () => {
     expect(storeState.activeThreadId).toBeNull();
     expect(selectActiveRun(storeState)).toEqual(IDLE_RUN);
     expect(storeState.composerSeed).toBeNull();
-    expect(storeState.draftAgentMode).toBe(AgentThreadMode.MANUAL);
     expect(storeState.latestProposedPlan).toBeNull();
     expect(storeState.messages).toEqual([]);
     expect(storeState.pendingInputRequest).toBeNull();

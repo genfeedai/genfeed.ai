@@ -57,7 +57,6 @@ export class AgentApiService extends AgentBaseApiService {
   getMasterThread = threadsApi.getMasterThread.bind(null, this);
   getThreadSnapshot = threadsApi.getThreadSnapshot.bind(null, this);
   updateThread = threadsApi.updateThread.bind(null, this);
-  updateAgentMode = threadsApi.updateAgentMode.bind(null, this);
   updateThreadContext = threadsApi.updateThreadContext.bind(null, this);
   branchThread = threadsApi.branchThread.bind(null, this);
   respondToInputRequest = threadsApi.respondToInputRequest.bind(null, this);

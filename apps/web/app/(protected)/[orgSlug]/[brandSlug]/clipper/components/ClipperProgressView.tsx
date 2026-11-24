@@ -314,7 +314,6 @@ export default function ClipperProgressView({
       <div className="mt-8">
         <Button
           variant={ButtonVariant.LINK}
-          className="text-sm text-muted-foreground hover:text-foreground"
           onClick={onReset}
           label={t('backToProjects')}
         />

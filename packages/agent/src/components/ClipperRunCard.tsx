@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AgentClipperRunIdentity,
   ClipperRunCardState,
@@ -233,7 +233,7 @@ export function ClipperRunCard({
                 variant={ButtonVariant.DEFAULT}
                 withWrapper={false}
                 onClick={onConfirm}
-                className="flex items-center gap-1 px-3 py-1.5"
+                size={ButtonSize.SM}
               >
                 <CircleCheck className="size-3.5" />
                 Confirm
@@ -242,7 +242,7 @@ export function ClipperRunCard({
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
                 onClick={onCancel}
-                className="flex items-center gap-1 px-3 py-1.5"
+                size={ButtonSize.SM}
               >
                 Cancel
               </Button>

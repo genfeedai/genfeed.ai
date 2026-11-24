@@ -68,8 +68,8 @@ export interface OAuthConnectPlatform {
   readinessKey?: OAuthConnectReadinessKey;
   /**
    * Leave the tile out of the catalog until {@link readinessKey} reports
-   * `available`, instead of showing it disabled. For channels that are not
-   * released yet and should not be visible at all.
+   * `available`, instead of showing it disabled. Every gated channel sets it:
+   * an unavailable platform is never shown.
    */
   isHiddenUntilAvailable?: boolean;
 }
@@ -203,6 +203,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     category: 'social',
     Icon: ThreadsIcon,
     iconClassName: 'text-foreground',
+    isHiddenUntilAvailable: true,
     label: 'Threads',
     platform: CredentialPlatform.THREADS,
     readinessKey: 'threads',
