@@ -104,4 +104,47 @@ describe('scheduled-post action source contract', () => {
       ).toThrow('$.request.source');
     },
   );
+
+  it.each(['private', 'public', 'unlisted'])(
+    'accepts a provider result that applied %s visibility on deliver',
+    (visibility) => {
+      const contract = compileScheduledPostContract('scheduled-post.deliver');
+      expect(() =>
+        contract.validateOutput(
+          { ...PUBLISH_RESULT, executionState: 'published', visibility },
+          PROVENANCE,
+        ),
+      ).not.toThrow();
+    },
+  );
+
+  it.each(['scheduled-post.finalize', 'scheduled-post.fail'] as const)(
+    'accepts a private provider result on %s',
+    (actionId) => {
+      const contract = compileScheduledPostContract(actionId);
+      expect(() =>
+        contract.validateOutput(
+          {
+            ...PUBLISH_RESULT,
+            executionState: 'published',
+            visibility: 'private',
+          },
+          PROVENANCE,
+        ),
+      ).not.toThrow();
+    },
+  );
+
+  it('still rejects an unknown visibility and unrelated properties', () => {
+    const contract = compileScheduledPostContract('scheduled-post.deliver');
+    expect(() =>
+      contract.validateOutput(
+        { ...PUBLISH_RESULT, visibility: 'friends' },
+        PROVENANCE,
+      ),
+    ).toThrow('$.visibility');
+    expect(() =>
+      contract.validateOutput({ ...PUBLISH_RESULT, extra: true }, PROVENANCE),
+    ).toThrow('must NOT have additional properties');
+  });
 });
