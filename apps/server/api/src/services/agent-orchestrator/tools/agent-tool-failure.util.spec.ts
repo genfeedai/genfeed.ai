@@ -6,6 +6,8 @@ import {
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
@@ -57,6 +59,19 @@ describe('describeToolFailure', () => {
     ],
   ])('keeps the text of %s', (_label, error) => {
     expect(describeToolFailure(error)).toBe((error as Error).message);
+  });
+});
+
+describe('describeToolFailure with an object body', () => {
+  it('shows the reason of a refusal instead of "Http Exception"', () => {
+    const error = new HttpException(
+      { detail: 'Insufficient credits: 37 required, 5000 available' },
+      HttpStatus.PAYMENT_REQUIRED,
+    );
+
+    expect(describeToolFailure(error)).toBe(
+      'Insufficient credits: 37 required, 5000 available',
+    );
   });
 });
 

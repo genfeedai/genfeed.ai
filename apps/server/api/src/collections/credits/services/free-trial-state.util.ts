@@ -54,9 +54,13 @@ export function paidCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
   };
 }
 
+/** The ledger source of a grant made through the admin credits endpoint. */
+export const ADMIN_CREDIT_GRANT_SOURCE = 'admin-grant';
+
 /**
  * Credits an operator granted on purpose: a superadmin comp
- * (`ActivitySource.SUPERADMIN`), proactive-onboarding seeding
+ * (`ActivitySource.SUPERADMIN`, or `admin-grant` from the admin credits
+ * endpoint), proactive-onboarding seeding
  * and warm-up preparation or handoff grants
  * (`creditWarmupWallet`, reference type `warmup-account`). An operator comp
  * never expires, so it exempts the organization from the trial exactly like
@@ -64,6 +68,7 @@ export function paidCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
  */
 const OPERATOR_CREDIT_GRANT_SOURCES: readonly string[] = [
   ActivitySource.SUPERADMIN,
+  ADMIN_CREDIT_GRANT_SOURCE,
   'proactive-onboarding',
   'warmup-handoff',
   'warmup-preparation',

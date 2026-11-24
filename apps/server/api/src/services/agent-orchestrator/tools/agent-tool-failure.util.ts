@@ -1,3 +1,4 @@
+import { readHttpExceptionDetail } from '@api/helpers/utils/error-response/http-exception-detail.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export const AGENT_TOOL_UNEXPECTED_FAILURE_MESSAGE =
@@ -38,7 +39,7 @@ export function describeToolFailure(error: unknown): string {
   if (isInternalError(error)) {
     return AGENT_TOOL_UNEXPECTED_FAILURE_MESSAGE;
   }
-  return (error as Error).message;
+  return readHttpExceptionDetail(error) ?? (error as Error).message;
 }
 
 export function describeToolFailureForLog(error: unknown): string {
