@@ -4,6 +4,7 @@ import {
   matchRepliesToPosts,
 } from '@workers/crons/x-replies/cron.x-reply-watch.service';
 import {
+  X_REPLY_WATCH_DISCOVERY_WINDOW_MS,
   X_REPLY_WATCH_LOCK_KEY,
   X_REPLY_WATCH_MAX_PAGES,
   X_REPLY_WATCH_WINDOW_MS,
@@ -145,7 +146,7 @@ describe('CronXReplyWatchService', () => {
           isDeleted: false,
           organizationId: { in: ['org-a'] },
           publishedAt: {
-            gte: new Date(NOW.getTime() - X_REPLY_WATCH_WINDOW_MS),
+            gte: new Date(NOW.getTime() - X_REPLY_WATCH_DISCOVERY_WINDOW_MS),
             lte: NOW,
           },
           status: 'public',

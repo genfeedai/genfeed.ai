@@ -461,6 +461,21 @@ describe('AgentKnowledgeToolHandler', () => {
     expect(dto).not.toHaveProperty('transcriptUrl');
   });
 
+  it('acts in the brand the caller names when the connection has no session brand', async () => {
+    const { handler, records } = buildHandler();
+    const organizationWide = { ...ctx, brandId: undefined };
+
+    await handler.archiveKnowledgeSource(
+      { brandId: 'brand-named', sourceId: 'source-1' },
+      organizationWide,
+    );
+
+    expect(records.deleteSource).toHaveBeenCalledWith(
+      { brandId: 'brand-named', organizationId: 'org-1', userId: 'user-1' },
+      'source-1',
+    );
+  });
+
   it('routes purpose changes, archive and retry to the records and capture services', async () => {
     const { capture, handler, records } = buildHandler();
 

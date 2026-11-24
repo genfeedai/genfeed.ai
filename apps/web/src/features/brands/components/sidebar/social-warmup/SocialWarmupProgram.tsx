@@ -362,9 +362,9 @@ export default function SocialWarmupProgram({
             {translate('nextAction')}
           </p>
           <Button
-            className="mt-1 h-auto px-0 text-left text-sm"
+            className="mt-1"
             onClick={() => handleFocusCheck(model.nextAction?.id ?? '')}
-            size={ButtonSize.SM}
+            size={ButtonSize.INLINE}
             variant={ButtonVariant.LINK}
           >
             {model.nextAction.title}

@@ -340,7 +340,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'manage_knowledge',
     description:
-      "Change a brand's Knowledge. capture saves a page, document, feed, media or text and ingests it; assign_purpose changes a source's purpose (Brand Truth, Inspiration, Research) or hides it from retrieval; archive removes a source from retrieval for good; retry requeues a failed ingestion.",
+      "Change a brand's Knowledge. capture saves a page, document, feed, media or text and ingests it; assign_purpose changes a source's purpose (Brand Truth, Inspiration, Research) or hides it from retrieval; archive removes a source from retrieval for good; retry requeues a failed ingestion. Pass brandId when the connection has no selected brand.",
     operations: [
       { action: 'capture', executes: 'capture_knowledge' },
       { action: 'assign_purpose', executes: 'assign_knowledge_purpose' },
