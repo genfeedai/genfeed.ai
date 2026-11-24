@@ -12,6 +12,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
+import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useId, useRef, useState } from 'react';
 
@@ -135,21 +136,12 @@ export function AgentStrategyStatus({
           >
             {strategy.isActive && strategy.isEnabled ? 'Active' : 'Inactive'}
           </Badge>
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onClick={handleToggleEnabled}
+          <Switch
+            aria-label={translate('enableStrategy')}
+            isChecked={strategy.isEnabled}
             isDisabled={isToggling}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-              strategy.isEnabled ? 'bg-primary' : 'bg-muted'
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
-                strategy.isEnabled ? 'translate-x-4' : 'translate-x-0'
-              }`}
-            />
-          </Button>
+            onCheckedChange={handleToggleEnabled}
+          />
         </div>
       </div>
 

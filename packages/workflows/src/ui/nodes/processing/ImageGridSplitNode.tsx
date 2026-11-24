@@ -279,22 +279,15 @@ function OutputGallery({
             >
               <Button
                 withWrapper={false}
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
+                variant={ButtonVariant.OVERLAY}
+                size={ButtonSize.MICRO}
                 aria-label={`Download grid cell ${index + 1}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDownload(index);
                 }}
-                className={
-                  'size-6 bg-white/20 hover:bg-white/40' /* design-system-allow-content-color */
-                }
               >
-                <Download
-                  className={
-                    'size-3.5 text-white' /* design-system-allow-content-color */
-                  }
-                />
+                <Download className="size-3.5" />
               </Button>
             </div>
             <div

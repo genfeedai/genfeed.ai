@@ -209,9 +209,9 @@ export function AnalyticsSnapshotCard({
           {hasMoreMetrics ? (
             <Button
               type="button"
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.LINK}
+              size={ButtonSize.INLINE}
               withWrapper={false}
-              className="text-xs font-medium text-primary hover:underline"
               onClick={() => {
                 setIsExpanded(true);
               }}
