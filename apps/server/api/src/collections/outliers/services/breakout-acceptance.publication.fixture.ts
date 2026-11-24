@@ -38,6 +38,7 @@ import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billin
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type Deps = ConstructorParameters<typeof ScheduledPostDeliveryService>;
+type XBillingDeps = ConstructorParameters<typeof ScheduledPostXBilling>;
 
 /** The request principal of an authenticated user or key, as the request interceptor binds it. */
 export function principalOf(
@@ -155,11 +156,13 @@ export function buildDeliveryHarness(
   );
   const xBilling = new ScheduledPostXBilling(
     logger,
-    { isSubscriptionGatedFresh: async () => false } as never,
+    {
+      isSubscriptionGatedFresh: async () => false,
+    } as unknown as XBillingDeps[1],
     {
       checkOrganizationCreditsAvailable: async () => true,
       deductCreditsFromOrganization: async () => undefined,
-    } as never,
+    } as unknown as XBillingDeps[2],
     libsPrisma,
   );
   const service = new ScheduledPostDeliveryService(
