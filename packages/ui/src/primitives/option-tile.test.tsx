@@ -32,6 +32,36 @@ describe('OptionTile', () => {
     expect(screen.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
   });
 
+  it('checks the tile an arrow key moves focus to, and skips unavailable tiles', async () => {
+    function ArrowHarness() {
+      const [value, setValue] = useState<string | undefined>('csv');
+      return (
+        <OptionTileGroup
+          ariaLabel="Format"
+          onValueChange={setValue}
+          value={value}
+        >
+          <OptionTile title="CSV" value="csv" />
+          <OptionTile isUnavailable title="PDF" value="pdf" />
+          <OptionTile title="XLSX" value="xlsx" />
+        </OptionTileGroup>
+      );
+    }
+    render(<ArrowHarness />);
+
+    await userEvent.tab();
+    expect(screen.getByRole('radio', { name: 'CSV' })).toHaveFocus();
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: 'PDF' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: 'CSV' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'PDF' })).not.toBeChecked();
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: 'XLSX' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: 'XLSX' })).toBeChecked();
+  });
+
   it('keeps the selected tile when it is pressed again', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByRole('radio', { name: /CSV/ }));

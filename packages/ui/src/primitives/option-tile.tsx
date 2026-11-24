@@ -3,7 +3,13 @@
 import { cn } from '@genfeedai/helpers';
 import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
 import type { VariantProps } from 'class-variance-authority';
-import { type ReactNode, useId } from 'react';
+import {
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  useId,
+  useRef,
+} from 'react';
 import {
   optionTileGroupVariants,
   optionTileVariants,
@@ -48,6 +54,40 @@ export type OptionTileGroupProps<TValue extends string = string> =
       | MultipleTileSelection<TValue>
     );
 
+const ARROW_KEYS = new Set([
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'End',
+  'Home',
+]);
+
+/**
+ * A radio group checks the radio an arrow key moves focus to. Radix moves the
+ * focus only, so the tile that took focus is pressed here, unless it is
+ * already checked, disabled, or unavailable.
+ */
+function selectFocusedRadio(
+  event: FocusEvent<HTMLElement>,
+  isArrowNavigation: { current: boolean },
+): void {
+  if (!isArrowNavigation.current) {
+    return;
+  }
+  isArrowNavigation.current = false;
+  const tile = event.target;
+  if (
+    tile.getAttribute('role') !== 'radio' ||
+    tile.getAttribute('aria-checked') === 'true' ||
+    tile.getAttribute('aria-disabled') === 'true' ||
+    tile.hasAttribute('disabled')
+  ) {
+    return;
+  }
+  tile.click();
+}
+
 /**
  * A group of selectable `OptionTile`s: single choice (radio semantics, one
  * always selected) or multiple choice (independent toggles).
@@ -57,6 +97,8 @@ function OptionTileGroup<TValue extends string = string>(
 ) {
   const { ariaLabel, children, className, columns, isDisabled, testId } = props;
   const groupClassName = cn(optionTileGroupVariants({ columns }), className);
+
+  const isArrowNavigation = useRef(false);
 
   if (props.type === 'multiple') {
     const { onValueChange, value } = props;
@@ -81,6 +123,20 @@ function OptionTileGroup<TValue extends string = string>(
       className={groupClassName}
       data-testid={testId}
       disabled={isDisabled}
+      onBlur={(event: FocusEvent<HTMLDivElement>) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          isArrowNavigation.current = false;
+        }
+      }}
+      onFocus={(event: FocusEvent<HTMLDivElement>) =>
+        selectFocusedRadio(event, isArrowNavigation)
+      }
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        isArrowNavigation.current = ARROW_KEYS.has(event.key);
+      }}
+      onPointerDown={() => {
+        isArrowNavigation.current = false;
+      }}
       role="radiogroup"
       onValueChange={(next) => {
         if (props.isDeselectable) {

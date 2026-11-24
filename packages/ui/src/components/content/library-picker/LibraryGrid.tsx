@@ -39,6 +39,7 @@ function kindIcon(kind: string): ReactElement {
 function LibraryTile({
   ariaLabel,
   isLocked,
+  isPressable,
   isSelected,
   item,
   renderPreview,
@@ -46,6 +47,8 @@ function LibraryTile({
 }: {
   ariaLabel: string;
   isLocked: boolean;
+  /** A pressed state is exposed only when the caller tracks selection. */
+  isPressable: boolean;
   isSelected: boolean;
   item: LibraryGridItem;
   renderPreview?: LibraryGridProps['renderPreview'];
@@ -54,7 +57,7 @@ function LibraryTile({
   return (
     <Button
       ariaLabel={ariaLabel}
-      aria-pressed={isSelected}
+      aria-pressed={isPressable ? isSelected : undefined}
       className={cn(
         'group flex w-full flex-col overflow-hidden rounded-card bg-card text-left shadow-border transition-colors',
         isSelected ? SELECTED_CARD_CLASS : 'hover:bg-foreground/5',
@@ -137,6 +140,7 @@ export default function LibraryGrid({
             <LibraryTile
               ariaLabel={getItemAriaLabel?.(item) ?? item.title}
               isLocked={isSelected && isSelectedLocked}
+              isPressable={selectedIds !== undefined}
               isSelected={isSelected}
               item={item}
               key={item.id}

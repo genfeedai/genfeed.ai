@@ -60,6 +60,16 @@ describe('LibraryGrid', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it('exposes no pressed state when the caller does not track selection', () => {
+    render(
+      <LibraryGrid ariaLabel="Library" items={ITEMS} onSelect={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Sunset' })).not.toHaveAttribute(
+      'aria-pressed',
+    );
+  });
+
   it('keeps a selected tile clickable when the picker toggles', () => {
     const onSelect = vi.fn();
     render(
