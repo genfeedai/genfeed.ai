@@ -95,7 +95,7 @@ describe('system email blocks', () => {
       {
         href: 'https://app.genfeed.ai/library',
         imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
-        kind: 'video',
+        kind: 'image',
       },
     ]);
 
@@ -103,7 +103,52 @@ describe('system email blocks', () => {
       'src="https://cdn.genfeed.ai/ingredients/images/abc"',
     );
     expect(html).toContain('href="https://app.genfeed.ai/library"');
-    expect(html).toContain('Video');
+  });
+
+  it('shows a video as its first frame with a play button on it', () => {
+    const grid = buildEmailThumbnailGrid([
+      {
+        href: 'https://app.genfeed.ai/library',
+        imageUrl: 'https://cdn.genfeed.ai/ingredients/thumbnails/abc',
+        kind: 'video',
+      },
+    ]);
+    const hero = buildEmailHero({
+      imageUrl: 'https://cdn.genfeed.ai/ingredients/thumbnails/abc',
+      kind: 'video',
+    });
+
+    for (const html of [grid, hero]) {
+      expect(html).toContain(
+        "url('https://cdn.genfeed.ai/ingredients/thumbnails/abc')",
+      );
+      expect(html).toContain('&#9654;');
+    }
+    expect(grid).toContain('href="https://app.genfeed.ai/library"');
+  });
+
+  it('puts the play button on a video frame only, never on a still image', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
+        kind: 'image',
+      },
+    ]);
+
+    expect(html).not.toContain('&#9654;');
+  });
+
+  it('cannot be broken out of the frame by a quote or bracket in the URL', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl:
+          "https://cdn.genfeed.ai/a');background:url('https://evil.test",
+        kind: 'video',
+      },
+    ]);
+
+    expect(html).not.toContain("');background");
+    expect(html).toContain('%27%29');
   });
 
   it.each([
