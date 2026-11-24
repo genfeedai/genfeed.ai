@@ -2,10 +2,12 @@ import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { OrganizationPaidAccessModule } from '@api/common/subscriptions/organization-paid-access.module';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
@@ -38,8 +40,10 @@ import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-d
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
 import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 
@@ -49,12 +53,14 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     BrandPublishPolicyModule,
     forwardRef(() => ActivitiesModule),
     forwardRef(() => CredentialsModule),
+    forwardRef(() => CreditsModule),
     CronCredentialsModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
     MediaAssessmentModule,
     MediaReadinessModule,
+    OrganizationPaidAccessModule,
     PublishersModule,
     QuotaModule,
     forwardRef(() => ReplyBotModule),
@@ -78,9 +84,11 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostFailureService,
+    ScheduledPostPublishFollowUps,
     ScheduledPostSweepLockService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
+    ScheduledPostXBilling,
     ThreadCommentDeliveryService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },

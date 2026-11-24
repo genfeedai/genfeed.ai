@@ -8,9 +8,10 @@ import {
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { PrismaService } from '@libs/prisma/prisma.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
   getPublishErrorCode,
@@ -18,11 +19,15 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import type { PreparedPostDelivery } from '@workers/services/scheduled-post-delivery.types';
-import type { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import {
   type PlannedThreadChild,
   toPlannedThreadChildren,
 } from '@workers/services/scheduled-post-media-gate.util';
+import {
+  isXPlatform,
+  ScheduledPostXBilling,
+} from '@workers/services/scheduled-post-x-billing';
 import {
   type DelayedThreadChild,
   planThreadChildDelivery,
@@ -32,6 +37,7 @@ import {
  * What follows a provider-accepted publish: the thread children that go out
  * with the parent (or are parked) and the reply-watch scheduling.
  */
+@Injectable()
 export class ScheduledPostPublishFollowUps {
   constructor(
     private readonly logger: LoggerService,
@@ -39,6 +45,7 @@ export class ScheduledPostPublishFollowUps {
     private readonly postFailureService: ScheduledPostFailureService,
     private readonly replyPostWatchService: ReplyPostWatchService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
+    private readonly xBilling: ScheduledPostXBilling,
   ) {}
 
   /**
@@ -203,6 +210,7 @@ export class ScheduledPostPublishFollowUps {
         children,
         result.externalId,
       );
+      await this.chargeXThreadChildren(post, children, prepared);
     } catch (error: unknown) {
       const errorMessage = getPublishErrorMessage(error);
       this.logger.error(
@@ -221,6 +229,27 @@ export class ScheduledPostPublishFollowUps {
         errorMessage,
       );
     }
+  }
+
+  /** Each reply X accepted is its own X request, charged like a post. */
+  private async chargeXThreadChildren(
+    post: PostEntity,
+    children: PostDocument[],
+    prepared: PreparedPostDelivery,
+  ): Promise<void> {
+    const organizationId = readPostString(post, ['organizationId']);
+    if (!organizationId || !isXPlatform(prepared.credential.platform)) {
+      return;
+    }
+    await this.xBilling.chargePublishedThreadChildren({
+      brandId: readPostString(post, ['brandId']),
+      children: children.map((child) => ({
+        description: child.description,
+        id: child.id.toString(),
+      })),
+      organizationId,
+      userId: readPostString(post, ['userId']),
+    });
   }
 
   scheduleReplyPostWatch(
