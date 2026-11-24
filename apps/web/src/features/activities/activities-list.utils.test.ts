@@ -6,7 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   formatActivityClock,
@@ -254,6 +254,9 @@ describe('generation credit amounts', () => {
 });
 
 describe('activity output and timing', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   it('provides a completed video source even when its thumbnail is absent', () => {
     expect(
       getActivityVideoUrl({
@@ -275,6 +278,8 @@ describe('activity output and timing', () => {
     ).toBe(`${EnvironmentService.ingredientsEndpoint}/thumbnails/video-1`);
   });
   it('shows start and finish together and does not invent a finish for running work', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-23T12:00:00Z'));
     const activity = {
       key: ActivityKey.IMAGE_GENERATED,
       value: JSON.stringify({
@@ -283,7 +288,7 @@ describe('activity output and timing', () => {
       }),
     } as IActivity;
     expect(getActivityLifecycleText(activity)).toBe(
-      'Started 9/8/2026, 6:52:06 PM UTC · Finished 9/8/2026, 6:52:19 PM UTC',
+      'Started Sep 8, 6:52 PM UTC · Finished Sep 8, 6:52 PM UTC',
     );
     expect(
       getActivityLifecycleText({

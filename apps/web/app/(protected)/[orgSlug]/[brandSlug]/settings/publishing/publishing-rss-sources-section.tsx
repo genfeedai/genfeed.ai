@@ -6,6 +6,7 @@ import {
   RssImportPolicy,
 } from '@genfeedai/contracts';
 import type { IRssSource } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -31,8 +32,7 @@ function formatInstant(value: string | null | undefined): string {
   if (!value) {
     return 'Never polled';
   }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US');
+  return formatShortDate(value) || value;
 }
 
 function parseImportPolicy(value: string): RssImportPolicy {

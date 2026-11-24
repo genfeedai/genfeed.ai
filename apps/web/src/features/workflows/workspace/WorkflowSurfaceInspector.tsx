@@ -11,6 +11,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   getJsonApiErrorMember,
@@ -124,8 +125,7 @@ function formatTimestamp(value?: string): string | null {
     return null;
   }
 
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
+  return formatShortDate(value) || null;
 }
 
 export function WorkflowSurfaceInspector({

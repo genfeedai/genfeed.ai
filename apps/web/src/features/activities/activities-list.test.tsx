@@ -9,7 +9,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ActivitiesList from '@/features/activities/activities-list';
 import type { ActivitiesListProps } from '@/features/activities/props/activities.props';
 
@@ -148,6 +148,10 @@ function renderWithSidebar(scope: ActivitiesListProps['scope']) {
 }
 
 describe('ActivitiesList', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     isLoading = false;
@@ -841,6 +845,8 @@ describe('ActivitiesList', () => {
     });
 
     it('shows the post itself with its source and a remix, not only the stored sentence', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-23T12:00:00Z'));
       const user = userEvent.setup();
       mockActivities = [breakoutActivity()];
       renderWithSidebar(PageScope.BRAND);
@@ -854,7 +860,7 @@ describe('ActivitiesList', () => {
         ),
       ).toBeInTheDocument();
       expect(within(card).getByText('@vincentshipsit')).toBeInTheDocument();
-      expect(within(card).getByText('Nov 9, 2026')).toBeInTheDocument();
+      expect(within(card).getByText('Nov 9')).toBeInTheDocument();
       expect(within(card).getByText('6.8× usual')).toBeInTheDocument();
       expect(
         within(card).getByRole('link', { name: 'View on (X) Twitter' }),

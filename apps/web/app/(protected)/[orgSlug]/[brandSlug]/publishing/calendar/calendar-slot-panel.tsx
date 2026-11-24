@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   CalendarSlotState,
 } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
@@ -119,7 +120,7 @@ export default function CalendarSlotPanel({
         id: slot.identityKey,
         kind: 'slot',
         origin: 'user',
-        subtitle: `${slot.format} · ${new Date(slot.instant).toLocaleString('en-US')}`,
+        subtitle: `${slot.format} · ${formatShortDate(slot.instant)}`,
         title: translate('missingSlot'),
       }}
     >

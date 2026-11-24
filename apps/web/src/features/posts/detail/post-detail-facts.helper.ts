@@ -1,4 +1,5 @@
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import type { RecordFact } from '@genfeedai/props/ui/record-detail/record-fact-line.props';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
@@ -52,9 +53,7 @@ export function buildPostDetailFacts(
       id: 'when',
       label: isPublished ? 'Published' : 'Scheduled',
       value: scheduledOrPublishedAt
-        ? new Date(scheduledOrPublishedAt).toLocaleString('en-US', {
-            timeZone,
-          })
+        ? formatShortDate(scheduledOrPublishedAt, { timeZone })
         : undefined,
     },
     {

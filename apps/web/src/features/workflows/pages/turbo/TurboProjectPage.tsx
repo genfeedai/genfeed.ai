@@ -9,6 +9,7 @@ import {
   TurboProjectStep,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -311,7 +312,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
             </ul>
             <p className="text-xs text-muted-foreground">
               {t('quoteExpiry', {
-                date: new Date(quote.expiresAt).toLocaleString(locale),
+                date: formatShortDate(quote.expiresAt),
               })}
             </p>
             <Button

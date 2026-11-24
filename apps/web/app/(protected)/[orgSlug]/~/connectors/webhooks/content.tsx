@@ -11,6 +11,7 @@ import type {
   IOrganizationSetting,
   IWebhookDeliveryStatus,
 } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
@@ -78,11 +79,7 @@ function webhookSettingsQueryKey(organizationId: string) {
 }
 
 function formatDate(value?: string | Date | null): string {
-  if (!value) {
-    return 'Never';
-  }
-
-  return new Date(value).toLocaleString();
+  return formatShortDate(value) || 'Never';
 }
 
 function formatHttpStatus(status?: IWebhookDeliveryStatus | null): string {

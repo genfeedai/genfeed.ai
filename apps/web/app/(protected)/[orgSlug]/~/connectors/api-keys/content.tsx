@@ -19,6 +19,7 @@ import type {
   ApiKeyPermissionLevels,
   IPagedItems,
 } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
@@ -140,7 +141,7 @@ function formatLastUsed(
   value: string | null | undefined,
   neverLabel: string,
 ): string {
-  return value ? new Date(value).toLocaleString() : neverLabel;
+  return formatShortDate(value) || neverLabel;
 }
 
 const EMPTY_API_KEYS: ApiKey[] = [];

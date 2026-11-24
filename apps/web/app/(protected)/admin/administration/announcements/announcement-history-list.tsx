@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -13,13 +14,7 @@ const ANNOUNCEMENT_HISTORY_SKELETON_KEYS = [
 ] as const;
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('en-US', {
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatShortDate(dateString);
 }
 
 function truncate(text: string, maxLength: number): string {

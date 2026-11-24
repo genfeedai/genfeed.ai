@@ -1,3 +1,4 @@
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import '@testing-library/jest-dom/vitest';
 import {
   createTestQueryClient,
@@ -348,7 +349,7 @@ describe('EvergreenSeriesControls', () => {
       });
     });
     expect(
-      await screen.findByText(new Date(currentOccurrence).toLocaleString()),
+      await screen.findByText(formatShortDate(currentOccurrence)),
     ).toBeInTheDocument();
 
     const staleOccurrence = '2026-08-10T09:00:00.000Z';
@@ -361,7 +362,7 @@ describe('EvergreenSeriesControls', () => {
     });
     await waitFor(() => {
       expect(
-        screen.queryByText(new Date(staleOccurrence).toLocaleString()),
+        screen.queryByText(formatShortDate(staleOccurrence)),
       ).not.toBeInTheDocument();
     });
   });
