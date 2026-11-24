@@ -11,8 +11,6 @@ import {
   resolveTerminalEndpoint,
   resolveThreadKey,
   TERMINAL_COLS,
-  TERMINAL_CONTROL_CLASS,
-  TERMINAL_ICON_CONTROL_CLASS,
   TERMINAL_PRESETS,
   TERMINAL_ROWS,
   type TerminalCreatePayload,
@@ -24,8 +22,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 import { Button } from '@ui/primitives/button';
@@ -44,6 +41,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Toggle } from '@ui/primitives/toggle';
 import type { FitAddon } from '@xterm/addon-fit';
 import type { SearchAddon } from '@xterm/addon-search';
 import type {
@@ -680,14 +678,14 @@ export function AgentCliTerminalBody({
             />
             <Button
               aria-label="Close search"
-              className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/60 transition-colors hover:border-success/50 hover:text-success"
               icon={<X className="size-3.5" />}
               onClick={(event) => {
                 event.stopPropagation();
                 onCloseSearch?.();
               }}
+              size={ButtonSize.MICRO}
               type="button"
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
           </div>
@@ -768,35 +766,25 @@ export function AgentCliTerminalControls({
                 key={session.id}
                 className="flex shrink-0 items-center gap-0.5"
               >
-                <Button
-                  className={cn(
-                    TERMINAL_CONTROL_CLASS,
-                    'max-w-[7rem] gap-1.5 px-2',
-                    activeSessionId === session.id &&
-                      'border-success/50 bg-success/5 text-success',
-                  )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    switchSession(session.id);
-                  }}
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
+                <Toggle
+                  className="max-w-[7rem]"
+                  onClick={(event) => event.stopPropagation()}
+                  onPressedChange={() => switchSession(session.id)}
+                  pressed={activeSessionId === session.id}
+                  size="sm"
+                  variant="outline"
                 >
                   <span className="truncate">{session.kind}</span>
-                </Button>
+                </Toggle>
                 <Button
                   aria-label={`Close ${session.kind} session`}
-                  className={cn(
-                    TERMINAL_ICON_CONTROL_CLASS,
-                    'size-7 hover:border-destructive/40 hover:text-destructive',
-                  )}
                   onClick={(event) => {
                     event.stopPropagation();
                     killSession(session.id);
                   }}
+                  size={ButtonSize.MICRO}
                   type="button"
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.GHOST}
                   withWrapper={false}
                 >
                   <X className="size-3.5" />
@@ -822,10 +810,10 @@ export function AgentCliTerminalControls({
           value={cwdInput}
         />
         <Button
-          className={TERMINAL_CONTROL_CLASS}
           label="cwd"
+          size={ButtonSize.XS}
           type="submit"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         />
       </Form>
@@ -834,9 +822,9 @@ export function AgentCliTerminalControls({
         <DropdownMenuTrigger asChild>
           <Button
             aria-label="Open terminal session menu"
-            className={cn(TERMINAL_CONTROL_CLASS, 'gap-1.5')}
+            size={ButtonSize.XS}
             type="button"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <Plus className="size-3.5" />
@@ -865,22 +853,16 @@ export function AgentCliTerminalControls({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Button
+      <Toggle
         aria-label="Search terminal"
-        className={cn(
-          TERMINAL_ICON_CONTROL_CLASS,
-          isSearchOpen && 'border-success/50 bg-success/5 text-success',
-        )}
-        onClick={(event) => {
-          event.stopPropagation();
-          toggleSearch();
-        }}
-        type="button"
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
+        onClick={(event) => event.stopPropagation()}
+        onPressedChange={toggleSearch}
+        pressed={isSearchOpen}
+        size="sm"
+        variant="outline"
       >
-        <Search className="size-3.5" />
-      </Button>
+        <Search />
+      </Toggle>
     </div>
   );
 }
