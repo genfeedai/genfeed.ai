@@ -69,8 +69,8 @@ export function WorkflowCreatedCard({
           ) : null}
           {action.nextRunAt ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              Next run: {formatShortDate(action.nextRunAt, { timeZone: 'UTC' })}{' '}
-              UTC
+              Next run:{' '}
+              {`${formatShortDate(action.nextRunAt, { timeZone: 'UTC' })} UTC`}
             </p>
           ) : null}
         </div>
