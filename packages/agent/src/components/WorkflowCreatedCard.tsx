@@ -4,6 +4,7 @@ import type {
   AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
@@ -69,9 +70,7 @@ export function WorkflowCreatedCard({
           {action.nextRunAt ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Next run:{' '}
-              {new Date(action.nextRunAt).toLocaleString('en-US', {
-                timeZone: 'UTC',
-              })}
+              {`${formatShortDate(action.nextRunAt, { timeZone: 'UTC' })} UTC`}
             </p>
           ) : null}
         </div>

@@ -4,6 +4,7 @@ import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { PublicationInsight } from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces/extension/extension-workspace.interface';
 import { deserializeResource } from '@genfeedai/helpers/data/json-api/json-api.helper';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 
 const snapshot: ExtensionWorkspaceSnapshot = {
   userId: 'user-1',
@@ -151,7 +152,7 @@ describe('publication detail and explicit recovery', () => {
     expect(screen.getByText('Audience unavailable')).toBeInTheDocument();
     expectSourceLine('Extension');
     expect(screen.getByText(/Sample date:/)).toHaveTextContent(
-      new Date('2026-10-01T00:00:00.000Z').toLocaleString(),
+      formatShortDate('2026-10-01T00:00:00.000Z'),
     );
     expect(screen.getByRole('link', { name: 'Open post' })).toHaveAttribute(
       'rel',

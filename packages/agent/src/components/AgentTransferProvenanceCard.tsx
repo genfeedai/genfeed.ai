@@ -13,6 +13,7 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentTransferPresentation } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -108,7 +109,7 @@ export function AgentTransferProvenanceCard({
   const [isRetrying, setIsRetrying] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const createdAt = transfer?.createdAt
-    ? new Date(transfer.createdAt).toLocaleString('en-US')
+    ? formatShortDate(transfer.createdAt)
     : null;
 
   const statusLabel = useMemo(() => {

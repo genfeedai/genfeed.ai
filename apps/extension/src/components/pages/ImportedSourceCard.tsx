@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import type { ImportedSourceCardProps } from '~models/imported-source.model';
@@ -131,9 +132,7 @@ export function ImportedSourceCard({
           .join(' · ')}
       </p>
       <p className="text-xs text-muted-foreground">
-        {`${SOURCE_BASIS_LABELS[snapshot.contentBasis]} · Imported ${new Date(
-          snapshot.capturedAt,
-        ).toLocaleDateString()}`}
+        {`${SOURCE_BASIS_LABELS[snapshot.contentBasis]} · Imported ${formatShortDate(snapshot.capturedAt, { hasTime: false })}`}
       </p>
       {snapshot.capturedText ? (
         <p className="line-clamp-3 text-sm text-foreground">

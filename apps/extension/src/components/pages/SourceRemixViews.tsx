@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { BrandRemixOrganicPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -217,7 +218,7 @@ export function SourceRemixQuoteView({
     <section className="space-y-3" aria-label="Price">
       <p className="text-sm font-medium">{quoteSummary(quote)}</p>
       <p className="text-xs text-muted-foreground">
-        {`Model ${quote.model}. This price expires at ${new Date(quote.expiresAt).toLocaleTimeString()}.`}
+        {`Model ${quote.model}. This price expires at ${formatShortDate(quote.expiresAt)}.`}
       </p>
       <div className="flex flex-wrap gap-2">
         <Button isDisabled={isBusy} onClick={onApprove} type="button">
