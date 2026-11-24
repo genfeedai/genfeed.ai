@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import { attachConsoleOutputErrorHandlers } from '@libs/logger/console-output-error-handler';
 import { LoggerService } from '@libs/logger/logger.service';
 import { shouldDropLoggerInfo } from '@libs/logger/logger-filters';
-import { isWideEventInfo } from '@libs/logger/wide-event/wide-event.level';
 import { Global, Module } from '@nestjs/common';
 import {
   utilities as nestWinstonModuleUtilities,
@@ -15,20 +14,39 @@ const { combine, timestamp } = format;
 const FILTERED_ERROR_PATTERNS = [/reached/, /not found/, /not active/, /claim/];
 
 /**
- * Wide events are the queryable record of a request, so deployed environments
- * print them as one JSON object per line (no ANSI, no pretty-printing) for the
- * log pipeline to index. Local dev keeps the readable Nest-style rendering.
+ * Production prints every line as one JSON object (no ANSI, no pretty-printing)
+ * for the log pipeline to index, and drops debug lines. The Nest-style
+ * rendering parses, inspects and colours each line's context on the one thread
+ * that also serves requests, and prod stalls of that thread (#10110) come in
+ * bursts of requests that each log. Local dev keeps the readable rendering and
+ * the debug lines.
  */
+function isProductionLogging(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 function createConsoleFormat() {
   const nestLike = nestWinstonModuleUtilities.format.nestLike();
   const json = format.json();
-  const isJsonOutput = process.env.NODE_ENV === 'production';
+  const isJsonOutput = isProductionLogging();
 
   return format((info, options) =>
-    isJsonOutput && isWideEventInfo(info)
+    isJsonOutput
       ? json.transform(info, options)
       : nestLike.transform(info, options),
   )();
+}
+
+/** The one console sink every service logs through. */
+export function createConsoleTransport() {
+  return new transports.Console({
+    format: combine(
+      timestamp(),
+      format((info) => (shouldDropLoggerInfo(info) ? false : info))(),
+      createConsoleFormat(),
+    ),
+    level: isProductionLogging() ? 'info' : 'debug',
+  });
 }
 
 function shouldEnableFileLogging(): boolean {
@@ -49,14 +67,7 @@ function shouldFilterMessage(message: unknown): boolean {
     WinstonModule.forRootAsync({
       imports: [],
       useFactory: () => {
-        const consoleTransport = new transports.Console({
-          format: combine(
-            timestamp(),
-            format((info) => (shouldDropLoggerInfo(info) ? false : info))(),
-            createConsoleFormat(),
-          ),
-          level: 'debug',
-        });
+        const consoleTransport = createConsoleTransport();
 
         const detachConsoleOutputErrorHandlers =
           attachConsoleOutputErrorHandlers(consoleTransport);

@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WideEventRecord } from './wide-event.interface';
-import {
-  isWideEventInfo,
-  readWideEventLevel,
-  summarizeWideEvent,
-} from './wide-event.level';
+import { readWideEventLevel, summarizeWideEvent } from './wide-event.level';
 
 function createEvent(fields: Record<string, unknown>): WideEventRecord {
   return {
@@ -71,13 +67,5 @@ describe('summarizeWideEvent', () => {
     ],
   ])('summarises %j', (fields, summary) => {
     expect(summarizeWideEvent(createEvent(fields))).toBe(summary);
-  });
-});
-
-describe('isWideEventInfo', () => {
-  it('recognises only records tagged as wide events', () => {
-    expect(isWideEventInfo({ type: 'wide_event' })).toBe(true);
-    expect(isWideEventInfo({ type: 'other' })).toBe(false);
-    expect(isWideEventInfo({})).toBe(false);
   });
 });
