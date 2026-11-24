@@ -4,28 +4,39 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { ScopeDropdownProps } from '@genfeedai/props/social/scope-dropdown.props';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
-import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    children,
-    onClick,
-  }: {
-    children: ReactNode;
-    onClick?: () => void;
-  }) => (
-    <button type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-  buttonVariants: () => '',
+const { mockPatch } = vi.hoisted(() => ({ mockPatch: vi.fn() }));
+
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
+  IngredientsService: { getInstance: () => ({ patch: mockPatch }) },
+}));
+
+vi.mock('@genfeedai/services/content/articles.service', () => ({
+  ArticlesService: { getInstance: vi.fn() },
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => () =>
+    Promise.resolve(factory('test-token')),
+}));
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: { error: vi.fn() },
+}));
+
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
+  },
 }));
 
 describe('DropdownScope', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   const item = {
     category: IngredientCategory.IMAGE,
     id: 'ingredient-1',
@@ -33,24 +44,27 @@ describe('DropdownScope', () => {
     status: IngredientStatus.GENERATED,
   } as IIngredient;
 
-  const baseProps: ScopeDropdownProps = {
-    item,
-    onScopeChange: vi.fn(),
-  };
+  it('shows the current scope on the control', () => {
+    render(<DropdownScope item={item} />);
 
-  it('should render without crashing', () => {
-    const { container } = render(<DropdownScope {...baseProps} />);
-    expect(container.firstChild).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Privacy/ })).toHaveTextContent(
+      /private|user/i,
+    );
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<DropdownScope {...baseProps} />);
-    expect(container.querySelector('button')).toBeInTheDocument();
-  });
+  it('saves the chosen scope and hands the updated item to the parent', async () => {
+    const updated = { ...item, scope: AssetScope.PUBLIC };
+    mockPatch.mockResolvedValue(updated);
+    const onScopeChange = vi.fn();
+    const user = userEvent.setup();
+    render(<DropdownScope item={item} onScopeChange={onScopeChange} />);
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<DropdownScope {...baseProps} />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: /Privacy/ }));
+    await user.click(screen.getByRole('option', { name: /public/i }));
+
+    expect(mockPatch).toHaveBeenCalledExactlyOnceWith(item.id, {
+      scope: AssetScope.PUBLIC,
+    });
+    expect(onScopeChange).toHaveBeenCalledWith(AssetScope.PUBLIC, updated);
   });
 });

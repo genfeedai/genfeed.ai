@@ -9,10 +9,9 @@ import {
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -76,37 +75,6 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@ui/primitives/dropdown', () => ({
-  Dropdown: ({
-    trigger,
-    children,
-  }: {
-    trigger: ReactNode;
-    children: ReactNode;
-  }) => (
-    <div>
-      <div data-testid="dropdown-trigger">{trigger}</div>
-      <div data-testid="dropdown-content">{children}</div>
-    </div>
-  ),
-}));
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    children,
-    onClick,
-    ...props
-  }: {
-    children: ReactNode;
-    onClick?: () => void;
-  }) => (
-    <button type="button" onClick={onClick} {...props}>
-      {children}
-    </button>
-  ),
-  buttonVariants: () => '',
-}));
-
 describe('DropdownStatus', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -132,7 +100,9 @@ describe('DropdownStatus', () => {
       render(
         <DropdownStatus entity={entity} onStatusChange={onStatusChange} />,
       );
-      await userEvent.click(screen.getByText('Rejected'));
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('combobox', { name: /Change Status/ }));
+      await user.click(screen.getByRole('option', { name: 'Rejected' }));
       expect(mockIngredientPatch).toHaveBeenCalledExactlyOnceWith(entity.id, {
         status: IngredientStatus.REJECTED,
       });
@@ -146,28 +116,11 @@ describe('DropdownStatus', () => {
     }
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<DropdownStatus {...baseProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<DropdownStatus {...baseProps} />);
-    expect(container.querySelector('button')).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<DropdownStatus {...baseProps} />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-  });
-
   it('paints the trigger as the shared uppercase status badge', () => {
     render(<DropdownStatus {...baseProps} />);
 
-    const trigger = within(screen.getByTestId('dropdown-trigger')).getByText(
-      'Completed',
-    );
+    const trigger = screen.getByRole('combobox', { name: /Change Status/ });
+    expect(trigger).toHaveTextContent('Completed');
 
     expect(trigger).toHaveClass('bg-success/10');
     expect(trigger).toHaveClass('text-success');
@@ -193,7 +146,9 @@ describe('DropdownStatus', () => {
 
     render(<DropdownStatus entity={postEntity} onStatusChange={vi.fn()} />);
 
-    await userEvent.click(screen.getByText('Public'));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('combobox', { name: /Change Status/ }));
+    await user.click(screen.getByRole('option', { name: 'Public' }));
 
     expect(mockPostsPatch).toHaveBeenCalledWith('post-1', {
       targetExecutionState: TargetExecutionState.PUBLISHED,

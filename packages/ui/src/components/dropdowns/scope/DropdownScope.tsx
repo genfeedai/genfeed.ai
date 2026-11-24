@@ -1,6 +1,6 @@
 'use client';
 
-import { AssetScope, ButtonVariant } from '@genfeedai/contracts';
+import { AssetScope } from '@genfeedai/contracts';
 import type { IArticle, IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -9,11 +9,10 @@ import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { Button } from '@ui/primitives/button';
-import { Dropdown } from '@ui/primitives/dropdown';
+import { OptionSelect } from '@ui/primitives/option-select';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
-import { Building, Check, Globe, Lock, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Building, Globe, Lock, Users } from 'lucide-react';
+import { useMemo } from 'react';
 
 const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
   [AssetScope.USER]: <Lock className="size-4" />,
@@ -22,25 +21,26 @@ const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
   [AssetScope.PUBLIC]: <Globe className="size-4" />,
 };
 
-const VARIANT_COLORS: Record<string, string> = {
-  error: 'bg-destructive/20 text-destructive',
-  info: 'bg-info/20 text-info',
-  warning: 'bg-warning/20 text-warning',
+const SCOPE_DOT_CLASSES: Record<AssetScope, string> = {
+  [AssetScope.USER]: 'bg-muted-foreground',
+  [AssetScope.BRAND]: 'bg-categorical-blue',
+  [AssetScope.ORGANIZATION]: 'bg-categorical-emerald',
+  [AssetScope.PUBLIC]: 'bg-categorical-violet',
 };
 
-function getActiveIconColorClass(variant: string): string {
-  const v = variant.toLowerCase();
-  if (v.includes('error')) {
-    return VARIANT_COLORS.error;
-  }
-  if (v.includes('warning')) {
-    return VARIANT_COLORS.warning;
-  }
-  if (v.includes('info')) {
-    return VARIANT_COLORS.info;
-  }
-
-  return 'bg-muted text-foreground';
+/** The scope's icon with a dot in the colour of its privacy level. */
+function ScopeIcon({ scope }: { scope: AssetScope }) {
+  return (
+    <div className="relative">
+      {getScopeIcon(scope)}
+      <span
+        className={cn(
+          'absolute -bottom-0.5 -right-0.5 size-2 rounded-full border border-background',
+          SCOPE_DOT_CLASSES[scope] ?? SCOPE_DOT_CLASSES[AssetScope.USER],
+        )}
+      />
+    </div>
+  );
 }
 
 function getScopeIcon(scope: AssetScope): React.ReactNode {
@@ -50,11 +50,8 @@ function getScopeIcon(scope: AssetScope): React.ReactNode {
 export default function DropdownScope({
   item,
   className = '',
-  position = 'auto',
   onScopeChange,
 }: ScopeDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const notifications = NotificationsService.getInstance();
 
   // Determine if this is an article or ingredient
@@ -95,8 +92,6 @@ export default function DropdownScope({
     } catch (err) {
       logger.error('Failed to update scope', err);
       notifications.error('Failed to update scope');
-    } finally {
-      setIsOpen(false);
     }
   };
 
@@ -111,109 +106,26 @@ export default function DropdownScope({
   const isIconOnly = className.includes('rounded-full');
 
   return (
-    <Dropdown
-      className={className}
-      isOpen={isOpen}
-      onOpenChange={setIsOpen}
-      position={position}
-      usePortal={true}
-      minWidth="180px"
-      trigger={
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          aria-expanded={isOpen}
-          ariaLabel={`Privacy: ${currentMeta.label} - Click to change`}
-          tooltip={`Privacy: ${currentMeta.label}`}
-          tooltipPosition="top"
-          className={
-            isIconOnly
-              ? cn(className, 'relative')
-              : cn(
-                  'inline-flex items-center px-2.5 py-0.5 text-xs font-medium uppercase',
-                  'hover:opacity-80 transition-opacity cursor-pointer',
-                  'border hover:border-current/20',
-                  currentMeta.variant,
-                )
-          }
-        >
-          {isIconOnly ? (
-            <div className="relative">
-              {getScopeIcon(currentScope)}
-              {/* Privacy indicator dot - shows current privacy level color */}
-              <span
-                className={cn(
-                  'absolute -bottom-0.5 -right-0.5 size-2 rounded-full border border-background',
-                  currentScope === AssetScope.PUBLIC && 'bg-categorical-violet',
-                  currentScope === AssetScope.ORGANIZATION &&
-                    'bg-categorical-emerald',
-                  currentScope === AssetScope.BRAND && 'bg-categorical-blue',
-                  currentScope === AssetScope.USER && 'bg-muted-foreground',
-                )}
-              />
-            </div>
-          ) : (
-            currentMeta.label
-          )}
-        </Button>
+    <OptionSelect
+      ariaLabel={`Privacy: ${currentMeta.label} - Click to change`}
+      className={
+        isIconOnly
+          ? cn(className, 'relative')
+          : cn(
+              'h-auto w-auto cursor-pointer border px-2.5 py-0.5 font-medium text-xs uppercase transition-opacity hover:opacity-80',
+              currentMeta.variant,
+              className,
+            )
       }
-    >
-      {SCOPE_OPTIONS.map((opt) => {
-        const isActive = opt.value === currentScope;
-        const scopeIcon = getScopeIcon(opt.value);
-
-        return (
-          <Button
-            key={opt.value}
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            className={cn(
-              'flex items-center gap-3 w-full px-4 py-2.5 text-sm',
-              'font-medium transition-colors duration-150 cursor-pointer',
-              'hover:bg-background/80',
-              isActive && 'bg-background/60',
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleChange(opt.value);
-            }}
-          >
-            {/* Scope Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 size-4 flex items-center justify-center',
-                'transition-colors duration-150',
-                isActive
-                  ? getActiveIconColorClass(opt.variant)
-                  : 'text-foreground/50',
-              )}
-            >
-              {scopeIcon}
-            </div>
-
-            {/* Scope Label */}
-            <span
-              className={cn(
-                'flex-1 text-left capitalize',
-                isActive
-                  ? 'text-foreground font-semibold'
-                  : 'text-foreground/80',
-              )}
-            >
-              {opt.label}
-            </span>
-
-            {/* Active Indicator */}
-            {isActive && (
-              <Check
-                size={18}
-                className="flex-shrink-0 text-success"
-                aria-hidden="true"
-              />
-            )}
-          </Button>
-        );
-      })}
-    </Dropdown>
+      isIconOnly={isIconOnly}
+      isIndicatorHidden
+      onValueChange={(next) => void handleChange(next as AssetScope)}
+      options={SCOPE_OPTIONS.map((option) => ({
+        icon: <ScopeIcon scope={option.value} />,
+        label: option.label,
+        value: option.value,
+      }))}
+      value={currentScope}
+    />
   );
 }
