@@ -227,7 +227,14 @@ export class ChannelMessageDispatcherService {
           return this.discordService.sendLowCreditsAlert(payload);
         }
         break;
-      case 'ingestion_health':
+      case 'ingestion_health': {
+        const card = readPayloadRecord(payload, 'card');
+        return this.discordService.sendAlertNotification({
+          color: typeof card?.color === 'number' ? card.color : 0xef4444,
+          description: String(card?.description ?? ''),
+          title: String(card?.title ?? 'Genfeed alert'),
+        });
+      }
       case 'streak_at_risk':
       case 'streak_broken':
       case 'streak_freeze_used':

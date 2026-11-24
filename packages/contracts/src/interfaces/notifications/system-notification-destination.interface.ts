@@ -24,12 +24,13 @@ export interface ISystemNotificationDestinationInput {
 export interface IDiscordTransportStatus {
   isBotConfigured: boolean;
   isBotReady: boolean;
-  /** Platform-settings channels (users, studio, posts, deployments) with no channel ID. */
+  /** Platform-settings channels (users, studio, posts, deployments, alerts) with no channel ID. */
   missingChannels: string[];
 }
 
 /** Platform-settings Discord channels the operator bot can post a test message to. */
 export type DiscordTestChannel =
+  | 'alerts'
   | 'billing'
   | 'deployments'
   | 'models'

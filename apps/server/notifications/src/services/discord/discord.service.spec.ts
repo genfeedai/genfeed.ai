@@ -49,6 +49,7 @@ describe('DiscordService', () => {
 
   const mockDiscordBotService = {
     botReady: false,
+    getAlertsWebhook: vi.fn(),
     getBillingWebhook: vi.fn(),
     getDeploymentsWebhook: vi.fn(),
     getIngredientsWebhook: vi.fn(),
@@ -355,7 +356,7 @@ describe('DiscordService', () => {
       await expect(service.status()).resolves.toEqual({
         isBotConfigured: true,
         isBotReady: false,
-        missingChannels: ['deployments', 'models', 'posts', 'studio'],
+        missingChannels: ['alerts', 'deployments', 'models', 'posts', 'studio'],
       });
     });
 
@@ -606,6 +607,38 @@ describe('DiscordService', () => {
         expect.stringContaining('failed'),
         expect.any(Error),
       );
+    });
+  });
+
+  describe('sendAlertNotification', () => {
+    it('posts an operator alert card to the alerts channel, not the posts channel', async () => {
+      mockDiscordBotService.getAlertsWebhook.mockResolvedValue(
+        mockWebhookClient,
+      );
+      const { service } = await createService();
+
+      await service.sendAlertNotification({
+        description: 'twitter trends has no successful refresh',
+        title: 'Trend ingestion missed two scheduled windows',
+      });
+
+      const embed = lastSendPayload().embeds?.[0] as {
+        color: number;
+        title: string;
+      };
+      expect(embed.title).toBe('Trend ingestion missed two scheduled windows');
+      expect(embed.color).toBe(0xef4444);
+      expect(mockDiscordBotService.getPostsWebhook).not.toHaveBeenCalled();
+    });
+
+    it('skips the alert when no alerts channel is set', async () => {
+      mockDiscordBotService.getAlertsWebhook.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await expect(
+        service.sendAlertNotification({ description: 'd', title: 't' }),
+      ).resolves.toBe(false);
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
 

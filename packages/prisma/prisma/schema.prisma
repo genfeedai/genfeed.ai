@@ -2072,6 +2072,7 @@ model PlatformSetting {
   discordChannelIdUsers String?
   discordChannelIdModels String?
   discordChannelIdBilling String?
+  discordChannelIdAlerts String?
   discordBotAvatarUrl String?
   discordWebhookNamePrefix String?
   discordWebhookReason String?

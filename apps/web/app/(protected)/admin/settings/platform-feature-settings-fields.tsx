@@ -742,6 +742,10 @@ export default function PlatformFeatureSettingsFields({
             'discordChannelIdBilling',
             translate('runtime.discordChannelIdBilling'),
           )}
+          {nullableTextField(
+            'discordChannelIdAlerts',
+            translate('runtime.discordChannelIdAlerts'),
+          )}
         </PlatformSettingsGroup>
         <PlatformSettingsGroup title={translate('discord.webhooksHeading')}>
           {nullableTextField(

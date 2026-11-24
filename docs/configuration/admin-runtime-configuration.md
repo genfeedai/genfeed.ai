@@ -40,6 +40,7 @@ The importer never changes the recording window, clears delivery history, or rep
 | `DISCORD_CHANNEL_ID_USERS` | Discord users channel (`discordChannelIdUsers`) |
 | `DISCORD_CHANNEL_ID_MODELS` | Discord models channel (`discordChannelIdModels`) |
 | `DISCORD_CHANNEL_ID_BILLING` | Discord billing channel for credit and revenue alerts; unset, they post to the users channel (`discordChannelIdBilling`) |
+| `DISCORD_CHANNEL_ID_ALERTS` | Discord alerts channel for operator alerts (trend ingestion health, provider budget); unset, they are skipped, never posted to the posts channel (`discordChannelIdAlerts`) |
 | `DISCORD_BOT_AVATAR_URL` | Discord notification avatar URL (`discordBotAvatarUrl`) |
 | `DISCORD_WEBHOOK_NAME_PREFIX` | Discord webhook name prefix (`discordWebhookNamePrefix`) |
 | `DISCORD_WEBHOOK_REASON` | Discord webhook creation reason (`discordWebhookReason`) |
