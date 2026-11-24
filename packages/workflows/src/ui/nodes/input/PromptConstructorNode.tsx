@@ -11,6 +11,7 @@ import { Textarea } from '@genfeedai/ui';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { SegmentedControl } from '@genfeedai/ui/primitives/segmented-control';
+import { SuggestionItem } from '@genfeedai/ui/primitives/suggestion-list';
 import type { NodeProps } from '@xyflow/react';
 import { Braces, Expand, Type } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
