@@ -276,6 +276,16 @@ export function runtimeComplexityEntryKeys(content: string): string[] {
   );
 }
 
+/**
+ * The boot heap budget is JSON with one number, in megabytes. Each megabyte is
+ * one entry, so raising the budget is growth and lowering it is not.
+ */
+export function bootHeapEntryKeys(content: string): string[] {
+  const parsed = JSON.parse(content) as { budgetMb: number };
+
+  return Array.from({ length: parsed.budgetMb }, () => 'boot-heap-mb');
+}
+
 export const RATCHET_SOURCES: readonly RatchetSource[] = [
   {
     entryKeys: crossOrgEntryKeys,
@@ -380,6 +390,13 @@ export const RATCHET_SOURCES: readonly RatchetSource[] = [
     instead:
       'go through resolveBillingAccountAccess instead of importing registerBillingAccountScope',
     name: 'billing account scope registrations',
+  },
+  {
+    entryKeys: bootHeapEntryKeys,
+    file: 'scripts/architecture/boot-heap.baseline.json',
+    instead:
+      'load the heavy dependency on demand (a dynamic import() at its one call site) instead of raising the boot heap budget',
+    name: 'boot heap budget (MB)',
   },
 ];
 
