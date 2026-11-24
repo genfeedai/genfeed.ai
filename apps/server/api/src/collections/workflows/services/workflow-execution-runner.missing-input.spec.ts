@@ -1,7 +1,11 @@
+import { sumPersistedNodeCredits } from '@api/collections/workflow-executions/services/workflow-node-credits';
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionRunnerService } from '@api/collections/workflows/services/workflow-execution-runner.service';
-import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
+import type {
+  DelayResumeJobData,
+  TriggerEvent,
+} from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import {
   WorkflowExecutionStatus,
@@ -9,6 +13,10 @@ import {
 } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock(
+  '@api/collections/workflow-executions/services/workflow-node-credits',
+  () => ({ sumPersistedNodeCredits: vi.fn().mockResolvedValue(0) }),
+);
 vi.mock(
   '@api/collections/workflow-executions/services/workflow-cost-estimate',
   () => ({ captureWorkflowCostEstimate: vi.fn().mockResolvedValue(undefined) }),
@@ -214,5 +222,83 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
     expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
     expect(createdExecutions).toEqual(['execution-1']);
     expect(dispatchedGraphs).toEqual([['generate']]);
+  });
+
+  describe('resuming a delayed run', () => {
+    const resumeJob = (): DelayResumeJobData => ({
+      delayNodeId: 'delay-1',
+      executionId: 'execution-1',
+      nodeOutputCache: {},
+      organizationId: 'org-1',
+      remainingNodeIds: ['library-video'],
+      triggerEvent: eventWith({}),
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+    });
+    // The recorded execution, as the partial run left it.
+    const recordExecution = (metadata: Record<string, unknown>) => {
+      const recorded = {
+        metadata,
+        startedAt: new Date('2026-01-01T00:00:00.000Z'),
+        userId: 'user-1',
+        workflowVersionId: 'version-1',
+      };
+      const resumedExecutions = {
+        ...executionsService,
+        completeExecution: async () => ({ metadata: undefined }),
+        findOne: async () => recorded,
+        getRuntimeState: async () => recorded,
+      };
+
+      return new WorkflowExecutionRunnerService(
+        {
+          $transaction: async (work: (tx: unknown) => Promise<unknown>) =>
+            work({}),
+          member: { findFirst: async () => ({ id: 'member-1' }) },
+          workflow: { update: async () => undefined },
+          workflowExecution: { count: async () => 0 },
+        } as never,
+        logger as never,
+        engineAdapter as never,
+        resumedExecutions as never,
+        {
+          findPinnedWorkflow: async () => workflowDoc,
+          getWorkflowLabel: () => 'Review workflow',
+        } as never,
+        new WorkflowExecutionGraphService(),
+        {
+          ...progressService,
+          extractEstimatedDurationMs: () => undefined,
+          publishWorkflowStatus: async () => undefined,
+        } as never,
+        finalizer as never,
+        graphRunner as never,
+        undefined,
+      );
+    };
+
+    it('asks only for the inputs upstream of the nodes the partial run selected', async () => {
+      vi.mocked(sumPersistedNodeCredits).mockResolvedValue(0);
+      const resumed = recordExecution({
+        executionMode: 'partial',
+        selectedNodeIds: ['library-video'],
+      });
+
+      const result = await resumed.resumeAfterDelay(resumeJob());
+
+      expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
+      expect(dispatchedGraphs).toHaveLength(1);
+    });
+
+    it('still asks for every required input when the run was a full one', async () => {
+      const resumed = recordExecution({ executionMode: 'full' });
+
+      const failure = await resumed
+        .resumeAfterDelay(resumeJob())
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(WorkflowMissingInputException);
+      expect(dispatchedGraphs).toEqual([]);
+    });
   });
 });

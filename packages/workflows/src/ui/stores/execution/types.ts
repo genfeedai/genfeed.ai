@@ -68,7 +68,12 @@ export interface NodeExecution {
 export type MissingInputTarget =
   | { kind: 'workflow' }
   | { kind: 'selected' }
-  | { kind: 'node'; nodeId: string };
+  | { kind: 'node'; nodeId: string }
+  /** A run the host page owns: it is sent again by calling `run`. */
+  | {
+      kind: 'run';
+      run: (inputValues: Record<string, unknown>) => Promise<void>;
+    };
 
 /**
  * A run the API refused because required inputs have no value. The editor asks
@@ -111,6 +116,8 @@ export interface ExecutionActions {
   executeNode: (nodeId: string, options?: ExecuteOptions) => Promise<void>;
   /** Runs the refused run again with the values the user entered. */
   submitMissingInputs: (inputValues: Record<string, unknown>) => Promise<void>;
+  /** Asks for the inputs a run started outside the store was refused for. */
+  requestMissingInputs: (request: MissingInputRequest) => void;
   /** Drops the refused run; nothing is sent. */
   dismissMissingInputs: () => void;
   resumeFromFailed: () => Promise<void>;

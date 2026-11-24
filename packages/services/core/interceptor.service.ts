@@ -2,6 +2,7 @@ import { ModalEnum } from '@genfeedai/contracts';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
+  WORKFLOW_MISSING_INPUT_CODE,
 } from '@genfeedai/contracts/constants';
 import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
 import type {
@@ -573,6 +574,12 @@ export abstract class HTTPBaseService {
           .errors as Array<Record<string, unknown>>;
         if (errors.length > 0) {
           const firstError = errors[0];
+          // The missing-input list is the user's own workflow definition, and
+          // the editor needs it to ask for the values, however long the
+          // detail line grows with the number of inputs.
+          if (firstError.code === WORKFLOW_MISSING_INPUT_CODE) {
+            throw response.data;
+          }
           // Only include safe error messages
           if (
             firstError.detail &&

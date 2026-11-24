@@ -14,6 +14,7 @@ import type {
   ExecuteOptions,
   ExecutionData,
   ExecutionStore,
+  MissingInputRequest,
   MissingInputTarget,
   NodeExecution,
 } from '../types';
@@ -82,6 +83,7 @@ export interface ExecutionSlice {
   executeNode: (nodeId: string, options?: ExecuteOptions) => Promise<void>;
   submitMissingInputs: (inputValues: Record<string, unknown>) => Promise<void>;
   dismissMissingInputs: () => void;
+  requestMissingInputs: (request: MissingInputRequest) => void;
   resumeFromFailed: () => Promise<void>;
   stopExecution: () => void;
   stopNodeExecution: (nodeId: string) => void;
@@ -385,6 +387,10 @@ export const createExecutionSlice: StateCreator<
     return activeNodeExecutions.has(nodeId);
   },
 
+  requestMissingInputs: (request) => {
+    set({ missingInputRequest: request });
+  },
+
   submitMissingInputs: async (inputValues) => {
     const request = get().missingInputRequest;
     if (!request) return;
@@ -395,7 +401,9 @@ export const createExecutionSlice: StateCreator<
     };
     const target: MissingInputTarget = request.target;
 
-    if (target.kind === 'node') {
+    if (target.kind === 'run') {
+      await target.run(options.inputValues ?? {});
+    } else if (target.kind === 'node') {
       await get().executeNode(target.nodeId, options);
     } else if (target.kind === 'selected') {
       await get().executeSelectedNodes(options);

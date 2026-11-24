@@ -57,6 +57,32 @@ describe('readMissingWorkflowInputs', () => {
   });
 
   it.each([
+    [
+      'the raw JSON:API document the axios services reject with',
+      (body: object) => body,
+    ],
+    [
+      'the response data of a rejected axios request',
+      (body: object) => ({ response: { data: body } }),
+    ],
+  ])('reads the list from %s', (_name, wrap) => {
+    const body = {
+      errors: [
+        {
+          code: 'WORKFLOW_MISSING_INPUT',
+          meta: {
+            missingInputs: [{ label: 'Topic', name: 'topic', type: 'text' }],
+          },
+        },
+      ],
+    };
+
+    expect(readMissingWorkflowInputs(wrap(body))).toEqual([
+      { label: 'Topic', name: 'topic', type: 'text' },
+    ]);
+  });
+
+  it.each([
     ['another API error', apiError({ code: '400', detail: 'Bad request' })],
     [
       'a code without a list',

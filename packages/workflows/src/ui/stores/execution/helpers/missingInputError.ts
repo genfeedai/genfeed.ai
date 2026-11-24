@@ -22,6 +22,25 @@ function readMissingInput(value: unknown): WorkflowMissingInput | null {
 }
 
 /**
+ * The JSON:API error document behind a failed request. The fetch client keeps
+ * it on `error.data`; the axios services reject with the document itself
+ * (`errors` member) or carry it on `error.response.data`.
+ */
+function readErrorBody(error: unknown): unknown {
+  if (!isRecord(error)) {
+    return undefined;
+  }
+  if (Array.isArray(error.errors)) {
+    return error;
+  }
+  if (isRecord(error.data)) {
+    return error.data;
+  }
+
+  return isRecord(error.response) ? error.response.data : undefined;
+}
+
+/**
  * The inputs a rejected run reports missing, or `null` when the failure is any
  * other error. The API answers 400 with the stable `WORKFLOW_MISSING_INPUT`
  * code and lists every missing input in the first JSON:API error's
@@ -30,7 +49,7 @@ function readMissingInput(value: unknown): WorkflowMissingInput | null {
 export function readMissingWorkflowInputs(
   error: unknown,
 ): WorkflowMissingInput[] | null {
-  const body = isRecord(error) ? error.data : undefined;
+  const body = readErrorBody(error);
   const members =
     isRecord(body) && Array.isArray(body.errors) ? body.errors : [];
   const member = members.find(
