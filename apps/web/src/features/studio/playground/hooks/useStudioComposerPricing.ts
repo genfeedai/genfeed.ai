@@ -12,6 +12,7 @@ import type {
   StudioPlaygroundSettings,
   StudioPlaygroundType,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { buildVideoDraftSettings } from '@genfeedai/helpers/media/video-draft/video-draft.helper';
 import {
   buildStudioAutoGenerationQuoteRequest,
   buildStudioGenerationQuoteRequest,
@@ -34,7 +35,6 @@ import {
   buildStudioPromptData,
   resolveModelKey,
 } from '@/features/studio/playground/utils/studio-playground-settings';
-import { buildVideoDraftSettings } from '@/features/studio/playground/utils/studio-video-draft';
 import type { StudioSpendSource } from '@/features/studio/props/studio-playground.props';
 
 const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;

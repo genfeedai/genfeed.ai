@@ -65,6 +65,7 @@ export const MEDIA_GENERATION_TYPE_PARAMETERS: Readonly<
     'duration',
     'endFrame',
     'imageUrl',
+    'isDraft',
     'videoReferences',
   ]),
   voice: new Set([...SHARED_PARAMETERS, 'voiceId']),

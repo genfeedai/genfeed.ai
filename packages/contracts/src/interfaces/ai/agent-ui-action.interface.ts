@@ -488,6 +488,12 @@ export interface AgentGenerationActionParams {
   avatarPhotoUrl?: string;
   duration?: number;
   endFrame?: string;
+  /**
+   * Video only. False asks for the full render without the draft first pass
+   * (#7727); anything else starts the card as a draft the user approves into
+   * the full render.
+   */
+  isDraft?: boolean;
   model?: string;
   outputs?: number;
   prioritize?: string;

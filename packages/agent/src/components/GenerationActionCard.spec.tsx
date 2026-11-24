@@ -1991,6 +1991,7 @@ describe('GenerationActionCard', () => {
         action={{
           generationParams: {
             duration: 10,
+            model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
             prompt: 'A presenter walking through neon rain.',
           },
           generationType: 'video',
@@ -2058,6 +2059,7 @@ describe('GenerationActionCard', () => {
         action={{
           generationParams: {
             duration: 10,
+            model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
             prompt: 'A presenter walking through neon rain.',
           },
           generationType: 'video',
@@ -2095,6 +2097,172 @@ describe('GenerationActionCard', () => {
     expect(
       screen.queryByRole('button', { name: /generate video/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('video draft first (#7727)', () => {
+    const veo = createModel({
+      category: ModelCategory.VIDEO,
+      draftModelKeys: [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE],
+      durations: [5, 10],
+      key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+      label: 'Veo 3.1',
+    });
+    const veoLite = createModel({
+      category: ModelCategory.VIDEO,
+      durations: [5, 10],
+      key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+      label: 'Veo 3.1 Lite',
+    });
+    const credits: Record<string, number> = {
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1]: 400,
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE]: 60,
+    };
+    // A routed (Auto) quote resolves Veo 3.1; a pinned one echoes its model.
+    const quoteByModel = () =>
+      vi.fn().mockImplementation(async (input: { modelKey?: string }) => ({
+        credits: credits[input.modelKey ?? veo.key],
+        isAvailable: true,
+        modelKey: input.modelKey ?? veo.key,
+      }));
+    const videoAction = (
+      id: string,
+      generationParams: Record<string, unknown> = {},
+    ) => ({
+      generationParams: {
+        duration: 10,
+        prompt: 'A presenter walking through neon rain.',
+        resolution: '1080p',
+        ...generationParams,
+      },
+      generationType: 'video' as const,
+      id,
+      title: 'Generate Video',
+      type: 'generation_action_card' as const,
+    });
+
+    it('quotes and runs the draft first, then quotes and runs the full render on approval', async () => {
+      const estimateGenerationCredits = quoteByModel();
+      const generateIngredient = vi
+        .fn()
+        .mockResolvedValue({ id: 'video-1', url: 'https://cdn.test/v.mp4' });
+
+      renderGenerationActionCard(
+        <GenerationActionCard
+          action={videoAction('action-draft-first', { model: veo.key })}
+          apiService={createApiServiceMock({
+            estimateGenerationCredits,
+            generateIngredient,
+            models: [veo, veoLite],
+          })}
+        />,
+      );
+
+      await clickGenerate('video');
+      await screen.findByText(
+        'Review this 5s pilot before the full-length run',
+      );
+
+      // The first quote and the first run are the draft: the Lite sibling,
+      // its lowest resolution and its shortest length.
+      expect(estimateGenerationCredits).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duration: 5,
+          modelKey: veoLite.key,
+          resolution: '720p',
+        }),
+        expect.any(AbortSignal),
+      );
+      expect(generateIngredient).toHaveBeenCalledTimes(1);
+      expect(generateIngredient.mock.calls[0]?.[1]).toMatchObject({
+        duration: 5,
+        isDraft: true,
+        model: veoLite.key,
+        resolution: '720p',
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Accept the pilot and generate the full-length video',
+        }),
+      );
+      await clickGenerate('video');
+
+      // The full render runs the requested settings, unflagged, quoted first.
+      await waitFor(() => expect(generateIngredient).toHaveBeenCalledTimes(2));
+      expect(estimateGenerationCredits).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          duration: 10,
+          modelKey: veo.key,
+          resolution: '1080p',
+        }),
+        expect.any(AbortSignal),
+      );
+      const fullBody = generateIngredient.mock.calls[1]?.[1];
+      expect(fullBody).toMatchObject({
+        duration: 10,
+        model: veo.key,
+        resolution: '1080p',
+      });
+      expect(fullBody).not.toHaveProperty('isDraft');
+    });
+
+    it('runs the full render at once when the request asks for it', async () => {
+      const estimateGenerationCredits = quoteByModel();
+      const generateIngredient = vi
+        .fn()
+        .mockResolvedValue({ id: 'video-1', url: 'https://cdn.test/v.mp4' });
+
+      renderGenerationActionCard(
+        <GenerationActionCard
+          action={videoAction('action-full-render', {
+            isDraft: false,
+            model: veo.key,
+          })}
+          apiService={createApiServiceMock({
+            estimateGenerationCredits,
+            generateIngredient,
+            models: [veo, veoLite],
+          })}
+        />,
+      );
+
+      await clickGenerate('video');
+
+      await waitFor(() => expect(generateIngredient).toHaveBeenCalledTimes(1));
+      const body = generateIngredient.mock.calls[0]?.[1];
+      expect(body).toMatchObject({ duration: 10, model: veo.key });
+      expect(body).not.toHaveProperty('isDraft');
+      expect(
+        screen.queryByText('Review this 5s pilot before the full-length run'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('drafts the model Auto routed to, and sends the draft for confirmation', async () => {
+      const onUiAction = acceptingUiAction();
+
+      renderGenerationActionCard(
+        <GenerationActionCard
+          action={videoAction('action-auto-draft')}
+          apiService={createApiServiceMock({
+            estimateGenerationCredits: quoteByModel(),
+            models: [veo, veoLite],
+          })}
+          onUiAction={onUiAction}
+        />,
+      );
+
+      await clickGenerate('video');
+
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({
+          duration: 5,
+          isDraft: true,
+          model: veoLite.key,
+          resolution: '720p',
+        }),
+      );
+    });
   });
 
   it('shows the resolved model and credit estimate for an image review', async () => {
@@ -2151,6 +2319,7 @@ describe('GenerationActionCard', () => {
         action={{
           generationParams: {
             duration: 10,
+            model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
             prompt: 'A presenter walking through neon rain.',
           },
           generationType: 'video',
@@ -2779,6 +2948,7 @@ describe('GenerationActionCard', () => {
     const videoPilotAction = (id: string) => ({
       generationParams: {
         duration: 10,
+        model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
         prompt: 'A presenter walking through neon rain.',
       },
       generationType: 'video' as const,

@@ -31,7 +31,6 @@ import {
   resolveStudioHandoffIdentityFromSettings,
   resolveStudioHandoffType,
 } from '@genfeedai/agent/utils/studio-handoff-identity.util';
-import { resolveVideoPilotDuration } from '@genfeedai/agent/utils/video-pilot-gate.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ModelCategory,
@@ -50,6 +49,7 @@ import {
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
 import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import { buildVideoDraftSettings } from '@genfeedai/helpers/media/video-draft/video-draft.helper';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
@@ -530,19 +530,13 @@ export function useGenerationActionCard({
     }
   }, []);
 
-  const requestDuration =
-    generationType === 'video'
-      ? isFullRun
-        ? duration
-        : (resolveVideoPilotDuration(duration, durationOptions) ?? duration)
-      : undefined;
   // #4813 The quote carries every input the charge prices: the aspect ratio
   // resolves the executed dimensions for per-megapixel models.
-  const estimateInput = useMemo(
+  const fullEstimateInput = useMemo(
     () => ({
       aspectRatio,
       category: generationType,
-      duration: requestDuration,
+      duration: generationType === 'video' ? duration : undefined,
       modelKey: isAutoMode ? undefined : modelKey || undefined,
       outputs: generationType === 'image' ? outputs : undefined,
       prioritize,
@@ -552,7 +546,7 @@ export function useGenerationActionCard({
     [
       aspectRatio,
       generationType,
-      requestDuration,
+      duration,
       isAutoMode,
       modelKey,
       outputs,
@@ -561,9 +555,7 @@ export function useGenerationActionCard({
       resolution,
     ],
   );
-  const estimateFingerprint = JSON.stringify([
-    estimateInput,
-    isAutoMode,
+  const referenceFingerprint = [
     referenceIds,
     startFrameId,
     endFrameId,
@@ -571,19 +563,64 @@ export function useGenerationActionCard({
     organizationId,
     brandId,
     activeThreadId,
-  ]);
+  ];
+  // #7727 A video starts as a draft: the same cheap settings Studio drafts
+  // with (a fast sibling, the lowest resolution, the shortest length), quoted
+  // and run first. Accepting the draft arms the full render, which is quoted
+  // at the settings above. A picked model drafts at once; Auto drafts the
+  // model its own full quote routed to, so that quote stays on for Auto.
+  const isDraftRequested =
+    generationType === 'video' && !isFullRun && initParams?.isDraft !== false;
+  const draftFor = (draftModelKey: string | null | undefined) =>
+    isDraftRequested && draftModelKey
+      ? buildVideoDraftSettings(
+          {
+            duration,
+            isAudioEnabled: false,
+            modelKey: draftModelKey,
+            outputs: 1,
+            resolution,
+          },
+          filteredModels,
+        )
+      : null;
+  const pickedModelDraft = isAutoMode ? null : draftFor(modelKey);
+  const fullQuote = useGenerationQuote(
+    apiService,
+    fullEstimateInput,
+    JSON.stringify([fullEstimateInput, isAutoMode, referenceFingerprint]),
+    (isAutoMode || Boolean(modelKey)) && pickedModelDraft === null,
+  );
+  const draft = isAutoMode
+    ? draftFor(fullQuote.resolvedModelKey)
+    : pickedModelDraft;
+  // Scalars, so the quote input stays referentially stable across renders.
+  const isDraftRun = draft !== null;
+  const draftModelKey = draft?.modelKey;
+  const draftDuration = draft?.duration;
+  const draftResolution = draft?.resolution;
+  const draftEstimateInput = useMemo(
+    () => ({
+      ...fullEstimateInput,
+      duration: draftDuration ?? fullEstimateInput.duration,
+      modelKey: draftModelKey,
+      resolution: draftResolution || undefined,
+    }),
+    [draftDuration, draftModelKey, draftResolution, fullEstimateInput],
+  );
+  const draftQuote = useGenerationQuote(
+    apiService,
+    draftEstimateInput,
+    JSON.stringify([draftEstimateInput, referenceFingerprint]),
+    isDraftRun,
+  );
   const {
     estimatedCredits,
     isEstimateAvailable,
     isEstimatePending,
     resolvedModelKey,
     unavailableReason: estimateUnavailableReason,
-  } = useGenerationQuote(
-    apiService,
-    estimateInput,
-    estimateFingerprint,
-    isAutoMode || Boolean(modelKey),
-  );
+  } = isDraftRun ? draftQuote : fullQuote;
 
   const handleGenerate = useCallback(async () => {
     if (
@@ -642,18 +679,13 @@ export function useGenerationActionCard({
       return;
     }
 
-    const pilotDuration =
-      generationType === 'video'
-        ? resolveVideoPilotDuration(duration, durationOptions)
-        : null;
     const requestDuration =
-      generationType === 'video'
-        ? isFullRun
-          ? duration
-          : (pilotDuration ?? duration)
-        : undefined;
+      generationType === 'video' ? (draftDuration ?? duration) : undefined;
+    const requestResolution = isDraftRun
+      ? draftResolution || undefined
+      : resolution || undefined;
     dispatchCard({
-      pilotDurationSeconds: pilotDuration,
+      pilotDurationSeconds: isDraftRun ? (requestDuration ?? null) : null,
       startedAt: Date.now(),
       type: 'generation_started',
     });
@@ -682,6 +714,7 @@ export function useGenerationActionCard({
           duration: requestDuration,
           endFrame: endFrameId ?? undefined,
           generationType,
+          ...(isDraftRun ? { isDraft: true } : {}),
           model: resolvedModelKey,
           outputs: generationType === 'image' ? outputs : undefined,
           prioritize,
@@ -692,7 +725,7 @@ export function useGenerationActionCard({
               : referenceIds.length > 0
                 ? referenceIds
                 : undefined,
-          resolution: resolution || undefined,
+          resolution: requestResolution,
           sourceActionId: action.id,
           videoReferences:
             videoReferenceIds.length > 0 ? videoReferenceIds : undefined,
@@ -732,6 +765,7 @@ export function useGenerationActionCard({
         brandId: brandId || undefined,
         duration: requestDuration,
         endFrame: endFrameId ?? undefined,
+        isDraft: isDraftRun,
         modelKey: resolvedModelKey,
         outputs: generationType === 'image' ? outputs : undefined,
         prioritize,
@@ -743,7 +777,7 @@ export function useGenerationActionCard({
             : referenceIds.length > 0
               ? referenceIds
               : undefined,
-        resolution: resolution || undefined,
+        resolution: requestResolution,
         videoReferences:
           videoReferenceIds.length > 0 ? videoReferenceIds : undefined,
       });
@@ -809,7 +843,6 @@ export function useGenerationActionCard({
     modelKey,
     aspectRatio,
     duration,
-    durationOptions,
     endFrameId,
     outputs,
     generationType,
@@ -824,7 +857,9 @@ export function useGenerationActionCard({
     setThreadUiBusy,
     isAllowlistEmpty,
     videoReferenceIds,
-    isFullRun,
+    draftDuration,
+    draftResolution,
+    isDraftRun,
     isEstimateAvailable,
     resolvedModelKey,
     isDeclining,

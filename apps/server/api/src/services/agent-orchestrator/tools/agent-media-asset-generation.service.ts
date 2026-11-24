@@ -552,6 +552,9 @@ export class AgentMediaAssetGenerationService {
     let response: Record<string, unknown>;
     if (params.requestedSkillSlugs)
       body.requestedSkillSlugs = params.requestedSkillSlugs;
+    // The draft run is flagged so retry accounting and the Library tell the
+    // cheap first pass from the full render; its price follows its settings.
+    if (params.isDraft === true) body.isDraft = true;
     Object.assign(body, pickMediaGenerationOverrides(params));
     try {
       response = toMediaResponseRecord(

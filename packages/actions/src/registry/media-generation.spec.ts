@@ -12,6 +12,30 @@ import {
 } from './media-generation';
 import { getToolByName } from './tool-registry';
 
+describe('draft applicability (#7727)', () => {
+  it('accepts isDraft on a video', () => {
+    expect(
+      findInapplicableMediaGenerationParameters('video', { isDraft: false }),
+    ).toEqual([]);
+  });
+
+  it.each(['image', 'voice', 'music', 'avatar'] as const)(
+    'rejects isDraft on %s, which has no draft render',
+    (type) => {
+      expect(
+        findInapplicableMediaGenerationParameters(type, { isDraft: true }),
+      ).toEqual(['isDraft']);
+    },
+  );
+
+  it('tells the model that a video starts as a draft and how to skip it', () => {
+    const generate = getToolByName(MEDIA_GENERATION_TOOL_NAME);
+    expect(generate?.parameters.properties).toHaveProperty('isDraft');
+    expect(generate?.description).toContain('starts as a draft');
+    expect(generate?.description).toContain('isDraft false');
+  });
+});
+
 describe('brand mode applicability', () => {
   it.each(['image', 'video'] as const)('accepts brandMode on %s', (type) => {
     expect(

@@ -1617,6 +1617,40 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
     });
   });
 
+  it('flags the draft run of a video and leaves the full render unflagged (#7727)', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
+      data: { attributes: { status: 'processing' }, id: 'video-queued' },
+    });
+
+    await handler.generate(
+      { duration: 4, isDraft: true, prompt: 'red apple', type: 'video' },
+      context,
+    );
+    await handler.generate({ prompt: 'red apple', type: 'video' }, context);
+
+    const [draft, full] = gateway.generateVideo.mock.calls.map(
+      ([input]) => input.body,
+    );
+    expect(draft).toMatchObject({ duration: 4, isDraft: true });
+    expect(full).not.toHaveProperty('isDraft');
+  });
+
+  it('rejects a draft flag on an image, which has no draft render (#7727)', async () => {
+    const { gateway, handler } = createHandler();
+
+    const result = await handler.generate(
+      { isDraft: true, prompt: 'red apple', type: 'image' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      error: 'isDraft does not apply to type image',
+      success: false,
+    });
+    expect(gateway.generateImage).not.toHaveBeenCalled();
+  });
+
   it('does not claim success when video generation returns no asset id', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateVideo.mockResolvedValue({
