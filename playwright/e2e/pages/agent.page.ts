@@ -115,8 +115,12 @@ export class AgentPage {
     await this.page.getByRole('menuitemradio', { name: /^Plan/ }).click();
   }
 
-  platformButton(platform: string): Locator {
-    return this.page.getByRole('button', { name: platform });
+  /**
+   * A platform in the publish card's account row. The avatar's accessible name
+   * is the platform's display label ("LinkedIn", "X"), not its id.
+   */
+  platformButton(platformLabel: string): Locator {
+    return this.page.getByRole('button', { exact: true, name: platformLabel });
   }
 
   confirmPublishButton(): Locator {
