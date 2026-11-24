@@ -50,6 +50,27 @@ describe('PlatformBadge', () => {
     expect(container.firstElementChild).not.toHaveAttribute('aria-label');
   });
 
+  it('draws a logo-only badge as a square tile, not a padded pill', () => {
+    const { container, rerender } = render(
+      <PlatformBadge platform="youtube" showLabel={false} />,
+    );
+    expect(container.firstElementChild).toHaveClass('size-6', 'justify-center');
+    expect(container.firstElementChild).not.toHaveClass('px-2');
+
+    rerender(
+      <PlatformBadge
+        platform="youtube"
+        showLabel={false}
+        size={ComponentSize.LG}
+      />,
+    );
+    expect(container.firstElementChild).toHaveClass('size-10');
+
+    rerender(<PlatformBadge platform="youtube" size={ComponentSize.LG} />);
+    expect(container.firstElementChild).toHaveClass('px-2.5');
+    expect(container.firstElementChild).not.toHaveClass('size-10');
+  });
+
   it('should apply correct styles and classes', () => {
     const { rerender } = render(
       <PlatformBadge platform="youtube" size={ComponentSize.SM} />,
