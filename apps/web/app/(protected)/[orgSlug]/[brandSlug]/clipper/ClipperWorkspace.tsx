@@ -472,7 +472,6 @@ function ClipperProjectControls({
             <div className="mt-6 flex items-center justify-between">
               <Button
                 variant={ButtonVariant.LINK}
-                className="text-sm text-muted-foreground hover:text-foreground"
                 onClick={resetToInput}
                 label="Back"
               />
@@ -490,7 +489,7 @@ function ClipperProjectControls({
                       : !avatarId || !voiceId))
                 }
                 isLoading={isSubmitting}
-                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+                size={ButtonSize.LG}
                 icon={
                   isSubmitting ? (
                     <Spinner
@@ -515,7 +514,6 @@ function ClipperProjectControls({
           <div className="mt-4">
             <Button
               variant={ButtonVariant.LINK}
-              className="text-sm text-muted-foreground hover:text-foreground"
               onClick={resetToInput}
               label={t('backToProjects')}
             />

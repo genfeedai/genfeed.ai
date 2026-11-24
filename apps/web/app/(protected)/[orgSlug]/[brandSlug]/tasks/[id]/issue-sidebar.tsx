@@ -48,7 +48,6 @@ export default function IssueSidebar({
                         type="button"
                         variant={ButtonVariant.SECONDARY}
                         size={ButtonSize.XS}
-                        className="px-1.5 py-0.5 text-2xs text-muted-foreground hover:text-foreground"
                         onClick={() => onStatusUpdate(s)}
                       >
                         {statusLabels[s]}
