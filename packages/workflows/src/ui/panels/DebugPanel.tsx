@@ -6,6 +6,7 @@ import { Pre } from '@genfeedai/ui';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
+import DateText from '@genfeedai/ui/time/DateText';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
@@ -36,8 +37,6 @@ function PayloadCard({ payload }: PayloadCardProps) {
     [payload.input],
   );
 
-  const timestamp = new Date(payload.timestamp).toLocaleTimeString();
-
   return (
     <div className="border border-border overflow-hidden">
       <Button
@@ -61,7 +60,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
             </Badge>
           </div>
           <div className="text-2xs text-muted-foreground mt-0.5">
-            {payload.model} &bull; {timestamp}
+            {payload.model} &bull; <DateText value={payload.timestamp} />
           </div>
         </div>
       </Button>
