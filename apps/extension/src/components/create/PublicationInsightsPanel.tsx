@@ -3,6 +3,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import type { PublicationInsightDetailsProps } from '@genfeedai/props/extension/publication-insights.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
@@ -102,8 +103,8 @@ function PublicationInsightDetails({
               ),
             )}
           </dl>
-          <p>Sample date: {new Date(sample.date).toLocaleString()}</p>
-          <p>Last saved: {new Date(sample.updatedAt).toLocaleString()}</p>
+          <p>Sample date: {formatShortDate(sample.date)}</p>
+          <p>Last saved: {formatShortDate(sample.updatedAt)}</p>
         </>
       ) : (
         <p>
@@ -238,7 +239,7 @@ export function PublicationInsightsPanel() {
                           : 'Publication'}{' '}
                       · {item.description.slice(0, 80)}
                       {item.publicationDate
-                        ? ` · ${new Date(item.publicationDate).toLocaleString()}`
+                        ? ` · ${formatShortDate(item.publicationDate)}`
                         : ''}
                     </SelectItem>
                   ))}

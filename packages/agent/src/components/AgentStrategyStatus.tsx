@@ -6,6 +6,7 @@ import {
   formatCreditCost,
 } from '@genfeedai/contracts/constants';
 import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -34,7 +35,7 @@ function formatFutureTime(dateStr: string): string {
   if (diffHours < 24) {
     return `in ${diffHours}h`;
   }
-  return date.toLocaleDateString();
+  return formatShortDate(date, { hasTime: false });
 }
 
 export function AgentStrategyStatus({

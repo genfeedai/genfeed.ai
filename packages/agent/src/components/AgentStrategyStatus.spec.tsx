@@ -155,7 +155,7 @@ describe('AgentStrategyStatus', () => {
 
     render(<AgentStrategyStatus apiService={makeApi()} />);
 
-    expect(screen.getByText(/2026/)).toBeInTheDocument();
+    expect(screen.getByText('Jan 15')).toBeInTheDocument();
   });
 
   it('fills the budget bars proportionally', () => {
