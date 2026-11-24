@@ -106,6 +106,7 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES,
         workflowSchedules.sweep,
       ],
+      [PLATFORM_SCHEDULED_TASKS.ANALYTICS_COLLECT, workflowSchedules.sweep],
       [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC, workflowSchedules.sweep],
       [
         PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RECONCILE,
@@ -385,6 +386,17 @@ describe('PlatformSchedulesProcessor', () => {
     expect(workflowSchedules.sweep).toHaveBeenCalledWith(
       'analytics-sync',
       123456,
+    );
+  });
+
+  it('passes the scheduled timestamp to the platform collection sweep', async () => {
+    await processor.process({
+      name: 'analytics-collect',
+      timestamp: 654321,
+    } as Job);
+    expect(workflowSchedules.sweep).toHaveBeenCalledWith(
+      'analytics-collect',
+      654321,
     );
   });
 
