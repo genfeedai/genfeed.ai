@@ -1,5 +1,5 @@
 import type { IEconomicsOverviewReport } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import EconomicsOverviewReport from './overview-report';
@@ -8,6 +8,7 @@ const totals = {
   activeOrganizations: 3,
   creditsConsumed: 2_000,
   creditValueUsd: 20,
+  creditsPurchased: 5_000,
   grossMarginPercent: 80,
   grossMarginUsd: 16,
   llmCalls: 10,
@@ -74,6 +75,15 @@ describe('EconomicsOverviewReport', () => {
     expect(screen.getByText('Pricing margin · 80.0%')).toBeInTheDocument();
     expect(screen.getByText('+100%')).toBeInTheDocument();
     expect(screen.getByText('vs $10.00')).toBeInTheDocument();
+  });
+
+  it('shows credits burned against credits purchased on one tile', () => {
+    render(<EconomicsOverviewReport />);
+
+    const tile = screen
+      .getByText('Credits burned / purchased', { selector: 'p' })
+      .closest('[data-testid="metric-card"]') as HTMLElement;
+    expect(within(tile).getByText('2,000 / 5,000')).toBeInTheDocument();
   });
 
   it('draws the revenue and credit charts', () => {

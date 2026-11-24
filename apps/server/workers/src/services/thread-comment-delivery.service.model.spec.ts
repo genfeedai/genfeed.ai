@@ -7,6 +7,7 @@ import {
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
 import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -280,6 +281,15 @@ function realService(sim: Simulation, world: World): Sweep {
     { findOne: async () => ({ id: 'cred-1' }) } as never,
     { getPublisher: () => publisherDouble(sim, world) } as never,
     lock,
+    new ScheduledPostXBilling(
+      logger,
+      { isSubscriptionGatedFresh: async () => false } as never,
+      {
+        checkOrganizationCreditsAvailable: async () => true,
+        deductCreditsFromOrganization: async () => undefined,
+      } as never,
+      prismaDouble(sim, world) as never,
+    ),
   );
   return () => service.publishDueThreadComments();
 }

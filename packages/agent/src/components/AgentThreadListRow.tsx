@@ -286,11 +286,11 @@ export function AgentThreadListRow({
                 onMenuButtonRef(conv.id, element);
               }}
               variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
+              size={ButtonSize.MICRO}
               withWrapper={false}
               ariaLabel={`Thread actions for ${conv.title || 'thread'}`}
               className={cn(
-                'pointer-events-auto size-7 rounded-md p-1 text-muted-foreground transition-opacity hover:bg-foreground/5 hover:text-foreground/80',
+                'pointer-events-auto transition-opacity',
                 shouldShowActions
                   ? 'pointer-events-auto opacity-100'
                   : hoverRevealClassName(),

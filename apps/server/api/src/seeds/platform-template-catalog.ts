@@ -55,7 +55,11 @@ Brief: {{{prompt}}}
 {{/if}}
 Write each article in the brand's voice from the context you were given. Be specific and concrete, avoid filler, and do not invent facts, numbers or quotes.
 
-Format the article body as HTML using only <h2>, <h3>, <p>, <ul>, <ol> and <li> tags. Start with a short introduction and end with a clear takeaway.
+Open with one radical, confident claim a reader can disagree with, in the first sentence. Never open with "my take on", "how I" or "in this article". Put the nuance in the body or the conclusion, not in the hook.
+
+Write reader copy only. Do not include research notes, a "what we could not verify" section, mentions of pages that blocked access or tools that failed, drafting notes, TODO or [PLACEHOLDER] text. Cut what you could not confirm, or state its limit inside the sentence it affects.
+
+Format the article body as HTML using only <h2>, <h3>, <p>, <ul>, <ol> and <li> tags. End with a clear takeaway.
 
 Respond with JSON only, without markdown fences, in exactly this shape:
 {"articles": [{"label": "Article title", "slug": "article-title", "summary": "One or two sentence summary", "content": "<h2>Heading</h2><p>Body</p>", "tags": ["tag"]}]}
@@ -74,7 +78,9 @@ Tone: {{{tone}}}
 Target length: about {{targetWordCount}} words.
 {{#if keywords}}Keywords to work in naturally: {{{keywords}}}
 {{/if}}
-Write in the brand's voice from the context you were given. Open with a strong hook, make each section earn its place, and end with a clear takeaway. Be specific and concrete, avoid filler, and do not invent facts, numbers or quotes.
+Write in the brand's voice from the context you were given. Open with one radical, confident claim a reader can disagree with, never "my take on" or "how I", and keep the nuance for the body or the conclusion. Make each section earn its place and end with a clear takeaway. Be specific and concrete, avoid filler, and do not invent facts, numbers or quotes.
+
+Write reader copy only: no research notes, no "what we could not verify" section, no drafting notes, TODO or [PLACEHOLDER] text.
 
 Section "content" is HTML using only <p>, <ul>, <ol>, <li> and <strong> tags. Do not repeat the heading inside it.
 

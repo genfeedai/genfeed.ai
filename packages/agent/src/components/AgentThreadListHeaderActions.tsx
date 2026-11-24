@@ -36,11 +36,10 @@ export function AgentThreadListHeaderActions({
       <DropdownMenuTrigger asChild>
         <Button
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
+          size={ButtonSize.MICRO}
           withWrapper={false}
           ariaLabel="Conversation list actions"
           textTransform="none"
-          className="size-7 rounded-md hover:bg-foreground/5 hover:text-foreground/80"
         >
           <Ellipsis className="size-3.5" />
         </Button>
