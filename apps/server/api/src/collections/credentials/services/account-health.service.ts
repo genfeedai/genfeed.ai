@@ -1,3 +1,4 @@
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import {
   hasPartialSocialWarmupScopes,
   reconnectForCredential,
@@ -156,7 +157,7 @@ export class AccountHealthService {
         by: ['credentialId'],
         where: scopedWhere(organizationId, {
           credentialId: { in: credentialIds },
-          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          ...PUBLISHED_AND_LIVE_WHERE,
         }),
       }),
       this.prisma.post.groupBy({
@@ -354,7 +355,7 @@ export class AccountHealthService {
       this.prisma.post.count({
         where: scopedWhere(organizationId, {
           credentialId: credential.id,
-          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          ...PUBLISHED_AND_LIVE_WHERE,
         }),
       }),
       this.prisma.post.count({

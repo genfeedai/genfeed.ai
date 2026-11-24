@@ -618,9 +618,13 @@ describe('StudioPlaygroundCard', () => {
       screen.getByRole('button', { name: /^Reprompt/ }),
     ];
     for (const button of buttons) {
-      expect(button).toHaveClass('bg-transparent', 'h-8', 'px-2', 'text-xs');
-      expect(button).not.toHaveClass('border', 'h-auto');
+      expect(button).toHaveClass('h-8', 'px-2', 'text-xs');
+      expect(button).not.toHaveClass('h-auto');
     }
+    expect(buttons[0]).toHaveClass('bg-transparent');
+    expect(buttons[2]).toHaveClass('bg-transparent');
+    // Removing a failed generation reads as destructive.
+    expect(buttons[1]).toHaveClass('text-destructive');
   });
 
   it('keeps clicks inside the failure dialog from selecting the card', () => {

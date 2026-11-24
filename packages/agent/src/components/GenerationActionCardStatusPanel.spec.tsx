@@ -9,7 +9,12 @@ vi.mock('@genfeedai/agent/components/AgentMediaArtifactPreview', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/brand${path}` }),
 }));
-vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({ copyError: 'Copy error', errorCopied: 'Error copied', retry: 'Retry' })[
+      key
+    ] ?? key,
+}));
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: { getInstance: () => ({ copyToClipboard: vi.fn() }) },
 }));

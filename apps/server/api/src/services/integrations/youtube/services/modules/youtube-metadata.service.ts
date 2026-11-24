@@ -7,12 +7,12 @@ import {
 } from '@api/services/integrations/publishers/publisher-youtube-verification-pages.util';
 import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { google, type youtube_v3 } from 'googleapis';
 
 const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
@@ -35,20 +35,22 @@ export class YoutubeMetadataService {
   private readonly constructorName = this.constructor.name;
   private readonly youtubeAPI: youtube_v3.Youtube;
   private readonly youtubeDataAPI: youtube_v3.Youtube;
+  private readonly isApiKeySet: boolean;
 
   constructor(
     private readonly loggerService: LoggerService,
     private readonly youtubeAuthService: YoutubeAuthService,
     private readonly configService: ConfigService,
   ) {
-    this.youtubeAPI = google.youtube({ version: 'v3' });
+    this.youtubeAPI = youtube({ version: 'v3' });
 
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
     const auth =
       typeof apiKey === 'string' && apiKey.trim().length > 0
         ? apiKey
         : undefined;
-    this.youtubeDataAPI = google.youtube({
+    this.isApiKeySet = auth !== undefined;
+    this.youtubeDataAPI = youtube({
       auth,
       version: 'v3',
     });
@@ -71,30 +73,45 @@ export class YoutubeMetadataService {
         return null;
       }
 
-      const duration = this.parseDuration(video.contentDetails?.duration || '');
-
-      return {
-        channelId: video.snippet?.channelId || undefined,
-        categoryId: video.snippet?.categoryId || undefined,
-        description: video.snippet?.description || undefined,
-        duration,
-        id: videoId,
-        likeCount: video.statistics?.likeCount
-          ? Number(video.statistics.likeCount)
-          : undefined,
-        publishedAt: video.snippet?.publishedAt
-          ? new Date(video.snippet.publishedAt)
-          : undefined,
-        tags: video.snippet?.tags || undefined,
-        title: video.snippet?.title || undefined,
-        viewCount: video.statistics?.viewCount
-          ? Number(video.statistics.viewCount)
-          : undefined,
-      };
+      return this.toVideoMetadata(videoId, video);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error, { videoId });
       return null;
     }
+  }
+
+  /** Whether `YOUTUBE_API_KEY` is configured, so key-based reads can work. */
+  isApiKeyConfigured(): boolean {
+    return this.isApiKeySet;
+  }
+
+  /**
+   * Reads one video as a connected channel, for deployments without
+   * `YOUTUBE_API_KEY` and for the channel's own unlisted or private videos.
+   * Returns null when the video is not visible to that channel. Throws when the
+   * channel's credential is missing, revoked or cannot be refreshed, so the
+   * caller can tell a reconnect problem from a missing video.
+   */
+  async getVideoMetadataAsChannel(
+    organizationId: string,
+    brandId: string,
+    videoId: string,
+    credentialId?: string,
+  ): Promise<YoutubeVideoMetadata | null> {
+    const auth = asYoutubeRequestAuth(
+      await this.youtubeAuthService.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      ),
+    );
+    const response = await this.youtubeAPI.videos.list({
+      auth,
+      id: [videoId],
+      part: ['snippet', 'statistics', 'contentDetails'],
+    });
+    const video = response.data.items?.[0];
+    return video ? this.toVideoMetadata(videoId, video) : null;
   }
 
   async getVideoStatus(
@@ -219,6 +236,30 @@ export class YoutubeMetadataService {
     return {
       items: parseYoutubeVideoVerificationItems(page.entries, videos.data),
       nextCursor: page.nextCursor,
+    };
+  }
+
+  private toVideoMetadata(
+    videoId: string,
+    video: youtube_v3.Schema$Video,
+  ): YoutubeVideoMetadata {
+    return {
+      channelId: video.snippet?.channelId || undefined,
+      categoryId: video.snippet?.categoryId || undefined,
+      description: video.snippet?.description || undefined,
+      duration: this.parseDuration(video.contentDetails?.duration || ''),
+      id: videoId,
+      likeCount: video.statistics?.likeCount
+        ? Number(video.statistics.likeCount)
+        : undefined,
+      publishedAt: video.snippet?.publishedAt
+        ? new Date(video.snippet.publishedAt)
+        : undefined,
+      tags: video.snippet?.tags || undefined,
+      title: video.snippet?.title || undefined,
+      viewCount: video.statistics?.viewCount
+        ? Number(video.statistics.viewCount)
+        : undefined,
     };
   }
 

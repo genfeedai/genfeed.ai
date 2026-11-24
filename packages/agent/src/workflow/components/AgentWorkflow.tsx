@@ -1,5 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -166,14 +165,10 @@ function AgentWorkflowInner() {
         <div className="flex items-center gap-2 justify-end">
           {showForceAdvance && (
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.WARNING}
+              size={ButtonSize.SM}
               withWrapper={false}
               onClick={forceAdvance}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium',
-                'text-warning/70 hover:text-warning transition-colors',
-                'border border-warning/20 rounded-lg hover:bg-warning/10',
-              )}
             >
               <ChevronRight className="size-3.5" />
               Force advance
@@ -183,10 +178,10 @@ function AgentWorkflowInner() {
             phase !== 'awaiting_approval' &&
             phase !== 'verifying' && (
               <Button
-                variant={ButtonVariant.UNSTYLED}
+                variant={ButtonVariant.SUCCESS}
+                size={ButtonSize.SM}
                 withWrapper={false}
                 onClick={() => advance('user')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-success border border-success/20 rounded-lg hover:bg-success/10 transition-colors"
               >
                 <ChevronRight className="size-3.5" />
                 Advance

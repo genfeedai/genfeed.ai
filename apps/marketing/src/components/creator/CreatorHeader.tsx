@@ -1,21 +1,13 @@
-import { ButtonVariant } from '@genfeedai/contracts';
 import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers';
 import type { CreatorHeaderProps } from '@props/content/creator.props';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
-import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
 import CreatorAccounts from './CreatorAccounts';
+import CreatorReach from './CreatorReach';
 import SupportCreatorButton from './SupportCreatorButton';
 import ViewTracker from './ViewTracker';
-
-const STAT_LABELS = [
-  ['posts', 'posts'],
-  ['images', 'images'],
-  ['videos', 'videos'],
-  ['articles', 'articles'],
-] as const;
 
 /**
  * Who the creator is, how to follow them, and what they have published.
@@ -27,14 +19,12 @@ const STAT_LABELS = [
  */
 export default function CreatorHeader({
   brand,
-  counts,
   handle,
   hasBanner,
   profileUrl,
-  referralCode,
+  reach = null,
 }: CreatorHeaderProps): React.ReactElement {
   const label = brand.label?.trim() || `@${handle}`;
-  const stats = STAT_LABELS.filter(([key]) => counts[key] > 0);
 
   return (
     <header className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 px-1 sm:gap-x-6">
@@ -75,21 +65,9 @@ export default function CreatorHeader({
         </p>
       ) : null}
 
-      {/* One primary action. Subscribe, Support and the link stay secondary. */}
+      {/* Subscribe is the one primary action; the rest are secondary. */}
       <div className="col-span-2 flex flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2">
-        <div className="w-full sm:w-auto sm:min-w-44">
-          <ProfileSignupCta
-            handle={handle}
-            label="Join Genfeed"
-            referralCode={referralCode}
-          />
-        </div>
-        <ProfileSubscribe
-          handle={handle}
-          layout="compact"
-          source="profile"
-          variant={ButtonVariant.SECONDARY}
-        />
+        <ProfileSubscribe handle={handle} layout="compact" source="profile" />
         {handle === GENFEED_BRAND_HANDLE ? null : (
           <SupportCreatorButton
             handle={handle}
@@ -101,21 +79,7 @@ export default function CreatorHeader({
       </div>
 
       <div className="col-span-2 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 pt-1">
-        {stats.length > 0 ? (
-          <p className="text-sm text-foreground/60">
-            {stats.map(([key, noun], index) => (
-              <span key={key}>
-                {index > 0 ? ' · ' : null}
-                <span className="font-semibold text-foreground">
-                  {counts[key]}
-                </span>{' '}
-                {counts[key] === 1 ? noun.slice(0, -1) : noun}
-              </span>
-            ))}
-          </p>
-        ) : (
-          <span />
-        )}
+        <CreatorReach reach={reach} />
         <CreatorAccounts brand={brand} handle={handle} />
       </div>
       <ViewTracker id={brand.id} target="profile" />

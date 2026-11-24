@@ -2,6 +2,7 @@
 
 import { Badge } from '@ui/primitives/badge';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { useTranslations } from 'next-intl';
 import { usePublishingContentTime } from '@/features/posts/hooks/use-publishing-content-time/use-publishing-content-time';
 import { formatPublishingContentStatus } from '@/features/posts/library/publishing-content-library.helpers';
 import type { PublishingContentStatusProps } from '@/features/posts/props/publishing-content-entry.props';
@@ -12,16 +13,22 @@ import type { PublishingContentStatusProps } from '@/features/posts/props/publis
  * the cell for screen readers.
  */
 export default function PublishingContentStatus({
+  isInboxDelivery = false,
   status,
   publishedAt,
   scheduledAt,
 }: PublishingContentStatusProps) {
+  const translate = useTranslations('ui.postDetailInspector');
   const time = usePublishingContentTime(publishedAt, scheduledAt, 'full');
 
   return (
     <SimpleTooltip label={time?.label}>
       <span className="inline-flex">
-        <Badge status={status}>{formatPublishingContentStatus(status)}</Badge>
+        {isInboxDelivery ? (
+          <Badge variant="info">{translate('tiktokInboxDelivered')}</Badge>
+        ) : (
+          <Badge status={status}>{formatPublishingContentStatus(status)}</Badge>
+        )}
         {time ? (
           <time className="sr-only" dateTime={time.date.toISOString()}>
             {time.label}

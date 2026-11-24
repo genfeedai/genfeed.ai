@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { toContainsPattern } from '@api/helpers/utils/like-pattern/like-pattern.util';
 import {
+  Platform,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
@@ -110,6 +111,26 @@ const TARGET_SOURCE_SQL = Prisma.sql`CASE
   ELSE ${text(ReleaseTargetSource.MANUAL)}
 END`;
 
+/**
+ * A TikTok Inbox receipt: the target reads `published`, but the upload waits in
+ * the creator's TikTok Inbox and is not a public post. Restates
+ * `isTikTokInboxDelivered`, which the spec checks it against row for row.
+ */
+const TARGET_IS_INBOX_DELIVERY_SQL = Prisma.sql`(COALESCE(p."platform", '') = ${text(Platform.TIKTOK)}
+  AND p."targetExecutionState" = ${text(TargetExecutionState.PUBLISHED)}
+  AND COALESCE(p."externalId", '') <> ''
+  AND p."publicationDate" IS NULL
+  AND p."publishedAt" IS NULL
+  AND COALESCE(p."url", '') = '')`;
+
+/**
+ * The state a release counts a target as, mirroring `releaseRollupTargetState`:
+ * an Inbox receipt is still the creator's draft, never a published post.
+ */
+const TARGET_ROLLUP_STATE_SQL = Prisma.sql`(CASE WHEN ${TARGET_IS_INBOX_DELIVERY_SQL}
+  THEN ${text(TargetExecutionState.DRAFT)}
+  ELSE p."targetExecutionState" END)`;
+
 /** A target the list can show: it has a channel identity and is not a thread child. */
 const TARGET_IS_LISTABLE_SQL = Prisma.sql`p."isDeleted" = FALSE
   AND p."parentId" IS NULL
@@ -134,7 +155,7 @@ function targetFacetMatch(query: ReleaseGroupListQuery): Prisma.Sql {
   }
   if (query.executionStates?.length) {
     conditions.push(
-      Prisma.sql`p."targetExecutionState" IN (${textList(query.executionStates)})`,
+      Prisma.sql`${TARGET_ROLLUP_STATE_SQL} IN (${textList(query.executionStates)})`,
     );
   }
   if (query.platforms?.length) {
@@ -173,12 +194,12 @@ function targetFlagColumns(
   const isSearchMatch = pattern
     ? Prisma.sql`(p."platform" ILIKE ${pattern} OR p."category"::text ILIKE ${pattern})`
     : Prisma.sql`FALSE`;
-  return Prisma.sql`p."targetExecutionState" AS state,
+  return Prisma.sql`${TARGET_ROLLUP_STATE_SQL} AS state,
     p."scheduledDate" AS "targetScheduledAt",
     ${targetFacetMatch(query)} AS "isFacetMatch",
     ${inWindow(Prisma.sql`p."scheduledDate"`, window)} AS "isInWindow",
     ${isSearchMatch} AS "isSearchMatch",
-    (p."targetExecutionState" = ${text(TargetExecutionState.PUBLISHED)}) AS "isPublished"`;
+    (${TARGET_ROLLUP_STATE_SQL} = ${text(TargetExecutionState.PUBLISHED)}) AS "isPublished"`;
 }
 
 /**
@@ -201,7 +222,7 @@ const GROUP_STATUS_SQL = Prisma.sql`CASE
 END`;
 
 /** The same roll-up for a one-target release, which is just the target state. */
-const SINGLE_TARGET_STATUS_SQL = Prisma.sql`CASE p."targetExecutionState"
+const SINGLE_TARGET_STATUS_SQL = Prisma.sql`CASE ${TARGET_ROLLUP_STATE_SQL}
   WHEN ${text(TargetExecutionState.PUBLISHING)} THEN ${text(ReleaseStatus.PUBLISHING)}
   WHEN ${text(TargetExecutionState.DRAFT)} THEN ${text(ReleaseStatus.DRAFT)}
   WHEN ${text(TargetExecutionState.PUBLISHED)} THEN ${text(ReleaseStatus.PUBLISHED)}

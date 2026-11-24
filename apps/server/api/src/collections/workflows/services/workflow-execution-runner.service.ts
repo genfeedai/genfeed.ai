@@ -57,6 +57,26 @@ type PreparedWorkflowExecution = {
   workflowLabel: string;
 };
 
+/**
+ * The nodes a partial run was started for, as recorded on its execution.
+ * `undefined` for a full run, or when the record holds no usable list.
+ */
+function readSelectedNodeIds(metadata: unknown): string[] | undefined {
+  const recorded =
+    typeof metadata === 'object' && metadata !== null
+      ? (metadata as Record<string, unknown>).selectedNodeIds
+      : undefined;
+  if (
+    !Array.isArray(recorded) ||
+    recorded.length === 0 ||
+    !recorded.every((id): id is string => typeof id === 'string')
+  ) {
+    return undefined;
+  }
+
+  return recorded;
+}
+
 export class WorkflowExecutionRunnerService {
   private readonly logContext = 'WorkflowExecutorService';
   private readonly actorMembership: WorkflowActorMembershipVerifier;
@@ -136,14 +156,18 @@ export class WorkflowExecutionRunnerService {
     const workflowLabel = this.documentService.getWorkflowLabel(workflowDoc);
     let executableWorkflow =
       this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
+    const existingExecution = await this.executionsService.getRuntimeState(
+      executionId,
+      jobData.organizationId,
+    );
+    // A delayed partial run resumes under the rule it started with: only the
+    // selected nodes and the inputs upstream of them (#11075).
+    const selectedNodeIds = readSelectedNodeIds(existingExecution?.metadata);
     executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
       workflowDoc,
       executableWorkflow,
       triggerEvent.data,
-    );
-    const existingExecution = await this.executionsService.getRuntimeState(
-      executionId,
-      jobData.organizationId,
+      { selectedNodeIds },
     );
     await this.assertResumedAgentScope(
       existingExecution?.metadata,
@@ -164,6 +188,9 @@ export class WorkflowExecutionRunnerService {
               existingExecution?.metadata,
             ),
           nodeOutputCache: jobData.nodeOutputCache,
+          // Without the selection the graph runner plans the whole workflow
+          // and runs every node not yet completed, selected or not.
+          selectedNodeIds,
           startedAt: resumeStartedAt,
           workflowLabel,
         },
@@ -295,6 +322,7 @@ export class WorkflowExecutionRunnerService {
       input.workflowDoc,
       executableWorkflow,
       input.event.data,
+      { selectedNodeIds: input.selectedNodeIds },
     );
     if (typeof input.metadata?.scheduledFireJobId === 'string') {
       executableWorkflow = {

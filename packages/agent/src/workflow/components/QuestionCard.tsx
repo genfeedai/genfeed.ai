@@ -120,7 +120,6 @@ function QuestionCardInner({
                 ? !selectedOption
                 : !freeText.trim())
             }
-            className="inline-flex items-center gap-2"
           >
             <Send className="size-3.5" />
             Submit answer

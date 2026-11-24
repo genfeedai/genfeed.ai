@@ -39,6 +39,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
+import ReleaseTargetStateBadge from '@/features/posts/shared/ReleaseTargetStateBadge';
 import EvalCell from './EvalCell';
 
 export interface PostCardAction {
@@ -412,12 +413,19 @@ const PostsGrid = memo(
                       : 'flex shrink-0 flex-wrap items-center gap-2'
                   }
                 >
-                  <Badge
-                    status={statusPresentation.canonicalStatus}
-                    variant={statusPresentation.variant}
-                  >
-                    {statusPresentation.label}
-                  </Badge>
+                  {post.isInboxDelivery ? (
+                    <ReleaseTargetStateBadge
+                      executionState={post.targetExecutionState}
+                      isInboxDelivery
+                    />
+                  ) : (
+                    <Badge
+                      status={statusPresentation.canonicalStatus}
+                      variant={statusPresentation.variant}
+                    >
+                      {statusPresentation.label}
+                    </Badge>
+                  )}
 
                   {post.scheduledDate && (
                     <Badge variant="secondary">
@@ -473,6 +481,7 @@ const PostsGrid = memo(
           if (
             previousPost.id !== nextPost.id ||
             previousPost.status !== nextPost.status ||
+            previousPost.isInboxDelivery !== nextPost.isInboxDelivery ||
             previousPost.evalScore !== nextPost.evalScore ||
             previousPost.description !== nextPost.description ||
             previousPost.ingredients !== nextPost.ingredients ||

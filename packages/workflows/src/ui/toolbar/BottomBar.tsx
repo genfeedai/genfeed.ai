@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { ButtonGroup } from '@genfeedai/ui/primitives/button-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +48,7 @@ function BatchCounter({
         size={ButtonSize.ICON}
         onClick={onDecrement}
         disabled={batchCount <= MIN_BATCH || isActive}
-        className="size-5 hover:bg-muted"
+        className="size-5"
       >
         <Minus className="size-2.5" />
       </Button>
@@ -60,7 +61,7 @@ function BatchCounter({
         size={ButtonSize.ICON}
         onClick={onIncrement}
         disabled={batchCount >= MAX_BATCH || isActive}
-        className="size-5 hover:bg-muted"
+        className="size-5"
       >
         <Plus className="size-2.5" />
       </Button>
@@ -153,7 +154,7 @@ function RunControls({
       : ButtonVariant.SECONDARY;
 
   return (
-    <div className="relative flex items-center">
+    <ButtonGroup className="relative w-auto items-center">
       <Button
         withWrapper={false}
         variant={variant}
@@ -163,13 +164,6 @@ function RunControls({
           onPrimaryClick();
         }}
         disabled={!isActive && !canRunWorkflow}
-        className={`rounded-l rounded-r-none px-3 text-xs font-medium ${
-          isActive
-            ? 'bg-destructive/90 hover:bg-destructive'
-            : canRunWorkflow
-              ? ''
-              : 'bg-muted text-muted-foreground'
-        }`}
       >
         {isActive ? (
           <>
@@ -191,13 +185,6 @@ function RunControls({
             variant={variant}
             size={ButtonSize.SM}
             disabled={isActive}
-            className={`rounded-l-none rounded-r border-l px-1.5 ${
-              isActive
-                ? 'border-destructive/20 bg-destructive/90'
-                : canRunWorkflow
-                  ? 'border-border-strong'
-                  : 'border-border bg-muted text-muted-foreground'
-            }`}
           >
             <ChevronUp className="size-3.5" />
           </Button>
@@ -215,7 +202,7 @@ function RunControls({
           }}
         />
       </DropdownMenu>
-    </div>
+    </ButtonGroup>
   );
 }
 

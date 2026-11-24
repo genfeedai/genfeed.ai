@@ -3,7 +3,7 @@ import type {
   AgentUiActionHandler,
   AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Clock, ExternalLink } from 'lucide-react';
@@ -114,13 +114,13 @@ export function WorkflowCreatedCard({
               return (
                 <Button
                   key={`${action.id}-workflow-created-action-${cta.label}`}
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.SUCCESS}
+                  size={ButtonSize.SM}
                   withWrapper={false}
                   isDisabled={isPending || isCompleted}
                   onClick={() => {
                     void handleActionClick(actionName, cta.payload);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-success px-3 py-2 text-xs font-medium text-success-foreground transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>{buttonLabel}</span>
                 </Button>

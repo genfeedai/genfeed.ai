@@ -2,12 +2,9 @@
 
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
-  FLUX_3_EDIT_CONTRACT_VERSION,
   getImageEditMaxSources,
   getModelMaxAudioReferences,
   hasAudioReferences,
-  IMAGE_EDIT_CONTRACT_VERSION,
-  IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isImageEditModel,
   LIBRARY_ASSETS_REFRESH_EVENT,
@@ -27,6 +24,7 @@ import type {
   SocketResult,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { AssetQueryService } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { buildVideoDraftSettings } from '@genfeedai/helpers/media/video-draft/video-draft.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -63,6 +61,10 @@ import {
   hasStudioAvatarSelection,
   hasStudioVoiceSelection,
 } from '@/features/studio/playground/utils/studio-identity-selection';
+import {
+  buildStudioImageEditControls,
+  buildStudioImageEditRecipe,
+} from '@/features/studio/playground/utils/studio-image-edit-request';
 import { pinStudioSettingsToModel } from '@/features/studio/playground/utils/studio-pinned-model';
 import {
   mergeStudioPlaygroundJobs,
@@ -85,7 +87,6 @@ import {
 } from '@/features/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@/features/studio/playground/utils/studio-playground-types';
 import { readStudioReferencePreviewUrl } from '@/features/studio/playground/utils/studio-reference-preview';
-import { buildVideoDraftSettings } from '@/features/studio/playground/utils/studio-video-draft';
 import {
   resolveSpeakingVoiceProvider,
   resolveSpeechVoiceProvider,
@@ -932,30 +933,12 @@ export function useStudioGeneration({
         return false;
       }
       if (type === 'image-edit' && modelKey) {
-        recipe.imageEdit = flux
-          ? {
-              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
-              operation: 'image-edit',
-              model: editingModelKey,
-              sourceIds: references.editSourceIds ?? [],
-              resolution: activeSettings.resolution,
-              aspectRatio: activeSettings.aspectRatio,
-              grounding: false,
-              outputs: 1,
-            }
-          : {
-              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
-              operation: 'image-edit',
-              model: modelKey,
-              sourceIds: references.editSourceIds ?? [],
-              maskId: references.editMaskId,
-              size: references.editMaskId
-                ? 'source'
-                : (activeSettings.editSize ?? 'source'),
-              quality: IMAGE_EDIT_QUALITY,
-              outputs: activeSettings.outputs,
-              seed: activeSettings.editSeed,
-            };
+        recipe.imageEdit = buildStudioImageEditRecipe({
+          editMaskId: references.editMaskId,
+          modelKey,
+          settings: activeSettings,
+          sourceIds: references.editSourceIds ?? [],
+        });
       }
       if (type === 'image-edit')
         recipe.references = references.editSourceIds ?? [];
@@ -1010,19 +993,11 @@ export function useStudioGeneration({
                     prioritize: activeSettings.prioritize,
                   }),
               references: sources.slice(1),
-              ...(flux
-                ? {
-                    resolution: activeSettings.resolution,
-                    aspectRatio: activeSettings.aspectRatio,
-                  }
-                : {
-                    maskId: references.editMaskId,
-                    size: references.editMaskId
-                      ? 'source'
-                      : (activeSettings.editSize ?? 'source'),
-                    seed: activeSettings.editSeed,
-                  }),
-              outputs: flux ? 1 : activeSettings.outputs,
+              ...buildStudioImageEditControls({
+                editMaskId: references.editMaskId,
+                modelKey,
+                settings: activeSettings,
+              }),
               sourceActionId: runId,
             })) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);

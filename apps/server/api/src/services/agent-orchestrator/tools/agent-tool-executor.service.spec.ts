@@ -1,6 +1,7 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
 import { approvalGenerationConstraint } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import { postRollupExecutionStateFilter } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import {
   agentPostPreviewInclude,
   agentPostPreviewPopulate,
@@ -197,6 +198,7 @@ describe('AgentToolExecutorService', () => {
       patch: vi.fn(),
     };
     const presignedUploadService = {
+      confirmPublicImageUpload: vi.fn(),
       confirmUpload: vi.fn(),
       getPresignedUploadUrl: vi.fn(),
     };
@@ -2255,9 +2257,9 @@ describe('AgentToolExecutorService', () => {
         include: agentPostPreviewInclude(testId('org')),
         orderBy: { createdAt: -1 },
         where: {
+          AND: [postRollupExecutionStateFilter(TargetExecutionState.DRAFT)],
           isDeleted: false,
           organizationId: testId('org'),
-          targetExecutionState: TargetExecutionState.DRAFT,
         },
       },
       { limit: 10 },
@@ -2546,6 +2548,44 @@ describe('AgentToolExecutorService', () => {
       media: [{ assetId: 'asset-1', kind: 'image', order: 0 }],
       status: 'UPLOADED',
       url: 'https://cdn.example.test/images/asset-1',
+    });
+  });
+
+  it('returns a permanent public URL only when the upload asks for a public image', async () => {
+    const { presignedUploadService, service } = createService();
+    const confirmed = {
+      category: IngredientCategory.IMAGE,
+      id: 'asset-2',
+      status: 'UPLOADED',
+    };
+    presignedUploadService.confirmUpload.mockResolvedValue(confirmed);
+    presignedUploadService.confirmPublicImageUpload.mockResolvedValue({
+      ingredient: confirmed,
+      publicUrl: 'https://cdn.genfeed.ai/assets/articles/org/asset-2.png',
+    });
+    const ctx = { organizationId: testId('org'), userId: testId('user') };
+
+    const privateUpload = await service.executeTool(
+      'complete_media_upload',
+      { assetId: 'asset-2' },
+      ctx,
+    );
+    const publicUpload = await service.executeTool(
+      'complete_media_upload',
+      { assetId: 'asset-2', publicImage: true },
+      ctx,
+    );
+    const stringFlag = await service.executeTool(
+      'complete_media_upload',
+      { assetId: 'asset-2', publicImage: 'true' },
+      ctx,
+    );
+
+    expect(privateUpload.data).not.toHaveProperty('publicUrl');
+    expect(stringFlag.data).not.toHaveProperty('publicUrl');
+    expect(publicUpload.data).toMatchObject({
+      assetId: 'asset-2',
+      publicUrl: 'https://cdn.genfeed.ai/assets/articles/org/asset-2.png',
     });
   });
 

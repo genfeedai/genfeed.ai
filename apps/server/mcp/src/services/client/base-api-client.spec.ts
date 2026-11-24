@@ -3,6 +3,7 @@ import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
+import { isMcpToolRefusal } from '@mcp/tools/mcp-tool-error';
 import { BaseApiClient } from './base-api-client';
 
 function createClient() {
@@ -126,5 +127,42 @@ describe('BaseApiClient failure logging', () => {
 
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('BaseApiClient failWith', () => {
+  it('keeps the upstream status so a 4xx is a refusal, with the fixed message', () => {
+    const { client } = createClient();
+    const fail = client.failWith('Failed to list Editor projects');
+
+    let thrown: unknown;
+    try {
+      fail({
+        message: 'Request failed with status code 404',
+        response: {
+          data: { errors: [{ detail: 'secret detail' }] },
+          status: 404,
+        },
+      } as never);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(isMcpToolRefusal(thrown)).toBe(true);
+    expect((thrown as Error).message).toBe('Failed to list Editor projects');
+  });
+
+  it('keeps a 5xx a server fault', () => {
+    const { client } = createClient();
+    const fail = client.failWith('Failed to list Editor projects');
+
+    let thrown: unknown;
+    try {
+      fail({ message: 'bad gateway', response: { status: 502 } } as never);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(isMcpToolRefusal(thrown)).toBe(false);
   });
 });

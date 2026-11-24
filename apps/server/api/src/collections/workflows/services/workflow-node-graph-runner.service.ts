@@ -23,6 +23,7 @@ import {
   type NodeClaimRecord,
 } from '@api/collections/workflows/utils/workflow-node-idempotency.util';
 import { workflowGenerationOperationId } from '@api/helpers/utils/credits/workflow-generation-evidence.util';
+import { readHttpExceptionDetail } from '@api/helpers/utils/error-response/http-exception-detail.util';
 import { getActionDefinition } from '@genfeedai/actions';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
@@ -787,7 +788,12 @@ export class WorkflowNodeGraphRunnerService {
     claimed: ClaimedGraphNode,
     error: unknown,
   ): Promise<void> {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    // An HttpException with an object body reports only its class name
+    // ("Http Exception"), which would reach Sentry and the agent turn as the
+    // node's whole failure. Its response body names the cause.
+    const errorMessage =
+      readHttpExceptionDetail(error) ??
+      (error instanceof Error ? error.message : String(error));
     // When the incoming error already IS a lease-lost signal (raised by
     // `runWithLeaseHeartbeat` or by an earlier `complete()` call in this same
     // pass), this worker no longer owns the claim row: another worker's

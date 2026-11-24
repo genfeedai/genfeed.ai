@@ -1,8 +1,4 @@
-import {
-  CredentialPlatform,
-  parsePlatform,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { CredentialPlatform, parsePlatform } from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IChannelTarget,
@@ -15,6 +11,7 @@ import type {
   AccountGridLaneItem,
   AccountGridLaneKind,
 } from '@/features/posts/props/account-grid.props';
+import { isTargetLive } from '@/features/posts/shared/release-status.helpers';
 import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
 const GAP_LOOKAHEAD_DAYS = 4;
@@ -58,10 +55,6 @@ export function credentialFromAccount(
     label: account.label,
     platform: account.platform,
   };
-}
-
-export function isTargetPublished(target: IChannelTarget): boolean {
-  return target.executionState === TargetExecutionState.PUBLISHED;
 }
 
 function targetInstantMs(
@@ -172,11 +165,7 @@ export function computeGapSlots({
 
 function sortLaneItems(items: AccountGridLaneItem[]): AccountGridLaneItem[] {
   const rank = (item: AccountGridLaneItem): number => {
-    if (
-      item.kind === 'target' &&
-      item.target &&
-      !isTargetPublished(item.target)
-    ) {
+    if (item.kind === 'target' && item.target && !isTargetLive(item.target)) {
       return 0;
     }
     if (item.kind === 'gap') {
@@ -204,11 +193,7 @@ function sortLaneItems(items: AccountGridLaneItem[]): AccountGridLaneItem[] {
           ? (targetInstantMs(right.release, right.target) ?? 0)
           : 0;
 
-    if (
-      left.kind === 'target' &&
-      left.target &&
-      isTargetPublished(left.target)
-    ) {
+    if (left.kind === 'target' && left.target && isTargetLive(left.target)) {
       return rightMs - leftMs;
     }
 
@@ -263,7 +248,7 @@ export function buildAccountGridLanes({
     }
 
     const queuedCount = items.filter(
-      (item) => item.target && !isTargetPublished(item.target),
+      (item) => item.target && !isTargetLive(item.target),
     ).length;
 
     for (const gapAt of computeGapSlots({

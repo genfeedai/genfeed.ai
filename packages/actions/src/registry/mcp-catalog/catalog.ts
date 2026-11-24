@@ -36,7 +36,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'upload_media',
     description:
-      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL. Does not publish or attach media. To delete Library media use control_release(action=remove_asset).',
+      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL; complete with publicImage true also returns a permanent publicUrl for an image that an article uses as its cover or inline image. Does not attach media to anything; publicImage makes that one image publicly readable. To delete Library media use control_release(action=remove_asset).',
     operations: [
       { action: 'request', executes: 'request_media_upload' },
       { action: 'complete', executes: 'complete_media_upload' },
@@ -305,7 +305,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'save_post',
     description:
-      'Save content for review. Never publishes or schedules. post saves a reviewable draft from text or media; article imports reviewed HTML unchanged as an unpublished article draft in the chosen brand; article_update edits an existing article (label, slug, summary, HTML content with inline images, cover image) without publishing; campaign manages native content campaigns; track_link tracks an already published X or YouTube post by URL.',
+      'Save content for review. Never publishes or schedules. post saves a reviewable draft from text or media; article imports reviewed HTML unchanged as an unpublished article draft in the chosen brand; article_update edits an existing article (label, slug, summary, HTML content with inline images, cover image, publication date) without publishing; campaign manages native content campaigns; track_link tracks an already published X or YouTube post by URL.',
     claudeActions: ['post', 'article', 'article_update'],
     operations: [
       { action: 'post', executes: 'create_post' },
@@ -340,7 +340,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'manage_knowledge',
     description:
-      "Change a brand's Knowledge. capture saves a page, document, feed, media or text and ingests it; assign_purpose changes a source's purpose (Brand Truth, Inspiration, Research) or hides it from retrieval; archive removes a source from retrieval for good; retry requeues a failed ingestion.",
+      "Change a brand's Knowledge. capture saves a page, document, feed, media or text and ingests it; assign_purpose changes a source's purpose (Brand Truth, Inspiration, Research) or hides it from retrieval; archive removes a source from retrieval for good; retry requeues a failed ingestion. Pass brandId when the connection has no selected brand.",
     operations: [
       { action: 'capture', executes: 'capture_knowledge' },
       { action: 'assign_purpose', executes: 'assign_knowledge_purpose' },

@@ -17,6 +17,13 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { ensureClient } from '../../packages/prisma/prisma/generate-client.mjs';
+import {
+  decodeGraph,
+  encodeGraph,
+  keptDepth,
+  pruneGraph,
+  slimClassSource,
+} from '../../packages/prisma/prisma/slim-parameterization-schema.mjs';
 
 const require = createRequire(
   new URL('../../apps/server/api/package.json', import.meta.url),
@@ -27,6 +34,10 @@ const REPOSITORY_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SCRIPT = path.join(
   REPOSITORY_ROOT,
   'packages/prisma/prisma/generate-client.mjs',
+);
+const SLIM_SCRIPT = path.join(
+  REPOSITORY_ROOT,
+  'packages/prisma/prisma/slim-parameterization-schema.mjs',
 );
 
 function repositoryFile(relativePath) {
@@ -56,6 +67,11 @@ function createPackage(t) {
   writeManifest(packageRoot, { '@prisma/client': '7.10.1', prisma: '7.10.1' });
   writePackageFile(packageRoot, 'prisma.config.mjs', 'export default {};\n');
   writePackageFile(packageRoot, 'prisma/schema.prisma', 'model A {}\n');
+  writePackageFile(
+    packageRoot,
+    'prisma/slim-parameterization-schema.mjs',
+    'export {};\n',
+  );
   const state = { runs: 0 };
   const generate = () => {
     state.runs += 1;
@@ -124,6 +140,15 @@ const CHANGES_THAT_REGENERATE = [
     'an edited Prisma config',
     (root) =>
       writePackageFile(root, 'prisma.config.mjs', 'export default { a: 1 };\n'),
+  ],
+  [
+    'an edited parameterization cut',
+    (root) =>
+      writePackageFile(
+        root,
+        'prisma/slim-parameterization-schema.mjs',
+        'export const edited = true;\n',
+      ),
   ],
   [
     'a new prisma version',
@@ -223,9 +248,40 @@ test('a generation that fails leaves no stamp, so the next install generates', (
 
 // The command line, as `bun install` runs it: the real script in a package of
 // its own, with a stand-in `prisma` first on PATH.
+// What `prisma generate` leaves in `internal/class.ts` for the parameterization
+// schema: a read root and a write root of a model. The read root reaches a
+// relation filter two levels down, which the cut drops.
+function writeGeneratedClassFixture(file) {
+  const strings = ['User.findMany', 'User.createOne', 'where'];
+  const graph = encodeGraph({
+    inputNodes: [
+      [{ name: 2, scalarMask: 0, flags: 32, childNodeId: 2 }],
+      [{ name: 2, scalarMask: 1, flags: 1 }],
+      [{ name: 2, scalarMask: 0, flags: 32, childNodeId: 3 }],
+      [{ name: 2, scalarMask: 1, flags: 1 }],
+    ],
+    outputNodes: [],
+    roots: [
+      { name: 0, argsNodeId: 0 },
+      { name: 1, argsNodeId: 1 },
+    ],
+    strings,
+  });
+  writeFileSync(
+    file,
+    `config.parameterizationSchema = {\n  strings: JSON.parse(${JSON.stringify(JSON.stringify(strings))}),\n  graph: "${graph}"\n}\n`,
+  );
+}
+
 function createCliPackage(t, prismaScript) {
   const { packageRoot } = createPackage(t);
   copyFileSync(SCRIPT, path.join(packageRoot, 'prisma/generate-client.mjs'));
+  copyFileSync(
+    SLIM_SCRIPT,
+    path.join(packageRoot, 'prisma/slim-parameterization-schema.mjs'),
+  );
+  const fixture = path.join(packageRoot, 'class-fixture.ts');
+  writeGeneratedClassFixture(fixture);
   const bin = path.join(packageRoot, 'bin');
   mkdirSync(bin);
   writeFileSync(path.join(bin, 'prisma'), prismaScript);
@@ -236,6 +292,7 @@ function createCliPackage(t, prismaScript) {
       encoding: 'utf8',
       env: {
         ...process.env,
+        CLASS_FIXTURE: fixture,
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
     });
@@ -244,9 +301,12 @@ function createCliPackage(t, prismaScript) {
 
 const PRISMA_THAT_GENERATES = `#!/bin/sh
 test "$1" = generate || exit 64
-mkdir -p generated/prisma/client
+mkdir -p generated/prisma/client/internal
 echo generated >> generated/prisma/client/client.ts
+cp "$CLASS_FIXTURE" generated/prisma/client/internal/class.ts
 `;
+const SLIMMED =
+  'Slimmed the query parameterization graph: 4 to 3 input edges.\n';
 const PRISMA_THAT_FAILS = '#!/bin/sh\nexit 3\n';
 
 test('the postinstall command generates once and then skips', (t) => {
@@ -256,7 +316,7 @@ test('the postinstall command generates once and then skips', (t) => {
   const second = run();
 
   assert.equal(first.status, 0);
-  assert.equal(first.stdout, '');
+  assert.equal(first.stdout, SLIMMED);
   assert.equal(second.status, 0);
   assert.equal(
     second.stdout,
@@ -272,7 +332,7 @@ test('db:generate forces a new client through the same command', (t) => {
   const forced = run('--force');
 
   assert.equal(forced.status, 0);
-  assert.equal(forced.stdout, '');
+  assert.equal(forced.stdout, SLIMMED);
   assert.equal(generatedBy(packageRoot), 'generated\ngenerated\n');
 });
 
@@ -304,7 +364,7 @@ test('the stamp hashes the schema file that prisma.config.mjs generates from', (
   );
   assert.match(
     repositoryFile('packages/prisma/prisma/generate-client.mjs'),
-    /^const GENERATION_INPUT_FILES = \['prisma\.config\.mjs', 'prisma\/schema\.prisma'\];$/m,
+    /^const GENERATION_INPUT_FILES = \[\n {2}'prisma\.config\.mjs',\n {2}'prisma\/schema\.prisma',\n {2}'prisma\/slim-parameterization-schema\.mjs',\n\];$/m,
   );
 });
 
@@ -336,7 +396,7 @@ test('the setup action restores the generated client before the install, only wh
   assert.equal(restore.with.path, 'packages/prisma/generated');
   assert.equal(
     restore.with.key,
-    "${{ runner.os }}-prisma-client-${{ hashFiles('packages/prisma/package.json', 'packages/prisma/prisma.config.mjs', 'packages/prisma/prisma/schema.prisma', 'packages/prisma/prisma/generate-client.mjs') }}",
+    "${{ runner.os }}-prisma-client-${{ hashFiles('packages/prisma/package.json', 'packages/prisma/prisma.config.mjs', 'packages/prisma/prisma/schema.prisma', 'packages/prisma/prisma/generate-client.mjs', 'packages/prisma/prisma/slim-parameterization-schema.mjs') }}",
   );
   assert.equal(restore.with['restore-keys'], undefined);
   assert.equal(
@@ -422,4 +482,150 @@ test('the bundle size build reuses the generated client', () => {
   assert.deepEqual(setupStep(bundleSizeJobs.measure).with, {
     'cache-prisma-client': 'true',
   });
+});
+
+// The parameterization graph Prisma keeps in memory (#11147).
+
+const STRINGS_IN_CLASS = /strings: JSON\.parse\(("(?:[^"\\]|\\.)*")\),/u;
+const GRAPH_IN_CLASS = /graph: "([A-Za-z0-9_-]*)"/u;
+
+function readClassGraph(source) {
+  return decodeGraph(
+    GRAPH_IN_CLASS.exec(source)[1],
+    JSON.parse(JSON.parse(STRINGS_IN_CLASS.exec(source)[1])),
+  );
+}
+
+// User.findMany -> where (a filter node below it) and a relation filter;
+// User.createOne and Cold.findMany are roots the cut keeps as well.
+function sampleGraph() {
+  return {
+    inputNodes: [
+      [
+        { name: 3, scalarMask: 0, flags: 32, childNodeId: 1 },
+        { name: 4, scalarMask: 0, flags: 32, childNodeId: 2 },
+      ],
+      [
+        { name: 5, scalarMask: 1, flags: 33, childNodeId: 3 },
+        { name: 6, scalarMask: 0, flags: 32, childNodeId: 4 },
+      ],
+      [{ name: 5, scalarMask: 1, flags: 1 }],
+      [{ name: 7, scalarMask: 1, flags: 5 }],
+      [{ name: 5, scalarMask: 1, flags: 1 }],
+      [{ name: 5, scalarMask: 1, flags: 1 }],
+    ],
+    outputNodes: [[{ name: 8, argsNodeId: 5, outputNodeId: undefined }]],
+    roots: [
+      { name: 0, argsNodeId: 0, outputNodeId: 0 },
+      { name: 1, argsNodeId: 2 },
+      { name: 2, argsNodeId: 5 },
+    ],
+    strings: [
+      'User.findMany',
+      'User.createOne',
+      'Cold.findMany',
+      'where',
+      'orderBy',
+      'id',
+      'brand',
+      'in',
+      'posts',
+    ],
+  };
+}
+
+test('the parameterization graph encodes and decodes without loss', () => {
+  const graph = sampleGraph();
+
+  const decoded = decodeGraph(encodeGraph(graph), graph.strings);
+
+  // JSON drops the `undefined` of an absent child or enum.
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(decoded)),
+    JSON.parse(JSON.stringify(graph)),
+  );
+});
+
+test('the cut keeps every root, so a write stays a plan too', () => {
+  const graph = sampleGraph();
+
+  const slim = pruneGraph(graph, keptDepth);
+
+  assert.deepEqual(
+    slim.roots.map((root) => slim.strings[root.name]),
+    ['User.findMany', 'User.createOne', 'Cold.findMany'],
+  );
+});
+
+test("the cut follows scalar filters and leaves a related model's where-input literal", () => {
+  const slim = pruneGraph(sampleGraph(), keptDepth);
+
+  const where = slim.inputNodes[slim.roots[0].argsNodeId];
+  const byName = Object.fromEntries(
+    where.map((edge) => [slim.strings[edge.name], edge]),
+  );
+  // `where` and `orderBy` are the root's own arguments: kept, with their nodes.
+  assert.notEqual(byName.where.childNodeId, undefined);
+  assert.notEqual(byName.orderBy.childNodeId, undefined);
+  const whereInput = slim.inputNodes[byName.where.childNodeId];
+  const fields = Object.fromEntries(
+    whereInput.map((edge) => [slim.strings[edge.name], edge]),
+  );
+  // A scalar field keeps its filter node, so `{ id: { in: [...] } }` stays a plan.
+  assert.notEqual(fields.id.childNodeId, undefined);
+  assert.equal(
+    slim.strings[slim.inputNodes[fields.id.childNodeId][0].name],
+    'in',
+  );
+  // A relation field keeps its flags but loses its child: the value stays literal.
+  assert.equal(fields.brand.childNodeId, undefined);
+  assert.equal(fields.brand.flags, 32);
+});
+
+test('cutting a cut graph changes nothing', () => {
+  const once = pruneGraph(sampleGraph(), keptDepth);
+
+  const twice = pruneGraph(once, keptDepth);
+
+  assert.deepEqual(twice, once);
+});
+
+test('a generated class with an unexpected layout fails instead of keeping the whole graph', () => {
+  assert.throws(
+    () => slimClassSource('config.parameterizationSchema = {}\n'),
+    /update prisma\/slim-parameterization-schema\.mjs/,
+  );
+  assert.throws(
+    () =>
+      slimClassSource(
+        'config.parameterizationSchema = {\n  strings: JSON.parse("[]"),\n  graph: ""\n}\n',
+      ),
+    /update prisma\/slim-parameterization-schema\.mjs/,
+  );
+});
+
+test('the generated client carries the cut graph, not the one Prisma writes', (t) => {
+  const file = path.join(
+    REPOSITORY_ROOT,
+    'packages/prisma/generated/prisma/client/internal/class.ts',
+  );
+  if (!existsSync(file)) {
+    t.skip('no generated client in this checkout');
+    return;
+  }
+
+  const graph = readClassGraph(readFileSync(file, 'utf8'));
+
+  const roots = graph.roots.map((root) => graph.strings[root.name]);
+  assert.notEqual(roots.length, 0, 'the cut graph keeps the roots');
+  assert.deepEqual(
+    roots.filter((root) => keptDepth(root) === undefined),
+    [],
+    'the generated client has a root the cut does not know: run `bun run db:generate` in packages/prisma, not a bare `prisma generate`',
+  );
+  const edges = graph.inputNodes.reduce((sum, node) => sum + node.length, 0);
+  assert.ok(
+    edges < 100_000,
+    `${edges} input edges in the generated client (Prisma writes 559,421); each costs about 150 bytes of heap in every server`,
+  );
 });

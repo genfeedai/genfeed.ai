@@ -47,12 +47,13 @@ const { generateMetadata: generateArticlesMetadata } = await import(
   './articles/page'
 );
 const {
+  getPublicReferralCodeBySlug,
   getCreatorPlatformPosts,
   getCreatorProfileData,
   getPublicBrandBySlug,
   resolveCreatorPlatform,
 } = await import('./creator-loader');
-const { CreatorOverview } = await import('./creator-view');
+const { CreatorOverview, CreatorTab } = await import('./creator-view');
 
 function page<T>(items: T[], total = items.length): IPaginatedResponse<T> {
   return {
@@ -115,24 +116,35 @@ describe('getPublicBrandBySlug', () => {
   });
 });
 
+describe('getPublicReferralCodeBySlug', () => {
+  it('answers the owner code for a public handle', async () => {
+    expect(await getPublicReferralCodeBySlug('code-ok')).toBe('owner2345xyz');
+  });
+
+  it('answers null for an unknown handle and for an outage', async () => {
+    findPublicProfileBySlug.mockResolvedValueOnce(null);
+    expect(await getPublicReferralCodeBySlug('code-unknown')).toBeNull();
+
+    findPublicProfileBySlug.mockRejectedValueOnce(new Error('offline'));
+    expect(await getPublicReferralCodeBySlug('code-offline')).toBeNull();
+  });
+});
+
 describe('getCreatorProfileData', () => {
   it('collects every kind of public work with its total', async () => {
     const data = await getCreatorProfileData('data-ok');
 
     expect(data?.brand).toMatchObject({ id: 'brand-1' });
-    expect(data?.referralCode).toBe('owner2345xyz');
     expect(data?.showcase.articles.total).toBe(12);
     expect(data?.showcase.posts.items).toEqual([POST]);
   });
 
   it('reads a failed listing as empty and keeps the profile', async () => {
     findPublicArticlesPage.mockRejectedValue(new Error('articles down'));
-    findPublicReferralCode.mockRejectedValue(new Error('referral down'));
 
     const data = await getCreatorProfileData('data-partial');
 
     expect(data?.showcase.articles).toMatchObject({ items: [], total: 0 });
-    expect(data?.referralCode).toBeNull();
     expect(data?.showcase.posts.total).toBe(3);
   });
 
@@ -272,6 +284,17 @@ describe('CreatorOverview', () => {
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeVisible();
   });
 
+  it('shows each count in its tab label only, never as separate text', async () => {
+    render(await CreatorOverview({ handle: 'acme' }));
+
+    // 12 articles: the tab link reads "Articles 12", and nothing else on the
+    // page repeats the number as "12 articles" or beside a section title.
+    expect(screen.queryByText(/\b12\b\s+articles?/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Articles' }),
+    ).toBeVisible();
+  });
+
   it('answers with a 404 when the handle is unknown or not public', async () => {
     findPublicProfileBySlug.mockResolvedValue(null);
     const element = (await CreatorProfilePage({
@@ -281,5 +304,18 @@ describe('CreatorOverview', () => {
     await expect(
       CreatorOverview({ handle: element.props.handle }),
     ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
+  });
+});
+
+describe('CreatorTab', () => {
+  it('lists the work without repeating the total under the tabs', async () => {
+    render(await CreatorTab({ handle: 'acme', page: 1, tab: 'articles' }));
+
+    const tabs = screen.getByRole('navigation', { name: 'Profile sections' });
+    expect(
+      within(tabs).getByRole('link', { name: 'Articles 12' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /Launch week/ })).toBeVisible();
+    expect(screen.queryByText(/12 articles/i)).not.toBeInTheDocument();
   });
 });

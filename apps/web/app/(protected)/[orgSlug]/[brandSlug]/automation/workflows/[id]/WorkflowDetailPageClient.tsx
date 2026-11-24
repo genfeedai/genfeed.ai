@@ -45,6 +45,7 @@ import { useWorkflowActionDefaults } from '@/features/workflows/hooks/useWorkflo
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
+import { requestMissingWorkflowInputs } from '@/features/workflows/utils/request-missing-inputs';
 import {
   coerceWorkflowItems,
   getWorkflowNodeConfig,
@@ -221,7 +222,7 @@ export default function WorkflowDetailPageClient({
     async (
       inputValues: Record<string, unknown> = {},
       options: { saveDefaults: boolean } = { saveDefaults: false },
-    ) => {
+    ): Promise<void> => {
       let runStarted = false;
 
       try {
@@ -255,6 +256,14 @@ export default function WorkflowDetailPageClient({
       } catch (error) {
         if (runStarted) {
           workflowRunTracker.trackLaunchFailed();
+        }
+        const askedForInputs = requestMissingWorkflowInputs(
+          error,
+          inputValues,
+          (values) => handleRun(values, { saveDefaults: false }),
+        );
+        if (askedForInputs) {
+          return;
         }
         logger.error('Failed to run workflow', {
           error,

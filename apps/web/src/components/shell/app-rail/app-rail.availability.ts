@@ -83,13 +83,6 @@ export function resolveAvailableRailApps({
     if (app.releaseItemId && moduleAccess !== undefined) {
       return moduleAccess?.[app.organizationModule]?.isAllowed === true;
     }
-    // Trends needs a paid plan: an organization without one does not get a
-    // rail item that opens a locked page.
-    if (
-      moduleAccess?.[app.organizationModule]?.reason === 'subscription-required'
-    ) {
-      return false;
-    }
     return (
       modulePreferences === undefined ||
       modulePreferences?.[app.organizationModule] === true

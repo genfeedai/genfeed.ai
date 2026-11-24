@@ -74,12 +74,7 @@ export default function JourneyPageContent() {
       <Card variant={CardVariant.DEFAULT} padding={CardPadding.XL}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="sr-only">{translate('title')}</h1>
-          <Button
-            asChild
-            className="inline-flex rounded-full border border-primary/20 px-4 py-2 text-sm text-primary hover:bg-primary/10"
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={APP_ROUTES.ONBOARDING.ROOT}>
               {translate('backToOnboarding')}
             </Link>
@@ -171,7 +166,6 @@ export default function JourneyPageContent() {
 
                   <Button
                     asChild
-                    className="inline-flex rounded-full border border-border px-4 py-2 text-sm text-foreground hover:bg-hover"
                     variant={ButtonVariant.SECONDARY}
                     withWrapper={false}
                   >

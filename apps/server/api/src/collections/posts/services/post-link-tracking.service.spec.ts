@@ -4,6 +4,7 @@ import { YoutubeMetadataService } from '@api/services/integrations/youtube/servi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -61,6 +62,8 @@ async function fixture() {
     }),
   };
   const youtube = {
+    isApiKeyConfigured: vi.fn().mockReturnValue(true),
+    getVideoMetadataAsChannel: vi.fn().mockResolvedValue(null),
     getVideoMetadata: vi.fn().mockResolvedValue({
       id: 'abc',
       channelId: 'channel-alice',
@@ -198,6 +201,74 @@ describe('post link import', () => {
       f.service.trackLink({ ...input, url: 'https://youtu.be/abc' }, scope),
     ).rejects.toThrow('private');
     expect(f.tx.post.create).not.toHaveBeenCalled();
+  });
+  describe('YouTube without a usable API key', () => {
+    const youtubeInput = { ...input, url: 'https://youtu.be/abc' };
+    const ownedVideo = {
+      id: 'abc',
+      channelId: 'channel-alice',
+      title: 'Owned unlisted video',
+      publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+    const youtubeCredential = { ...credential, externalId: 'channel-alice' };
+
+    it('imports an owned video through the connected channel when no API key is set', async () => {
+      const f = await fixture();
+      f.youtube.isApiKeyConfigured.mockReturnValue(false);
+      f.tx.credential.findMany.mockResolvedValue([youtubeCredential]);
+      f.youtube.getVideoMetadataAsChannel.mockResolvedValue(ownedVideo);
+      expect(await f.service.trackLink(youtubeInput, scope)).toMatchObject({
+        created: true,
+        credentialId: credential.id,
+        analyticsAvailability: 'eligible',
+      });
+      expect(f.tx.post.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ description: 'Owned unlisted video' }),
+      });
+      expect(f.youtube.getVideoMetadata).not.toHaveBeenCalled();
+    });
+    it('falls back to the connected channel when the key cannot see the video', async () => {
+      const f = await fixture();
+      f.youtube.getVideoMetadata.mockResolvedValue(null);
+      f.tx.credential.findMany.mockResolvedValue([youtubeCredential]);
+      f.youtube.getVideoMetadataAsChannel.mockResolvedValue(ownedVideo);
+      expect(await f.service.trackLink(youtubeInput, scope)).toMatchObject({
+        created: true,
+        credentialId: credential.id,
+      });
+    });
+    it('names the missing configuration when there is no key and no connected channel', async () => {
+      const f = await fixture();
+      f.youtube.isApiKeyConfigured.mockReturnValue(false);
+      f.tx.credential.findMany.mockResolvedValue([]);
+      const error = await f.service
+        .trackLink(youtubeInput, scope)
+        .catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect((error as Error).message).toContain('YOUTUBE_API_KEY');
+      expect((error as Error).message).toContain('connected YouTube channel');
+      expect(f.tx.post.create).not.toHaveBeenCalled();
+    });
+    it('asks to reconnect when the connected channel cannot be refreshed', async () => {
+      const f = await fixture();
+      f.youtube.isApiKeyConfigured.mockReturnValue(false);
+      f.tx.credential.findMany.mockResolvedValue([youtubeCredential]);
+      f.youtube.getVideoMetadataAsChannel.mockRejectedValue(
+        new Error('invalid_grant'),
+      );
+      await expect(f.service.trackLink(youtubeInput, scope)).rejects.toThrow(
+        'Reconnect the YouTube channel',
+      );
+      expect(f.tx.post.create).not.toHaveBeenCalled();
+    });
+    it('reports a video that neither the key nor the channel can see as not found', async () => {
+      const f = await fixture();
+      f.youtube.getVideoMetadata.mockResolvedValue(null);
+      f.tx.credential.findMany.mockResolvedValue([youtubeCredential]);
+      await expect(f.service.trackLink(youtubeInput, scope)).rejects.toThrow(
+        'private, unavailable or not found',
+      );
+    });
   });
   it.each([
     'https://linkedin.com/posts/alice_topic-activity-123-xyz',

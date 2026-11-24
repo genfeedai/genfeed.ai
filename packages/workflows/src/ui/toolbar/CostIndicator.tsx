@@ -34,7 +34,6 @@ export function CostIndicator() {
       size={ButtonSize.SM}
       onClick={() => openModal('cost')}
       title={translate('viewCostBreakdown')}
-      className="text-muted-foreground hover:text-foreground"
     >
       <DollarSign className="size-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>

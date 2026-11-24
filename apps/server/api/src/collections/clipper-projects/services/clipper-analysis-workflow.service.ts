@@ -32,6 +32,7 @@ import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   FILES_REQUEST_TIMEOUT_MS,
   FilesRetryPolicy,
@@ -127,6 +128,8 @@ function unavailableReferenceFrames(
 
 interface AudioExtractionResult {
   audioUrl: string;
+  /** Storage key of the extracted audio; its CDN URL is not publicly readable under authorized media delivery. */
+  audioStorageKey?: string;
   sourceArtifact?: ClipperSourceArtifact;
 }
 
@@ -165,6 +168,7 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
     private readonly highlightDetector: ClipperHighlightDetector,
     private readonly publicClipperToolStore: PublicClipperToolStoreService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly filesClientService: FilesClientService,
   ) {}
 
   onModuleInit(): void {
@@ -255,14 +259,34 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
     if (extraction.sourceArtifact) {
       await this.persistSourceArtifact(data, extraction.sourceArtifact);
     }
+    const audioUrl = await this.resolveAudioReadUrl(extraction);
     await this.updateProject(data.projectId, { progress: 15 }, data.orgId);
     await this.updateSource(data, 'ready-for-transcription');
     return {
-      audioUrl: extraction.audioUrl,
+      audioUrl,
       data,
       ...(resolvedArtifact ? { sourceArtifact: resolvedArtifact } : {}),
       sourceUrl,
     };
+  }
+
+  /**
+   * Transcription downloads the extracted audio. Under authorized media
+   * delivery its canonical CDN URL answers 403, so sign the exact object key
+   * the extraction job just wrote for this organization instead.
+   */
+  private async resolveAudioReadUrl(
+    extraction: AudioExtractionResult,
+  ): Promise<string> {
+    if (
+      !extraction.audioStorageKey ||
+      !this.configService.isAuthorizedMediaDeliveryEnabled
+    ) {
+      return extraction.audioUrl;
+    }
+    return this.filesClientService.getPresignedDownloadUrlForObjectKey(
+      extraction.audioStorageKey,
+    );
   }
 
   private async transcribeAction(
@@ -651,11 +675,15 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
             `Audio extraction job ${jobId} completed without an output URL`,
           );
         }
+        const audioStorageKey = result.s3Key;
         const sourceUrl = result.sourceUrl;
         const sourceS3Key = result.sourceS3Key;
         const sourceDurationSeconds = result.sourceDurationSeconds;
         return {
           audioUrl,
+          ...(typeof audioStorageKey === 'string' && audioStorageKey.length > 0
+            ? { audioStorageKey }
+            : {}),
           ...(typeof sourceUrl === 'string' && sourceUrl.length > 0
             ? {
                 sourceArtifact: {

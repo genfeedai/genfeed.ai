@@ -82,9 +82,9 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Change an existing article in the connected organization: title, slug, summary, HTML content and cover image. Never changes publication status; publish separately. Inline images are <img src> tags in the content HTML that use a hosted Library or upload URL.',
+      'Change an existing article in the connected organization: title, slug, summary, HTML content, cover image and publication date. Never changes publication status; publish separately. Inline images are <img src> tags in the content HTML that use a hosted Library or upload URL.',
     mcpDescription:
-      'Update an existing article: label, slug, summary, HTML content and coverImageUrl. Pass only the fields to change. Never publishes. Inline images are <img> tags in content. Pass brandId when the article is not in your active brand.',
+      'Update an existing article: label, slug, summary, HTML content, coverImageUrl and publishedAt. Pass only the fields to change. Never publishes. Inline images are <img> tags in content. Pass brandId when the article is not in your active brand.',
     name: 'update_article_draft',
     requiredRole: 'user',
     parameters: {
@@ -125,6 +125,11 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
         coverImageUrl: {
           type: 'string',
           description: `New absolute HTTPS cover image URL. ${ARTICLE_IMAGE_URL_NOTE}`,
+        },
+        publishedAt: {
+          type: 'string',
+          description:
+            'New publication date as an ISO 8601 timestamp, for example 2026-11-17T08:00:00.000Z. Articles publish on Tuesdays and Thursdays (UTC), one article per day. Changes the date only, never the status.',
         },
       },
     },

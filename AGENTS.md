@@ -100,7 +100,7 @@ skills, env drift, Biome, secretlint, gitleaks when installed, migration safety)
 affected-workspace typecheck, the Spec Typecheck for the affected workspaces, and the
 executable contracts. It stops at the first failure; `--keep-going` runs everything.
 It works in a cloud container after `bun install` and
-`cd packages/prisma && bunx prisma generate`. The contracts run under the Node in `.node-version`,
+`cd packages/prisma && bun run postinstall`; a bare `prisma generate` leaves the client's full parameterization graph, which the contracts reject. The contracts run under the Node in `.node-version`,
 downloaded once to `~/.cache/genfeed-preflight` when the host Node differs. Use it instead of
 a per-package `tsc`, which shows false missing-module errors until packages are built.
 Not covered: `turbo lint` (add `--lint`; some workspace lint scripts rewrite files), the

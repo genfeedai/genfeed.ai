@@ -181,14 +181,11 @@ export function GenerationActionCardControls({
           {canPreviewPrompt ? (
             <Button
               ariaLabel={translate('readFullAria')}
-              className={cn(
-                'shrink-0 px-2 text-xs',
-                SHELL_CONTROL_HEIGHT_CLASS,
-              )}
+              className={cn('shrink-0', SHELL_CONTROL_HEIGHT_CLASS)}
               icon={<Expand className="size-3.5" />}
               label={translate('readFull')}
               onClick={() => setIsPromptPreviewOpen(true)}
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
@@ -407,14 +404,11 @@ export function GenerationActionCardControls({
           {onOpenInStudio ? (
             <Button
               ariaLabel={translate('openInStudioAria')}
-              className={cn(
-                'shrink-0 px-2 text-xs',
-                SHELL_CONTROL_HEIGHT_CLASS,
-              )}
+              className={cn('shrink-0', SHELL_CONTROL_HEIGHT_CLASS)}
               icon={<ExternalLink className="size-3.5" />}
               label={translate('openInStudio')}
               onClick={onOpenInStudio}
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
@@ -422,13 +416,10 @@ export function GenerationActionCardControls({
           {showDecline ? (
             <Button
               ariaLabel={translate('declineAria')}
-              className={cn(
-                'shrink-0 px-2 text-xs',
-                SHELL_CONTROL_HEIGHT_CLASS,
-              )}
+              className={cn('shrink-0', SHELL_CONTROL_HEIGHT_CLASS)}
               label={translate('decline')}
               onClick={onDecline}
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             />

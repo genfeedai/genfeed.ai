@@ -2,12 +2,15 @@ import {
   asYoutubeRequestAuth,
   type YoutubeRequestAuth,
 } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
-import { isYoutubeVideoMissingError } from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
+import {
+  isYoutubeCommentsDisabledError,
+  isYoutubeVideoMissingError,
+} from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-import { google, type youtube_v3 } from 'googleapis';
 
 @Traced()
 @Injectable()
@@ -19,7 +22,7 @@ export class YoutubeCommentsService {
     private readonly authService: YoutubeAuthService,
     private readonly loggerService: LoggerService,
   ) {
-    this.youtubeAPI = google.youtube({ version: 'v3' });
+    this.youtubeAPI = youtube({ version: 'v3' });
   }
 
   private async getAuthenticatedChannelContext(
@@ -320,10 +323,15 @@ export class YoutubeCommentsService {
         ];
       });
     } catch (error: unknown) {
-      // A deleted or private video is an owned post gone from YouTube. The
-      // inbox sync skips it, so it is not a fault to report on every sweep.
+      // A deleted or private video is an owned post gone from YouTube, and a
+      // video with comments switched off has nothing to read. The inbox sync
+      // skips both, so neither is a fault to report on every sweep.
       if (isYoutubeVideoMissingError(error)) {
         this.loggerService.warn(`${url} skipped: video no longer exists`, {
+          videoId,
+        });
+      } else if (isYoutubeCommentsDisabledError(error)) {
+        this.loggerService.warn(`${url} skipped: comments are disabled`, {
           videoId,
         });
       } else {

@@ -181,23 +181,67 @@ function stableExpiryMs(nowMs: number, ttlSeconds: number): number {
 }
 
 /**
+ * Signed URLs by private key, then by expiry window, key pair and URL. Within
+ * a window the signature is deterministic, so the second projection of a URL
+ * (a cached response, the next request of a page build) reuses the first
+ * instead of parsing the private key and signing again, which cost about
+ * 0.9 ms of request-thread time per URL.
+ */
+const MAX_MEMOIZED_SIGNATURES = 2_000;
+const MAX_MEMOIZED_PRIVATE_KEYS = 4;
+const signedUrlsByPrivateKey = new Map<string, Map<string, string>>();
+
+function readSignedUrlMemo(privateKey: string): Map<string, string> {
+  const existing = signedUrlsByPrivateKey.get(privateKey);
+  if (existing) return existing;
+  if (signedUrlsByPrivateKey.size >= MAX_MEMOIZED_PRIVATE_KEYS) {
+    signedUrlsByPrivateKey.clear();
+  }
+  const created = new Map<string, string>();
+  signedUrlsByPrivateKey.set(privateKey, created);
+  return created;
+}
+
+function rememberSignedUrl(
+  memo: Map<string, string>,
+  memoKey: string,
+  signedUrl: string,
+  nowMs: number,
+): void {
+  if (memo.size >= MAX_MEMOIZED_SIGNATURES) {
+    // A finished window can never be asked for again.
+    for (const entryKey of memo.keys()) {
+      const windowEndMs = Number(entryKey.slice(0, entryKey.indexOf('|')));
+      if (windowEndMs <= nowMs) memo.delete(entryKey);
+    }
+    if (memo.size >= MAX_MEMOIZED_SIGNATURES) memo.clear();
+  }
+  memo.set(memoKey, signedUrl);
+}
+
+/**
  * Signs `url` with the configured key pair.
  *
  * A failure never falls back to an unsigned URL — that would hand out exactly
  * the access this prevents. It throws so the caller fails closed.
  */
 function sign(url: string, signing: MediaUrlSigningConfig): string {
-  const dateLessThan = new Date(
-    stableExpiryMs(Date.now(), signing.ttlSeconds),
-  ).toISOString();
+  const nowMs = Date.now();
+  const windowEndMs = stableExpiryMs(nowMs, signing.ttlSeconds);
+  const memo = readSignedUrlMemo(signing.privateKey);
+  const memoKey = `${windowEndMs}|${signing.keyPairId}|${url}`;
+  const memoized = memo.get(memoKey);
+  if (memoized !== undefined) return memoized;
 
   try {
-    return getSignedUrl({
-      dateLessThan,
+    const signedUrl = getSignedUrl({
+      dateLessThan: new Date(windowEndMs).toISOString(),
       keyPairId: signing.keyPairId,
       privateKey: signing.privateKey,
       url,
     });
+    rememberSignedUrl(memo, memoKey, signedUrl, nowMs);
+    return signedUrl;
   } catch {
     throw new Error('Could not sign the media URL');
   }

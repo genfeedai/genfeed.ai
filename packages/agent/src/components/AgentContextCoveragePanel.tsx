@@ -14,6 +14,8 @@ import type {
   ContextCoverageRecovery,
   ContextCoverageState,
 } from '@genfeedai/contracts/interfaces';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
+import { useViewerTimeZone } from '@genfeedai/hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Badge } from '@ui/primitives/badge';
@@ -40,13 +42,6 @@ const STATE_BADGE_VARIANT: Record<ContextCoverageState, BadgeVariant> = {
   stale: 'warning',
 };
 
-function formatSuccessTime(value: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 export function AgentContextCoveragePanel({
   apiService,
   brandId,
@@ -54,6 +49,7 @@ export function AgentContextCoveragePanel({
   isActive = true,
 }: AgentContextCoveragePanelProps): ReactElement {
   const translate = useTranslations('agent.contextCoverage');
+  const timeZone = useViewerTimeZone();
   const { href } = useOrgUrl();
   const { coverage, reload, status } = useContextCoverage({
     apiService,
@@ -152,7 +148,9 @@ export function AgentContextCoveragePanel({
                 <p className="text-xs text-muted-foreground">
                   {family.lastSuccessAt
                     ? translate('lastSuccess', {
-                        date: formatSuccessTime(family.lastSuccessAt),
+                        date: formatShortDate(family.lastSuccessAt, {
+                          timeZone,
+                        }),
                       })
                     : translate('lastSuccessUnavailable')}
                 </p>

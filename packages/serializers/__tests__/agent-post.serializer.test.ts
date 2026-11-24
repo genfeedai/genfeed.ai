@@ -154,4 +154,36 @@ describe('agent post preview projection', () => {
       }).error,
     ).toBeUndefined();
   });
+
+  it('says a TikTok Inbox receipt is not a live post', () => {
+    const inbox = serializeAgentPost({
+      id: 'post-2',
+      platform: 'tiktok',
+      externalId: 'v_inbox_url~receipt',
+      targetExecutionState: 'published',
+      status: 'public',
+      publishedAt: null,
+      url: null,
+    });
+
+    expect(inbox.isInboxDelivery).toBe(true);
+    expect(inbox.stateLabel).toBe('Delivered to TikTok Inbox');
+    expect(inbox.targets).toEqual([
+      expect.objectContaining({ isInboxDelivery: true, state: 'published' }),
+    ]);
+  });
+
+  it('leaves a live TikTok post unflagged', () => {
+    const live = serializeAgentPost({
+      id: 'post-3',
+      platform: 'tiktok',
+      externalId: '7300000000000000000',
+      targetExecutionState: 'published',
+      publishedAt: '2026-11-20T10:00:00.000Z',
+      url: 'https://www.tiktok.com/@brand/video/7300000000000000000',
+    });
+
+    expect(live).not.toHaveProperty('isInboxDelivery');
+    expect(live).not.toHaveProperty('stateLabel');
+  });
 });

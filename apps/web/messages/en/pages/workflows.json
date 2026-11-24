@@ -214,5 +214,15 @@
   },
   "mediaInput": {
     "loadingPreview": "Loading preview…"
+  },
+  "inputForm": {
+    "required": "{label} is required",
+    "selectPlaceholder": "Select {label}"
+  },
+  "missingInput": {
+    "cancel": "Cancel",
+    "description": "This run needs a value for each input below. Nothing is generated until every required input has one.",
+    "submit": "Run with these inputs",
+    "title": "Required inputs are missing"
   }
 }

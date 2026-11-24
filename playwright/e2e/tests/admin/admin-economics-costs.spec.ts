@@ -44,14 +44,18 @@ test.describe('Admin economics costs', () => {
                   costPerGenerationUsd: 0.25,
                   generationCreditValueUsd: 1.5,
                   llmCalls: 5,
+                  llmCostPerCompletionUsd: 0.25,
                   llmCostUsd: 1.5,
                   marginPerGenerationUsd: 0.33,
                   mediaChargedGenerations: 3,
                   mediaCostUsd: 0.5,
                   mediaGenerations: 4,
                   mediaPricedGenerations: 2,
+                  nonByokCalls: 6,
                   providerCostUsd: 2,
+                  topModelsCostSharePercent: 100,
                   unpricedCalls: 2,
+                  unpricedSharePercent: 33.3,
                 },
               },
               id: 'mock-economics-costs',
@@ -78,6 +82,21 @@ test.describe('Admin economics costs', () => {
     await expect(
       page.getByTestId('metric-card').filter({ hasText: 'Unpriced calls' }),
     ).toContainText('2');
+    await expect(
+      page
+        .getByTestId('metric-card')
+        .filter({ hasText: 'LLM cost per completion' }),
+    ).toContainText('$0.25');
+    await expect(
+      page
+        .getByTestId('metric-card')
+        .filter({ hasText: 'Cost share of top 3 models' }),
+    ).toContainText('100.0%');
+    await expect(
+      page
+        .getByTestId('metric-card')
+        .filter({ hasText: 'Unpriced share of calls' }),
+    ).toContainText('33.3%');
     await expect(page.getByText(/BYOK calls are free/)).toHaveCount(0);
     await expect(page.getByRole('row', { name: /VIDEO/ })).toContainText('-');
   });

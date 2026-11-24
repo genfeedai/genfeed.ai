@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { SimpleTooltip } from '@genfeedai/ui/primitives/tooltip';
 import { Clock3, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -39,31 +40,32 @@ function FanItem({
   const delay = index * 30;
 
   return (
-    <Button
-      withWrapper={false}
-      variant={ButtonVariant.GHOST}
-      draggable
-      onDragStart={(e) => onDragStart(e, item)}
-      className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-ambient-md cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
-      style={
-        {
-          '--fan-x': `${x}px`,
-          '--fan-y': `${y}px`,
-          animationDelay: `${delay}ms`,
-          zIndex: 10 - index,
-        } as React.CSSProperties
-      }
-      title={`${formatElapsedTime(item.timestamp, 'ago')}\n${item.prompt?.substring(0, 50) || ''}...`}
+    <SimpleTooltip
+      label={`${formatElapsedTime(item.timestamp, 'ago')}\n${item.prompt?.substring(0, 50) || ''}...`}
     >
-      <Image
-        src={item.image}
-        alt={`History ${index + 1}`}
-        fill
-        unoptimized
-        sizes="56px"
-        className="object-cover pointer-events-none"
-      />
-    </Button>
+      <div
+        draggable
+        onDragStart={(e) => onDragStart(e, item)}
+        className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-ambient-md cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group"
+        style={
+          {
+            '--fan-x': `${x}px`,
+            '--fan-y': `${y}px`,
+            animationDelay: `${delay}ms`,
+            zIndex: 10 - index,
+          } as React.CSSProperties
+        }
+      >
+        <Image
+          src={item.image}
+          alt={`History ${index + 1}`}
+          fill
+          unoptimized
+          sizes="56px"
+          className="object-cover pointer-events-none"
+        />
+      </div>
+    </SimpleTooltip>
   );
 }
 
@@ -134,9 +136,8 @@ function HistorySidebar({
           <Button
             withWrapper={false}
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.INLINE}
+            size={ButtonSize.XS}
             onClick={onClear}
-            className="text-2xs hover:text-destructive"
             title="Clear all history"
           >
             Clear All
@@ -146,7 +147,6 @@ function HistorySidebar({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             onClick={onClose}
-            className="size-5 hover:bg-muted"
             title="Close"
           >
             <X className="size-3.5" />
@@ -156,14 +156,11 @@ function HistorySidebar({
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {history.map((item, index) => (
-          <Button
-            withWrapper={false}
+          <div
             key={item.id}
-            type="button"
-            variant={ButtonVariant.GHOST}
             draggable
             onDragStart={(e) => onDragStart(e, item)}
-            className="flex h-auto w-full justify-start gap-3 p-2 hover:bg-muted cursor-grab active:cursor-grabbing group transition-colors"
+            className="flex w-full items-center gap-3 p-2 hover:bg-muted cursor-grab active:cursor-grabbing group transition-colors"
           >
             <div className="relative size-14 rounded overflow-hidden shrink-0 border border-border group-hover:border-border-strong transition-colors">
               <Image
@@ -184,7 +181,7 @@ function HistorySidebar({
                 {item.model ? ` · ${item.model}` : ''}
               </p>
             </div>
-          </Button>
+          </div>
         ))}
       </div>
 
@@ -294,7 +291,6 @@ export function GlobalImageHistory() {
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.ICON}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-muted hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-ambient-md"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
@@ -335,9 +331,9 @@ export function GlobalImageHistory() {
                 <Button
                   withWrapper={false}
                   variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
+                  size={ButtonSize.XS}
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-muted hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-ambient-md whitespace-nowrap px-2 py-1 h-auto"
+                  className="absolute animate-fan-enter whitespace-nowrap"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,

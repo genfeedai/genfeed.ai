@@ -69,6 +69,11 @@
       "import": "./src/ui/canvas/index.ts",
       "default": "./src/ui/canvas/index.ts"
     },
+    "./ui/components/WorkflowInputFields": {
+      "types": "./src/ui/components/WorkflowInputFields.tsx",
+      "import": "./src/ui/components/WorkflowInputFields.tsx",
+      "default": "./src/ui/components/WorkflowInputFields.tsx"
+    },
     "./ui/hooks": {
       "types": "./src/ui/hooks/index.ts",
       "import": "./src/ui/hooks/index.ts",

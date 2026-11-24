@@ -15,6 +15,8 @@ import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import { useTranslations } from 'next-intl';
@@ -144,8 +146,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     setCrunRestoreStatus,
   } = useStudioCrunRestore({ brandId, organizationId });
   const {
-    composerDockRef,
-    composerHeight,
     focusReturnRef,
     focusedScope,
     galleryPositionRef,
@@ -625,152 +625,168 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
-      <StudioPlaygroundTopbar
-        clearFilters={clearFilters}
-        isLoadingGallery={isLoadingGallery}
-        refresh={refresh}
-        resultSort={resultSort}
-        resultType={resultType}
-        resultsView={resultsView}
-        search={search}
-        setResultSort={setResultSort}
-        setResultType={setResultType}
-        setResultsView={setResultsView}
-        setSearch={setSearch}
-      />
-
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-          <StudioPlaygroundGallery
-            assetActions={assetActions}
-            cancelJob={cancelJob}
-            canUseGeneratedReference={canUseGeneratedReference}
-            composerHeight={composerHeight}
-            galleryError={galleryError}
-            galleryScrollRef={galleryScrollRef}
-            handleCloseFocusedPreview={handleCloseFocusedPreview}
-            handleEditJob={handleEditJob}
-            handleRemixJob={handleRemixJob}
-            handleSelectJob={handleSelectJob}
-            handleUseGeneratedReference={handleUseGeneratedReference}
-            handleVaryRecipe={handleVaryRecipe}
-            isFocusedPreview={isFocusedPreview}
-            isLoadingGallery={isLoadingGallery}
-            previewRevisions={previewRevisions}
-            recoverPreview={recoverPreview}
-            recoveredJobs={recoveredJobs}
-            refresh={refresh}
-            resultsView={resultsView}
-            selectedJob={selectedJob}
-            selectedJobId={selectedJobId}
-            selectedParentJob={selectedParentJob}
-            selectedRunJobs={selectedRunJobs}
-            showEmptyState={showEmptyState}
-            transformActions={transformActions}
-            visibleJobs={visibleJobs}
+      <AgentOutputShell
+        agent={
+          <CreativeAppNewPane
+            body={
+              showEmptyState && !isFocusedPreview ? (
+                <StudioPlaygroundEmptyState
+                  isInFlow
+                  brandId={brandId || undefined}
+                  character={pickStarterCharacter(characterMentions)}
+                  offeringKind={starterOffering}
+                  onSelect={handleStarterIdea}
+                  productReference={pickStarterProductReference(
+                    selectedBrand?.references,
+                  )}
+                  type={type}
+                />
+              ) : (
+                <div className="min-h-0 flex-1" />
+              )
+            }
+            promptBar={
+              <PromptBarContainer
+                className="w-full"
+                layoutMode="inflow"
+                maxWidth="full"
+                zIndex={40}
+              >
+                <div {...(capabilities.hasReferences ? dragHandlers : {})}>
+                  <StudioPlaygroundComposer
+                    notice={
+                      referenceValidation.errors.length > 0 ||
+                      (prompt.trim() &&
+                        referenceValidation.unusedTokens.length > 0) ||
+                      draftSaveStatus === 'error' ||
+                      draftSaveStatus === 'failed' ||
+                      crunRestoreStatus === 'failed' ||
+                      remixableVideos.length > 0 ? (
+                        <StudioPlaygroundComposerNotice
+                          crunRestoreStatus={crunRestoreStatus}
+                          draftSaveStatus={draftSaveStatus}
+                          onRemixVideo={(assetId) => {
+                            void storyboardEntry.createFromUploadAssetId(
+                              assetId,
+                            );
+                          }}
+                          prompt={prompt}
+                          referenceValidation={referenceValidation}
+                          remixableVideos={remixableVideos}
+                        />
+                      ) : null
+                    }
+                    attachedAssets={attachedAssets}
+                    contextGroups={composerContextGroups}
+                    crunQuote={crunModel ? crunQuote : undefined}
+                    isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
+                    isPromptInvalid={referenceValidation.errors.length > 0}
+                    crunReferenceCount={crunPreparedIntent.referenceIds.length}
+                    crunStartFrameId={crunPreparedIntent.referenceIds[0]}
+                    crunEndFrameId={resolvedReferences.endFrameId}
+                    documentSeed={documentSeed}
+                    extraExtensions={composerExtensions}
+                    isDragActive={
+                      capabilities.hasReferences && dragState.isActive
+                    }
+                    isListening={isListening}
+                    isLoadingModels={isLoadingModels}
+                    isTranscribing={isTranscribing}
+                    isUploading={isUploading}
+                    models={models}
+                    onAddFiles={handleAddFiles}
+                    onOpenLibrary={handleOpenLibrary}
+                    onPromptCommandContextChange={setPromptCommandContext}
+                    onPromptChange={(value) => {
+                      clearCrunRestore();
+                      setPrompt(value);
+                    }}
+                    onPromptDocumentChange={(document) => {
+                      promptDocumentRef.current = document;
+                      setQuoteDocumentRevision((value) => value + 1);
+                    }}
+                    onRemoveAttachedAsset={handleRemoveAttachedAsset}
+                    onResetSettings={() => {
+                      clearCrunRestore();
+                      resetSettings();
+                    }}
+                    onSettingsChange={(patch) => {
+                      if (
+                        patch.modelKey !== undefined &&
+                        patch.modelKey !== settings.modelKey
+                      )
+                        clearCrunRestore();
+                      updateSettings(patch);
+                    }}
+                    isStopAvailable={stoppableJobs.length > 0}
+                    isSubmitting={isSubmitting}
+                    onStartListening={startListening}
+                    onStopGeneration={handleStopGeneration}
+                    onStopListening={stopListening}
+                    onSubmit={handleSubmit}
+                    onTypeChange={(value) => {
+                      clearCrunRestore();
+                      setType(value);
+                    }}
+                    prompt={prompt}
+                    settings={settings}
+                    isVoiceInputAvailable={isVoiceInputAvailable}
+                    type={type}
+                  />
+                </div>
+              </PromptBarContainer>
+            }
+            testId="studio-playground-new-pane"
           />
-          {showEmptyState && !isFocusedPreview ? (
-            <StudioPlaygroundEmptyState
-              brandId={brandId || undefined}
-              character={pickStarterCharacter(characterMentions)}
-              offeringKind={starterOffering}
-              onSelect={handleStarterIdea}
-              productReference={pickStarterProductReference(
-                selectedBrand?.references,
-              )}
-              type={type}
+        }
+        agentTitle={translate('title')}
+        outputLabel={translate('results')}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <StudioPlaygroundTopbar
+            clearFilters={clearFilters}
+            isLoadingGallery={isLoadingGallery}
+            refresh={refresh}
+            resultSort={resultSort}
+            resultType={resultType}
+            resultsView={resultsView}
+            search={search}
+            setResultSort={setResultSort}
+            setResultType={setResultType}
+            setResultsView={setResultsView}
+            setSearch={setSearch}
+          />
+          <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+            <StudioPlaygroundGallery
+              assetActions={assetActions}
+              cancelJob={cancelJob}
+              canUseGeneratedReference={canUseGeneratedReference}
+              galleryError={galleryError}
+              galleryScrollRef={galleryScrollRef}
+              handleCloseFocusedPreview={handleCloseFocusedPreview}
+              handleEditJob={handleEditJob}
+              handleRemixJob={handleRemixJob}
+              handleSelectJob={handleSelectJob}
+              handleUseGeneratedReference={handleUseGeneratedReference}
+              handleVaryRecipe={handleVaryRecipe}
+              isFocusedPreview={isFocusedPreview}
+              isLoadingGallery={isLoadingGallery}
+              previewRevisions={previewRevisions}
+              recoverPreview={recoverPreview}
+              recoveredJobs={recoveredJobs}
+              refresh={refresh}
+              resultsView={resultsView}
+              selectedJob={selectedJob}
+              selectedJobId={selectedJobId}
+              selectedParentJob={selectedParentJob}
+              selectedRunJobs={selectedRunJobs}
+              showEmptyState={showEmptyState}
+              transformActions={transformActions}
+              visibleJobs={visibleJobs}
             />
-          ) : null}
-          <PromptBarContainer
-            className="px-5 pb-5"
-            layoutMode="surface-fixed"
-            maxWidth="4xl"
-            zIndex={40}
-          >
-            <div
-              ref={composerDockRef}
-              {...(capabilities.hasReferences ? dragHandlers : {})}
-            >
-              <StudioPlaygroundComposer
-                notice={
-                  referenceValidation.errors.length > 0 ||
-                  (prompt.trim() &&
-                    referenceValidation.unusedTokens.length > 0) ||
-                  draftSaveStatus === 'error' ||
-                  draftSaveStatus === 'failed' ||
-                  crunRestoreStatus === 'failed' ||
-                  remixableVideos.length > 0 ? (
-                    <StudioPlaygroundComposerNotice
-                      crunRestoreStatus={crunRestoreStatus}
-                      draftSaveStatus={draftSaveStatus}
-                      onRemixVideo={(assetId) => {
-                        void storyboardEntry.createFromUploadAssetId(assetId);
-                      }}
-                      prompt={prompt}
-                      referenceValidation={referenceValidation}
-                      remixableVideos={remixableVideos}
-                    />
-                  ) : null
-                }
-                attachedAssets={attachedAssets}
-                contextGroups={composerContextGroups}
-                crunQuote={crunModel ? crunQuote : undefined}
-                isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
-                isPromptInvalid={referenceValidation.errors.length > 0}
-                crunReferenceCount={crunPreparedIntent.referenceIds.length}
-                crunStartFrameId={crunPreparedIntent.referenceIds[0]}
-                crunEndFrameId={resolvedReferences.endFrameId}
-                documentSeed={documentSeed}
-                extraExtensions={composerExtensions}
-                isDragActive={capabilities.hasReferences && dragState.isActive}
-                isListening={isListening}
-                isLoadingModels={isLoadingModels}
-                isTranscribing={isTranscribing}
-                isUploading={isUploading}
-                models={models}
-                onAddFiles={handleAddFiles}
-                onOpenLibrary={handleOpenLibrary}
-                onPromptCommandContextChange={setPromptCommandContext}
-                onPromptChange={(value) => {
-                  clearCrunRestore();
-                  setPrompt(value);
-                }}
-                onPromptDocumentChange={(document) => {
-                  promptDocumentRef.current = document;
-                  setQuoteDocumentRevision((value) => value + 1);
-                }}
-                onRemoveAttachedAsset={handleRemoveAttachedAsset}
-                onResetSettings={() => {
-                  clearCrunRestore();
-                  resetSettings();
-                }}
-                onSettingsChange={(patch) => {
-                  if (
-                    patch.modelKey !== undefined &&
-                    patch.modelKey !== settings.modelKey
-                  )
-                    clearCrunRestore();
-                  updateSettings(patch);
-                }}
-                isStopAvailable={stoppableJobs.length > 0}
-                isSubmitting={isSubmitting}
-                onStartListening={startListening}
-                onStopGeneration={handleStopGeneration}
-                onStopListening={stopListening}
-                onSubmit={handleSubmit}
-                onTypeChange={(value) => {
-                  clearCrunRestore();
-                  setType(value);
-                }}
-                prompt={prompt}
-                settings={settings}
-                isVoiceInputAvailable={isVoiceInputAvailable}
-                type={type}
-              />
-            </div>
-          </PromptBarContainer>
+          </div>
         </div>
-      </div>
+      </AgentOutputShell>
 
       <ContextSidebarPanel
         onClose={handleCloseInspector}

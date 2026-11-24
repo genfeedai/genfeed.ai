@@ -9,6 +9,8 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [Website direct booking links](feedback_website_direct_booking_links.md) — Book a call opens the configured booking page; no scheduling iframe
 
 - [Agent prompt bar has no dropdowns](feedback_agent_prompt_bar_no_dropdowns.md) — no mode picker or setting popover in the Agent bar; a thread takes its mode from the saved Personal setting
+- [article-reader-copy](rules/article-reader-copy.md) — published articles are reader copy only (no research notes or placeholders), open on a radical claim, and publish on Tuesdays and Thursdays
+- [article-images](rules/article-images.md) — article covers and inline images are permanent public URLs from `complete_media_upload` with `publicImage`; Library URLs are signed and the sanitizer drops SVG and data URIs (#11188)
 - [interleaving-models](rules/interleaving-models.md) — claim, retry and promote protocols get a `*.model.spec.ts` that runs the real code on every schedule, crash and expiry, and replays the past bug
 - [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops

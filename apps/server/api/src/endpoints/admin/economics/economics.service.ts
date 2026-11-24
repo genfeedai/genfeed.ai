@@ -15,10 +15,12 @@ import {
   microsToUsd,
   minorToUsd,
   type NumericSqlValue,
+  percentOf,
   perUnitUsd,
   resolveEconomicsWindow,
   sumDailyAggregates,
   toNumber,
+  topCostSharePercent,
 } from '@api/endpoints/admin/economics/economics-report.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -49,6 +51,7 @@ const REPORTING_CURRENCY = 'usd';
 const LATEST_REVENUE_EVENTS_LIMIT = 50;
 const TOP_REVENUE_ORGANIZATIONS = 10;
 const COST_MODEL_ROW_LIMIT = 100;
+const TOP_MODELS_COUNT = 3;
 /** Workflow-attributed ledger rows count once they are settled. */
 const SETTLED_COST_EVIDENCE = ['observed', 'calculated', 'byok'];
 
@@ -56,6 +59,7 @@ interface DayRevenueRow {
   day: string;
   events: NumericSqlValue;
   revenueMinor: NumericSqlValue;
+  salesMinor: NumericSqlValue;
 }
 
 interface DayCostRow {
@@ -122,6 +126,8 @@ interface CostModelRow {
 
 interface CostFlagsRow {
   byokCalls: NumericSqlValue;
+  completionCostMicros: NumericSqlValue;
+  pricedCompletions: NumericSqlValue;
   unpricedCalls: NumericSqlValue;
 }
 
@@ -204,6 +210,7 @@ export class EconomicsService {
       const aggregate = dayFor(row.day);
       aggregate.revenueMinor += toNumber(row.revenueMinor);
       aggregate.revenueEvents += toNumber(row.events);
+      aggregate.salesMinor += toNumber(row.salesMinor);
     }
     for (const row of llm) {
       const aggregate = dayFor(row.day);
@@ -328,6 +335,16 @@ export class EconomicsService {
       (sum, row) => sum + toNumber(row.revenueMinor),
       0,
     );
+    // Adjustment rows are negative; the tiles show them as amounts taken out.
+    const adjustmentMinor = (...sources: string[]) =>
+      Math.abs(
+        bySource
+          .filter((row) => sources.includes(row.source))
+          .reduce((sum, row) => sum + toNumber(row.revenueMinor), 0),
+      );
+    const payingOrganizations = toNumber(
+      payingOrgs.find((row) => row.isCurrent)?.organizations,
+    );
 
     return {
       daily,
@@ -360,9 +377,20 @@ export class EconomicsService {
         averageRevenuePerEventUsd:
           events > 0 ? minorToUsd(salesMinor / events) : 0,
         events,
-        payingOrganizations: toNumber(
-          payingOrgs.find((row) => row.isCurrent)?.organizations,
+        payingOrganizations,
+        processingFeesUsd: minorToUsd(
+          adjustmentMinor(BillingRevenueSource.PROCESSING_FEE),
         ),
+        refundsAndDisputesUsd: minorToUsd(
+          adjustmentMinor(
+            BillingRevenueSource.REFUND,
+            BillingRevenueSource.DISPUTE,
+          ),
+        ),
+        revenuePerPayingOrganizationUsd:
+          payingOrganizations > 0
+            ? minorToUsd(revenueMinor / payingOrganizations)
+            : null,
         revenueUsd: minorToUsd(revenueMinor),
       },
     };
@@ -420,6 +448,11 @@ export class EconomicsService {
       })),
     );
 
+    const providerCostUsd = Number((llmCostUsd + mediaCostUsd).toFixed(6));
+    const byokCalls = toNumber(flags[0]?.byokCalls);
+    const unpricedCalls = toNumber(flags[0]?.unpricedCalls);
+    const nonByokCalls = total.llmCalls + total.mediaGenerations - byokCalls;
+
     const daily: IEconomicsCostDailyPoint[] = enumerateWindowDays(window).map(
       (date) => {
         const aggregate = byDay.get(date) ?? EMPTY_ECONOMICS_DAILY_AGGREGATE;
@@ -463,10 +496,14 @@ export class EconomicsService {
       }),
       to: formatUtcDay(new Date(window.toExclusive.getTime() - 1)),
       totals: {
-        byokCalls: toNumber(flags[0]?.byokCalls),
+        byokCalls,
         costPerGenerationUsd: perUnitUsd(mediaCostUsd, mediaPricedGenerations),
         generationCreditValueUsd: generationCreditValue,
         llmCalls: total.llmCalls,
+        llmCostPerCompletionUsd: perUnitUsd(
+          microsToUsd(toNumber(flags[0]?.completionCostMicros)),
+          toNumber(flags[0]?.pricedCompletions),
+        ),
         llmCostUsd,
         marginPerGenerationUsd: perUnitUsd(
           generationCreditValue - mediaCostUsd,
@@ -476,8 +513,15 @@ export class EconomicsService {
         mediaCostUsd,
         mediaGenerations: total.mediaGenerations,
         mediaPricedGenerations,
-        providerCostUsd: Number((llmCostUsd + mediaCostUsd).toFixed(6)),
-        unpricedCalls: toNumber(flags[0]?.unpricedCalls),
+        nonByokCalls,
+        providerCostUsd,
+        topModelsCostSharePercent: topCostSharePercent(
+          models.map((row) => microsToUsd(toNumber(row.costMicros))),
+          TOP_MODELS_COUNT,
+          providerCostUsd,
+        ),
+        unpricedCalls,
+        unpricedSharePercent: percentOf(unpricedCalls, nonByokCalls),
       },
     };
   }
@@ -588,6 +632,9 @@ export class EconomicsService {
       SELECT
         to_char("occurredAt", 'YYYY-MM-DD') AS "day",
         COALESCE(SUM("amountMinor"), 0)::bigint AS "revenueMinor",
+        COALESCE(SUM("amountMinor") FILTER (
+          WHERE "source" IN (${BillingRevenueSource.CREDIT_PURCHASE}, ${BillingRevenueSource.SUBSCRIPTION_INVOICE})
+        ), 0)::bigint AS "salesMinor",
         (COUNT(*) FILTER (WHERE "amountMinor" > 0))::bigint AS "events"
       FROM "billing_revenue_events"
       WHERE "isDeleted" = false
@@ -849,11 +896,21 @@ export class EconomicsService {
     return Prisma.sql`
       SELECT
         COALESCE(SUM("byok"), 0)::bigint AS "byokCalls",
-        COALESCE(SUM("unpriced"), 0)::bigint AS "unpricedCalls"
+        COALESCE(SUM("unpriced"), 0)::bigint AS "unpricedCalls",
+        COALESCE(SUM("completionCostMicros"), 0)::bigint AS "completionCostMicros",
+        COALESCE(SUM("pricedCompletions"), 0)::bigint AS "pricedCompletions"
       FROM (
         SELECT
           COUNT(*) FILTER (WHERE l."isByok" = true) AS "byok",
-          COUNT(*) FILTER (WHERE l."isByok" = false AND l."vendorCostMicros" = 0) AS "unpriced"
+          COUNT(*) FILTER (WHERE l."isByok" = false AND l."vendorCostMicros" = 0) AS "unpriced",
+          -- Agent-chat completions (rows carrying a thread) with a known price:
+          -- unpriced rows never pull the per-completion average down.
+          COALESCE(SUM(l."vendorCostMicros") FILTER (
+            WHERE l."isByok" = false AND l."vendorCostMicros" > 0 AND l."threadId" IS NOT NULL
+          ), 0) AS "completionCostMicros",
+          COUNT(*) FILTER (
+            WHERE l."isByok" = false AND l."vendorCostMicros" > 0 AND l."threadId" IS NOT NULL
+          ) AS "pricedCompletions"
         FROM "llm_vendor_costs" l
         WHERE l."isDeleted" = false
           AND ${this.settledCost('l')}
@@ -864,7 +921,9 @@ export class EconomicsService {
 
         SELECT
           COUNT(*) FILTER (WHERE m."isByok" = true),
-          COUNT(*) FILTER (WHERE m."isByok" = false AND m."vendorCostMicros" = 0)
+          COUNT(*) FILTER (WHERE m."isByok" = false AND m."vendorCostMicros" = 0),
+          0,
+          0
         FROM "media_vendor_costs" m
         WHERE m."isDeleted" = false
           AND ${this.settledCost('m')}

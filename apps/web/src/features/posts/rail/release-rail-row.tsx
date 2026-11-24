@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   getPostsPlatformLabel,
   getPublishingPostHref,
@@ -33,6 +29,7 @@ import {
   targetTone,
   visibleTargets,
 } from '@/features/posts/rail/release-rail-row.helpers';
+import { isTargetLive } from '@/features/posts/shared/release-status.helpers';
 
 const DEFAULT_TAG_COLOR = '#64748b';
 
@@ -181,7 +178,7 @@ export function ReleaseRailActions({
         .filter(
           (target) =>
             isSourcePostVariationPlatform(target.platform) &&
-            target.executionState === TargetExecutionState.PUBLISHED,
+            isTargetLive(target),
         )
         .map((target) => (
           <Link

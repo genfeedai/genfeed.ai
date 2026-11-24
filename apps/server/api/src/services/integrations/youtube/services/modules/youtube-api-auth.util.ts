@@ -1,5 +1,5 @@
+import type { youtube_v3 } from '@googleapis/youtube';
 import type { OAuth2Client } from 'google-auth-library';
-import type { youtube_v3 } from 'googleapis';
 
 export type YoutubeRequestAuth =
   youtube_v3.Params$Resource$Channels$List['auth'];

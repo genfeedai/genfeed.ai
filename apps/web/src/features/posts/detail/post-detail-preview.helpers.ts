@@ -9,7 +9,10 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/contracts';
-import { displayedYouTubeAudience } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  displayedYouTubeAudience,
+  isTikTokInboxDelivered,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   ICredential,
   IPost,
@@ -70,6 +73,19 @@ function buildPreviewSettings(post: IPost): Record<string, unknown> {
 }
 
 /**
+ * A TikTok Inbox receipt finishes the target without a public post, so the
+ * preview shows it as the draft it is in TikTok, never as Published.
+ */
+function resolvePreviewExecutionState(post: IPost): TargetExecutionState {
+  if (isTikTokInboxDelivered(post)) {
+    return TargetExecutionState.DRAFT;
+  }
+  return isPostPublished(post)
+    ? TargetExecutionState.PUBLISHED
+    : (post.targetExecutionState ?? TargetExecutionState.DRAFT);
+}
+
+/**
  * Live preview contract for the post-editor sidebar: the same post being
  * edited, rendered through the shared per-platform preview renderers.
  * Returns `null` when the post has no resolved platform — the editor has
@@ -120,9 +136,7 @@ export function buildPostTargetPreview(
       attachments: [],
       createdAt: post.createdAt,
       credentialId: post.credentialId ?? '',
-      executionState: isPostPublished(post)
-        ? TargetExecutionState.PUBLISHED
-        : (post.targetExecutionState ?? TargetExecutionState.DRAFT),
+      executionState: resolvePreviewExecutionState(post),
       id: `${post.id}-target`,
       isDeleted: post.isDeleted,
       order: 0,

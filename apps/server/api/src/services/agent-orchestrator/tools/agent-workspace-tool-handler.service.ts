@@ -12,6 +12,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { postRollupExecutionStateFilter } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -43,7 +44,6 @@ import {
   IngredientCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
@@ -494,10 +494,10 @@ export class AgentWorkspaceToolHandler {
         executionState as TargetExecutionState,
       )
     ) {
-      Object.assign(
-        matchStage,
-        postExecutionStateReadFilter(executionState as TargetExecutionState),
-      );
+      // An Inbox receipt reads `published` but is not live: it lists as a draft.
+      matchStage.AND = [
+        postRollupExecutionStateFilter(executionState as TargetExecutionState),
+      ];
     }
 
     const posts = await this.postsService.findAll(
@@ -673,11 +673,22 @@ export class AgentWorkspaceToolHandler {
       return toolFailure('complete_media_upload requires assetId.');
     }
 
+    const isPublicImage = params.publicImage === true;
+
     try {
-      const ingredient = await this.presignedUploadService.confirmUpload(
-        toUploadUser(ctx),
-        assetId,
-      );
+      const upload = isPublicImage
+        ? await this.presignedUploadService.confirmPublicImageUpload(
+            toUploadUser(ctx),
+            assetId,
+          )
+        : {
+            ingredient: await this.presignedUploadService.confirmUpload(
+              toUploadUser(ctx),
+              assetId,
+            ),
+            publicUrl: undefined,
+          };
+      const { ingredient, publicUrl } = upload;
       const hostedUrl = readHostedUrl(ingredient);
       const media = toCompletedMedia(ingredient, assetId);
 
@@ -690,6 +701,7 @@ export class AgentWorkspaceToolHandler {
           ...(media.length > 0
             ? { media }
             : { media: [{ assetId, order: 0 }] }),
+          ...(publicUrl ? { publicUrl } : {}),
           status: ingredient.status,
           ...(hostedUrl ? { url: hostedUrl } : {}),
         },
@@ -793,15 +805,21 @@ function clampInteger(
 }
 
 function toListedAsset(asset: IngredientDocument): Record<string, unknown> {
+  const url = readIngredientMediaUrlWithFallback(asset) ?? null;
   return {
     category: asset.category,
+    // The media projection recognises an ingredient by its `cdnUrl` key or a
+    // string `url`. On a cloud deployment the computed `cdnUrl` is null, and an
+    // upload has no external link to fall back to, so `url` alone left every
+    // uploaded image unrecognised, unsigned and without a URL.
+    cdnUrl: url,
     createdAt: asset.createdAt ?? null,
     id: String(asset.id),
     origin: asset.origin ?? null,
     prompt: asset.generationPrompt ?? null,
     status: asset.status,
     tags: toListedTags(asset.tags),
-    url: readIngredientMediaUrlWithFallback(asset) ?? null,
+    url,
   };
 }
 

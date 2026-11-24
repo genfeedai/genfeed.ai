@@ -5,7 +5,11 @@ import type {
   CreatorProfileTab,
   PublicMediaSort,
 } from '@genfeedai/contracts/constants';
-import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  IPublicBrandReach,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import type { ICreatorTipTarget } from '@genfeedai/contracts/interfaces/billing';
 import type { CreatorPostMediaItem } from '@genfeedai/helpers/content/public-post.helper';
 import type { Article } from '@models/content/article.model';
@@ -45,14 +49,20 @@ export interface CreatorTabCounts {
   videos: number;
 }
 
+/** Lifetime totals across every connected platform; see the contract. */
+export type CreatorReach = IPublicBrandReach;
+
+export interface CreatorReachProps {
+  reach: CreatorReach | null;
+}
+
 export interface CreatorHeaderProps {
   brand: Brand;
-  counts: CreatorTabCounts;
   handle: string;
   /** The banner sits above the header, so the avatar overlaps its lower edge. */
   hasBanner: boolean;
   profileUrl: string;
-  referralCode: string | null;
+  reach?: CreatorReach | null;
 }
 
 export interface CreatorAccountsProps {
@@ -78,7 +88,13 @@ export interface CreatorProfileLayoutProps {
   children: ReactNode;
   counts: CreatorTabCounts;
   handle: string;
-  referralCode: string | null;
+  reach?: CreatorReach | null;
+}
+
+export interface CreatorFooterProps {
+  /** The creator's handle, without the `@`. */
+  handle: string;
+  referralCode?: string | null;
 }
 
 export interface CreatorSectionProps {
@@ -86,6 +102,7 @@ export interface CreatorSectionProps {
   /** Where "See all" goes; omitted inside the section's own tab. */
   href?: string;
   title: string;
+  /** Hides the section when 0; the count itself is shown in the tab label. */
   total: number;
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Pre } from '@genfeedai/ui';
 import { Badge } from '@genfeedai/ui/primitives/badge';
@@ -36,8 +37,6 @@ function PayloadCard({ payload }: PayloadCardProps) {
     [payload.input],
   );
 
-  const timestamp = new Date(payload.timestamp).toLocaleTimeString();
-
   return (
     <div className="border border-border overflow-hidden">
       <Button
@@ -61,7 +60,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
             </Badge>
           </div>
           <div className="text-2xs text-muted-foreground mt-0.5">
-            {payload.model} &bull; {timestamp}
+            {payload.model} &bull; {formatShortDate(payload.timestamp)}
           </div>
         </div>
       </Button>
@@ -77,7 +76,6 @@ function PayloadCard({ payload }: PayloadCardProps) {
               variant={ButtonVariant.LINK}
               size={ButtonSize.INLINE}
               onClick={handleCopy}
-              className="flex items-center gap-1 text-2xs text-primary"
             >
               <Copy className="size-3.5" />
               {copied ? 'Copied!' : 'Copy'}

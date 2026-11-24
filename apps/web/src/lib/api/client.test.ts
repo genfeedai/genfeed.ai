@@ -180,6 +180,45 @@ describe('apiClient', () => {
         );
       }
     });
+
+    it('reads the message from a JSON:API error instead of "HTTP error 400"', async () => {
+      const body = {
+        errors: [
+          {
+            code: 'WORKFLOW_MISSING_INPUT',
+            detail: 'Missing required workflow input: visualAngle',
+            meta: {
+              missingInputs: [
+                { label: 'Visual angle', name: 'visualAngle', type: 'text' },
+              ],
+            },
+            status: '400',
+            title: 'Missing required workflow input',
+          },
+        ],
+      };
+      fetchMock.mockResolvedValueOnce(
+        createJsonResponse(body, { status: 400 }),
+      );
+
+      const error = await apiClient
+        .post('/workflows/wf-1/execute', {})
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).message).toBe(
+        'Missing required workflow input: visualAngle',
+      );
+      expect((error as ApiError).data).toEqual(body);
+    });
+
+    it('keeps the status line when the body has no message', async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response('<html>bad gateway</html>', { status: 502 }),
+      );
+
+      await expect(apiClient.get('/down')).rejects.toThrow('HTTP error 502');
+    });
   });
 });
 

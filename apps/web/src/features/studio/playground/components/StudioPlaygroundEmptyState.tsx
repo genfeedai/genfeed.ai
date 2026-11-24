@@ -84,6 +84,7 @@ export default function StudioPlaygroundEmptyState({
   brandId,
   character,
   isDisabled = false,
+  isInFlow = false,
   offeringKind,
   onSelect,
   productReference,
@@ -200,6 +201,7 @@ export default function StudioPlaygroundEmptyState({
   return (
     <PromptEmptyState
       description={translate('start.description')}
+      isInFlow={isInFlow}
       isWide
       title={translate('start.title')}
     >

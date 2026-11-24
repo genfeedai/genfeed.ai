@@ -41,6 +41,7 @@ interface ArticleAttributes {
   createdAt?: string;
   id?: string;
   label?: string;
+  publishedAt?: string;
   status?: string;
   summary?: string;
   updatedAt?: string;
@@ -53,6 +54,7 @@ interface PostAttributes {
   contentId?: string;
   createdAt?: string;
   executionState?: string;
+  isInboxDelivery?: boolean;
   platform?: string;
   publishedAt?: string;
   publishedUrl?: string;

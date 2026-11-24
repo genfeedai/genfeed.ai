@@ -33,7 +33,6 @@ export default function IssueCommentsCard({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="flex items-center gap-1 text-2xs"
             onClick={onScrollToLatest}
           >
             <ChevronsDown className="size-3.5" />
@@ -48,7 +47,7 @@ export default function IssueCommentsCard({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
-              className="flex w-full items-center justify-center gap-1.5 border-b border-border py-2 text-2xs text-gray-800 hover:bg-muted/40"
+              className="w-full"
               onClick={onShowAllComments}
             >
               <ChevronDown className="size-3.5" />

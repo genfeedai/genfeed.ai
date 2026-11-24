@@ -366,7 +366,6 @@ export default function ReviewQueueView({
             <p className="text-xs text-foreground/60">
               {translateReview('queue.learningSignals', {
                 approvals: activeTurboRun.learningSignals.approvalCount,
-                rejections: activeTurboRun.learningSignals.rejectionCount,
               })}
             </p>
           ) : null}

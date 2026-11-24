@@ -885,15 +885,19 @@ export class FilesClientService {
     destinationKey: string,
     sourceType?: string,
     destinationType?: string,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     try {
-      await this.send('copyInS3', () =>
-        this.httpService.post(
+      const response = await this.send('copyInS3', () =>
+        this.httpService.post<{ publicUrl?: unknown }>(
           `${this.filesServiceUrl}/v1/files/copy`,
           { destinationKey, destinationType, sourceKey, sourceType },
           this.requestConfig(FILES_REQUEST_TIMEOUT_MS.PROCESSING),
         ),
       );
+      const publicUrl = response?.data?.publicUrl;
+      return typeof publicUrl === 'string' && publicUrl.length > 0
+        ? publicUrl
+        : undefined;
     } catch (error: unknown) {
       const parsedError = error as Error & {
         code?: string;

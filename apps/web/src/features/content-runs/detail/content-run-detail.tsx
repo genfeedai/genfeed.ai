@@ -480,10 +480,10 @@ function NavigationPanel({
         <div className="mt-4 grid gap-2">
           <Button
             ariaLabel="Create remix pack from this content run"
-            className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/90 shadow-border transition hover:bg-accent"
+            className="w-full justify-between"
             isLoading={isRemixing}
             onClick={onCreateRemixPack}
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <span className="flex items-center gap-2">
@@ -497,8 +497,8 @@ function NavigationPanel({
               <Button
                 asChild
                 key={item.href}
-                className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/90 shadow-border transition hover:bg-accent"
-                variant={ButtonVariant.UNSTYLED}
+                className="w-full justify-between"
+                variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
                 <Link href={item.href}>

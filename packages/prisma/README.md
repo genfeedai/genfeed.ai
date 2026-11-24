@@ -7,7 +7,7 @@ For the desktop app's local database see [`../desktop-prisma`](../desktop-prisma
 ## Layout
 
 - `prisma/schema.prisma`: the schema (PostgreSQL with the `vector` extension). The client is generated into `generated/prisma/` (git-ignored).
-- `prisma/generate-client.mjs`: the `postinstall`. It generates the client unless the one on disk is current, which it checks against a stamp (`generated/prisma/client-stamp.json`) of the schema, `prisma.config.mjs`, the pinned Prisma versions and the generated files. Generating takes 30 to 40 seconds, so an install with nothing changed skips it.
+- `prisma/generate-client.mjs`: the `postinstall`. It generates the client unless the one on disk is current, which it checks against a stamp (`generated/prisma/client-stamp.json`) of the schema, `prisma.config.mjs`, the pinned Prisma versions and the generated files. Generating takes 30 to 40 seconds, so an install with nothing changed skips it. Generating also cuts the query parameterization graph the client keeps in memory (`prisma/slim-parameterization-schema.mjs`, about 140 MB of heap less after the cut; every root stays, so writes keep their plans); a bare `prisma generate` leaves the full graph, and a contract in `scripts/ci/prisma-client-stamp.test.mjs` fails on it.
 - `prisma/migrations/`: the migration history, one folder per migration. Many migrations have a `*.test.ts` beside them under `prisma/`.
 - `src/`: the package entry (`index.ts`, `client.ts`, `testing.ts`), the enum and model metadata map (`enum-field-map.ts`, generated) and the `toPrismaJson` helper.
 - `scripts/`: the model metadata generator and release and index verification scripts.

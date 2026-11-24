@@ -1,4 +1,5 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
@@ -28,16 +29,13 @@ import {
   IngredientStatus,
   isPlatform,
   PostVisibility,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
-import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { postVisibilityReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import {
   IngredientSerializer,
   PublicPostSerializer,
@@ -107,19 +105,26 @@ const CROSS_POST_NATIVE_LIMIT = 200;
 /** Network posts compared against them. */
 const CROSS_POST_NETWORK_LIMIT = 1000;
 
-const CROSS_POST_SELECT = {
-  createdAt: true,
-  description: true,
-  id: true,
-  platform: true,
-  publishedAt: true,
-  url: true,
-} as const;
+/**
+ * Characters of a caption the pairing reads. It keeps 80 characters of text
+ * after stripping markup, so a cut this long gives the same key unless a
+ * caption opens with more than ~900 characters of tags.
+ */
+const CROSS_POST_DESCRIPTION_LENGTH = 1000;
+
+interface CrossPostRow {
+  createdAt: Date;
+  description: string;
+  id: string;
+  platform: string | null;
+  publishedAt: Date | null;
+  url: string | null;
+}
 
 function publicPublishedWhere(brandId: string): PrismaWhereQuery {
   return {
     AND: [
-      postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+      PUBLISHED_AND_LIVE_WHERE,
       postVisibilityReadFilter(PostVisibility.PUBLIC),
     ],
     brandId,
@@ -166,7 +171,7 @@ export class PublicPostsController {
 
     const matchQuery: PrismaWhereQuery = {
       AND: [
-        postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+        PUBLISHED_AND_LIVE_WHERE,
         postVisibilityReadFilter(PostVisibility.PUBLIC),
       ],
       isDeleted: false,
@@ -309,7 +314,7 @@ export class PublicPostsController {
     const post = await this.postsService.findOne(
       {
         AND: [
-          postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          PUBLISHED_AND_LIVE_WHERE,
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         id: postId,
@@ -369,33 +374,65 @@ export class PublicPostsController {
     }
   }
 
+  /**
+   * The posts a pairing compares. The ids come from the public, undeleted
+   * brand filter; the second read cuts each caption to the length the pairing
+   * needs in SQL, so full captions never reach the request thread.
+   */
+  private async loadCrossPostCandidates(
+    brandId: string,
+    where: PrismaWhereQuery,
+    take: number,
+  ): Promise<CrossPostCandidate[]> {
+    const { prisma } = this.postsService;
+    // sql-risk-audit: ignore unbounded-read -- `take` is one of the CROSS_POST_*_LIMIT constants (a few hundred ids); the id-only select reads no captions.
+    // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
+    const ordered = await prisma.post.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+      take,
+      where,
+    });
+    if (ordered.length === 0) {
+      return [];
+    }
+    const ids = ordered.map((post) => post.id);
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key lookup of the ids selected above, pinned to one brand and isDeleted = false; `left()` only trims the caption column.
+    const rows = await prisma.$queryRaw<CrossPostRow[]>(Prisma.sql`
+      SELECT "id", "platform", "url", "createdAt", "publishedAt",
+             left("description", ${CROSS_POST_DESCRIPTION_LENGTH}) AS "description"
+      FROM "posts"
+      WHERE "id" IN (${Prisma.join(ids)})
+        AND "brandId" = ${brandId}
+        AND "isDeleted" = false`);
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return ids.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [row] : [];
+    });
+  }
+
   /** Public network posts of a brand that copy one of its native posts. */
   private async findBrandCrossPostIds(brandId: string): Promise<string[]> {
-    const natives: CrossPostCandidate[] =
-      // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
-      await this.postsService.prisma.post.findMany({
-        orderBy: { createdAt: 'desc' },
-        select: CROSS_POST_SELECT,
-        take: CROSS_POST_NATIVE_LIMIT,
-        where: {
-          ...publicPublishedWhere(brandId),
-          platform: CredentialPlatform.GENFEED,
-        },
-      });
+    const natives = await this.loadCrossPostCandidates(
+      brandId,
+      {
+        ...publicPublishedWhere(brandId),
+        platform: CredentialPlatform.GENFEED,
+      },
+      CROSS_POST_NATIVE_LIMIT,
+    );
     if (natives.length === 0) {
       return [];
     }
-    const networkPosts: CrossPostCandidate[] =
-      // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
-      await this.postsService.prisma.post.findMany({
-        orderBy: { createdAt: 'desc' },
-        select: CROSS_POST_SELECT,
-        take: CROSS_POST_NETWORK_LIMIT,
-        where: {
-          ...publicPublishedWhere(brandId),
-          platform: { not: CredentialPlatform.GENFEED },
-        },
-      });
+    const networkPosts = await this.loadCrossPostCandidates(
+      brandId,
+      {
+        ...publicPublishedWhere(brandId),
+        platform: { not: CredentialPlatform.GENFEED },
+      },
+      CROSS_POST_NETWORK_LIMIT,
+    );
     return findCrossPostIds(natives, networkPosts);
   }
 
@@ -406,18 +443,15 @@ export class PublicPostsController {
     if (!post.brandId) {
       return [];
     }
-    const networkPosts: CrossPostCandidate[] =
-      // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
-      await this.postsService.prisma.post.findMany({
-        orderBy: { createdAt: 'desc' },
-        select: CROSS_POST_SELECT,
-        take: CROSS_POST_NETWORK_LIMIT,
-        where: {
-          ...publicPublishedWhere(post.brandId),
-          platform: { not: CredentialPlatform.GENFEED },
-          url: { not: null },
-        },
-      });
+    const networkPosts = await this.loadCrossPostCandidates(
+      post.brandId,
+      {
+        ...publicPublishedWhere(post.brandId),
+        platform: { not: CredentialPlatform.GENFEED },
+        url: { not: null },
+      },
+      CROSS_POST_NETWORK_LIMIT,
+    );
     return listCrossPosts(post, networkPosts);
   }
 }

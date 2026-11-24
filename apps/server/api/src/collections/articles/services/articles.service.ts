@@ -61,6 +61,7 @@ import type {
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { assertArticleOwnershipIds } from '@api/collections/articles/utils/article-input-boundary.util';
 import { sendArticlePublishedNotification } from '@api/collections/articles/utils/article-published-notification.util';
+import { assertArticleIsReaderCopy } from '@api/collections/articles/utils/article-reader-copy.util';
 import {
   assertPublicSlugAvailable,
   assertPublishedSlugTransition,
@@ -301,6 +302,7 @@ export class ArticlesService
     });
 
     if (articleData.status === 'PUBLISHED') {
+      assertArticleIsReaderCopy(createArticleDto.content);
       await assertPublicSlugAvailable(this.delegate, articleData.slug);
     }
 
@@ -412,6 +414,14 @@ export class ArticlesService
       const isPublishingUpdate = ArticleFilterUtil.isPublicArticleStatus(
         updateArticleDto.status,
       );
+
+      // Readers see the new content, or the stored content when only publishing.
+      const destinationStatus = updateArticleDto.status ?? accessible.status;
+      if (ArticleFilterUtil.isPublicArticleStatus(destinationStatus)) {
+        assertArticleIsReaderCopy(
+          updateArticleDto.content ?? accessible.content,
+        );
+      }
 
       // If status is being changed to PUBLISHED, handle publishing logic
       if (isPublishingUpdate) {

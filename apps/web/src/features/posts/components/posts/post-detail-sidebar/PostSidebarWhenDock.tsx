@@ -1,9 +1,15 @@
 'use client';
 
-import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
+import { isTikTokInboxDelivered } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
+import { ButtonGroup } from '@ui/primitives/button-group';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import {
   DropdownMenu,
@@ -16,7 +22,6 @@ import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import type { PostSidebarWhenDockProps } from '@/props/components/post-detail-sidebar.props';
 
 import { getPlatformLabel } from './PostSidebarDestination';
@@ -171,7 +176,7 @@ export default function PostSidebarWhenDock({
         />
       ) : onPublishViaTikTokApp ? (
         <div className="flex flex-col gap-2">
-          <div className="flex w-full">
+          <ButtonGroup>
             <Button
               label={
                 isSavingSchedule
@@ -179,7 +184,7 @@ export default function PostSidebarWhenDock({
                   : translate('publishToTikTok')
               }
               variant={ButtonVariant.DEFAULT}
-              className="min-w-0 flex-1 rounded-r-none"
+              className="min-w-0 flex-1"
               withWrapper={false}
               isLoading={isSavingSchedule}
               isDisabled={isBlocked}
@@ -191,7 +196,7 @@ export default function PostSidebarWhenDock({
                   ariaLabel={translate('moreTikTokOptions')}
                   label={<ChevronDown className="size-4" />}
                   variant={ButtonVariant.DEFAULT}
-                  className="shrink-0 rounded-l-none border-l border-l-border px-3"
+                  size={ButtonSize.ICON}
                   withWrapper={false}
                   isDisabled={isBlocked}
                 />
@@ -209,7 +214,7 @@ export default function PostSidebarWhenDock({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+          </ButtonGroup>
           <p className="text-muted-foreground text-xs">
             {translate('musicConfirmationPrefix')}{' '}
             <Link

@@ -114,6 +114,28 @@ describe('buildCadenceGaps', () => {
     expect(gaps[0]?.hasUpcoming).toBe(false);
   });
 
+  it('does not count a TikTok Inbox delivery as the last post that went out', () => {
+    const gaps = buildCadenceGaps(
+      {
+        accountHealth: [buildAccountHealth()],
+        postedReleases: [
+          buildRelease({
+            targets: [
+              buildTarget({
+                isInboxDelivery: true,
+                publishedAt: '2026-08-31T12:00:00.000Z',
+              }),
+            ],
+          }),
+        ],
+        upcomingReleases: [],
+      },
+      NOW,
+    );
+
+    expect(gaps[0]?.gapDays).toBeNull();
+  });
+
   it('reports a null gap and sorts never-published accounts first', () => {
     const accountHealth = [
       buildAccountHealth({

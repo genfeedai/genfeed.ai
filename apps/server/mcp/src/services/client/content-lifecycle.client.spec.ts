@@ -138,3 +138,52 @@ describe('reviewed article lifecycle', () => {
     });
   });
 });
+
+describe('post lists', () => {
+  it('carries the TikTok Inbox flag so a listed post is not read as published', async () => {
+    const http = {
+      get: async () => ({
+        data: {
+          data: [
+            {
+              attributes: {
+                isInboxDelivery: true,
+                platform: 'tiktok',
+                targetExecutionState: 'published',
+              },
+              id: 'inbox-post',
+            },
+            {
+              attributes: {
+                isInboxDelivery: false,
+                platform: 'tiktok',
+                publishedAt: '2026-11-20T10:00:00.000Z',
+                targetExecutionState: 'published',
+              },
+              id: 'live-post',
+            },
+          ],
+        },
+      }),
+    };
+    const client = new ContentClient({
+      failWith: (message: string) => () => {
+        throw new Error(message);
+      },
+      logger: { debug: () => undefined },
+      request: async (
+        _operation: string,
+        call: (client: typeof http) => Promise<unknown>,
+      ) => call(http),
+    } as unknown as BaseApiClient);
+
+    const posts = await client.listPosts();
+
+    expect(
+      posts.map((post) => [post.id, post.executionState, post.isInboxDelivery]),
+    ).toEqual([
+      ['inbox-post', 'published', true],
+      ['live-post', 'published', undefined],
+    ]);
+  });
+});

@@ -40,6 +40,7 @@ function createService() {
     remove: vi.fn().mockResolvedValue(null),
   };
   const material = { describePostArtifact: vi.fn() };
+  const credentials = { find: vi.fn().mockResolvedValue([]) };
   const service = new BrandedContentActionsService(
     new BrandedTextRunnerService(
       branded as never,
@@ -54,9 +55,10 @@ function createService() {
           ),
       } as never,
       material as never,
+      credentials as never,
     ),
   );
-  return { branded, material, modeResolver, posts, service };
+  return { branded, credentials, material, modeResolver, posts, service };
 }
 
 function seamOf(
@@ -223,6 +225,58 @@ describe('BrandedContentActionsService', () => {
       expect(ctx.posts.create.mock.calls[0][0]).not.toHaveProperty('parentId');
     });
 
+    it("binds a draft to the brand's only connected account on the platform", async () => {
+      completed('x');
+      ctx.credentials.find.mockResolvedValue([{ id: 'credential-1' }]);
+      await ctx.service.generateSocial(social);
+
+      await seamOf(ctx.branded).persistText('One\n---\nTwo');
+
+      expect(ctx.credentials.find).toHaveBeenCalledExactlyOnceWith({
+        brandId: 'brand-1',
+        isConnected: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: 'LINKEDIN',
+      });
+      expect(ctx.posts.create.mock.calls[0][0].credentialId).toBe(
+        'credential-1',
+      );
+    });
+
+    it('binds every post of a thread to the same account', async () => {
+      completed('x');
+      ctx.credentials.find.mockResolvedValue([{ id: 'credential-1' }]);
+      await ctx.service.generateSocial({
+        ...social,
+        isThread: true,
+        platform: 'twitter',
+      });
+
+      await seamOf(ctx.branded).persistText('Hook\n---\nOne');
+
+      expect(
+        ctx.posts.create.mock.calls.map(([input]) => input.credentialId),
+      ).toEqual(['credential-1', 'credential-1']);
+    });
+
+    it('leaves a draft unbound when the brand has no account or several on the platform', async () => {
+      completed('x');
+      await ctx.service.generateSocial(social);
+      const seam = seamOf(ctx.branded);
+
+      await seam.persistText('One');
+      ctx.credentials.find.mockResolvedValue([
+        { id: 'credential-1' },
+        { id: 'credential-2' },
+      ]);
+      await seam.persistText('Two');
+
+      expect(
+        ctx.posts.create.mock.calls.map(([input]) => input.credentialId),
+      ).toEqual([undefined, undefined]);
+    });
+
     it('discards a partly written thread before reporting the failure', async () => {
       completed('x');
       await ctx.service.generateSocial({
@@ -290,6 +344,55 @@ describe('BrandedContentActionsService', () => {
           sourceActionId: requestKey,
           targetExecutionState: TargetExecutionState.DRAFT,
         }),
+      );
+    });
+
+    it('lets a stand-alone X post run past 280 characters and asks for the long form only when briefed', async () => {
+      completed('x');
+      const longPost =
+        `${'A long argument, one idea per line. '.repeat(26)}`.trim();
+      expect(longPost.length).toBeGreaterThan(850);
+
+      const outcome = await ctx.service.generateSocial({
+        ...social,
+        platform: 'twitter',
+        variants: 1,
+      });
+      const seam = seamOf(ctx.branded);
+
+      expect(outcome).toMatchObject({
+        result: {
+          maxCharacters:
+            getChannelCapability('twitter')?.caption.extendedMaxLength,
+        },
+      });
+      expect(seam.input.originalPrompt).toContain(
+        '280 characters or fewer unless the brief or the brand voice asks for a longer post',
+      );
+      expect(seam.acceptText(longPost)).toBe(true);
+      await seam.persistText(longPost);
+      expect(ctx.posts.create.mock.calls[0][0].description).toBe(longPost);
+    });
+
+    it('keeps every post of an X thread at 280 characters', async () => {
+      completed('x');
+      await ctx.service.generateSocial({
+        ...social,
+        isThread: true,
+        platform: 'twitter',
+      });
+      const seam = seamOf(ctx.branded);
+      const tooLong =
+        `${'Thread reply sentence that keeps going. '.repeat(8)}`.trim();
+      expect(tooLong.length).toBeGreaterThan(300);
+
+      await seam.persistText(`Hook\n---\n${tooLong}`);
+
+      const reply = ctx.posts.create.mock.calls[1][0].description as string;
+      expect(reply.length).toBeLessThanOrEqual(280);
+      expect(reply).not.toBe(tooLong);
+      expect(seam.input.originalPrompt).toContain(
+        'Each post is at most 280 characters',
       );
     });
 

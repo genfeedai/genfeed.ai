@@ -77,10 +77,9 @@ export default function WorkflowExecutionCard({
           </Button>
           {isActive && onCancel ? (
             <Button
-              className="text-destructive hover:text-destructive"
               onClick={() => onCancel(execution.id)}
               size={ButtonSize.XS}
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.DESTRUCTIVE}
               withWrapper={false}
             >
               {translate('cancel')}

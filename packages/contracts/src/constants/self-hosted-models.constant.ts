@@ -354,6 +354,33 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.11,
   },
   /**
+   * HeyGen Video 1 on fal, the volume and draft tier: regular price $0.02/s at
+   * 480p and 768p, $0.06/s at 1080p and 2K (fal model page, read 2026-11-24;
+   * the 50% promotion on the page ended 2026-10-31). Seeded at the 768p
+   * default; the resolution quote triples 1080p and 2K. Credits are
+   * ceil(usd / 0.003): 5 s at 768p = $0.10. Not a default.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 34,
+    costPerUnit: 7,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
+    description:
+      'HeyGen Video 1 via fal — low-cost video with native audio from text, a first image or references, 5–15 seconds at 480p to 2K.',
+    endpoint: 'heygen/heygen-video/text-to-video',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_HEYGEN_VIDEO,
+    label: 'HeyGen Video 1',
+    minCost: 34,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'heygen-video/text-to-video', owner: 'heygen' },
+    providerCostUsd: 0.02,
+  },
+  /**
    * fal list price after the October 15, 2026 promotion: $0.05/s at 480P,
    * $0.08/s at 768P, $0.16/s at 1080P. Text and image endpoints match.
    * Seed the default 768P band; the resolution quote discounts 480P and
@@ -430,30 +457,33 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.24,
   },
   /**
-   * fal bills tokens. The published 720p equivalent is about $0.125/s for
-   * text and $0.13/s when reference video is included. One row covers both
-   * routes, so seed the higher published equivalent.
-   * 8s → $1.04 provider cost; live credits come from applyMargin.
+   * Gemini Omni Flash 1.2 on fal (read 2026-11-24): $0.0273/s at 360p,
+   * $0.0819/s at 720p, $0.1229/s at 1080p and $0.2457/s at 4K, native audio
+   * included, plus $1.50 per 1M input tokens, which dispatch cannot meter (a
+   * text prompt is a fraction of a cent). Seeded at the 720p default; the
+   * resolution quote scales the other bands. Credits are ceil(usd / 0.003):
+   * 8 s at 720p = $0.6552, floor = 3 s at 360p. It replaces the first Omni
+   * Flash endpoint ($0.13/s), which is gone from the rate sheet.
    */
   {
     category: ModelCategory.VIDEO,
-    cost: 347,
-    costPerUnit: 44,
-    costTier: CostTier.HIGH,
+    cost: 219,
+    costPerUnit: 28,
+    costTier: CostTier.MEDIUM,
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.FAST,
     description:
-      'Google Gemini Omni Flash via fal — synchronized-audio video from text, a first image, or up to three reference images.',
-    endpoint: 'google/gemini-omni-flash',
+      'Google Gemini Omni Flash 1.2 via fal — synchronized-audio video from text, a first image, or up to three reference images, 3–15 seconds at 360p to 4K.',
+    endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
     isDefault: false,
     isHighlighted: true,
     key: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
-    label: 'Gemini Omni Flash',
-    minCost: 132,
+    label: 'Gemini Omni Flash 1.2',
+    minCost: 28,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.FAL,
     providerConfig: { name: 'gemini-omni-flash', owner: 'google' },
-    providerCostUsd: 0.13,
+    providerCostUsd: 0.0819,
   },
   /**
    * Cheapest T2V already wired in the Replicate video builder.
@@ -504,6 +534,32 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'p-video-2', owner: 'prunaai' },
     providerCostUsd: 0.03,
+  },
+  /**
+   * P-Video 2 Pro, the short-hook tier. Replicate bills per second of output by
+   * mode and resolution (page read 2026-11-24): speed mode, the provider
+   * default, is $0.035/s at 768p, $0.02/s at 480p and $0.055/s at 1080p. Seeded
+   * at the 768p speed rate; the resolution quote scales 480p and 1080p. Credits
+   * are ceil(usd / 0.003): 5 s at 768p = $0.175.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 59,
+    costPerUnit: 12,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'PrunaAI P-Video 2 Pro — low-cost text-to-video and image-to-video with audio for short social hooks, 5–15 seconds at 480p to 1080p.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    label: 'P-Video 2 Pro',
+    minCost: 34,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'p-video-2-pro', owner: 'prunaai' },
+    providerCostUsd: 0.035,
   },
   /**
    * Wan 3 — Replicate list $0.035/s at 480p, $0.07/s at 720p, $0.14/s at 1080p
@@ -705,6 +761,89 @@ export const SELF_HOSTED_MODELS = [
       owner: 'openai',
     },
     providerCostUsd: 0.05268,
+  },
+  /**
+   * MAI-Image-2.7 and 2.7 Flash via fal (page read 2026-11-24). fal bills
+   * tokens: 1,024 image output tokens per megapixel, plus text and input-image
+   * tokens. The rate sheet prices output per megapixel and adds a per-request
+   * allowance for the prompt (and, on the edit endpoints, two source images).
+   * `providerCostUsd` is the output price per megapixel (the unit the sheet
+   * bills); `cost` is the credits for a default 1024x1024 image at the 1.05 MP
+   * floor plus the allowance, ceil(usd / 0.003): 2.7 $0.0376 text / $0.0540
+   * edit, Flash $0.0112 text / $0.0163 edit. The edit
+   * endpoints take one to five source images and are separate rows because fal
+   * prices and validates them apart from text-to-image. Not a default.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 13,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'Microsoft MAI-Image-2.7 via fal — text-to-image from a prompt, up to 2048×2048.',
+    endpoint: 'microsoft/mai-image-2.7/text-to-image',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7,
+    label: 'MAI-Image-2.7',
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'mai-image-2.7/text-to-image', owner: 'microsoft' },
+    providerCostUsd: 0.034816,
+  },
+  {
+    category: ModelCategory.IMAGE_EDIT,
+    cost: 18,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'Microsoft MAI-Image-2.7 Edit via fal — instruction editing from one to five source images, one output at a time.',
+    endpoint: 'microsoft/mai-image-2.7/edit',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+    label: 'MAI-Image-2.7 Edit',
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'mai-image-2.7/edit', owner: 'microsoft' },
+    providerCostUsd: 0.034816,
+  },
+  {
+    category: ModelCategory.IMAGE,
+    cost: 4,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'Microsoft MAI-Image-2.7 Flash via fal — fast, low-cost text-to-image, up to 2048×2048.',
+    endpoint: 'microsoft/mai-image-2.7/flash/text-to-image',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
+    label: 'MAI-Image-2.7 Flash',
+    provider: ModelProvider.FAL,
+    providerConfig: {
+      name: 'mai-image-2.7/flash/text-to-image',
+      owner: 'microsoft',
+    },
+    providerCostUsd: 0.01024,
+  },
+  {
+    category: ModelCategory.IMAGE_EDIT,
+    cost: 6,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'Microsoft MAI-Image-2.7 Flash Edit via fal — fast, low-cost instruction editing from one to five source images.',
+    endpoint: 'microsoft/mai-image-2.7/flash/edit',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+    label: 'MAI-Image-2.7 Flash Edit',
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'mai-image-2.7/flash/edit', owner: 'microsoft' },
+    providerCostUsd: 0.01024,
   },
   /**
    * Video upscaler — USD per output second (conservative mid band).

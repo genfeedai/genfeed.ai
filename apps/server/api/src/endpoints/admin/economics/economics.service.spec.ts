@@ -119,8 +119,18 @@ describe('EconomicsService', () => {
       mediaByDay: [{ calls: 2n, costMicros: 1_000_000n, day: '2026-09-02' }],
       payingOrganizations: [{ isCurrent: true, organizations: 1n }],
       revenueByDay: [
-        { day: '2026-09-02', events: 1n, revenueMinor: 3_000n },
-        { day: '2026-08-31', events: 1n, revenueMinor: 1_000n },
+        {
+          day: '2026-09-02',
+          events: 1n,
+          revenueMinor: 3_000n,
+          salesMinor: 3_000n,
+        },
+        {
+          day: '2026-08-31',
+          events: 1n,
+          revenueMinor: 1_000n,
+          salesMinor: 1_000n,
+        },
       ],
     });
 
@@ -147,6 +157,7 @@ describe('EconomicsService', () => {
     expect(report.totals).toMatchObject({
       activeOrganizations: 2,
       creditsConsumed: 500,
+      creditsPurchased: 3_000,
       grossMarginUsd: 27,
       llmCalls: 4,
       mediaGenerations: 2,
@@ -157,6 +168,7 @@ describe('EconomicsService', () => {
     expect(report.previousTotals).toMatchObject({
       activeOrganizations: 1,
       creditsConsumed: 100,
+      creditsPurchased: 1_000,
       llmCostUsd: 0.5,
       payingOrganizations: 0,
       revenueUsd: 10,
@@ -191,6 +203,9 @@ describe('EconomicsService', () => {
       revenueBySource: [
         { events: 1n, revenueMinor: 2_900n, source: 'subscription_invoice' },
         { events: 1n, revenueMinor: 1_000n, source: 'credit_purchase' },
+        { events: 1n, revenueMinor: -500n, source: 'refund' },
+        { events: 1n, revenueMinor: -200n, source: 'dispute' },
+        { events: 2n, revenueMinor: -150n, source: 'processing_fee' },
       ],
       revenueLedger: [
         {
@@ -222,7 +237,10 @@ describe('EconomicsService', () => {
       averageRevenuePerEventUsd: 19.5,
       events: 2,
       payingOrganizations: 2,
-      revenueUsd: 39,
+      processingFeesUsd: 1.5,
+      refundsAndDisputesUsd: 7,
+      revenuePerPayingOrganizationUsd: 15.25,
+      revenueUsd: 30.5,
     });
     expect(report.topOrganizations.map((row) => row.label)).toEqual([
       'Acme',
@@ -239,7 +257,14 @@ describe('EconomicsService', () => {
 
   it('reports cost by model with unpriced and BYOK calls', async () => {
     const { service } = createService({
-      flags: [{ byokCalls: 3n, unpricedCalls: 2n }],
+      flags: [
+        {
+          byokCalls: 3n,
+          completionCostMicros: 1_000_000n,
+          pricedCompletions: 4n,
+          unpricedCalls: 2n,
+        },
+      ],
       llmByDay: [{ calls: 5n, costMicros: 1_500_000n, day: '2026-09-02' }],
       mediaByDay: [{ calls: 4n, costMicros: 500_000n, day: '2026-09-03' }],
       mediaCategories: [
@@ -296,14 +321,18 @@ describe('EconomicsService', () => {
       costPerGenerationUsd: 0.25,
       generationCreditValueUsd: 1.5,
       llmCalls: 5,
+      llmCostPerCompletionUsd: 0.25,
       llmCostUsd: 1.5,
       marginPerGenerationUsd: 0.333333,
       mediaChargedGenerations: 3,
       mediaCostUsd: 0.5,
       mediaGenerations: 4,
       mediaPricedGenerations: 2,
+      nonByokCalls: 6,
       providerCostUsd: 2,
+      topModelsCostSharePercent: 100,
       unpricedCalls: 2,
+      unpricedSharePercent: 33.33,
     });
     expect(report.daily).toEqual([
       { date: '2026-09-02', llmCostUsd: 1.5, mediaCostUsd: 0 },

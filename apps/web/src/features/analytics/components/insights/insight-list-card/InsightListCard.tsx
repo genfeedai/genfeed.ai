@@ -1,5 +1,5 @@
 'use client';
-import { ButtonVariant, InsightImpact } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, InsightImpact } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
@@ -122,8 +122,8 @@ const InsightListCard = memo(function InsightListCard({
               <Button
                 type="button"
                 onClick={() => onDismiss(insight.id)}
-                variant={ButtonVariant.UNSTYLED}
-                className="p-1 rounded-full hover:bg-muted/50 transition-colors"
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.MICRO}
                 ariaLabel={translate('dismissAriaLabel')}
               >
                 <X className="size-4 text-muted-foreground" />

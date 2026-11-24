@@ -5,11 +5,13 @@ import { PublicArticleGenerationsService } from '@api/endpoints/public/services/
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { createArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import {
   ArticleCategory,
   ArticleStatus,
   AssetScope,
 } from '@genfeedai/contracts';
+import { PublicArticleSummarySerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -192,7 +194,13 @@ describe('PublicArticlesController', () => {
         }),
         expect.any(Object),
       );
-      expect(result.data).toEqual(articles);
+      // The list leaves the body out; each item says how long it takes to read.
+      expect(result.data).toEqual([{ ...mockArticle, readingTimeMinutes: 1 }]);
+      expect(vi.mocked(serializeCollection)).toHaveBeenLastCalledWith(
+        request,
+        PublicArticleSummarySerializer,
+        expect.anything(),
+      );
     });
 
     it('should filter by search term', async () => {

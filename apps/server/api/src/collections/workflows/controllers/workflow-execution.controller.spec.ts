@@ -224,10 +224,35 @@ describe('WorkflowExecutionController', () => {
         ['PyHRz6uB'],
         mockUser.userId,
         mockUser.organizationId,
+        { inputValues: undefined },
       );
       expect(
         mockWorkflowExecutorService.executeManualWorkflow,
       ).not.toHaveBeenCalled();
+    });
+
+    it('hands the supplied input values to a selected-node run', async () => {
+      mockWorkflowRunControlService.executePartial.mockResolvedValue({
+        id: 'exec-partial',
+      });
+
+      await controller.execute(
+        mockRequest,
+        workflowId,
+        {
+          inputValues: { visualAngle: 'low angle' },
+          selectedNodeIds: ['PyHRz6uB'],
+        },
+        mockUser,
+      );
+
+      expect(mockWorkflowRunControlService.executePartial).toHaveBeenCalledWith(
+        workflowId,
+        ['PyHRz6uB'],
+        mockUser.userId,
+        mockUser.organizationId,
+        { inputValues: { visualAngle: 'low angle' } },
+      );
     });
   });
 

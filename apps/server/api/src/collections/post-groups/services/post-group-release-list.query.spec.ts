@@ -83,7 +83,9 @@ describe('release list SQL', () => {
 
     expect(sql).toContain('p."category"::text IN (?::text)');
     expect(sql).toContain('p."credentialId" IN (?::text)');
-    expect(sql).toContain('p."targetExecutionState" IN (?::text)');
+    // A TikTok Inbox receipt counts as a draft, so the facet reads the roll-up
+    // state, not the stored one.
+    expect(sql).toContain('ELSE p."targetExecutionState" END) IN (?::text)');
     expect(sql).toContain('p."platform" IN (?::text)');
     expect(sql).toContain('bool_or("isFacetMatch")');
     expect(sql).toContain('"isFacetMatch"\nORDER BY');

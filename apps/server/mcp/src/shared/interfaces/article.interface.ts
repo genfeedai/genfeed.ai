@@ -8,6 +8,7 @@ export interface ArticleResponse {
   wordCount: number;
   coverImageUrl?: string;
   createdAt: string;
+  publishedAt?: string;
   updatedAt?: string;
 }
 

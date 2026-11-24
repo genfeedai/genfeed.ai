@@ -96,6 +96,7 @@ export default function PublishingContentCard({
           <div className="flex min-w-0 items-center justify-between gap-2 pt-1">
             {isStatusShown ? (
               <PublishingContentStatus
+                isInboxDelivery={item.isInboxDelivery}
                 publishedAt={item.publishedAt}
                 scheduledAt={item.scheduledAt}
                 status={item.status}

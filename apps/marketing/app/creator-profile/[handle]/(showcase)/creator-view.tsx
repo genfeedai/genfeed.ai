@@ -32,13 +32,6 @@ import {
   resolveCreatorPlatform,
 } from './creator-loader';
 
-const TAB_TOTAL_LABELS: Record<CreatorProfileTab, string> = {
-  articles: 'articles',
-  images: 'images',
-  posts: 'posts',
-  videos: 'videos',
-};
-
 /** Catalog labels for the models behind the showcase's images and videos. */
 async function loadModelCredits(
   showcase: CreatorShowcase,
@@ -99,7 +92,7 @@ export async function CreatorOverview({
     notFound();
   }
 
-  const { brand, referralCode, showcase } = data;
+  const { brand, reach, showcase } = data;
   const canonicalHandle = brand.slug || handle;
   const counts = countShowcase(showcase);
   const modelCredits = await loadModelCredits(showcase);
@@ -113,7 +106,7 @@ export async function CreatorOverview({
         brand={brand}
         counts={counts}
         handle={canonicalHandle}
-        referralCode={referralCode}
+        reach={reach}
       >
         {isEmpty ? (
           <ProfileEmptyState handle={canonicalHandle} />
@@ -186,7 +179,7 @@ export async function CreatorTab({
     notFound();
   }
 
-  const { brand, referralCode, showcase } = data;
+  const { brand, reach, showcase } = data;
   const canonicalHandle = brand.slug || handle;
   const counts = countShowcase(showcase);
   const modelCredits = await loadModelCredits(showcase);
@@ -208,7 +201,7 @@ export async function CreatorTab({
       brand={brand}
       counts={counts}
       handle={canonicalHandle}
-      referralCode={referralCode}
+      reach={reach}
     >
       {tabPage.total === 0 && !activePlatform ? (
         <ProfileEmptyState handle={canonicalHandle} />
@@ -255,8 +248,6 @@ export async function CreatorTab({
             hrefParams={
               activePlatform ? { platform: activePlatform } : undefined
             }
-            totalItems={tabPage.total}
-            totalLabel={TAB_TOTAL_LABELS[tab]}
             totalPages={tabPage.totalPages}
           />
         </>

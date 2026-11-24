@@ -28,12 +28,12 @@ describe('IngredientPickerCard', () => {
   it('lays the ingredients out in the shared Library grid, with video posters as images', () => {
     render(<IngredientPickerCard action={action} />);
 
-    const grid = screen.getByRole('listbox', { name: 'Choose an ingredient' });
+    const grid = screen.getByRole('group', { name: 'Choose an ingredient' });
     expect(
-      within(grid).getByRole('option', { name: 'Apple video' }),
+      within(grid).getByRole('button', { name: 'Apple video' }),
     ).toBeInTheDocument();
     expect(
-      within(grid).getByRole('option', { name: 'Apple image' }),
+      within(grid).getByRole('button', { name: 'Apple image' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Use this ingredient' }),
@@ -44,10 +44,10 @@ describe('IngredientPickerCard', () => {
     const onSelect = vi.fn();
     render(<IngredientPickerCard action={action} onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByRole('option', { name: 'Apple video' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apple video' }));
     expect(onSelect).not.toHaveBeenCalled();
-    expect(screen.getByRole('option', { name: 'Apple video' })).toHaveAttribute(
-      'aria-selected',
+    expect(screen.getByRole('button', { name: 'Apple video' })).toHaveAttribute(
+      'aria-pressed',
       'true',
     );
     fireEvent.click(
@@ -57,9 +57,9 @@ describe('IngredientPickerCard', () => {
       id: 'video-1',
       title: 'Apple video',
     });
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Apple image' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apple image' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Use this ingredient' }),
     );

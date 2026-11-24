@@ -27,6 +27,8 @@ export interface DateRangePickerProps {
   onChange?: (range: AnalyticsDateRange) => void;
   defaultPreset?: DateRangePreset;
   className?: string;
+  /** Let the last day be today, for a report that shows today's partial day. */
+  includeToday?: boolean;
   value?: AnalyticsDateRange;
 }
 
@@ -90,6 +92,7 @@ export default function DateRangePicker({
   onChange = () => {},
   defaultPreset = Timeframe.D7,
   className = '',
+  includeToday = false,
   value,
 }: DateRangePickerProps) {
   const translate = useTranslations('ui.dateRangePicker');
@@ -109,14 +112,18 @@ export default function DateRangePicker({
   // The first day of a custom range, while the second is still to be picked.
   const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
 
-  // The last pickable day: yesterday by its UTC date, drawn as a calendar day.
-  const yesterday = calendarDayOf(getTrailingUtcDays(1).endDate);
+  // The last pickable day (yesterday, or today) by its UTC date, drawn as a calendar day.
+  const lastDay = calendarDayOf(
+    getTrailingUtcDays(1, new Date(), { includeToday }).endDate,
+  );
   const [dateRange, setDateRange] = useState<CalendarDateRange | undefined>(
     () => {
       if (valueStartTime !== null && valueEndTime !== null) {
         return { from: new Date(valueStartTime), to: new Date(valueEndTime) };
       }
-      const range = getTrailingUtcDays(PRESET_DAYS[defaultPreset]);
+      const range = getTrailingUtcDays(PRESET_DAYS[defaultPreset], new Date(), {
+        includeToday,
+      });
       return { from: range.startDate, to: range.endDate };
     },
   );
@@ -143,7 +150,11 @@ export default function DateRangePicker({
   const handlePresetChange = (preset: DateRangePreset) => {
     setSelectedPreset(preset);
 
-    const { endDate, startDate } = getTrailingUtcDays(PRESET_DAYS[preset]);
+    const { endDate, startDate } = getTrailingUtcDays(
+      PRESET_DAYS[preset],
+      new Date(),
+      { includeToday },
+    );
 
     setDateRange({ from: startDate, to: endDate });
     onChange({ endDate, startDate });
@@ -233,8 +244,8 @@ export default function DateRangePicker({
             mode="range"
             selected={calendarSelection}
             onDayClick={handleDayClick}
-            endMonth={yesterday}
-            disabled={{ after: yesterday }}
+            endMonth={lastDay}
+            disabled={{ after: lastDay }}
             numberOfMonths={2}
           />
         </PopoverContent>

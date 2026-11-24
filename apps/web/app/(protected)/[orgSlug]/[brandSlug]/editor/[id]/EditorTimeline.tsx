@@ -1,12 +1,9 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  EditorTrackType,
-} from '@genfeedai/contracts';
+import { ButtonVariant, EditorTrackType } from '@genfeedai/contracts';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Toggle } from '@ui/primitives/toggle';
 import { useCallback, useRef, useState } from 'react';
 import type {
   ClipBlockProps,
@@ -86,28 +83,24 @@ function TrackRow({
         <Badge variant="secondary">{trackLabel}</Badge>
         <span className="truncate text-sm font-medium">{track.name}</span>
         <div className="ml-auto flex items-center gap-1">
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.XS}
-            tooltip={track.isMuted ? 'Unmute' : 'Mute'}
-            isDisabled={isReadOnly}
-            className={
-              track.isMuted ? 'bg-destructive/20 text-destructive' : ''
-            }
+          <Toggle
+            disabled={isReadOnly}
+            pressed={track.isMuted}
+            size="sm"
+            aria-label={track.isMuted ? 'Unmute' : 'Mute'}
+            title={track.isMuted ? 'Unmute' : 'Mute'}
           >
             {track.isMuted ? 'Muted' : 'Mute'}
-          </Button>
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.XS}
-            tooltip={track.isLocked ? 'Unlock' : 'Lock'}
-            isDisabled={isReadOnly}
-            className={track.isLocked ? 'bg-warning/20 text-warning' : ''}
+          </Toggle>
+          <Toggle
+            disabled={isReadOnly}
+            pressed={track.isLocked}
+            size="sm"
+            aria-label={track.isLocked ? 'Unlock' : 'Lock'}
+            title={track.isLocked ? 'Unlock' : 'Lock'}
           >
             {track.isLocked ? 'Locked' : 'Lock'}
-          </Button>
+          </Toggle>
         </div>
       </div>
 

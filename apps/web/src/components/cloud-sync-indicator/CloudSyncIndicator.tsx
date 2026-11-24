@@ -2,7 +2,7 @@
 
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -54,9 +54,9 @@ export default function CloudSyncIndicator() {
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           withWrapper={false}
-          className="relative inline-flex size-8 items-center justify-center rounded-md bg-transparent transition-colors hover:bg-hover cursor-pointer"
           ariaLabel={isConnected ? 'Cloud connected' : 'Cloud disconnected'}
           icon={
             isConnected ? (
@@ -103,11 +103,12 @@ export default function CloudSyncIndicator() {
         {hybrid && !isConnected && (
           <div className="border-t border-border px-3 py-2">
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.XS}
               withWrapper={false}
               disabled={desktop && isLaunching}
               onClick={() => void handleConnect()}
-              className="w-full rounded px-2 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-hover cursor-pointer"
+              className="w-full"
             >
               {desktop && isLaunching
                 ? 'Opening Browser...'

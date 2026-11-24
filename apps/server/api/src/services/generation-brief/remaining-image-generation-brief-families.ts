@@ -1,6 +1,7 @@
 import {
   FAL_FLUX_2_PRO_IMAGE_COMPILER_ID,
   FAL_FLUX_IMAGE_COMPILER_ID,
+  FAL_MAI_IMAGE_COMPILER_ID,
   FAL_NANO_BANANA_2_IMAGE_COMPILER_ID,
   FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID,
   GPT_IMAGE_IMAGE_COMPILER_ID,
@@ -302,6 +303,31 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
         modelLabel: 'Fal Nano Banana 2',
         referenceField: 'image_input',
         referenceFieldIsArray: true,
+      },
+    },
+    {
+      // MAI-Image-2.7 text-to-image on fal. The edit rows are image-edit rows,
+      // which skip brief compilation.
+      compilerId: FAL_MAI_IMAGE_COMPILER_ID,
+      compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'fal-mai-image-2-7-capability',
+          MODEL_KEYS.FAL_MAI_IMAGE_2_7,
+          0,
+          {
+            seedSupported: false,
+          },
+        ),
+        profile(
+          'fal-mai-image-2-7-flash-capability',
+          MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
+          0,
+          { seedSupported: false },
+        ),
+      ],
+      spec: {
+        modelLabel: 'Fal MAI-Image',
       },
     },
     {

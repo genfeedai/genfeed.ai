@@ -12,11 +12,11 @@ import type {
   SocialTimelineStatus,
 } from '@genfeedai/contracts/interfaces';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { youtube } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { google } from 'googleapis';
 import { TwitterApi } from 'twitter-api-v2';
 
 const RECONNECT_REQUIRED_ERROR_PATTERN =
@@ -229,7 +229,7 @@ export class SocialTimelineProviderService {
       scope.brandId,
       credentialId,
     );
-    const api = google.youtube({ version: 'v3', auth });
+    const api = youtube({ version: 'v3', auth });
     const channelIds: string[] = [];
     let pageToken: string | undefined;
     // Bound each explicit refresh to 200 subscriptions and 5 uploads/channel.
@@ -344,7 +344,7 @@ export class SocialTimelineProviderService {
       scope.brandId,
       credentialId,
     );
-    const api = google.youtube({ version: 'v3', auth });
+    const api = youtube({ version: 'v3', auth });
     if (input.action === 'like') {
       await api.videos.rate({ id: input.externalId, rating: 'like' });
       return input.externalId;

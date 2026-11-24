@@ -220,6 +220,37 @@ describe('buildAccountGridLanes', () => {
     expect(twitter?.items[0]?.release?.id).toBe('release-2');
   });
 
+  it('counts a TikTok Inbox delivery as queued, not as published', () => {
+    const tiktok = buildAccount({
+      credentialId: 'credential-tt',
+      platform: CredentialPlatform.TIKTOK,
+    });
+    const inboxRelease = (isInboxDelivery: boolean) =>
+      buildRelease({
+        targets: [
+          buildTarget({
+            credentialId: 'credential-tt',
+            executionState: TargetExecutionState.PUBLISHED,
+            isInboxDelivery,
+            platform: CredentialPlatform.TIKTOK,
+            scheduledAt: null,
+          }),
+        ],
+      });
+    const laneFor = (isInboxDelivery: boolean) =>
+      buildAccountGridLanes({
+        accounts: [tiktok],
+        now: NOW,
+        postingTimesByCredential: {},
+        releases: [inboxRelease(isInboxDelivery)],
+        selectedCredentialIds: [],
+        timezone: 'UTC',
+      })[0];
+
+    expect(laneFor(true)?.queuedCount).toBe(1);
+    expect(laneFor(false)?.queuedCount).toBe(0);
+  });
+
   it('hides unselected accounts and surfaces reconnecting accounts first', () => {
     const expired = buildAccount({
       credentialId: 'credential-expired',

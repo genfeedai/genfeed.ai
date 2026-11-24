@@ -3,6 +3,7 @@ import type {
   CadenceGap,
   CadenceGapsInput,
 } from '@/features/posts/props/publishing-overview.props';
+import { isTargetLive } from '@/features/posts/shared/release-status.helpers';
 
 export type {
   CadenceGap,
@@ -26,7 +27,8 @@ export function buildCadenceGaps(
   const lastPublishedByCredential = new Map<string, string>();
   for (const release of postedReleases) {
     for (const target of release.targets ?? []) {
-      if (target.executionState !== TargetExecutionState.PUBLISHED) {
+      // An Inbox receipt is not a post that went out.
+      if (!isTargetLive(target)) {
         continue;
       }
       const publishedAt = target.publishedAt ?? release.publishedAt;

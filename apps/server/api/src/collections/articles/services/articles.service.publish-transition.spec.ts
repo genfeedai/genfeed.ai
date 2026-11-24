@@ -46,7 +46,11 @@ describe('ArticlesService publish-state transition', () => {
     const delegate = {
       create: vi.fn(),
       findFirst: vi.fn(
-        async ({ where }: { where?: { slug?: string; status?: string } }) =>
+        async ({
+          where,
+        }: {
+          where?: { slug?: string; status?: string };
+        }): Promise<Record<string, unknown> | null> =>
           // The public-slug availability probe finds no other holder.
           where?.slug && where.status === 'PUBLISHED'
             ? null
@@ -219,6 +223,110 @@ describe('ArticlesService publish-state transition', () => {
     expect(data.publishedAt).toBeUndefined();
     expect(notificationsService.dispatch).not.toHaveBeenCalled();
   });
+  describe('research and drafting notes', () => {
+    const leakedHtml =
+      '<p>Body.</p><h2>What we could not verify</h2><ul><li>A page blocked access.</li></ul>';
+
+    it('refuses to publish content that carries a research-notes section', async () => {
+      const { delegate, service } = buildService();
+
+      await expect(
+        service.update(
+          articleId,
+          {
+            content: leakedHtml,
+            status: ArticleStatus.PUBLISHED,
+          } as UpdateArticleDto,
+          userId,
+          organizationId,
+          brandId,
+        ),
+      ).rejects.toThrow('remove the section "What we could not verify"');
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses to publish a stored draft whose content has a placeholder', async () => {
+      const { delegate, service } = buildService();
+      delegate.findFirst.mockResolvedValue({
+        content: '<p>Watch it: [VIDEO LINK]</p>',
+        id: articleId,
+        organizationId,
+        publishedAt: null,
+        userId,
+      });
+
+      await expect(
+        service.update(
+          articleId,
+          { status: ArticleStatus.PUBLISHED } as UpdateArticleDto,
+          userId,
+          organizationId,
+          brandId,
+        ),
+      ).rejects.toThrow('remove the placeholder [VIDEO LINK]');
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses an edit that adds notes to an already published article', async () => {
+      const { delegate, service } = buildService();
+      delegate.findFirst.mockResolvedValue({
+        content: '<p>Clean.</p>',
+        id: articleId,
+        organizationId,
+        publishedAt: new Date('2026-11-10T08:00:00.000Z'),
+        status: 'PUBLISHED',
+        userId,
+      });
+
+      await expect(
+        service.update(
+          articleId,
+          { content: leakedHtml } as UpdateArticleDto,
+          userId,
+          organizationId,
+          brandId,
+        ),
+      ).rejects.toThrow('A published article cannot contain research');
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('lets a published article with notes go back to draft', async () => {
+      const { delegate, service } = buildService();
+      delegate.findFirst.mockResolvedValue({
+        content: '<p>Watch it: [VIDEO LINK]</p>',
+        id: articleId,
+        organizationId,
+        publishedAt: new Date('2026-11-10T08:00:00.000Z'),
+        status: 'PUBLISHED',
+        userId,
+      });
+
+      await service.update(
+        articleId,
+        { status: ArticleStatus.DRAFT } as UpdateArticleDto,
+        userId,
+        organizationId,
+        brandId,
+      );
+
+      expect(readPatchedData(delegate).status).toBe('DRAFT');
+    });
+
+    it('keeps a draft with notes saveable while it is being written', async () => {
+      const { delegate, service } = buildService();
+
+      await service.update(
+        articleId,
+        { content: leakedHtml } as UpdateArticleDto,
+        userId,
+        organizationId,
+        brandId,
+      );
+
+      expect(readPatchedData(delegate).content).toBe(leakedHtml);
+    });
+  });
+
   it('allows editing an organization-shared draft without changing its operator author', async () => {
     const { delegate, service } = buildService();
     delegate.findFirst.mockResolvedValue({

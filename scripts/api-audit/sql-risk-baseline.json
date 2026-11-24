@@ -994,13 +994,6 @@
     {
       "category": "unbounded-read",
       "count": 2,
-      "file": "apps/server/api/src/collections/brand-memory/services/brand-memory.service.ts",
-      "growth": "config",
-      "target": "delegate"
-    },
-    {
-      "category": "unbounded-read",
-      "count": 2,
       "file": "apps/server/api/src/collections/brands/services/brand-learning-mutation.util.ts",
       "growth": "config",
       "target": "brand"

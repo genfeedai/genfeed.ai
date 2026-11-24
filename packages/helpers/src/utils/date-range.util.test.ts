@@ -221,5 +221,14 @@ describe('date-range.util', () => {
       expect(range.startDate.toISOString()).toBe('2026-10-07T00:00:00.000Z');
       expect(range.endDate.toISOString()).toBe('2026-11-05T00:00:00.000Z');
     });
+
+    it('ends today for a report that shows the partial day', () => {
+      const range = getTrailingUtcDays(7, new Date('2026-11-06T00:06:00Z'), {
+        includeToday: true,
+      });
+
+      expect(range.startDate.toISOString()).toBe('2026-10-31T00:00:00.000Z');
+      expect(range.endDate.toISOString()).toBe('2026-11-06T00:00:00.000Z');
+    });
   });
 });

@@ -62,6 +62,25 @@ function readHttpsUrl(args: Record<string, unknown>, key: string) {
   return value;
 }
 
+const PUBLISH_WEEKDAYS_UTC = new Set([2, 4]);
+const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
+
+function readPublishedAt(args: Record<string, unknown>): string {
+  const value = requireArticleString(args, 'publishedAt', 64);
+  const date = new Date(value);
+  if (
+    Number.isNaN(date.getTime()) ||
+    !ISO_DATE_TIME_PATTERN.test(value) ||
+    !PUBLISH_WEEKDAYS_UTC.has(date.getUTCDay())
+  ) {
+    throw new McpToolInputError(
+      'publishedAt must be an ISO 8601 timestamp that falls on a Tuesday or Thursday (UTC), for example 2026-11-17T08:00:00.000Z',
+      'publishedAt',
+    );
+  }
+  return date.toISOString();
+}
+
 export async function handleContentTool(
   client: ClientService,
   name: string,
@@ -123,15 +142,18 @@ export async function handleContentTool(
         args.coverImageUrl === undefined
           ? undefined
           : readHttpsUrl(args, 'coverImageUrl');
+      const publishedAt =
+        args.publishedAt === undefined ? undefined : readPublishedAt(args);
       if (
         label === undefined &&
         slug === undefined &&
         summary === undefined &&
         content === undefined &&
-        coverImageUrl === undefined
+        coverImageUrl === undefined &&
+        publishedAt === undefined
       ) {
         throw new McpToolInputError(
-          'Pass at least one of label, slug, summary, content or coverImageUrl to change',
+          'Pass at least one of label, slug, summary, content, coverImageUrl or publishedAt to change',
           'label',
         );
       }
@@ -143,6 +165,7 @@ export async function handleContentTool(
         ...(summary === undefined ? {} : { summary }),
         ...(content === undefined ? {} : { content }),
         ...(coverImageUrl === undefined ? {} : { coverImageUrl }),
+        ...(publishedAt === undefined ? {} : { publishedAt }),
       });
       return {
         structuredContent: { data: article },

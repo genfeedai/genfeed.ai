@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import type { ReactElement } from 'react';
+import { Switch } from '@ui/primitives/switch';
+import { type ReactElement, useId } from 'react';
 
 const TONE_OPTIONS = [
   'friendly',
@@ -51,6 +52,8 @@ export function AgentStrategyEngagementSection({
   maxEngagementsPerDay,
   setMaxEngagementsPerDay,
 }: Props): ReactElement {
+  const engagementToggleLabelId = useId();
+
   return (
     <section className="border border-border">
       <Button
@@ -83,23 +86,17 @@ export function AgentStrategyEngagementSection({
       {isEngagementOpen && (
         <div className="space-y-4 border-t border-border px-4 pb-4 pt-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-foreground">
+            <span
+              id={engagementToggleLabelId}
+              className="text-xs font-medium text-foreground"
+            >
               Enable Engagement
             </span>
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => setIsEngagementEnabled(!isEngagementEnabled)}
-              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                isEngagementEnabled ? 'bg-primary' : 'bg-muted'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
-                  isEngagementEnabled ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </Button>
+            <Switch
+              aria-labelledby={engagementToggleLabelId}
+              isChecked={isEngagementEnabled}
+              onCheckedChange={setIsEngagementEnabled}
+            />
           </div>
 
           {isEngagementEnabled && (

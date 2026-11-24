@@ -35,7 +35,12 @@ export interface BrandDetailOverviewProps {
   onUpdateHandle?: (value: string) => Promise<void>;
   onUploadLogo: () => void;
   onGenerateLogo: () => void;
-  onCopyPublicProfile?: () => void;
+  /** Pulls the picture up over the banner above it, as on the public profile. */
+  isAvatarOverlapping?: boolean;
+  /** The visibility control, under the description. */
+  visibility?: ReactNode;
+  /** A row under the actions: what the profile holds and where it lives. */
+  footer?: ReactNode;
 }
 
 export interface BrandDetailSystemPromptProps {
@@ -67,22 +72,6 @@ export interface BrandDetailSocialConnection {
   platform: CredentialPlatform;
   postingTimes?: IClockTime[];
   url?: string | null;
-}
-
-export interface BrandDetailSidebarProps {
-  brand: IBrand;
-  links: ILink[];
-  isUpdatingPublicProfile?: boolean;
-  onTogglePublicProfile: (isPublic: boolean) => void;
-  onOpenLinkModal: (link?: ILink) => void;
-  /** The connected social accounts, rendered under the website links. */
-  children?: ReactNode;
-}
-
-export interface BrandDetailAccountSettingsCardProps {
-  isPublic: boolean;
-  isUpdating?: boolean;
-  onToggle: (isPublic: boolean) => void;
 }
 
 export interface BrandDetailConnectedAccountProps {

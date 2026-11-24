@@ -1,9 +1,13 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import type { ArticleTrafficPeriod } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
+import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
+import {
+  formatApiDate,
+  getTrailingUtcDays,
+} from '@helpers/utils/date-range.util';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { ArticlesService } from '@services/content/articles.service';
@@ -13,7 +17,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { OptionSelect } from '@ui/primitives/option-select';
+import DateRangePicker from '@ui/primitives/date-range-picker';
 import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -22,12 +26,6 @@ import type { ArticleTrafficPanelProps } from '@/features/articles/props/article
 const ArticleTrafficChart = dynamic(() => import('./article-traffic-chart'), {
   ssr: false,
 });
-const PERIODS: ReadonlyArray<ArticleTrafficPeriod> = [
-  '7d',
-  '30d',
-  '90d',
-  'all',
-];
 
 /**
  * An article's summary and website traffic in the right context sidebar. The
@@ -42,18 +40,23 @@ export default function ArticleTrafficPanel({
   const translateList = useTranslations('pages.articles.list');
   const locale = useLocale();
   const { organizationId, brandId } = useCollectionScope();
-  const [period, setPeriod] = useState<ArticleTrafficPeriod>('30d');
+  const [range, setRange] = useState<DateRange>(() =>
+    getTrailingUtcDays(30, new Date(), { includeToday: true }),
+  );
+  const startDate = range.startDate ? formatApiDate(range.startDate) : '';
+  const endDate = range.endDate ? formatApiDate(range.endDate) : '';
 
   // Cached per article, range and scope: reopening an article, or going back
   // to a range already viewed, paints its traffic at once while it refreshes.
   const trafficQuery = useAuthedQuery({
     enabled: Boolean(organizationId),
     queryFn: (service, signal) =>
-      service.getWebsiteTraffic(article.id, period, signal),
+      service.getWebsiteTraffic(article.id, { endDate, startDate }, signal),
     queryKey: [
       'article-traffic',
       article.id,
-      period,
+      startDate,
+      endDate,
       { brandId: brandId ?? null, organizationId },
     ],
     service: (token: string) => ArticlesService.getInstance(token),
@@ -93,14 +96,11 @@ export default function ArticleTrafficPanel({
         openLabel={openLabel}
       >
         <h3 className="text-sm font-semibold">{translate('title')}</h3>
-        <OptionSelect
-          ariaLabel={translate('periodLabel')}
-          onValueChange={(next) => setPeriod(next as ArticleTrafficPeriod)}
-          options={PERIODS.map((option) => ({
-            label: translate(`period.${option}`),
-            value: option,
-          }))}
-          value={period}
+        <DateRangePicker
+          defaultPreset={Timeframe.D30}
+          includeToday
+          onChange={setRange}
+          value={range}
         />
         {isLoading ? (
           <SkeletonCard

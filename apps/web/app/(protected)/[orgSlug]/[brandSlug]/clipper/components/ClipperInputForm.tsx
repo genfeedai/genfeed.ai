@@ -1,5 +1,4 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import CreativeAppPromptBar from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar';
 import { Button } from '@ui/primitives/button';
@@ -11,13 +10,14 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { Progress } from '@ui/primitives/progress';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarIconButton from '@ui/prompt-bars/components/toolbar/PromptBarIconButton';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import { CirclePlay, Search, SlidersHorizontal, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent } from 'react';
 import type {
   ClipperInputFormProps,
   ClipperResultMode,
@@ -81,29 +81,6 @@ export default function ClipperInputForm({
     }
   };
 
-  const sourceKindButton = (
-    kind: ClipperInputFormProps['sourceKind'],
-    label: string,
-    icon: ReactNode,
-  ) => (
-    <Button
-      variant={ButtonVariant.GHOST}
-      size={ButtonSize.SM}
-      textTransform="none"
-      withWrapper={false}
-      aria-pressed={sourceKind === kind}
-      onClick={() => onSetSourceKind(kind)}
-      className={cn(
-        'gap-2',
-        sourceKind === kind
-          ? 'bg-hover text-foreground'
-          : 'text-muted-foreground',
-      )}
-      icon={icon}
-      label={label}
-    />
-  );
-
   return (
     <div className="w-full">
       <CreativeAppPromptBar
@@ -120,19 +97,25 @@ export default function ClipperInputForm({
           ) : undefined
         }
         beforeBody={
-          <fieldset className="flex flex-wrap items-center gap-1 px-3 pt-3">
-            <legend className="sr-only">{t('source')}</legend>
-            {sourceKindButton(
-              'youtube',
-              t('youtubeUrl'),
-              <CirclePlay className="size-4 shrink-0" />,
-            )}
-            {sourceKindButton(
-              'upload',
-              t('uploadAudioOrVideo'),
-              <Upload className="size-4 shrink-0" />,
-            )}
-          </fieldset>
+          <div className="px-3 pt-3">
+            <SegmentedControl
+              ariaLabel={t('source')}
+              onValueChange={onSetSourceKind}
+              options={[
+                {
+                  icon: <CirclePlay className="size-4 shrink-0" />,
+                  label: t('youtubeUrl'),
+                  value: 'youtube',
+                },
+                {
+                  icon: <Upload className="size-4 shrink-0" />,
+                  label: t('uploadAudioOrVideo'),
+                  value: 'upload',
+                },
+              ]}
+              value={sourceKind}
+            />
+          </div>
         }
         testId="clipper-prompt-bar"
       >

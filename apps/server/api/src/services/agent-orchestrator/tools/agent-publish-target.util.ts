@@ -13,6 +13,7 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { getCaptionCeiling } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   AgentPublishSettingField,
@@ -253,7 +254,9 @@ function buildAgentPublishTargetProposal(params: {
     avatarUrl: params.account?.avatarUrl,
     blockers: validation.blockers,
     caption: params.caption,
-    captionMaxLength: capability?.caption.maxLength,
+    captionMaxLength: capability
+      ? getCaptionCeiling(capability.caption)
+      : undefined,
     credentialId: params.credentialId,
     handle: params.account?.handle,
     id: `publish-target-${params.credentialId}`,

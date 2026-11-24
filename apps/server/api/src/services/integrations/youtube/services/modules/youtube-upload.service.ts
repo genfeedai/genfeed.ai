@@ -17,13 +17,13 @@ import {
   readChannelSettingString,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolveYouTubeUploadVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Optional } from '@nestjs/common';
-import { google, type youtube_v3 } from 'googleapis';
 import { firstValueFrom } from 'rxjs';
 
 /** Second of the video the thumbnail still is taken from. */
@@ -35,7 +35,7 @@ const THUMBNAIL_WIDTH = 1080;
 @Injectable()
 export class YoutubeUploadService implements ServerYoutubeUploader {
   private readonly constructorName = this.constructor.name;
-  private readonly youtubeAPI: ReturnType<typeof google.youtube>;
+  private readonly youtubeAPI: youtube_v3.Youtube;
 
   constructor(
     private readonly httpService: HttpService,
@@ -52,7 +52,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
   ) {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
-    this.youtubeAPI = google.youtube({ version: 'v3' });
+    this.youtubeAPI = youtube({ version: 'v3' });
   }
 
   /**

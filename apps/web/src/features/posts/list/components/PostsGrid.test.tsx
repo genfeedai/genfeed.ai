@@ -1,6 +1,10 @@
 import EvalCell from './EvalCell';
 import '@testing-library/jest-dom/vitest';
-import { Platform, PostStatus } from '@genfeedai/contracts';
+import {
+  Platform,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -103,6 +107,29 @@ describe('PostsGrid', () => {
     expect(
       screen.queryByRole('link', { name: /view on x/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('reads Delivered to TikTok Inbox, not Posted, for an Inbox receipt', () => {
+    render(
+      <PostsGrid
+        posts={[
+          {
+            ...basePost,
+            isInboxDelivery: true,
+            platform: Platform.TIKTOK,
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as IPost,
+        ]}
+        onPostEvaluated={vi.fn()}
+        primaryAction={primaryAction}
+        secondaryActions={[]}
+      />,
+    );
+
+    // The stubbed translator in this file renders the message key.
+    expect(screen.getByText('tiktokInboxDelivered')).toBeInTheDocument();
+    expect(screen.queryByText(/^posted$/i)).not.toBeInTheDocument();
   });
 
   it('renders compact rows without thumbnails and promotes retry for a failed post', () => {

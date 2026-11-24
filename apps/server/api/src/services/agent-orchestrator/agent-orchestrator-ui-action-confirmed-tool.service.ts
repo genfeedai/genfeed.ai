@@ -579,6 +579,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
               ...commonToolPayload,
               ...(typeof duration === 'number' ? { duration } : {}),
               ...(endFrame ? { endFrame } : {}),
+              ...(params.payload?.isDraft === true ? { isDraft: true } : {}),
               ...(resolution ? { resolution } : {}),
               ...(videoReferences && videoReferences.length > 0
                 ? { videoReferences }

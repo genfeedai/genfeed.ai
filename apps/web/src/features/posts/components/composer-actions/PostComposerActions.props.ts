@@ -11,9 +11,7 @@ export type PostComposerPresetKey =
   | PostQuickActionKey
   | 'hashtags'
   | 'caption'
-  | 'thread'
-  | 'grok'
-  | 'comment';
+  | 'thread';
 
 export interface PostComposerActionsProps {
   /** What the actions apply to, shown beside a proposal (e.g. "Post 2", "Caption"). */
@@ -26,10 +24,6 @@ export interface PostComposerActionsProps {
   isBusy: boolean;
   /** Offer "Turn into a thread" (X parent post without replies). */
   canDraftThread?: boolean;
-  /** Offer "End with @grok" (X thread without a closing @grok post). */
-  canEndWithGrok?: boolean;
-  /** Offer "Add first comment" (platform supports it, none added yet). */
-  canAddFirstComment?: boolean;
   /**
    * Rewrite the target post. Resolves to the proposed text, or null when the
    * rewrite failed. `actionKey` is set for the built-in quick actions.
@@ -45,8 +39,6 @@ export interface PostComposerActionsProps {
   onDraftThread?: (tone: TweetTone) => Promise<string[] | null>;
   /** Add accepted thread replies. */
   onAddThreadPosts?: (texts: string[]) => Promise<void>;
-  onEndWithGrok?: () => void;
-  onAddFirstComment?: () => void;
   /**
    * Open the agent on this post's own conversation, for anything the one-tap
    * actions do not cover. The button is hidden when no agent can open here.

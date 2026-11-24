@@ -1,139 +1,123 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import {
-  BRAND_HANDLE_MAX_LENGTH,
-  creatorProfilePath,
-} from '@genfeedai/contracts/constants';
-import { isPublicAssetScope } from '@genfeedai/helpers';
+import { BRAND_HANDLE_MAX_LENGTH } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
-import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import { Copy, Share2, Sparkles, Upload } from 'lucide-react';
-import Link from 'next/link';
+import { Sparkles, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
+const ICON_BUTTON_CLASS = 'shrink-0 [&_svg]:size-3.5';
 
+/**
+ * The brand's header, laid out like the public profile at genfeed.ai/@handle:
+ * the picture beside the name and handle, the description under them, then
+ * the actions. Everything here is edited in place; `visibility` and `footer`
+ * are slots for the parts that depend on the page.
+ */
 export default function BrandDetailOverview({
   brand,
+  isAvatarOverlapping = false,
   isGeneratingLogo,
   onUploadLogo,
   onGenerateLogo,
   onUpdateBrand,
   onUpdateHandle,
-  onCopyPublicProfile,
+  visibility,
+  footer,
 }: BrandDetailOverviewProps) {
   const t = useTranslations('pages.brandDetailOverview');
-  const profileUrl = `${EnvironmentService.apps.website}${creatorProfilePath(brand.slug)}`;
 
   return (
-    <div className="flex items-start gap-6">
-      <BrandAvatar
-        alt={`${brand.label} logo`}
-        name={brand.label}
-        size="3xl"
-        src={brand.logoUrl}
+    <header className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 px-1 sm:gap-x-6">
+      <div
+        className={cn(
+          'relative z-10 w-fit sm:row-span-3',
+          isAvatarOverlapping &&
+            '-mt-12 rounded-2xl bg-background p-1.5 sm:-mt-16',
+        )}
       >
-        <div
-          className={cn(
-            'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity' /* design-system-allow-content-color */,
-            hoverRevealClassName(),
-          )}
+        <BrandAvatar
+          alt={`${brand.label} logo`}
+          name={brand.label}
+          size="3xl"
+          src={brand.logoUrl}
         >
-          <div className="flex gap-1.5">
-            <Button
-              icon={<Upload className="size-3.5" />}
-              ariaLabel={t('uploadProfilePicture')}
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.ICON}
-              className={ICON_BUTTON_CLASS}
-              onClick={onUploadLogo}
-            />
-            <Button
-              icon={<Sparkles className="size-3.5" />}
-              ariaLabel={t('generateProfilePicture')}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.ICON}
-              className={ICON_BUTTON_CLASS}
-              onClick={onGenerateLogo}
-              isLoading={isGeneratingLogo}
-            />
-          </div>
-        </div>
-      </BrandAvatar>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <EditableText
-              ariaLabel={t('editBrandName')}
-              className="mb-1"
-              displayClassName="text-2xl font-semibold"
-              isRequired
-              onSave={(value) => onUpdateBrand('label', value)}
-              value={brand.label}
-            />
-            {brand.slug && onUpdateHandle ? (
-              // The leading `@` is display only; the save normalizes it away.
-              <EditableText
-                ariaLabel={t('editBrandHandle')}
-                className="mb-1"
-                displayClassName="text-xs text-muted-foreground"
-                isRequired
-                maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
-                onSave={onUpdateHandle}
-                value={`@${brand.slug}`}
-              />
-            ) : brand.slug ? (
-              <p className="mb-1 text-xs text-muted-foreground">
-                @{brand.slug}
-              </p>
-            ) : null}
-            <EditableText
-              ariaLabel={t('editBrandDescription')}
-              displayClassName="text-muted-foreground"
-              isMultiline
-              onSave={(value) => onUpdateBrand('description', value)}
-              placeholder={t('addDescription')}
-              value={brand.description}
-            />
-          </div>
-
-          {isPublicAssetScope(brand.scope) && onCopyPublicProfile ? (
-            <div className="flex shrink-0 items-center gap-1.5">
+          <div
+            className={cn(
+              'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity' /* design-system-allow-content-color */,
+              hoverRevealClassName(),
+            )}
+          >
+            <div className="flex gap-1.5">
               <Button
-                icon={<Copy className="size-3.5" />}
-                ariaLabel={t('copyPublicProfileLink')}
+                icon={<Upload className="size-3.5" />}
+                ariaLabel={t('uploadProfilePicture')}
+                variant={ButtonVariant.DEFAULT}
+                size={ButtonSize.ICON}
+                className={ICON_BUTTON_CLASS}
+                onClick={onUploadLogo}
+              />
+              <Button
+                icon={<Sparkles className="size-3.5" />}
+                ariaLabel={t('generateProfilePicture')}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.ICON}
                 className={ICON_BUTTON_CLASS}
-                tooltip={t('copyPublicProfileLink')}
-                onClick={() => onCopyPublicProfile()}
+                onClick={onGenerateLogo}
+                isLoading={isGeneratingLogo}
               />
-              <PrimitiveButton
-                asChild
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.SM}
-              >
-                <Link
-                  href={profileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-8 items-center gap-1.5 px-2.5 text-xs [&_svg]:size-3.5"
-                >
-                  <Share2 className="size-3.5" />
-                  {t('profile')}
-                </Link>
-              </PrimitiveButton>
             </div>
-          ) : null}
-        </div>
+          </div>
+        </BrandAvatar>
       </div>
-    </div>
+
+      <div className="min-w-0 self-start pt-1">
+        <EditableText
+          ariaLabel={t('editBrandName')}
+          className="mb-1"
+          displayClassName="text-2xl font-semibold sm:text-3xl"
+          isRequired
+          onSave={(value) => onUpdateBrand('label', value)}
+          value={brand.label}
+        />
+        {brand.slug && onUpdateHandle ? (
+          // The leading `@` is display only; the save normalizes it away.
+          <EditableText
+            ariaLabel={t('editBrandHandle')}
+            displayClassName="text-sm text-muted-foreground"
+            isRequired
+            maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
+            onSave={onUpdateHandle}
+            value={`@${brand.slug}`}
+          />
+        ) : brand.slug ? (
+          <p className="text-sm text-muted-foreground">@{brand.slug}</p>
+        ) : null}
+      </div>
+
+      <div className="col-span-2 max-w-prose sm:col-span-1 sm:col-start-2">
+        <EditableText
+          ariaLabel={t('editBrandDescription')}
+          displayClassName="text-base leading-7 text-foreground/80"
+          isMultiline
+          onSave={(value) => onUpdateBrand('description', value)}
+          placeholder={t('addDescription')}
+          value={brand.description}
+        />
+      </div>
+
+      {visibility ? (
+        <div className="col-span-2 sm:col-span-1 sm:col-start-2">
+          {visibility}
+        </div>
+      ) : null}
+
+      {footer ? <div className="col-span-2 pt-1">{footer}</div> : null}
+    </header>
   );
 }

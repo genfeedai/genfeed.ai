@@ -1,5 +1,6 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -147,6 +148,10 @@ export class HttpExceptionFilter extends AllExceptionFilter {
           : undefined,
       code,
       detail,
+      missingInputs:
+        exception instanceof WorkflowMissingInputException
+          ? exception.missingInputs
+          : undefined,
       persistedVideoIngredientIds:
         exception instanceof PersistedVideoGenerationException
           ? exception.persistedVideoIngredientIds

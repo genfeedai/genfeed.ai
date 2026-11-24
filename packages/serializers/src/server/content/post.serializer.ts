@@ -1,4 +1,6 @@
 import { normalizeReviewDecision } from '@genfeedai/contracts';
+import { isTikTokInboxDelivered } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { readNonEmptyString } from '@genfeedai/contracts/constants/type-guards.constant';
 import { buildSingleSerializer } from '@serializers/builders';
 import {
   postListSerializerConfig,
@@ -14,11 +16,23 @@ function isPostRecord(value: unknown): value is PostRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function readInstant(value: unknown): Date | string | null {
+  return value instanceof Date || typeof value === 'string' ? value : null;
+}
+
 function canonicalizePostRecord(value: unknown): unknown {
   if (!isPostRecord(value)) return value;
 
   const normalized: PostRecord = {
     ...value,
+    isInboxDelivery: isTikTokInboxDelivered({
+      externalId: readNonEmptyString(value.externalId),
+      platform: readNonEmptyString(value.platform),
+      publicationDate: readInstant(value.publicationDate),
+      publishedAt: readInstant(value.publishedAt),
+      targetExecutionState: readNonEmptyString(value.targetExecutionState),
+      url: readNonEmptyString(value.url),
+    }),
     reviewDecision: normalizeReviewDecision(value.reviewDecision),
     targetSettings: serializePostTargetSettings(value),
   };

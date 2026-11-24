@@ -1125,7 +1125,7 @@ describe('TurboProjectsService', () => {
       );
     });
 
-    it('passes the reviewer reason to the rejection so the next batch learns from it', async () => {
+    it('passes the reviewer reason to the rejection so it is saved with the review feedback', async () => {
       useProject(makeProject({ status: TurboProjectStatus.REVIEWING }));
       prisma.turboProjectItem.findMany.mockResolvedValue([
         makeItem({

@@ -1,6 +1,5 @@
 'use client';
 
-import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { attachContentToNewConversationDraft } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -56,11 +55,10 @@ export default function StudioInspectorActions({
   const downloadIngredient = useIngredientDownloadHandler();
   const { href, orgSlug } = useOrgUrl();
   const { push } = useRouter();
-  const agentDock = useAgentDock();
 
   // The asset rides the agent's attachment tray; nothing is sent until the
-  // operator writes the question. The dock hosts it in place; without one the
-  // next new conversation on `/agent` picks it up.
+  // operator writes the question. The Playground's left pane is the prompt,
+  // not the conversation, so the asset goes to a new conversation on `/agent`.
   const handleAskAgent = useCallback(() => {
     if (!ingredient) {
       return;
@@ -76,13 +74,9 @@ export default function StudioInspectorActions({
         ? { thumbnailUrl: ingredient.thumbnailUrl }
         : {}),
     };
-    if (agentDock?.attachContent(reference)) {
-      return;
-    }
-
     attachContentToNewConversationDraft(orgSlug, reference);
     push(href(APP_ROUTES.AGENT.NEW));
-  }, [agentDock, href, ingredient, job.prompt, job.type, label, orgSlug, push]);
+  }, [href, ingredient, job.prompt, job.type, label, orgSlug, push]);
 
   const renderContinuationAction = (
     operation: IngredientContinuationOperation,

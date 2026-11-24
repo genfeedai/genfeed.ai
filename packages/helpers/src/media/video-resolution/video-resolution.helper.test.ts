@@ -99,7 +99,11 @@ describe('getVideoResolutionsByModel', () => {
   });
 
   it('does not expose 360p when the catalog model does not advertise it', () => {
-    for (const entry of videoModelResolutions) {
+    // Gemini Omni Flash 1.2 on fal lists 360p (fal model page, 2026-11-24).
+    for (const entry of videoModelResolutions.filter(
+      (candidate) =>
+        candidate.model !== MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+    )) {
       expect(
         entry.resolutions.map((resolution) => resolution.value),
       ).not.toContain('360p');

@@ -51,10 +51,10 @@ test.describe('Studio clip source import — deep interactions', () => {
     await expect(submit).toBeEnabled();
     await page.getByLabel(/youtube url/i).fill('');
     await expect(submit).toBeDisabled();
-    await page.getByRole('button', { name: /upload audio or video/i }).click();
+    await page.getByRole('radio', { name: /upload audio or video/i }).click();
     await expect(page.getByLabel(/youtube url/i)).toHaveCount(0);
     await expect(submit).toBeDisabled();
-    await page.getByRole('button', { name: /youtube url/i }).click();
+    await page.getByRole('radio', { name: /youtube url/i }).click();
     await expect(page.getByLabel(/youtube url/i)).toHaveValue('');
     await expectNoErrorOverlay(page);
   });

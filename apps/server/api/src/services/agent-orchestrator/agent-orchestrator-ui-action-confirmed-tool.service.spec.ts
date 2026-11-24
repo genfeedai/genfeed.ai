@@ -397,6 +397,65 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     );
   });
 
+  it.each([
+    { expected: { isDraft: true }, isDraft: true, label: 'carries' },
+    { expected: {}, isDraft: undefined, label: 'omits' },
+  ])(
+    '$label the draft flag of a confirmed video (#7727)',
+    async ({ expected, isDraft }) => {
+      const executeTool = vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        nextActions: [],
+        success: true,
+      });
+      const service = new AgentOrchestratorUiActionConfirmedToolService(
+        { executeTool } as never,
+        { recordToolCompleted: vi.fn(), recordToolStarted: vi.fn() } as never,
+        { finalizeStructuredAssistantTurn: vi.fn(finalizedResponse) } as never,
+        {
+          acquireLock: vi.fn().mockResolvedValue(true),
+          get: vi.fn().mockResolvedValue(null),
+          releaseLock: vi.fn(),
+          set: vi.fn(),
+        } as never,
+        { execute: vi.fn() } as never,
+        {
+          transition: vi.fn().mockResolvedValue({
+            id: 'generation-action-1',
+            type: 'generation_action_card',
+            data: { decision: 'approved' },
+          }),
+        } as never,
+      );
+
+      await service.execute('confirm_generate_media', {
+        context: { organizationId: 'organization-1', userId: 'user-1' },
+        model: 'test/model',
+        payload: {
+          duration: 4,
+          generationType: 'video',
+          isDraft,
+          prompt: 'A coast at dawn',
+          resolution: '720p',
+          sourceActionId: 'generation-action-1',
+        },
+        threadId: 'thread-1',
+      });
+
+      expect(executeTool).toHaveBeenCalledWith(
+        'generate',
+        {
+          duration: 4,
+          prompt: 'A coast at dawn',
+          resolution: '720p',
+          type: 'video',
+          ...expected,
+        },
+        expect.objectContaining({ confirmationOrigin: 'thread-ui-action' }),
+      );
+    },
+  );
+
   it('passes the server-set confirmation origin into install_official_workflow (#4306)', async () => {
     const executeTool = vi.fn().mockResolvedValue({
       creditsUsed: 0,

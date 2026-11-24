@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -12,10 +13,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { postVisibilityReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -68,12 +66,15 @@ describe('PublicPostsController', () => {
   } as Request;
 
   const postFindMany = vi.fn();
+  const queryRaw = vi.fn();
 
   beforeEach(async () => {
     postFindMany.mockReset();
     enqueuePublicMissing.mockReset();
     enqueuePublicMissing.mockResolvedValue(undefined);
     postFindMany.mockResolvedValue([]);
+    queryRaw.mockReset();
+    queryRaw.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicPostsController],
       providers: [
@@ -82,7 +83,7 @@ describe('PublicPostsController', () => {
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
-            prisma: { post: { findMany: postFindMany } },
+            prisma: { $queryRaw: queryRaw, post: { findMany: postFindMany } },
           },
         },
         {
@@ -243,6 +244,9 @@ describe('PublicPostsController', () => {
         docs: [],
       } as unknown as AggregatePaginateResult<PostDocument>);
       postFindMany
+        .mockResolvedValueOnce([{ id: 'native' }])
+        .mockResolvedValueOnce([{ id: 'x-copy' }, { id: 'x-other' }]);
+      queryRaw
         .mockResolvedValueOnce([
           {
             description: 'Shipped the new studio today',
@@ -253,14 +257,14 @@ describe('PublicPostsController', () => {
         ])
         .mockResolvedValueOnce([
           {
-            description: 'Shipped the new studio today',
-            id: 'x-copy',
+            description: 'Something else',
+            id: 'x-other',
             platform: 'twitter',
             publishedAt: new Date('2026-11-08T10:01:00.000Z'),
           },
           {
-            description: 'Something else',
-            id: 'x-other',
+            description: 'Shipped the new studio today',
+            id: 'x-copy',
             platform: 'twitter',
             publishedAt: new Date('2026-11-08T10:01:00.000Z'),
           },
@@ -272,6 +276,36 @@ describe('PublicPostsController', () => {
         where: Record<string, unknown>;
       };
       expect(callArgs.where.id).toEqual({ notIn: ['x-copy'] });
+    });
+
+    it('reads no full caption to pair cross-posts', async () => {
+      const query = createBaseQuery();
+      const brandId = testId('brand');
+      postsService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<PostDocument>);
+      postFindMany.mockResolvedValue([{ id: 'native' }]);
+      queryRaw.mockResolvedValue([
+        {
+          description: 'Shipped the new studio today',
+          id: 'native',
+          platform: 'genfeed',
+          publishedAt: new Date('2026-11-08T10:00:00.000Z'),
+        },
+      ]);
+
+      await controller.findPublicPosts(mockRequest, query, undefined, brandId);
+
+      for (const [args] of postFindMany.mock.calls) {
+        expect(args.select).toEqual({ id: true });
+      }
+      const [statement] = queryRaw.mock.calls[0] as [
+        { sql: string; values: unknown[] },
+      ];
+      expect(statement.sql).toContain('left("description"');
+      expect(statement.sql).not.toMatch(/SELECT[^F]*,\s*"description"\s*,/);
+      expect(statement.sql).toContain('"isDeleted" = false');
+      expect(statement.values).toContain(brandId);
     });
 
     it('should filter by account when provided', async () => {
@@ -341,7 +375,7 @@ describe('PublicPostsController', () => {
       };
       expect(callArgs.where).toEqual({
         AND: [
-          postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          PUBLISHED_AND_LIVE_WHERE,
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
@@ -442,7 +476,8 @@ describe('PublicPostsController', () => {
         platform: 'genfeed',
         publishedAt: new Date('2026-11-08T10:00:00.000Z'),
       } as never);
-      postFindMany.mockResolvedValue([
+      postFindMany.mockResolvedValue([{ id: 'x-copy' }]);
+      queryRaw.mockResolvedValue([
         {
           createdAt: new Date('2026-11-08T10:01:00.000Z'),
           description: 'Shipped the new studio today',
@@ -479,7 +514,7 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
           AND: [
-            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            PUBLISHED_AND_LIVE_WHERE,
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
@@ -579,7 +614,7 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
           AND: [
-            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            PUBLISHED_AND_LIVE_WHERE,
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },

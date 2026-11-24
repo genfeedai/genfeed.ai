@@ -1,6 +1,6 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import type { Product } from '@data/products.data';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -46,10 +46,7 @@ export default function ProductFinalCTA({
               </GitHubLink>
             </>
           ) : githubUrl ? (
-            <Button
-              asChild
-              className="h-12 px-6 text-lg uppercase font-semibold"
-            >
+            <Button asChild size={ButtonSize.PUBLIC}>
               <Link href={githubUrl} target="_blank" rel="noopener noreferrer">
                 <GithubIcon className="size-5" />
                 View on GitHub →

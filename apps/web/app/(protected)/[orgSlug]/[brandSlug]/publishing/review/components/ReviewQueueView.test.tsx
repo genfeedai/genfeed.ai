@@ -44,11 +44,12 @@ describe('getTurboRunOptionLabel', () => {
 });
 
 describe('learning signals message', () => {
-  it('says how many earlier review decisions the batch drew on', () => {
-    expect(
-      translate('queue.learningSignals', { approvals: 1, rejections: 3 }),
-    ).toBe(
-      'Written with 3 rejected drafts and 1 approved draft from earlier reviews.',
+  it('says how many earlier approvals the batch drew on and never claims rejections', () => {
+    expect(translate('queue.learningSignals', { approvals: 1 })).toBe(
+      'Written with 1 approved draft from earlier reviews.',
+    );
+    expect(translate('queue.learningSignals', { approvals: 3 })).toBe(
+      'Written with 3 approved drafts from earlier reviews.',
     );
   });
 });

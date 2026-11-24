@@ -249,21 +249,41 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
 
   it.each([
     {
-      endpoint: 'google/gemini-omni-flash',
+      endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
       expectedInput: {
         aspect_ratio: '9:16',
         duration: 8,
         prompt: 'a musician under neon lights',
+        resolution: '720p',
       },
       promptParams: { aspect_ratio: '9:16', duration: 8 },
     },
     {
-      endpoint: 'google/gemini-omni-flash/image-to-video',
+      endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
+      expectedInput: {
+        duration: 8,
+        prompt: 'a musician under neon lights',
+        resolution: '1080p',
+      },
+      promptParams: { duration: 8, resolution: '1080P' },
+    },
+    {
+      endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
+      expectedInput: {
+        duration: 8,
+        prompt: 'a musician under neon lights',
+        resolution: '720p',
+      },
+      promptParams: { duration: 8, resolution: '8k' },
+    },
+    {
+      endpoint: 'google/gemini-omni-flash/v1.2/image-to-video',
       expectedInput: {
         aspect_ratio: '9:16',
         duration: 8,
         image_url: 'https://cdn.test/start.png',
         prompt: 'a musician under neon lights',
+        resolution: '720p',
       },
       promptParams: {
         aspect_ratio: '9:16',
@@ -272,7 +292,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       },
     },
     {
-      endpoint: 'google/gemini-omni-flash/reference-to-video',
+      endpoint: 'google/gemini-omni-flash/v1.2/reference-to-video',
       expectedInput: {
         aspect_ratio: '9:16',
         duration: 8,
@@ -281,6 +301,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
           'https://cdn.test/style.png',
         ],
         prompt: 'a musician under neon lights, cinematic dolly shot',
+        resolution: '720p',
       },
       promptParams: {
         aspect_ratio: '9:16',
@@ -306,7 +327,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         duration: endpoint.endsWith('/image-to-video') ? 2 : 8,
         height: 1920,
         model: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
-        modelEndpoint: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+        modelEndpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
         prompt: 'a musician under neon lights',
         promptParams,
         width: 1080,
@@ -507,7 +528,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
 
   it('freezes reference-to-video destination before pricing', () => {
     const plan = prepareFalVideoDispatch({
-      model: 'google/gemini-omni-flash',
+      model: 'google/gemini-omni-flash/v1.2/text-to-video',
       prompt: 'a video',
       promptParams: {
         image_urls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
@@ -516,10 +537,83 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       width: 1920,
       height: 1080,
     });
-    expect(plan.endpoint).toBe('google/gemini-omni-flash/reference-to-video');
+    expect(plan.endpoint).toBe(
+      'google/gemini-omni-flash/v1.2/reference-to-video',
+    );
     expect(plan.input).toMatchObject({
       duration: 8,
       image_urls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
+    });
+  });
+});
+
+describe('HeyGen Video 1 on fal', () => {
+  const dispatch = (promptParams: Record<string, unknown>) =>
+    prepareFalVideoDispatch({
+      duration: 5,
+      height: 1920,
+      model: MODEL_KEYS.FAL_HEYGEN_VIDEO,
+      modelEndpoint: 'heygen/heygen-video/text-to-video',
+      prompt: 'a presenter explains the product',
+      promptParams,
+      width: 1080,
+    });
+
+  it('sends text to the text endpoint with the brief left unrewritten', () => {
+    expect(
+      dispatch({ aspect_ratio: '9:16', duration: 8, resolution: '1080P' }),
+    ).toEqual({
+      endpoint: 'heygen/heygen-video/text-to-video',
+      input: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        prompt: 'a presenter explains the product',
+        prompt_enhancement: 'disabled',
+        resolution: '1080p',
+      },
+    });
+  });
+
+  it('falls back to 768p and 16:9 for values fal does not list', () => {
+    expect(
+      dispatch({ aspect_ratio: '5:4', resolution: '4k' }).input,
+    ).toMatchObject({ aspect_ratio: '16:9', resolution: '768p' });
+  });
+
+  it('sends one first image to the image endpoint, which takes no aspect ratio', () => {
+    const plan = dispatch({
+      aspect_ratio: '9:16',
+      image: 'https://cdn.test/start.png',
+      seed: 7,
+    });
+
+    expect(plan.endpoint).toBe('heygen/heygen-video/image-to-video');
+    expect(plan.input).toMatchObject({
+      image_url: 'https://cdn.test/start.png',
+      resolution: '768p',
+      seed: 7,
+    });
+    expect(plan.input).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('sends extra images or any clip to the reference endpoint', () => {
+    const plan = dispatch({
+      aspect_ratio: '1:1',
+      image: 'https://cdn.test/start.png',
+      reference_images: ['https://cdn.test/b.png'],
+      reference_video_urls: ['https://cdn.test/clip.mp4'],
+    });
+
+    expect(plan).toEqual({
+      endpoint: 'heygen/heygen-video/reference-to-video',
+      input: expect.objectContaining({
+        aspect_ratio: '1:1',
+        reference_image_urls: [
+          'https://cdn.test/start.png',
+          'https://cdn.test/b.png',
+        ],
+        reference_video_urls: ['https://cdn.test/clip.mp4'],
+      }),
     });
   });
 });

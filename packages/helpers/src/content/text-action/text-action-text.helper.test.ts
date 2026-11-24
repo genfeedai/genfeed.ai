@@ -103,6 +103,22 @@ describe('text action text utilities', () => {
       ).toBe(280);
     });
 
+    it('lets a rewrite of a long X draft grow by a quarter, up to the ceiling', () => {
+      const base = {
+        channelLimit: 280,
+        extendedChannelLimit: 25_000,
+        mode: 'rewrite' as const,
+        usesWeightedCharacters: true,
+      };
+      expect(resolveTextActionLimit({ ...base, source: 'x'.repeat(800) })).toBe(
+        1000,
+      );
+      expect(resolveTextActionLimit({ ...base, source: 'short' })).toBe(280);
+      expect(
+        resolveTextActionLimit({ ...base, source: 'x'.repeat(24_000) }),
+      ).toBe(25_000);
+    });
+
     it('lets a proofread keep the room an over-long draft already uses', () => {
       expect(
         resolveTextActionLimit({

@@ -135,6 +135,7 @@ const SCHEDULER_POST_TARGET_SELECT = {
   order: true,
   organizationId: true,
   platform: true,
+  publicationDate: true,
   publishApprovalId: true,
   publishedAt: true,
   retryCount: true,

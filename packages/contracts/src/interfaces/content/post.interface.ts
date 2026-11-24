@@ -55,6 +55,12 @@ export interface IPost extends IBaseEntity {
   tags?: ITag[];
   status: PostStatus;
   targetExecutionState: TargetExecutionState;
+  /**
+   * Derived on the server, never stored: a TikTok "Publish via TikTok App"
+   * upload sits in the creator's TikTok Inbox and is not a public post, though
+   * its target state reads `published`. See `isTikTokInboxDelivered`.
+   */
+  isInboxDelivery?: boolean;
   targetSettings?: Record<string, unknown> | null;
   visibility?: PostVisibility;
   scheduledDate?: string | null;

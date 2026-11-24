@@ -470,17 +470,18 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(row).toMatchObject({
       aspectRatios: ['16:9', '9:16'],
       defaultDuration: 8,
-      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
+      hasResolutionOptions: true,
       isActive: true,
       key: 'fal/google/gemini-omni-flash',
-      label: 'Gemini Omni Flash',
+      label: 'Gemini Omni Flash 1.2',
       maxReferences: 3,
       pricingType: 'per-second',
       provider: ModelProvider.FAL,
-      providerCostUsd: 0.13,
+      providerCostUsd: 0.0819,
     });
     expect(row).not.toHaveProperty('hasEndFrame');
-    expect(row).not.toHaveProperty('hasResolutionOptions');
   });
 
   it.each([
@@ -549,6 +550,46 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       pricingType: 'per-second',
       provider: ModelProvider.FAL,
       providerCostUsd: 0.08,
+    });
+  });
+
+  it('lists P-Video 2 Pro as an active, public Replicate row priced at the speed mode', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    );
+
+    expect(row).toMatchObject({
+      cost: 59,
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasResolutionOptions: true,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'P-Video 2 Pro',
+      pricingType: 'per-second',
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.035,
+    });
+  });
+
+  it('lists HeyGen Video 1 on fal as an active, public draft tier at the fal list price', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_HEYGEN_VIDEO,
+    );
+
+    expect(row).toMatchObject({
+      cost: 34,
+      defaultDuration: 5,
+      endpoint: 'heygen/heygen-video/text-to-video',
+      hasResolutionOptions: true,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'HeyGen Video 1',
+      pricingType: 'per-second',
+      provider: ModelProvider.FAL,
+      providerCostUsd: 0.02,
     });
   });
 
@@ -811,6 +852,61 @@ describe('model version lifecycle', () => {
       providerCostUsd: 0.05268,
       provider: ModelProvider.FAL,
     });
+  });
+
+  it.each([
+    [
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7,
+      'microsoft/mai-image-2.7/text-to-image',
+      13,
+      0,
+    ],
+    [MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT, 'microsoft/mai-image-2.7/edit', 18, 5],
+    [
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
+      'microsoft/mai-image-2.7/flash/text-to-image',
+      4,
+      0,
+    ],
+    [
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+      'microsoft/mai-image-2.7/flash/edit',
+      6,
+      5,
+    ],
+  ])(
+    'seeds fal MAI-Image %s on %s at %s credits taking %s reference images',
+    (key, endpoint, cost, maxReferences) => {
+      // The edit endpoints are image-edit rows, apart from generation.
+      const category = endpoint.endsWith('/edit')
+        ? ModelCategory.IMAGE_EDIT
+        : ModelCategory.IMAGE;
+      expect(byKey.get(key)).toMatchObject({
+        category,
+        cost,
+        endpoint,
+        isActive: true,
+        isDefault: false,
+        isPublic: true,
+        provider: ModelProvider.FAL,
+      });
+      expect(MODEL_OUTPUT_CAPABILITIES[key]).toMatchObject({
+        category,
+        maxReferences,
+      });
+      // The model key is the fal selection key for the endpoint, so dispatch
+      // and the rate sheet resolve the same endpoint.
+      expect(key).toBe(`fal/${endpoint}`);
+    },
+  );
+
+  it('keeps the image generation default off the MAI-Image rows', () => {
+    const defaults = [...byKey.values()].filter(
+      (entry) => entry.category === ModelCategory.IMAGE && entry.isDefault,
+    );
+    expect(defaults.map((entry) => entry.key)).not.toEqual(
+      expect.arrayContaining([MODEL_KEYS.FAL_MAI_IMAGE_2_7]),
+    );
   });
 
   it('retires Grok 4.1 Fast and keeps priced Grok 4.3 live', () => {

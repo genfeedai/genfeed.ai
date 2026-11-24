@@ -1,3 +1,4 @@
+import { TIKTOK_INBOX_DELIVERY_LABEL } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 const TRAILING_HIGH_SURROGATE_PATTERN = /[\uD800-\uDBFF]$/u;
@@ -90,6 +91,8 @@ function fields(value: unknown, depth: number): string {
     );
   }
   if (!isRecord(value)) return scalar(value);
+  // A TikTok Inbox receipt reads `published` but is not a live post.
+  const isInboxDelivery = value.isInboxDelivery === true;
   const entries = Object.entries(value)
     .filter(
       ([key, item]) =>
@@ -128,7 +131,9 @@ function fields(value: unknown, depth: number): string {
       if (!rendered) return [];
       const display =
         STATUS_FIELD_PATTERN.test(key) && typeof item === 'string'
-          ? readableLabel(item.toLowerCase())
+          ? isInboxDelivery && key !== 'role'
+            ? TIKTOK_INBOX_DELIVERY_LABEL
+            : readableLabel(item.toLowerCase())
           : rendered;
       return [
         isRecord(item) || (Array.isArray(item) && item.length)

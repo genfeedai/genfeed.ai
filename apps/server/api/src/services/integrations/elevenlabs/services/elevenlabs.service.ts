@@ -6,7 +6,7 @@ import {
   type ElevenLabsVoiceEligibility,
   elevenLabsVoiceEligibility,
 } from '@api/services/integrations/elevenlabs/elevenlabs-voice-availability.util';
-import { type ElevenLabs, ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import type { ElevenLabs, ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -81,26 +81,38 @@ export class ElevenLabsService {
    * The client for speech, cloning and alignment: always the caller's own
    * ElevenLabs key. Only the shared voice catalog reads use the platform key.
    */
-  private getCustomerClient(apiKey?: string): ElevenLabsClient {
+  private async getCustomerClient(apiKey?: string): Promise<ElevenLabsClient> {
     if (!apiKey) {
       throw new BadRequestException(
         'Connect your ElevenLabs account in Settings → Integrations to use ElevenLabs voices.',
       );
     }
-    return new ElevenLabsClient({ apiKey });
+    return this.createClient(apiKey);
   }
 
-  private getClient(apiKeyOverride?: string): ElevenLabsClient {
+  private async getClient(apiKeyOverride?: string): Promise<ElevenLabsClient> {
     if (apiKeyOverride) {
-      return new ElevenLabsClient({ apiKey: apiKeyOverride });
+      return this.createClient(apiKeyOverride);
     }
     if (!this.client) {
       const apiKey = this.apiKeyHelperService.getApiKey(
         ApiKeyCategory.ELEVENLABS,
       );
-      this.client = new ElevenLabsClient({ apiKey });
+      this.client = await this.createClient(apiKey);
     }
     return this.client;
+  }
+
+  /**
+   * The SDK builds its whole serialization schema tree when it is required
+   * (about 55 MB of heap), so it loads on the first voice call instead of at
+   * startup.
+   */
+  private async createClient(apiKey: string): Promise<ElevenLabsClient> {
+    const { ElevenLabsClient: Client } = await import(
+      '@elevenlabs/elevenlabs-js'
+    );
+    return new Client({ apiKey });
   }
 
   /**
@@ -116,7 +128,7 @@ export class ElevenLabsService {
     try {
       this.loggerService.log(`${url} started`);
 
-      const client = this.getClient();
+      const client = await this.getClient();
       const voices: ElevenLabsVoice[] = [];
       for (const voiceType of PUBLIC_CATALOG_VOICE_TYPES) {
         let nextPageToken: string | undefined;
@@ -171,7 +183,8 @@ export class ElevenLabsService {
     hasMore: boolean;
     nextPageToken: string | null;
   }> {
-    const response = await this.getClient(apiKey).voices.search({
+    const client = await this.getClient(apiKey);
+    const response = await client.voices.search({
       pageSize: Math.min(
         Math.max(params.pageSize ?? 30, 1),
         ACCOUNT_VOICE_PAGE_SIZE_MAX,
@@ -193,7 +206,7 @@ export class ElevenLabsService {
    * voice — the shared-catalog eligibility, for voices not yet synced.
    */
   public async isPublicCatalogVoice(voiceId: string): Promise<boolean> {
-    const client = this.getClient();
+    const client = await this.getClient();
     for (const voiceType of PUBLIC_CATALOG_VOICE_TYPES) {
       const response = await client.voices.search({
         pageSize: 1,
@@ -212,9 +225,8 @@ export class ElevenLabsService {
     apiKey: string,
     voiceId: string,
   ): Promise<ElevenLabsAccountCatalogVoice> {
-    return toAccountCatalogVoice(
-      await this.getClient(apiKey).voices.get(voiceId),
-    );
+    const client = await this.getClient(apiKey);
+    return toAccountCatalogVoice(await client.voices.get(voiceId));
   }
 
   public async getSpeechModelId(): Promise<string> {
@@ -232,7 +244,7 @@ export class ElevenLabsService {
     apiKeyOverride?: string,
     options?: ElevenLabsSpeechOptions,
   ): Promise<ElevenLabsAudioWithTimestampsResponse> {
-    const client = this.getCustomerClient(apiKeyOverride);
+    const client = await this.getCustomerClient(apiKeyOverride);
     return (await client.textToSpeech.convertWithTimestamps(voiceId, {
       modelId: await this.speechModelId(options),
       outputFormat: 'mp3_44100_128',
@@ -268,7 +280,7 @@ export class ElevenLabsService {
       });
 
       // Generate audio with ElevenLabs
-      const client = this.getCustomerClient(apiKeyOverride);
+      const client = await this.getCustomerClient(apiKeyOverride);
       const audioResponse = (await client.textToSpeech.convertWithTimestamps(
         voiceId,
         {
@@ -369,7 +381,7 @@ export class ElevenLabsService {
     try {
       this.loggerService.log(`${url} started`, { name });
 
-      const client = this.getCustomerClient(apiKeyOverride);
+      const client = await this.getCustomerClient(apiKeyOverride);
       const response = await client.voices.ivc.create({
         files: files.map((file, index) => ({
           contentLength: file.length,
@@ -408,7 +420,7 @@ export class ElevenLabsService {
     try {
       this.loggerService.log(`${url} started`, { voiceId });
 
-      const client = this.getCustomerClient(apiKeyOverride);
+      const client = await this.getCustomerClient(apiKeyOverride);
       await client.voices.delete(voiceId);
 
       this.loggerService.log(`${url} completed`, { voiceId });
@@ -446,7 +458,7 @@ export class ElevenLabsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       this.loggerService.log(`${url} started`);
-      const client = this.getCustomerClient(apiKeyOverride);
+      const client = await this.getCustomerClient(apiKeyOverride);
       const response = await client.forcedAlignment.create({
         file: fs.createReadStream(filePath),
         text,

@@ -140,7 +140,7 @@ export default function ModalAvatar({
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
+            className="mb-4 md:mb-0"
             isLoading={isSubmitting}
             onClick={() => {
               form.reset();

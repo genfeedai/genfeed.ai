@@ -80,4 +80,44 @@ describe('FalImageGenerationProviderAdapter reviewed contracts', () => {
       undefined,
     );
   });
+
+  it('dispatches MAI-Image edit with source images and a size fal accepts', async () => {
+    const falService = {
+      generateImage: vi
+        .fn()
+        .mockResolvedValue({ url: 'https://cdn.test/out.png' }),
+    };
+    const adapter = new FalImageGenerationProviderAdapter(
+      falService as unknown as FalService,
+    );
+    const provider = await adapter.prepare({
+      createImageDto: {},
+      height: 1024,
+      model: 'fal/microsoft/mai-image-2.7/edit',
+      modelEndpoint: 'microsoft/mai-image-2.7/edit',
+      prompt: 'put the product in her hand',
+      promptId: 'prompt-1',
+      referenceImageUrls: [
+        'https://cdn.test/face.png',
+        'https://cdn.test/product.png',
+      ],
+      width: 576,
+    } as unknown as ImageGenerationProviderRequest);
+
+    await provider.generate();
+
+    expect(falService.generateImage).toHaveBeenCalledWith(
+      'microsoft/mai-image-2.7/edit',
+      {
+        image_size: { height: 1360, width: 768 },
+        image_urls: [
+          'https://cdn.test/face.png',
+          'https://cdn.test/product.png',
+        ],
+        prompt: 'put the product in her hand',
+      },
+      undefined,
+      undefined,
+    );
+  });
 });

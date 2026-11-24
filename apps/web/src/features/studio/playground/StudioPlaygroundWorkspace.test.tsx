@@ -1,5 +1,5 @@
 import { queryClientWrapper } from '@app-tests/query-client.harness';
-import { selectView } from '@app-tests/view-menu.helpers';
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -835,6 +835,20 @@ function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
 }
 
 /**
+ * The workspace shell publishes this on `/playground`: the page's own prompt
+ * pane sits on the left and its results on the right.
+ */
+const AGENT_OUTPUT_HOST = {
+  agent: null,
+  contextPanel: null,
+  isContextOpen: false,
+  onCloseContext: () => undefined,
+  onNewThread: () => undefined,
+  onOpenContext: () => undefined,
+  threadsPanel: null,
+};
+
+/**
  * Every render gets its own query cache, inside any wrapper the spec passes;
  * a `rerender` keeps it.
  */
@@ -845,7 +859,9 @@ function render(ui: ReactElement, options?: RenderOptions) {
     ...options,
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientHost>
-        <Host>{children}</Host>
+        <AgentOutputHostContext value={AGENT_OUTPUT_HOST}>
+          <Host>{children}</Host>
+        </AgentOutputHostContext>
       </QueryClientHost>
     ),
   });
@@ -1255,18 +1271,22 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it('floats the composer over the gallery like the Agent dock', () => {
+  it('puts the composer in the prompt pane on the left, not in the results pane on the right', () => {
     render(<StudioPlaygroundWorkspace />);
 
+    const agentPane = screen.getByTestId('agent-output-agent-pane');
+    const outputPane = screen.getByTestId('agent-output-output-pane');
     const container = screen
       .getByTestId('studio-composer')
       .closest('[data-layout-mode]');
 
-    expect(container).toHaveAttribute('data-layout-mode', 'surface-fixed');
-    expect(container).toHaveAttribute('data-max-width', '4xl');
+    expect(agentPane).toContainElement(screen.getByTestId('studio-composer'));
+    expect(outputPane).not.toContainElement(
+      screen.getByTestId('studio-composer'),
+    );
+    expect(container).toHaveAttribute('data-layout-mode', 'inflow');
+    expect(container).toHaveAttribute('data-max-width', 'full');
     expect(container).not.toHaveClass('bg-background');
-    expect(container).toHaveStyle({ zIndex: '40' });
-    expect(container?.querySelector('[data-composer-top-fade]')).toBeNull();
   });
 
   it('represents handoff selections as removable tokens and invalidates the harness override on scope change', async () => {
@@ -1740,7 +1760,16 @@ describe('StudioPlaygroundWorkspace', () => {
       expect.objectContaining({ view: 'grid' }),
     );
 
-    await selectView(userEvent.setup(), 'viewList');
+    const user = userEvent.setup();
+    await user.click(
+      within(screen.getByTestId('agent-output-output-pane')).getByRole(
+        'button',
+        { name: /^(View|label): / },
+      ),
+    );
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'viewList' }),
+    );
 
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'list' }),
@@ -2922,7 +2951,7 @@ describe('StudioPlaygroundWorkspace', () => {
       await renderLoaded();
       act(() => composer().onOpenLibrary?.('audioReference'));
       fireEvent.click(
-        await screen.findByRole('option', {
+        await screen.findByRole('button', {
           name: 'Reference Generated narration',
         }),
       );

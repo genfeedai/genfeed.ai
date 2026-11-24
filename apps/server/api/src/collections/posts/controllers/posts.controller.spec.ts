@@ -2,6 +2,11 @@ import 'reflect-metadata';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
+import {
+  NOT_LIVE_WHERE,
+  PUBLISHED_AND_LIVE_WHERE,
+  TIKTOK_INBOX_DELIVERY_WHERE,
+} from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import {
@@ -124,32 +129,18 @@ describe('PostsController.buildFindAllQuery', () => {
     );
   });
 
-  it('maps publicationState posted onto the live status set', () => {
+  it('maps publicationState posted onto live posts, leaving out TikTok Inbox receipts', () => {
     const query = { publicationState: 'posted' } as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
-    expect(result.where).toMatchObject({
-      AND: [
-        {
-          targetExecutionState: TargetExecutionState.PUBLISHED,
-        },
-      ],
-    });
+    expect(result.where).toMatchObject({ AND: [PUBLISHED_AND_LIVE_WHERE] });
   });
 
-  it('maps publicationState not-posted onto the work-in-progress complement', () => {
+  it('maps publicationState not-posted onto everything not live, TikTok Inbox receipts included', () => {
     const query = { publicationState: 'not-posted' } as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
-    expect(result.where).toMatchObject({
-      AND: [
-        {
-          NOT: {
-            targetExecutionState: TargetExecutionState.PUBLISHED,
-          },
-        },
-      ],
-    });
+    expect(result.where).toMatchObject({ AND: [NOT_LIVE_WHERE] });
   });
 
   it('lets an explicit executionState filter win over publicationState', () => {
@@ -160,13 +151,36 @@ describe('PostsController.buildFindAllQuery', () => {
     const result = controller.buildFindAllQuery(makeUser(), query);
 
     expect(result.where).toMatchObject({
+      AND: [{ OR: [{ targetExecutionState: TargetExecutionState.FAILED }] }],
+    });
+    expect(JSON.stringify(result.where)).not.toContain('"status"');
+  });
+
+  it('filters executionState published to live posts and draft to drafts plus Inbox receipts', () => {
+    const published = controller.buildFindAllQuery(makeUser(), {
+      executionState: TargetExecutionState.PUBLISHED,
+    } as PostsQueryDto);
+    const draft = controller.buildFindAllQuery(makeUser(), {
+      executionState: TargetExecutionState.DRAFT,
+    } as PostsQueryDto);
+
+    expect(published.where).toMatchObject({
+      AND: [{ OR: [PUBLISHED_AND_LIVE_WHERE] }],
+    });
+    expect(draft.where).toMatchObject({
       AND: [
         {
-          targetExecutionState: TargetExecutionState.FAILED,
+          OR: [
+            {
+              OR: [
+                { targetExecutionState: TargetExecutionState.DRAFT },
+                TIKTOK_INBOX_DELIVERY_WHERE,
+              ],
+            },
+          ],
         },
       ],
     });
-    expect(JSON.stringify(result.where)).not.toContain('"status"');
   });
 
   it('ignores leftover Post.status query params', () => {

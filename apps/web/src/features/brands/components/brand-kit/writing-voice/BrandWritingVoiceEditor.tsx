@@ -98,7 +98,6 @@ export default function BrandWritingVoiceEditor({
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
-                className="h-8 gap-1.5 px-2.5"
                 onClick={handleGenerate}
                 isLoading={isGenerating}
                 isDisabled={isGenerating}

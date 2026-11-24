@@ -63,6 +63,13 @@ describe(relativePath, () => {
     expect(source).toContain('isUnsavedEmpty={isUnsavedEmpty}');
   });
 
+  it('hands a missing-input refusal to the recovery dialog instead of only logging it', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    expect(source).toContain('requestMissingWorkflowInputs(');
+    expect(source).toContain('handleRun(values, { saveDefaults: false })');
+  });
+
   it('tracks bounded workflow start and terminal outcomes', () => {
     const capture = vi.fn();
     const tracker = createEditorWorkflowRunTracker(capture);

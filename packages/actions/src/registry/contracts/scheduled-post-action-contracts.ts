@@ -44,6 +44,9 @@ const PUBLISH_RESULT = closedObjectSchema(
     platform: STRING_SCHEMA,
     success: BOOLEAN_SCHEMA,
     url: STRING_SCHEMA,
+    // The audience the provider actually applied (PostVisibility), set by a
+    // publisher whose provider can narrow it, such as a private YouTube upload.
+    visibility: enumSchema(['private', 'public', 'unlisted'] as const),
   },
   ['executionState', 'externalId', 'platform', 'success', 'url'],
 );
