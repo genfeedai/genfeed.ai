@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
@@ -28,7 +28,8 @@ export function AgentThreadListErrorBanner({
         <Button
           withWrapper={false}
           variant={ButtonVariant.SECONDARY}
-          className="h-7 w-full px-2 text-2xs"
+          size={ButtonSize.XS}
+          className="w-full"
           onClick={onRetry}
         >
           Retry

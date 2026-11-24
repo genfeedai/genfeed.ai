@@ -18,6 +18,7 @@ import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
+  formatMarginPercent,
   formatOptionalUsd,
   formatUsd,
   formatUsdAxis,
@@ -97,6 +98,22 @@ export default function EconomicsCostsReport() {
             ? ('destructive' as const)
             : undefined,
         value: formatOptionalUsd(totals?.marginPerGenerationUsd ?? null),
+      },
+      {
+        label: translate('costs.kpis.llmCostPerCompletion'),
+        value: formatOptionalUsd(totals?.llmCostPerCompletionUsd ?? null),
+      },
+      {
+        label: translate('costs.kpis.topModelsCostShare'),
+        value: formatMarginPercent(totals?.topModelsCostSharePercent ?? null),
+      },
+      {
+        label: translate('costs.kpis.unpricedShare'),
+        value: formatMarginPercent(totals?.unpricedSharePercent ?? null),
+        tone:
+          (totals?.unpricedSharePercent ?? 0) > 0
+            ? ('warning' as const)
+            : undefined,
       },
       {
         label: translate('costs.kpis.unpriced'),

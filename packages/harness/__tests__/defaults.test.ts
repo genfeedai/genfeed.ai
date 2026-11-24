@@ -97,6 +97,27 @@ describe('CORE_CONTENT_HARNESS_PACK', () => {
     ]);
   });
 
+  it('keeps research notes and a "my take" opening out of an article', () => {
+    const article = contribute({
+      intent: { contentType: 'article', objective: 'authority' },
+    });
+    const post = contribute({
+      intent: { contentType: 'post', objective: 'authority' },
+    });
+
+    expect(article.guardrails.join('\n')).toContain(
+      'no "what we could not verify" section',
+    );
+    expect(article.guardrails.join('\n')).toContain('"my take on"');
+    expect(article.styleDirectives.join('\n')).toContain(
+      'radical, confident claim',
+    );
+    expect(article.evaluationCriteria).toContain(
+      'Reader copy: nothing in the article is a note from the writing or research process.',
+    );
+    expect(post.guardrails.join('\n')).not.toContain('could not verify');
+  });
+
   it('builds style directives, guardrails, and hints from voice and persona profiles', () => {
     const contribution = contribute({
       intent: { contentType: 'email', objective: 'conversion' },

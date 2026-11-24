@@ -187,6 +187,13 @@ export { Separator } from './separator';
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
 export { Stepper, type StepperProps, type StepperStep } from './stepper';
+export {
+  SuggestionEmpty,
+  SuggestionItem,
+  type SuggestionItemProps,
+  SuggestionList,
+  type SuggestionListProps,
+} from './suggestion-list';
 export { Switch } from './switch';
 export {
   Table,

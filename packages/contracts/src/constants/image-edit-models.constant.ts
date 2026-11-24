@@ -13,12 +13,28 @@ import {
   isFlux3AspectRatio,
   isFlux3Resolution,
 } from './flux-3-image.constant';
+import {
+  isMaiImageEditModel,
+  MAI_IMAGE_EDIT_CONTRACT_VERSION,
+  MAI_IMAGE_EDIT_MAX_SOURCES,
+  MAI_IMAGE_EDIT_MODEL_KEYS,
+} from './mai-image-edit.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
-/** Verified Replicate Ideogram 4.5 editing contract, 2026-10-01. */
-export const IMAGE_EDIT_MODEL_KEYS: readonly string[] = [
+/**
+ * The editing models Auto ranks: Replicate Ideogram 4.5 (verified 2026-10-01)
+ * and FLUX.3 Edit. A model added to Studio's picker joins
+ * `IMAGE_EDIT_MODEL_KEYS` and stays out of this list until Auto is meant to
+ * route to it.
+ */
+export const IMAGE_EDIT_AUTO_MODEL_KEYS: readonly string[] = [
   MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
   MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+];
+/** Every model the instruction-edit route accepts. */
+export const IMAGE_EDIT_MODEL_KEYS: readonly string[] = [
+  ...IMAGE_EDIT_AUTO_MODEL_KEYS,
+  ...MAI_IMAGE_EDIT_MODEL_KEYS,
 ];
 /**
  * The registry default for instruction-based editing (#5808). Studio selects it
@@ -54,6 +70,32 @@ export function readImageEditingRecipe(
   | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const row = value as Record<string, unknown>;
+  if (typeof row.model === 'string' && isMaiImageEditModel(row.model)) {
+    if (
+      row.operation !== 'image-edit' ||
+      row.contractVersion !== MAI_IMAGE_EDIT_CONTRACT_VERSION ||
+      row.outputs !== 1 ||
+      row.maskId !== undefined ||
+      row.seed !== undefined ||
+      row.size !== undefined ||
+      row.quality !== undefined ||
+      row.resolution !== undefined ||
+      row.aspectRatio !== undefined ||
+      !Array.isArray(row.sourceIds) ||
+      row.sourceIds.length < 1 ||
+      row.sourceIds.length > MAI_IMAGE_EDIT_MAX_SOURCES ||
+      row.sourceIds.some((id) => typeof id !== 'string' || !id) ||
+      new Set(row.sourceIds).size !== row.sourceIds.length
+    )
+      return undefined;
+    return {
+      operation: 'image-edit',
+      contractVersion: MAI_IMAGE_EDIT_CONTRACT_VERSION,
+      model: row.model,
+      sourceIds: row.sourceIds as string[],
+      outputs: 1,
+    };
+  }
   if (row.model === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT) {
     if (
       row.operation !== 'image-edit' ||
