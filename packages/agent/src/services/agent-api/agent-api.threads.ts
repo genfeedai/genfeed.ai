@@ -16,7 +16,6 @@ import type {
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import {
-  type AgentThreadMode,
   AgentThreadStatus,
   AgentTransferDeliveryMode,
 } from '@genfeedai/contracts';
@@ -27,24 +26,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
-
-export async function updateAgentMode(
-  api: AgentBaseApiService,
-  mode: AgentThreadMode,
-  threadId?: string,
-): Promise<{ mode: AgentThreadMode; threadId?: string }> {
-  const token = await api.config.getToken();
-  if (!token)
-    throw new Error('Authentication is required to update agent mode.');
-  return api.fetchJson(
-    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/mode`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({ mode, threadId }),
-    },
-    'Failed to update agent mode',
-  );
-}
 
 export interface AgentMessagesPage {
   hasMore: boolean;
@@ -446,7 +427,6 @@ export async function updateThread(
   threadId: string,
   payload: {
     isPinned?: boolean;
-    mode?: AgentThreadMode;
     requestedModel?: string;
     runtimeKey?: string;
     title?: string;

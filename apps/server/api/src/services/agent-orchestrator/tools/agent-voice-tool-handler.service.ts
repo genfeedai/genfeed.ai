@@ -20,7 +20,7 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
 const CONNECT_ACCOUNT_HINT =
-  'No ElevenLabs account is connected. Personal voices come only from the account your organization connects in Genfeed; connect it there, then browse it again. Stock catalog voices still work for generate type voice.';
+  'No ElevenLabs account is connected. Personal voices come only from the account your organization connects in Genfeed; connect it there, then browse it again. ElevenLabs speech runs only on that account; HeyGen voices need no ElevenLabs account.';
 
 const NO_SAVED_VOICE_HINT =
   'No personal voice is saved yet. Browse the connected account with get_assets type voice source account, then save one with set_generation_settings defaultVoice.';

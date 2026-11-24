@@ -115,7 +115,6 @@ export default function ReviewPostHoverPreview({
         )}
         <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
           <Button
-            className="h-7 gap-1 px-2"
             onClick={() => {
               setIsOpen(false);
               onOpenDetail?.();
@@ -125,7 +124,7 @@ export default function ReviewPostHoverPreview({
                 new CustomEvent('workspace:force-open-review-context'),
               );
             }}
-            size={ButtonSize.SM}
+            size={ButtonSize.XS}
             type="button"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
@@ -136,8 +135,7 @@ export default function ReviewPostHoverPreview({
           {postDetailHref ? (
             <Button
               asChild
-              className="h-7 gap-1 px-2"
-              size={ButtonSize.SM}
+              size={ButtonSize.XS}
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
             >

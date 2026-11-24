@@ -1,13 +1,8 @@
-import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
-import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
+import { ByokProvider } from '@genfeedai/contracts';
 import type { ElevenLabsConnectionRef } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
-import {
-  BadRequestException,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ResolvedElevenLabsConnection {
   apiKey: string;
@@ -15,16 +10,14 @@ export interface ResolvedElevenLabsConnection {
 }
 
 /**
- * Resolves the ElevenLabs account a request runs on. A personal (`byok`)
- * binding never falls back to the platform account.
+ * Resolves the ElevenLabs account a request runs on: always the
+ * organization's own. Genfeed holds no ElevenLabs account that speaks or
+ * clones for customers.
  */
 @Traced()
 @Injectable()
 export class ElevenLabsConnectionService {
-  constructor(
-    private readonly byokService: ByokService,
-    private readonly apiKeyHelperService: ApiKeyHelperService,
-  ) {}
+  constructor(private readonly byokService: ByokService) {}
 
   async findPersonalConnection(
     organizationId: string,
@@ -47,36 +40,13 @@ export class ElevenLabsConnectionService {
     };
   }
 
-  async resolve(
-    organizationId: string,
-    kind: ElevenLabsConnectionRef['kind'],
-  ): Promise<ResolvedElevenLabsConnection> {
-    if (kind === 'byok') {
-      const connection = await this.findPersonalConnection(organizationId);
-      if (!connection) {
-        throw new BadRequestException(
-          'Reconnect your ElevenLabs account to use this voice.',
-        );
-      }
-      return connection;
-    }
-
-    const apiKey = this.apiKeyHelperService.getApiKey(
-      ApiKeyCategory.ELEVENLABS,
-    );
-    if (!apiKey) {
-      throw new ServiceUnavailableException(
-        'The platform ElevenLabs connection is unavailable.',
+  async resolve(organizationId: string): Promise<ResolvedElevenLabsConnection> {
+    const connection = await this.findPersonalConnection(organizationId);
+    if (!connection) {
+      throw new BadRequestException(
+        'Connect your ElevenLabs account in Settings → Integrations to use ElevenLabs voices.',
       );
     }
-    return {
-      apiKey,
-      binding: {
-        credentialVersionId: 'platform',
-        kind: 'platform',
-        organizationId,
-        provider: 'elevenlabs',
-      },
-    };
+    return connection;
   }
 }

@@ -1,4 +1,4 @@
-import { AgentThreadMode, UploadStatus } from '@genfeedai/contracts';
+import { UploadStatus } from '@genfeedai/contracts';
 import {
   fireEvent,
   render,
@@ -18,20 +18,17 @@ const storeState = {
     nonce: number;
     threadId: string | null;
   } | null,
-  draftAgentMode: AgentThreadMode.MANUAL,
-  setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
-    storeState.draftAgentMode = mode;
-  }),
   threads: [] as Array<{
     id: string;
-    mode?: AgentThreadMode;
     brandId?: string | null;
   }>,
-  updateThread: vi.fn((threadId: string, patch: { mode?: AgentThreadMode }) => {
-    storeState.threads = storeState.threads.map((thread) =>
-      thread.id === threadId ? { ...thread, ...patch } : thread,
-    );
-  }),
+  updateThread: vi.fn(
+    (threadId: string, patch: { brandId?: string | null }) => {
+      storeState.threads = storeState.threads.map((thread) =>
+        thread.id === threadId ? { ...thread, ...patch } : thread,
+      );
+    },
+  ),
 };
 
 vi.mock('@genfeedai/agent/hooks/use-credential-mentions', () => ({
@@ -114,7 +111,6 @@ describe('AgentChatInput', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     storeState.activeThreadId = null;
-    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.composerSeed = null;
     storeState.threads = [];
   });
@@ -128,9 +124,6 @@ describe('AgentChatInput', () => {
   it('hides the agent-only toolbar controls when the host is not an Agent conversation', () => {
     render(<AgentChatInput isAgentControlsHidden onSend={vi.fn()} />);
 
-    expect(
-      screen.queryByRole('button', { name: /Agent mode/ }),
-    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Add context')).not.toBeInTheDocument();
     expect(screen.getByTestId('agent-chat-input-shell')).toBeTruthy();
   });
@@ -182,12 +175,13 @@ describe('AgentChatInput', () => {
     expect(shell.className).not.toMatch(/(^|\s)shadow-/);
   });
 
-  it('renders the agent mode dropdown in the leading toolbar slot', () => {
+  it('has no Agent mode picker: approvals follow the organization and brand settings', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', { name: 'Agent mode: Manual' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /Agent mode/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Add context')).toBeInTheDocument();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {

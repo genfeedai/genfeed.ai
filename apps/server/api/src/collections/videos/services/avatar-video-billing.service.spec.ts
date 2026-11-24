@@ -2,7 +2,6 @@ import type { CreditsUtilsService } from '@api/collections/credits/services/cred
 import type { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import type { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
@@ -40,7 +39,6 @@ describe('AvatarVideoBillingService.fundLipSync', () => {
     {} as HeyGenService,
     { ingredient: { findFirst } } as unknown as PrismaService,
     { probeMediaFromUrl } as unknown as FilesClientService,
-    {} as PlatformSettingsService,
   );
 
   beforeEach(() => {
@@ -182,7 +180,6 @@ describe('AvatarVideoBillingService.quoteRender', () => {
     {} as HeyGenService,
     {} as PrismaService,
     {} as FilesClientService,
-    {} as PlatformSettingsService,
   );
 
   beforeEach(() => {
@@ -396,7 +393,6 @@ describe('AvatarVideoBillingService photo animation against the catalog row', ()
       {} as HeyGenService,
       {} as PrismaService,
       {} as FilesClientService,
-      {} as PlatformSettingsService,
     );
   }
 
@@ -439,7 +435,6 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
   const probeMediaFromUrl = vi.fn();
   const lookupApiKey = vi.fn();
   const resolveOrganizationConnection = vi.fn();
-  const getFeatureSettings = vi.fn();
   const service = new AvatarVideoBillingService(
     {} as CreditsUtilsService,
     {} as GenerationBillingService,
@@ -454,7 +449,6 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
     { resolveOrganizationConnection } as unknown as HeyGenService,
     { ingredient: { findFirst } } as unknown as PrismaService,
     { probeMediaFromUrl } as unknown as FilesClientService,
-    { getFeatureSettings } as unknown as PlatformSettingsService,
   );
   const connection = (kind: 'byok' | 'platform') => ({
     apiKey: `${kind}-heygen-key`,
@@ -464,10 +458,6 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
       organizationId: 'org-1',
       provider: 'heygen',
     },
-  });
-  const speechSnapshot = (credits: number) => ({
-    costSource: 'reviewed-provider',
-    credits,
   });
 
   beforeEach(() => {
@@ -482,7 +472,6 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
     resolveOrganizationConnection
       .mockReset()
       .mockResolvedValue(connection('platform'));
-    getFeatureSettings.mockReset().mockResolvedValue({ elevenlabsModel: null });
   });
 
   describe('audio-driven holds', () => {
@@ -610,68 +599,9 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
     });
   });
 
-  describe('HeyGen BYOK with platform speech', () => {
-    beforeEach(() => {
+  describe('ElevenLabs voice', () => {
+    it('refuses a voice when the organization has no ElevenLabs key', async () => {
       resolveOrganizationConnection.mockResolvedValue(connection('byok'));
-      quoteSnapshotByKey.mockResolvedValue(speechSnapshot(7));
-    });
-
-    it('charges only the ElevenLabs speech, priced on its own row', async () => {
-      const funding = await service.resolveFunding(
-        { elevenlabsVoiceId: 'voice-1', text: 'Founder update' },
-        { elevenlabsVoiceId: 'voice-1' },
-        'org-1',
-      );
-
-      expect(quoteSnapshotByKey).toHaveBeenCalledTimes(1);
-      expect(quoteSnapshotByKey).toHaveBeenCalledWith(
-        MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
-        { characters: 14, organizationId: 'org-1', provider: 'elevenlabs' },
-      );
-      expect(funding).toMatchObject({
-        billingMode: 'platform',
-        credits: 7,
-        heygenApiKey: 'byok-heygen-key',
-        speechModelId: 'eleven_multilingual_v2',
-        speechModelKey: MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
-      });
-      expect(funding.durationQuote).toBeUndefined();
-    });
-
-    it('prices the speech model the platform settings select', async () => {
-      getFeatureSettings.mockResolvedValue({
-        elevenlabsModel: 'eleven_flash_v2_5',
-      });
-
-      const funding = await service.resolveFunding(
-        { elevenlabsVoiceId: 'voice-1', text: 'Founder update' },
-        { elevenlabsVoiceId: 'voice-1' },
-        'org-1',
-      );
-
-      expect(quoteSnapshotByKey).toHaveBeenCalledWith(
-        MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
-        expect.objectContaining({ characters: 14 }),
-      );
-      expect(funding.speechModelId).toBe('eleven_flash_v2_5');
-    });
-
-    it('refuses speech with no script before any hold', async () => {
-      await expect(
-        service.resolveFunding(
-          { elevenlabsVoiceId: 'voice-1', text: '  ' },
-          { elevenlabsVoiceId: 'voice-1' },
-          'org-1',
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
-    });
-
-    it('refuses a speech row without a reviewed per-character rate', async () => {
-      quoteSnapshotByKey.mockResolvedValue({
-        costSource: 'configured-provider',
-        credits: 1,
-      });
 
       await expect(
         service.resolveFunding(
@@ -679,10 +609,23 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
           { elevenlabsVoiceId: 'voice-1' },
           'org-1',
         ),
-      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
     });
 
-    it('charges nothing when the organization also brings its ElevenLabs key', async () => {
+    it('refuses a voice with no ElevenLabs key on the platform HeyGen key too', async () => {
+      await expect(
+        service.resolveFunding(
+          { elevenlabsVoiceId: 'voice-1', text: 'Founder update' },
+          { elevenlabsVoiceId: 'voice-1' },
+          'org-1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
+    });
+
+    it('charges nothing for the speech when the organization brings its key', async () => {
+      resolveOrganizationConnection.mockResolvedValue(connection('byok'));
       lookupApiKey.mockResolvedValue({ apiKey: 'org-elevenlabs-key' });
 
       const funding = await service.resolveFunding(
@@ -691,12 +634,16 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
         'org-1',
       );
 
-      expect(funding).toMatchObject({ billingMode: 'byok', credits: 0 });
+      expect(funding).toMatchObject({
+        billingMode: 'byok',
+        credits: 0,
+        elevenLabsApiKey: 'org-elevenlabs-key',
+      });
       expect(quoteSnapshotByKey).not.toHaveBeenCalled();
     });
 
     it('keeps platform-key renders on the per-second avatar rate', async () => {
-      resolveOrganizationConnection.mockResolvedValue(connection('platform'));
+      lookupApiKey.mockResolvedValue({ apiKey: 'org-elevenlabs-key' });
       quoteSnapshotByKey.mockImplementation(
         async (_key: string, input: { duration: number }) =>
           photoAnimationSnapshot(input.duration),
@@ -712,8 +659,11 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
         MODEL_KEYS.HEYGEN_AVATAR,
         { duration: 5 },
       );
-      expect(funding).toMatchObject({ billingMode: 'platform', credits: 65 });
-      expect(funding.speechModelKey).toBeUndefined();
+      expect(funding).toMatchObject({
+        billingMode: 'platform',
+        credits: 65,
+        elevenLabsApiKey: 'org-elevenlabs-key',
+      });
     });
   });
 
@@ -739,7 +689,6 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
         heygenApiKey: 'byok-heygen-key',
       });
       expect(funding.durationQuote).toBeUndefined();
-      expect(funding.speechModelKey).toBeUndefined();
       expect(quoteSnapshotByKey).not.toHaveBeenCalled();
     });
 

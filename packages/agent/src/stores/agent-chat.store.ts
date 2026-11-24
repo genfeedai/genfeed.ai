@@ -34,10 +34,6 @@ import {
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import {
-  type AgentThreadMode,
-  DEFAULT_AGENT_THREAD_MODE,
-} from '@genfeedai/contracts';
-import {
   type AgentThreadStatusEvent,
   deriveAgentUiActionStates,
   isAgentUiActionSourceOwner,
@@ -217,14 +213,11 @@ export const CONVERSATION_CACHE_LIMIT = 20;
 export const CONVERSATION_CACHE_FRESHNESS_MS = 20_000;
 
 interface AgentChatState {
-  draftAgentMode: AgentThreadMode;
   /**
    * Runtime picked for the next new thread (e.g. `local/claude-cli` in
    * Genfeed Desktop). Applied when that thread is created.
    */
   draftRuntimeKey: string | null;
-  savedAgentMode: AgentThreadMode | null;
-  hasExplicitDraftAgentMode: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   messages: AgentChatMessage[];
   hasMoreMessages: boolean;
@@ -373,7 +366,6 @@ interface AgentChatActions {
   clearThreadAttention: (threadId: string) => void;
   seedComposer: (content: string, threadId?: string | null) => void;
   clearComposerSeed: () => void;
-  setDraftAgentMode: (mode: AgentThreadMode) => void;
   setDraftRuntimeKey: (runtimeKey: string | null) => void;
   setLatestProposedPlan: (plan: AgentProposedPlan | null) => void;
   setThreadUiBusy: (threadId: string, busy: boolean) => void;
@@ -811,8 +803,6 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       set((state) => ({
         ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         composerSeed: null,
-        draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
-        hasExplicitDraftAgentMode: false,
         error: null,
         latestProposedPlan: null,
         hasMoreMessages: false,
@@ -885,10 +875,7 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
     composerSeed: null,
     conversationCacheByThread: {},
     creditsRemaining: null,
-    draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
     draftRuntimeKey: null,
-    savedAgentMode: null,
-    hasExplicitDraftAgentMode: false,
     endOverlaySession: (overlayId) =>
       set((state) => {
         if (!state.overlayActiveIds.includes(overlayId)) {
@@ -1044,8 +1031,6 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       set((state) => ({
         ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         composerSeed: null,
-        draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
-        hasExplicitDraftAgentMode: false,
         error: null,
         latestProposedPlan: null,
         hasMoreMessages: false,
@@ -1081,11 +1066,6 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       set((state) => ({
         ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         composerSeed: null,
-        draftAgentMode:
-          get().threads.find((thread) => thread.id === threadId)?.mode ??
-          get().savedAgentMode ??
-          DEFAULT_AGENT_THREAD_MODE,
-        hasExplicitDraftAgentMode: false,
         error: cached.error,
         latestProposedPlan: cached.latestProposedPlan,
         hasMoreMessages: cached.hasMoreMessages,
@@ -1158,13 +1138,10 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         // (a new conversation never inherits another thread's run).
         return {
           activeThreadId: id,
-          // A mode picked on the thread being left says nothing about this one.
-          hasExplicitDraftAgentMode: false,
           stream: { ...DEFAULT_STREAM_STATE },
         };
       }),
     setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
-    setDraftAgentMode: (mode) => set({ draftAgentMode: mode }),
     setDraftRuntimeKey: (runtimeKey) => set({ draftRuntimeKey: runtimeKey }),
     setError: (error) =>
       set((state) => ({

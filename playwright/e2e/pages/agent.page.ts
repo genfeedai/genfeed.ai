@@ -15,7 +15,6 @@ export class AgentPage {
   readonly url = orgPath(APP_ROUTES.AGENT.NEW);
   readonly heading: Locator;
   readonly chatInput: Locator;
-  readonly planModeButton: Locator;
   readonly planCard: Locator;
   readonly planDecision: Locator;
   readonly approvePlanButton: Locator;
@@ -32,9 +31,6 @@ export class AgentPage {
         '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
       )
       .first();
-    this.planModeButton = page.getByRole('button', {
-      name: /^Agent mode:/,
-    });
     this.planCard = page.getByTestId('agent-plan-card');
     // The decision lives inside the plan card.
     this.planDecision = this.planCard.getByTestId('agent-plan-decision');
@@ -108,11 +104,6 @@ export class AgentPage {
     await this.planDecision
       .getByRole('button', { name: 'Send changes' })
       .click();
-  }
-
-  async enablePlanMode(): Promise<void> {
-    await this.planModeButton.click();
-    await this.page.getByRole('menuitemradio', { name: /^Plan/ }).click();
   }
 
   /**

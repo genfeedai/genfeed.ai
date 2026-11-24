@@ -2,7 +2,6 @@ import { ClipperAvatarBillingService } from '@api/collections/clipper-projects/s
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import type { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import {
@@ -140,7 +139,6 @@ describe('ClipperAvatarBillingService', () => {
         {} as HeyGenService,
         {} as PrismaService,
         {} as FilesClientService,
-        {} as PlatformSettingsService,
       ),
       generationBilling,
       logger,

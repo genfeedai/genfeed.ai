@@ -99,9 +99,16 @@ describe('ElevenLabsService', () => {
   it('rejects invalid speed before invoking synthesis', async () => {
     const { service } = createHarness();
     await expect(
-      service.textToSpeech('voice', 'Hola', undefined, undefined, undefined, {
-        speed: 2,
-      }),
+      service.textToSpeech(
+        'voice',
+        'Hola',
+        undefined,
+        undefined,
+        'customer-key',
+        {
+          speed: 2,
+        },
+      ),
     ).rejects.toThrow('between 0.7 and 1.2');
     expect(textToSpeechConvert).not.toHaveBeenCalled();
   });
@@ -315,7 +322,15 @@ describe('ElevenLabsService', () => {
       const { service } = createHarness();
       textToSpeechConvert.mockResolvedValue({ audioBase64: 'BBBB' });
 
-      await expect(service.textToSpeech('v1', 'hello')).resolves.toEqual({
+      await expect(
+        service.textToSpeech(
+          'v1',
+          'hello',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
+      ).resolves.toEqual({
         audioBase64: 'BBBB',
       });
       expect(textToSpeechConvert).toHaveBeenCalledWith('v1', {
@@ -338,7 +353,7 @@ describe('ElevenLabsService', () => {
         'ingredient-1',
         undefined,
         undefined,
-        undefined,
+        'customer-key',
         { modelId: 'eleven_flash_v2_5' },
       );
 
@@ -361,6 +376,9 @@ describe('ElevenLabsService', () => {
         'v1',
         'hello',
         'ingredient-1',
+        undefined,
+        undefined,
+        'customer-key',
       );
 
       expect(uploadToS3).toHaveBeenCalledWith('ingredient-1', 'musics', {
@@ -381,7 +399,14 @@ describe('ElevenLabsService', () => {
       uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn.test/a.mp3' });
 
       await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
+        service.generateAndUploadAudio(
+          'v1',
+          'hello',
+          'ingredient-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).resolves.toMatchObject({ duration: 2 });
     });
 
@@ -397,7 +422,14 @@ describe('ElevenLabsService', () => {
       });
 
       await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
+        service.generateAndUploadAudio(
+          'v1',
+          'hello',
+          'ingredient-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).resolves.toMatchObject({ duration: 9.5 });
     });
 
@@ -407,7 +439,14 @@ describe('ElevenLabsService', () => {
       uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn.test/a.mp3' });
 
       await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
+        service.generateAndUploadAudio(
+          'v1',
+          'hello',
+          'ingredient-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).resolves.toMatchObject({ duration: 0 });
     });
 
@@ -420,7 +459,14 @@ describe('ElevenLabsService', () => {
       uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn.test/a.mp3' });
 
       await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
+        service.generateAndUploadAudio(
+          'v1',
+          'hello',
+          'ingredient-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).resolves.toMatchObject({ duration: 0 });
     });
 
@@ -429,7 +475,14 @@ describe('ElevenLabsService', () => {
       uploadToS3.mockResolvedValue({ publicUrl: undefined });
 
       await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
+        service.generateAndUploadAudio(
+          'v1',
+          'hello',
+          'ingredient-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrowError('Failed to get public URL after upload');
       expect(loggerService.error).toHaveBeenCalled();
     });
@@ -440,7 +493,14 @@ describe('ElevenLabsService', () => {
       uploadToS3.mockRejectedValue(uploadError);
 
       await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
+        service.generateAndUploadAudio(
+          'v1',
+          'hello',
+          'ingredient-1',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrowError(uploadError);
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -454,10 +514,12 @@ describe('ElevenLabsService', () => {
       const { service } = createHarness();
 
       await expect(
-        service.cloneVoice('My Voice', [
-          Buffer.from('one'),
-          Buffer.from('two'),
-        ]),
+        service.cloneVoice(
+          'My Voice',
+          [Buffer.from('one'), Buffer.from('two')],
+          undefined,
+          'customer-key',
+        ),
       ).resolves.toEqual({ name: 'My Voice', voiceId: 'voice-new' });
 
       expect(ivcCreate).toHaveBeenCalledWith({
@@ -489,6 +551,7 @@ describe('ElevenLabsService', () => {
           description: 'warm narrator',
           removeBackgroundNoise: false,
         },
+        'customer-key',
       );
 
       expect(cloned).toEqual({ name: 'My Voice', voiceId: 'voice-new' });
@@ -506,7 +569,12 @@ describe('ElevenLabsService', () => {
       ivcCreate.mockRejectedValue(providerError);
 
       await expect(
-        service.cloneVoice('My Voice', [Buffer.from('one')]),
+        service.cloneVoice(
+          'My Voice',
+          [Buffer.from('one')],
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrowError(providerError);
       expect(loggerService.error).toHaveBeenCalled();
     });
@@ -516,7 +584,9 @@ describe('ElevenLabsService', () => {
     it('delegates to the provider', async () => {
       const { service } = createHarness();
 
-      await expect(service.deleteVoice('v1')).resolves.toBeUndefined();
+      await expect(
+        service.deleteVoice('v1', 'customer-key'),
+      ).resolves.toBeUndefined();
       expect(voicesDelete).toHaveBeenCalledWith('v1');
     });
 
@@ -525,9 +595,9 @@ describe('ElevenLabsService', () => {
       const providerError = new Error('not found');
       voicesDelete.mockRejectedValue(providerError);
 
-      await expect(service.deleteVoice('v1')).rejects.toThrowError(
-        providerError,
-      );
+      await expect(
+        service.deleteVoice('v1', 'customer-key'),
+      ).rejects.toThrowError(providerError);
       expect(loggerService.error).toHaveBeenCalled();
     });
   });
@@ -542,7 +612,13 @@ describe('ElevenLabsService', () => {
         ],
       });
 
-      const srt = await service.forcedAlignment('/tmp/a.mp3', 'Hello world');
+      const srt = await service.forcedAlignment(
+        '/tmp/a.mp3',
+        'Hello world',
+        undefined,
+        undefined,
+        'customer-key',
+      );
 
       expect(createReadStream).toHaveBeenCalledWith('/tmp/a.mp3');
       expect(forcedAlignmentCreate).toHaveBeenCalledWith({
@@ -560,7 +636,13 @@ describe('ElevenLabsService', () => {
         words: [{ end: 3661.125, start: 61.5, text: 'late' }],
       });
 
-      const srt = await service.forcedAlignment('/tmp/a.mp3', 'late');
+      const srt = await service.forcedAlignment(
+        '/tmp/a.mp3',
+        'late',
+        undefined,
+        undefined,
+        'customer-key',
+      );
 
       expect(srt).toBe('1\n00:01:01,500 --> 01:01:01,125\nlate\n');
     });
@@ -569,7 +651,13 @@ describe('ElevenLabsService', () => {
       const { service } = createHarness();
 
       await expect(
-        service.forcedAlignment('/tmp/a.mp3', 'nothing'),
+        service.forcedAlignment(
+          '/tmp/a.mp3',
+          'nothing',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).resolves.toBe('');
     });
 
@@ -579,7 +667,13 @@ describe('ElevenLabsService', () => {
       forcedAlignmentCreate.mockRejectedValue(providerError);
 
       await expect(
-        service.forcedAlignment('/tmp/a.mp3', 'text'),
+        service.forcedAlignment(
+          '/tmp/a.mp3',
+          'text',
+          undefined,
+          undefined,
+          'customer-key',
+        ),
       ).rejects.toThrowError(providerError);
       expect(loggerService.error).toHaveBeenCalled();
     });
