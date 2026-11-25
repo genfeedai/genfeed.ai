@@ -54,6 +54,9 @@ import {
 
 const TRAILING_SENTENCE_PUNCTUATION_PATTERN = /[.!?]+$/;
 
+/** Most brand references a remix draft starts with. */
+const BRAND_REMIX_DEFAULT_REFERENCE_LIMIT = 3;
+
 @Traced()
 @Injectable()
 export class BrandRemixRunPlanningService {
@@ -822,20 +825,15 @@ export class BrandRemixRunPlanningService {
     const explicitRoles = new Set(
       explicitReferences.map((reference) => reference.role),
     );
-    const explicitAssetIds = new Set(
-      explicitReferences.map((reference) => reference.assetId),
-    );
-    const defaults = toBrandGenerationReferences(brandKit)
+    const defaults = toBrandGenerationReferences(brandKit, {
+      excludeAssetIds: explicitReferences.map((reference) => reference.assetId),
+    })
       .map((reference) => ({
         ...reference,
         source: 'brand_default' as const,
       }))
-      .filter(
-        (reference) =>
-          !explicitRoles.has(reference.role) &&
-          !explicitAssetIds.has(reference.assetId),
-      )
-      .slice(0, 3);
+      .filter((reference) => !explicitRoles.has(reference.role))
+      .slice(0, BRAND_REMIX_DEFAULT_REFERENCE_LIMIT);
     return [...explicitReferences, ...defaults];
   }
 

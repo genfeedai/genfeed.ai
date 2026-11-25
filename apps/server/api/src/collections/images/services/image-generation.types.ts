@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
+import type { BrandGenerationReference } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -186,6 +187,8 @@ export interface ImageGenerationProviderAdapter {
 }
 
 export interface ImageGenerationPreparedInputs {
+  /** Brand references added because the caller attached none, with their roles. */
+  brandReferences?: readonly BrandGenerationReference[];
   referenceIds: string[];
   referenceImageUrls: string[];
   generationHarness: GenerationHarnessReceipt;

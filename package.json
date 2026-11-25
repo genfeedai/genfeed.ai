@@ -136,7 +136,7 @@
     "clean": "bunx turbo clean && rm -rf node_modules",
     "clean:generated-source": "bun run scripts/check-generated-source-artifacts.ts --fix",
     "dead-code": "bunx knip@6.44.1 --reporter compact",
-    "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject 'typescript,better-auth,api,jsdom,@types/vscode,@types/node,portless,@electric-sql/pglite,@xyflow/react,stripe,@ui-sdk/*' && bun run deps:update:remotion && bun install && bun run deps:update:actions",
+    "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject 'typescript,better-auth,api,jsdom,@types/vscode,@types/node,portless,@electric-sql/pglite,@xyflow/react' && bun run deps:update:remotion && bun install && bun run deps:update:actions",
     "deps:update:remotion": "bun run scripts/architecture/sync-remotion-version.ts",
     "deps:update:actions": "bun run scripts/architecture/update-github-action-versions.ts",
     "dev:setup": "bun run scripts/dev/setup-portless.ts",
@@ -347,7 +347,7 @@
     "sharp": "0.35.5",
     "short-unique-id": "5.3.2",
     "socket.io": "4.8.4",
-    "stripe": "23.1.0",
+    "stripe": "23.2.0",
     "uuid": "14.0.3",
     "winston": "3.19.0",
     "zod": "4.6.7"
