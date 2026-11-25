@@ -2,6 +2,7 @@
 
 import type { GenerationHarnessReceiptProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
+import BrandPaletteProof from '@ui/ingredients/tabs/prompts/BrandPaletteProof';
 import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
 import { useTranslations } from 'next-intl';
 
@@ -42,6 +43,9 @@ export default function GenerationHarnessReceipt({
               : translate('sourcePreference', { source: receipt.source })}
         </p>
       </div>
+      {receipt.brandPalette ? (
+        <BrandPaletteProof palette={receipt.brandPalette} />
+      ) : null}
       <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">
           {translate('submittedPrompt')}

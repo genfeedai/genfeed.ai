@@ -73,7 +73,33 @@ export interface GenerationHarnessReceipt {
    * the caller chose the references, branding was off, or the brand has none.
    */
   brandReferences?: GenerationBrandReferencesReceipt;
+  /**
+   * The approved palette measured on the final output once it completed.
+   * Absent while the output is still being checked, for a raw generation, and
+   * when the brand has no palette.
+   */
+  brandPalette?: GenerationBrandPaletteReceipt;
 }
+
+export interface GenerationBrandPaletteColor {
+  id: string;
+  hex: string;
+  /** Where the brand uses the colour, in the brand's words. */
+  usage?: string;
+  isRequired: boolean;
+  /** Share of the output's opaque pixels close to this colour, 0 to 1. */
+  coverage: number;
+  result: 'found' | 'absent';
+}
+
+/** A palette result is evidence on the receipt: a miss never stops a generation. */
+export type GenerationBrandPaletteReceipt =
+  | { status: 'measured'; colors: GenerationBrandPaletteColor[] }
+  | {
+      status: 'not_measured';
+      /** Why the pixels could not be measured, for example `visual_composite_unproven`. */
+      reasonCode: string;
+    };
 
 export interface GenerationBrandReferencesReceipt {
   attachedAssetIds: string[];

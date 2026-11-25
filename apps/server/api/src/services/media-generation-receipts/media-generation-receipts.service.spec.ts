@@ -287,6 +287,7 @@ function fixture() {
   };
   const prisma = {
     ingredient: {
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findFirst: vi.fn().mockResolvedValue({
         brandId: 'brand-1',
         category: IngredientCategory.IMAGE,
@@ -1058,6 +1059,111 @@ describe('MediaGenerationReceiptsService', () => {
         }),
       );
       expect(f.logger.warn).not.toHaveBeenCalled();
+    });
+
+    /** What the generation details read: the ingredient's own receipt JSON. */
+    async function completeWithHarness(
+      bytes: Uint8Array,
+      generationHarness: Record<string, unknown> | null,
+    ) {
+      const f = fixture();
+      const checking = checkingReceipt(bytes);
+      f.prisma.ingredient.findFirst.mockResolvedValue({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        generationHarness,
+        metadata: null,
+      });
+      f.prisma.brandedGenerationReceipt.findFirst.mockResolvedValue({
+        projection: checking,
+      });
+      f.material.acquire.mockResolvedValue({
+        receipt: checking,
+        material: {
+          artifactKind: 'ingredient',
+          artifactId: 'ingredient-1',
+          artifactVersion: 's3:v:1',
+          textBytes: null,
+          parts: [{ partId: PARTS_ID, partVersion: 's3:v:1', bytes }],
+          references: [],
+        },
+      });
+      f.receipts.recordValidation.mockResolvedValue({
+        receipt: outcome('needs_review', 4),
+        replayed: false,
+      });
+      await f.service.syncTerminal('org-1', 'ingredient-1', 'settled');
+      return f;
+    }
+
+    it('adds the measured colours to the output receipt and keeps what it already said', async () => {
+      const f = await completeWithHarness(await solid('#123456'), {
+        brandMode: 'provisional_brand',
+        enhancedPrompt: 'A lighthouse at dawn',
+      });
+
+      expect(f.prisma.ingredient.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'ingredient-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+        data: {
+          generationHarness: {
+            brandMode: 'provisional_brand',
+            enhancedPrompt: 'A lighthouse at dawn',
+            brandPalette: {
+              status: 'measured',
+              colors: [
+                expect.objectContaining({
+                  id: 'blue',
+                  hex: '#123456',
+                  isRequired: true,
+                  coverage: 1,
+                  result: 'found',
+                }),
+              ],
+            },
+          },
+        },
+      });
+    });
+
+    it('lists a missing required colour as absent with no coverage', async () => {
+      const f = await completeWithHarness(await solid('#FFFFFF'), {
+        brandMode: 'provisional_brand',
+      });
+
+      const { generationHarness } =
+        f.prisma.ingredient.updateMany.mock.calls[0][0].data;
+      expect(generationHarness.brandPalette.colors).toEqual([
+        expect.objectContaining({
+          hex: '#123456',
+          isRequired: true,
+          coverage: 0,
+          result: 'absent',
+        }),
+      ]);
+    });
+
+    it('says why when the pixels could not be measured', async () => {
+      const f = await completeWithHarness(new Uint8Array([1, 2, 3]), {
+        brandMode: 'provisional_brand',
+      });
+
+      const { generationHarness } =
+        f.prisma.ingredient.updateMany.mock.calls[0][0].data;
+      expect(generationHarness.brandPalette).toEqual({
+        status: 'not_measured',
+        reasonCode: 'artifact_undecodable',
+      });
+    });
+
+    it('writes nothing when the output has no receipt JSON to extend', async () => {
+      const f = await completeWithHarness(await solid('#123456'), null);
+
+      expect(f.prisma.ingredient.updateMany).not.toHaveBeenCalled();
     });
 
     it('still records the output, with no report, when the proof cannot run', async () => {
