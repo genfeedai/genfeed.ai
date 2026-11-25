@@ -19,6 +19,8 @@ export interface BaseGenerationPayload {
    * resolved on the server and never sent.
    */
   brandMode?: 'raw';
+  /** The user removed every brand reference Studio showed; the server adds none. */
+  skipBrandReferences?: boolean;
   /** Explicit Knowledge pick; omit to let the brand's Knowledge apply automatically. */
   knowledge?: KnowledgeSelection;
   /** Set only when the prompt came from an agent proposal. */

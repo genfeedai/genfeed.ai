@@ -259,6 +259,40 @@ describe('GenerationHarnessReceipt', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    [
+      { attachedAssetIds: ['style-1', 'product-1'] },
+      '2 brand references were added because none were attached.',
+    ],
+    [
+      { attachedAssetIds: ['style-1'] },
+      '1 brand reference was added because none were attached.',
+    ],
+    [
+      { attachedAssetIds: [], skippedReason: 'model_accepts_no_references' },
+      'None were added: this model does not accept reference images.',
+    ],
+  ] as const)(
+    'says what the brand references did (%j)',
+    (brandReferences, expected) => {
+      render(
+        <GenerationHarnessReceipt
+          receipt={{ ...brandedReceipt, brandReferences }}
+        />,
+        { wrapper: EnglishMessages },
+      );
+      expect(screen.getByText('Brand references')).toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    },
+  );
+
+  it('shows no brand references note when the receipt records none', () => {
+    render(<GenerationHarnessReceipt receipt={brandedReceipt} />, {
+      wrapper: EnglishMessages,
+    });
+    expect(screen.queryByText('Brand references')).not.toBeInTheDocument();
+  });
+
   it('shows no palette check until one was measured', () => {
     render(<GenerationHarnessReceipt receipt={brandedReceipt} />, {
       wrapper: EnglishMessages,
