@@ -1,9 +1,26 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { PUBLISHING_QUOTA_MAX } from '@genfeedai/contracts/constants';
+import { ButtonSize } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  PUBLISHING_QUOTA_CEILINGS,
+  type PublishingQuotaTier,
+  resolveEffectivePublishingQuota,
+  resolvePublishingQuotaCeiling,
+} from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
-import { Input } from '@ui/primitives/input';
+import { Slider } from '@ui/primitives/slider';
+import { Lock } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import type {
@@ -21,22 +38,8 @@ const PUBLISHING_CAP_FIELDS: PublishingCapField[] = [
   { id: 'org-quota-tiktok', key: 'quotaTiktok', labelKey: 'tiktok' },
 ];
 
-const WHOLE_NUMBER_PATTERN = /^\d+$/;
-
-function toFormValue(value: number | undefined): string {
-  return typeof value === 'number' ? String(value) : '';
-}
-
-function parseCap(value: string): number | null {
-  const trimmed = value.trim();
-
-  if (!WHOLE_NUMBER_PATTERN.test(trimmed)) {
-    return null;
-  }
-
-  const parsed = Number(trimmed);
-  return parsed <= PUBLISHING_QUOTA_MAX ? parsed : null;
-}
+/** The slider tops out here where no tier sets a ceiling (self-hosted). */
+const UNMETERED_SLIDER_MAX = 100;
 
 export default function OrganizationPublishingCapsCard() {
   const { organizationId } = useBrand();
@@ -46,22 +49,17 @@ export default function OrganizationPublishingCapsCard() {
 function PublishingCapsForm() {
   const translate = useTranslations('common.settings.publishingCaps');
   const notifications = NotificationsService.getInstance();
+  const { orgHref } = useOrgUrl();
   const { settings, updateSettings } = useOrganization();
   const { enqueueSave, isSaving } = useSaveQueue();
   const [drafts, setDrafts] = useState<Partial<PublishingCapsFormState>>({});
   const pendingCaps = useRef(new Map<PublishingCapKey, { value: number }>());
 
-  const saveCap = (key: PublishingCapKey, rawValue: string) => {
-    if (drafts[key] === undefined) {
-      return;
-    }
+  // A tier the server could not verify is shown with the credit ceilings.
+  const tier: PublishingQuotaTier = settings?.publishingQuotaTier ?? 'credits';
+  const isLocked = tier === 'trial';
 
-    const value = parseCap(rawValue);
-    if (value === null) {
-      notifications.error(translate('invalid', { max: PUBLISHING_QUOTA_MAX }));
-      return;
-    }
-
+  const saveCap = (key: PublishingCapKey, value: number) => {
     const pending = pendingCaps.current.get(key);
     if (value === pending?.value) {
       return;
@@ -79,9 +77,7 @@ function PublishingCapsForm() {
         await updateSettings(key, value);
         if (pendingCaps.current.get(key) === save) {
           setDrafts((current) =>
-            current[key] === rawValue
-              ? { ...current, [key]: undefined }
-              : current,
+            current[key] === value ? { ...current, [key]: undefined } : current,
           );
         }
         notifications.success(translate('saved'));
@@ -95,38 +91,86 @@ function PublishingCapsForm() {
     });
   };
 
+  const readValue = (key: PublishingCapKey): number =>
+    drafts[key] ?? resolveEffectivePublishingQuota(tier, key, settings?.[key]);
+
+  const readMax = (key: PublishingCapKey): number =>
+    tier === 'unmetered'
+      ? UNMETERED_SLIDER_MAX
+      : resolvePublishingQuotaCeiling(tier, key);
+
+  const readHint = (key: PublishingCapKey): string => {
+    if (tier === 'trial') {
+      return translate('hint.trial');
+    }
+    if (tier === 'credits') {
+      return translate('hint.credits', {
+        max: readMax(key),
+        planMax: PUBLISHING_QUOTA_CEILINGS.plan[key],
+      });
+    }
+    return tier === 'plan'
+      ? translate('hint.plan', { max: readMax(key) })
+      : translate('hint.unmetered');
+  };
+
   return (
     <Card label={translate('cardLabel')} description={translate('helpText')}>
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-        {PUBLISHING_CAP_FIELDS.map((field) => (
-          <Field
-            key={field.key}
-            label={translate(`platforms.${field.labelKey}`)}
-            htmlFor={field.id}
-          >
-            <Input
-              id={field.id}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={PUBLISHING_QUOTA_MAX}
-              step={1}
-              value={drafts[field.key] ?? toFormValue(settings?.[field.key])}
-              onChange={(event) => {
-                const value = event.currentTarget.value;
-                setDrafts((current) => ({ ...current, [field.key]: value }));
-              }}
-              onBlur={(event) => saveCap(field.key, event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  event.currentTarget.blur();
-                }
-              }}
-            />
-          </Field>
-        ))}
+      <div className="flex flex-col gap-5">
+        {PUBLISHING_CAP_FIELDS.map((field) => {
+          const value = readValue(field.key);
+          return (
+            <Field
+              key={field.key}
+              label={translate(`platforms.${field.labelKey}`)}
+              htmlFor={field.id}
+            >
+              <div className="flex items-center gap-4">
+                <Slider
+                  aria-label={translate(`platforms.${field.labelKey}`)}
+                  disabled={isLocked}
+                  id={field.id}
+                  max={readMax(field.key)}
+                  min={tier === 'unmetered' ? 0 : 1}
+                  onValueChange={([next]) =>
+                    setDrafts((current) => ({ ...current, [field.key]: next }))
+                  }
+                  onValueCommit={([next]) => saveCap(field.key, next)}
+                  step={1}
+                  value={[value]}
+                />
+                <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                  {value === 0
+                    ? translate('noCap')
+                    : translate('perDay', { count: value })}
+                </span>
+              </div>
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                {isLocked ? <Lock aria-hidden className="size-3.5" /> : null}
+                {readHint(field.key)}
+              </p>
+            </Field>
+          );
+        })}
       </div>
+      {tier === 'trial' ? (
+        <Alert className="mt-5" variant="note">
+          <AlertDescription>{translate('notice.trial')}</AlertDescription>
+        </Alert>
+      ) : null}
+      {tier === 'credits' ? (
+        <Alert className="mt-5" variant="info">
+          <AlertTitle>{translate('notice.creditsTitle')}</AlertTitle>
+          <AlertDescription>{translate('notice.creditsBody')}</AlertDescription>
+          <AlertActions>
+            <Button asChild size={ButtonSize.SM}>
+              <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+                {translate('notice.choosePlan')}
+              </Link>
+            </Button>
+          </AlertActions>
+        </Alert>
+      ) : null}
       {isSaving ? (
         <p role="status" className="mt-4 text-xs text-muted-foreground">
           {translate('saving')}

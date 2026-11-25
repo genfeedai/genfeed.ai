@@ -5,7 +5,7 @@ export type PublishingCapKey = keyof Pick<
   'quotaTwitter' | 'quotaInstagram' | 'quotaYoutube' | 'quotaTiktok'
 >;
 
-export type PublishingCapsFormState = Record<PublishingCapKey, string>;
+export type PublishingCapsFormState = Record<PublishingCapKey, number>;
 
 export type PublishingCapField = {
   id: string;

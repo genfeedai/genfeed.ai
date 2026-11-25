@@ -231,7 +231,6 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'All Providers', value: '' },
         { label: 'HeyGen', value: 'heygen' },
         { label: 'ElevenLabs', value: 'elevenlabs' },
-        { label: 'Genfeed', value: 'genfeed-ai' },
       ],
       sort: [
         { label: 'Default', value: '' },

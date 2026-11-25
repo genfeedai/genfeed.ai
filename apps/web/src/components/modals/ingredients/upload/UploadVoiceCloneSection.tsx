@@ -1,23 +1,14 @@
 'use client';
 
-import {
-  ButtonVariant,
-  CardPadding,
-  VoiceProvider,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Label } from '@ui/primitives/label';
-import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { Mic, Square } from 'lucide-react';
 
 type Props = {
   voiceCloneName: string;
   onVoiceCloneNameChange: (name: string) => void;
-  voiceCloneProvider: VoiceProvider;
-  onVoiceCloneProviderChange: (provider: VoiceProvider) => void;
-  isSelfHostedVoiceAvailable: boolean;
   isRecording: boolean;
   isRecordingSupported: boolean;
   recordedFile: File | null;
@@ -29,9 +20,6 @@ type Props = {
 export default function UploadVoiceCloneSection({
   voiceCloneName,
   onVoiceCloneNameChange,
-  voiceCloneProvider,
-  onVoiceCloneProviderChange,
-  isSelfHostedVoiceAvailable,
   isRecording,
   isRecordingSupported,
   recordedFile,
@@ -48,40 +36,6 @@ export default function UploadVoiceCloneSection({
           placeholder="My Voice"
           value={voiceCloneName}
         />
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-foreground">Provider</p>
-        <RadioGroup
-          className="flex flex-wrap gap-4"
-          onValueChange={(value) =>
-            onVoiceCloneProviderChange(value as VoiceProvider)
-          }
-          value={voiceCloneProvider}
-        >
-          <Label
-            className="flex cursor-pointer items-center gap-2 text-sm font-normal leading-normal"
-            htmlFor="voice-provider-elevenlabs"
-          >
-            <RadioGroupItem
-              id="voice-provider-elevenlabs"
-              value={VoiceProvider.ELEVENLABS}
-            />
-            <span>ElevenLabs</span>
-          </Label>
-          {isSelfHostedVoiceAvailable && (
-            <Label
-              className="flex cursor-pointer items-center gap-2 text-sm font-normal leading-normal"
-              htmlFor="voice-provider-genfeed-ai"
-            >
-              <RadioGroupItem
-                id="voice-provider-genfeed-ai"
-                value={VoiceProvider.GENFEED_AI}
-              />
-              <span>Genfeed AI</span>
-            </Label>
-          )}
-        </RadioGroup>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

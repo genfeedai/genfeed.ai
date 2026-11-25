@@ -59,6 +59,7 @@ const RETIRED_FLEET_CONTROL_PATHS = [
   'apps/server/api/src/services/integrations/fleet',
   'packages/services/admin/fleet.service.ts',
   'playwright/e2e/tests/admin/admin-fleet.spec.ts',
+  'apps/server/api/src/endpoints/webhooks/fleet',
 ] as const;
 
 const FLEET_CONTROL_REFERENCE_FILES = [
@@ -137,6 +138,17 @@ describe('public repository hygiene', () => {
       expect(readSource(file)).not.toContain('/admin/fleet');
     },
   );
+
+  it.each([
+    'apps/server/api/src/services/integrations/managed-inference-runtime/managed-inference-runtime.service.ts',
+    'apps/server/api/src/services/integrations/llm/llm-dispatcher.service.ts',
+    'packages/config/src/schemas/ai.schema.ts',
+    'packages/config/src/interfaces/env-config.interface.ts',
+  ])('keeps shared GPU fleet URL settings out of %s', (file) => {
+    expect(readSource(file)).not.toMatch(
+      /GPU_(?:IMAGES|VOICES|VIDEOS|LLM)_URL/,
+    );
+  });
 
   it('retains only the managed-inference runtime adapter', () => {
     expect(

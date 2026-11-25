@@ -1,6 +1,7 @@
 import type { AgentAutonomyMode } from '../..';
 import type { AppLocale } from '../../constants';
 import type { OrganizationModuleOverrides } from '../../constants/organization-modules.constant';
+import type { PublishingQuotaTier } from '../../constants/publishing-quota.constant';
 import type { ReleaseItemId } from '../../constants/release-items.constant';
 import type { IFleetEvaluationPolicy } from '../analytics/fleet-evaluation-policy.interface';
 import type { IBaseEntity } from '../index';
@@ -165,6 +166,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   readonly hasPaidModuleSubscription?: boolean | null;
   /** Read-only: the org has paid for a credit pack; null when unverified. */
   readonly hasPurchasedCredits?: boolean | null;
+  /** Read-only: sets how high the daily publishing caps can go; null when unverified. */
+  readonly publishingQuotaTier?: PublishingQuotaTier | null;
   fleetEvaluationPolicy?: IFleetEvaluationPolicy;
 
   // First-asset unlock gate: durable org signal, flips true on the org's first

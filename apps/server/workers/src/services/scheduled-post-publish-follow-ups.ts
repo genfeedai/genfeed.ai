@@ -1,5 +1,6 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { isXPlatform } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import { type PublishResult, scopedWhere } from '@api/index';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
@@ -24,10 +25,7 @@ import {
   type PlannedThreadChild,
   toPlannedThreadChildren,
 } from '@workers/services/scheduled-post-media-gate.util';
-import {
-  isXPlatform,
-  ScheduledPostXBilling,
-} from '@workers/services/scheduled-post-x-billing';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import {
   type DelayedThreadChild,
   planThreadChildDelivery,

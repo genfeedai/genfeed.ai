@@ -138,8 +138,10 @@ describe('AvatarVideoGenerationService', () => {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
     };
     const managedInferenceRuntimeService = {
-      generateVoice: vi.fn().mockResolvedValue({ jobId: 'voice-job-1' }),
-      pollJob: vi
+      generateManagedVoiceForOrg: vi
+        .fn()
+        .mockResolvedValue({ jobId: 'voice-job-1' }),
+      pollManagedJobForOrg: vi
         .fn()
         .mockResolvedValue({ audioUrl: 'https://cdn.example.com/fleet.mp3' }),
     };
@@ -403,7 +405,7 @@ describe('AvatarVideoGenerationService', () => {
         modelKey: MODEL_KEYS.HEYGEN_AVATAR,
       });
       expect(
-        managedInferenceRuntimeService.generateVoice,
+        managedInferenceRuntimeService.generateManagedVoiceForOrg,
       ).not.toHaveBeenCalled();
       expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
       expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
@@ -1188,10 +1190,12 @@ describe('AvatarVideoGenerationService', () => {
           ? { apiKey: 'heygen-byok-test-key' }
           : null,
     );
-    managedInferenceRuntimeService.generateVoice.mockResolvedValue({
-      jobId: 'voice-job-1',
-    });
-    managedInferenceRuntimeService.pollJob.mockResolvedValue({
+    managedInferenceRuntimeService.generateManagedVoiceForOrg.mockResolvedValue(
+      {
+        jobId: 'voice-job-1',
+      },
+    );
+    managedInferenceRuntimeService.pollManagedJobForOrg.mockResolvedValue({
       audioUrl: 'https://cdn.example.com/fleet.mp3',
     });
 
@@ -1204,7 +1208,9 @@ describe('AvatarVideoGenerationService', () => {
       context,
     );
 
-    expect(managedInferenceRuntimeService.generateVoice).toHaveBeenCalledOnce();
+    expect(
+      managedInferenceRuntimeService.generateManagedVoiceForOrg,
+    ).toHaveBeenCalledOnce();
     expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     expect(creditsUtilsService.bindReservationOutput).not.toHaveBeenCalled();
   });
@@ -1453,16 +1459,18 @@ describe('AvatarVideoGenerationService', () => {
         order.push('provider-marked');
       }
     });
-    managedInferenceRuntimeService.generateVoice.mockImplementation(
+    managedInferenceRuntimeService.generateManagedVoiceForOrg.mockImplementation(
       async () => {
         order.push('fleet');
         return { jobId: 'voice-job-1' };
       },
     );
-    managedInferenceRuntimeService.pollJob.mockImplementation(async () => {
-      order.push('fleet-poll');
-      return { audioUrl: 'https://cdn.example.com/fleet.mp3' };
-    });
+    managedInferenceRuntimeService.pollManagedJobForOrg.mockImplementation(
+      async () => {
+        order.push('fleet-poll');
+        return { audioUrl: 'https://cdn.example.com/fleet.mp3' };
+      },
+    );
     heygenService.generatePhotoAvatarVideo.mockImplementation(async () => {
       order.push('heygen');
       return 'heygen-job-1';
@@ -1763,7 +1771,9 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     expect(result.status).toBe('processing');
-    expect(managedInferenceRuntimeService.generateVoice).toHaveBeenCalledWith({
+    expect(
+      managedInferenceRuntimeService.generateManagedVoiceForOrg,
+    ).toHaveBeenCalledWith({
       organizationId: context.organizationId,
       referenceAudio: 'https://cdn.example.com/reference.wav',
       text: 'Create the founder update',
@@ -1831,7 +1841,9 @@ describe('AvatarVideoGenerationService', () => {
     ).not.toHaveBeenCalled();
     expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
-    expect(managedInferenceRuntimeService.generateVoice).not.toHaveBeenCalled();
+    expect(
+      managedInferenceRuntimeService.generateManagedVoiceForOrg,
+    ).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     expect(
       failedGenerationService.handleFailedVideoGeneration,
@@ -1972,7 +1984,9 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     expect(result.status).toBe('processing');
-    expect(managedInferenceRuntimeService.generateVoice).not.toHaveBeenCalled();
+    expect(
+      managedInferenceRuntimeService.generateManagedVoiceForOrg,
+    ).not.toHaveBeenCalled();
     expect(elevenlabsService.generateAndUploadAudio).toHaveBeenCalledWith(
       'org-elevenlabs-voice',
       'Create the founder update',

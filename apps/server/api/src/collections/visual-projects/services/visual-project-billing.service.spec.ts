@@ -302,6 +302,19 @@ describe('VisualProjectBillingService', () => {
       },
     );
 
+    it('rejects a stored quote on the retired local route as a changed quote, before any provider call', async () => {
+      stored.receipts = [
+        service.quoteReceipt({
+          ...snapshot,
+          provider: 'local' as unknown as typeof snapshot.provider,
+        }),
+      ];
+
+      await expect(service.validateSnapshot(read())).rejects.toThrow(
+        'quote_changed',
+      );
+    });
+
     it.each([
       ['a released hold', { status: 'RELEASED' }],
       ['an expired hold', { status: 'EXPIRED' }],

@@ -118,8 +118,9 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
   });
 
-  it('keeps a retired row for each former local/ chat model', () => {
-    for (const key of ['local/qwen-32b', 'local/mistral-small']) {
+  it.each(['local/qwen-32b', 'local/mistral-small'])(
+    'keeps a retired row for the former %s chat model',
+    (key) => {
       const row = UNIFIED_MODEL_CATALOG.find((entry) => entry.key === key);
 
       expect(row).toMatchObject({
@@ -128,8 +129,8 @@ describe('UNIFIED_MODEL_CATALOG', () => {
         lifecycle: ModelLifecycle.RETIRED,
         provider: ModelProvider.OPENROUTER,
       });
-    }
-  });
+    },
+  );
 
   it('marks a single default agent chat model', () => {
     const defaults = agentRows.filter((entry) => entry.isDefault);

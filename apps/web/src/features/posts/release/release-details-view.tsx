@@ -7,6 +7,7 @@ import {
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { isXPostingBillingErrorCode } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import { parseXQuotedPostId } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import {
@@ -36,6 +37,7 @@ import {
   isCredentialAtRisk,
   isManualPostTarget,
 } from '@/features/posts/release/release-target-actions.helpers';
+import ReleaseXPostingBillingCard from '@/features/posts/release/release-x-posting-billing-card';
 import ReleaseTargetStateBadge from '@/features/posts/shared/ReleaseTargetStateBadge';
 import {
   badgeVariantForTone,
@@ -283,6 +285,8 @@ export default function ReleaseDetailsView({
                       parseXQuotedPostId(target.settings?.quotedPost) ?? null
                     }
                   />
+                ) : isXPostingBillingErrorCode(target.error?.code) ? (
+                  <ReleaseXPostingBillingCard />
                 ) : target.error ? (
                   <p className="text-xs text-destructive">
                     {target.error.message}

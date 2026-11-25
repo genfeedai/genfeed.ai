@@ -90,6 +90,8 @@ describe('PostGroupPersistenceService', () => {
           { get: () => ({ getQuotaStatus: vi.fn() }) } as never,
           { credential: { findMany: vi.fn() } } as never,
         ),
+        { check: vi.fn().mockResolvedValue(null) } as never,
+        { get: () => 'https://app.genfeed.ai' } as never,
       ),
     );
   });

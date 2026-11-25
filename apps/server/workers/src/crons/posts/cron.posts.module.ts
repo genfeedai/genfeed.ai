@@ -8,6 +8,7 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { OrganizationPaidAccessModule } from '@api/common/subscriptions/organization-paid-access.module';
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
@@ -90,6 +91,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     ScheduledPostWorkflowService,
     ScheduledPostXBilling,
     ThreadCommentDeliveryService,
+    XPostingBillingGate,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {

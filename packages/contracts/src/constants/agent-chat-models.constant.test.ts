@@ -117,12 +117,13 @@ describe('AGENT_CHAT_MODELS', () => {
     });
   });
 
-  it('retires the self-hosted local/ models instead of offering them', () => {
-    for (const key of ['local/qwen-32b', 'local/mistral-small']) {
+  it.each(['local/qwen-32b', 'local/mistral-small'])(
+    'retires the self-hosted %s model instead of offering it',
+    (key) => {
       expect(isRetiredAgentChatModel(key)).toBe(true);
       expect(getAgentChatModel(key)).toBeUndefined();
-    }
-  });
+    },
+  );
 
   it('offers explicit Auto and experimental Free routes with exact-cost metadata', () => {
     expect(

@@ -16,7 +16,6 @@ import {
   type HeyGenClonedVoice,
 } from '@api/services/integrations/heygen/helpers/heygen-twin';
 import { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
-import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -47,7 +46,6 @@ export class VoiceCloneService {
     private readonly connectionService: ElevenLabsConnectionService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly heyGenTwinService: HeyGenTwinService,
-    private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly loggerService: LoggerService,
     private readonly notificationsPublisherService: NotificationsPublisherService,
     private readonly sharedService: SharedService,
@@ -71,10 +69,6 @@ export class VoiceCloneService {
 
       if (provider === VoiceProvider.HEYGEN) {
         return await this.cloneWithHeyGen(user, dto, file, request);
-      }
-
-      if (provider === VoiceProvider.GENFEED_AI) {
-        return await this.cloneWithGenfeedAi(user, dto);
       }
 
       throw new HttpException(
@@ -434,146 +428,6 @@ export class VoiceCloneService {
         setTimeout(resolve, HEYGEN_CLONE_POLL_INTERVAL_MS),
       );
     }
-  }
-
-  private async cloneWithGenfeedAi(
-    user: User,
-    dto: CloneVoiceDto,
-  ): Promise<IngredientDocument> {
-    await this.assertGenfeedAiAvailable(dto);
-    const { ingredientData } = await this.sharedService.createMediaDocuments(
-      user,
-      {
-        origin: IngredientOrigin.GENERATED,
-        brandId: user.brandId,
-        category: IngredientCategory.VOICE,
-        label: dto.name,
-        organizationId: user.organizationId,
-        status: IngredientStatus.PROCESSING,
-      },
-    );
-    const ingredientId = String(ingredientData.id);
-
-    await this.markGenfeedAiCloneStarted(ingredientId, dto, user);
-    const result = await this.managedInferenceRuntimeService.cloneVoice({
-      audioUrl: dto.audioUrl as string,
-      handle: ingredientId,
-      label: dto.name,
-    });
-    if (!result) {
-      return await this.markGenfeedAiCloneFailed(ingredientId, user);
-    }
-
-    await this.voicesService.patchAll(
-      {
-        id: ingredientId,
-        organizationId: user.organizationId,
-      },
-      {
-        providerData: {
-          fleet: { jobId: result.jobId, jobKind: 'voice-clone' },
-        },
-      },
-    );
-
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} Genfeed AI voice clone initiated`, {
-      jobId: result.jobId,
-      name: dto.name,
-    });
-    return this.findRequiredVoice(
-      ingredientId,
-      'Voice not found after clone initiation',
-    );
-  }
-
-  private async assertGenfeedAiAvailable(dto: CloneVoiceDto): Promise<void> {
-    const isAvailable =
-      await this.managedInferenceRuntimeService.isAvailable('voices');
-    if (!isAvailable) {
-      throw new HttpException(
-        {
-          detail:
-            'Self-hosted voice service is currently offline. Try ElevenLabs instead.',
-          title: 'Service unavailable',
-        },
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
-    if (!dto.audioUrl) {
-      throw new HttpException(
-        {
-          detail: 'audioUrl is required for Genfeed AI voice cloning',
-          title: 'Validation failed',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  private async markGenfeedAiCloneStarted(
-    ingredientId: string,
-    dto: CloneVoiceDto,
-    user: User,
-  ): Promise<void> {
-    await this.voicesService.patchAll(
-      {
-        id: ingredientId,
-        organizationId: user.organizationId,
-      },
-      {
-        cloneStatus: VoiceCloneStatus.CLONING,
-        isCloned: true,
-        isDefaultSelectable: true,
-        isVoiceActive: true,
-        sampleAudioUrl: dto.audioUrl,
-        voiceProvider: VoiceProvider.GENFEED_AI,
-        voiceSource: 'cloned',
-      },
-    );
-    await this.notificationsPublisherService.publishAssetStatus(
-      ingredientId,
-      VoiceCloneStatus.CLONING,
-      user.userId ?? user.id,
-      {
-        cloneStatus: VoiceCloneStatus.CLONING,
-        progress: 10,
-        provider: VoiceProvider.GENFEED_AI,
-      },
-    );
-  }
-
-  private async markGenfeedAiCloneFailed(
-    ingredientId: string,
-    user: User,
-  ): Promise<never> {
-    await this.voicesService.patchAll(
-      {
-        id: ingredientId,
-        organizationId: user.organizationId,
-      },
-      {
-        cloneStatus: VoiceCloneStatus.FAILED,
-        status: IngredientStatus.FAILED,
-      },
-    );
-    await this.notificationsPublisherService.publishAssetStatus(
-      ingredientId,
-      VoiceCloneStatus.FAILED,
-      user.userId ?? user.id,
-      {
-        cloneStatus: VoiceCloneStatus.FAILED,
-        provider: VoiceProvider.GENFEED_AI,
-      },
-    );
-    throw new HttpException(
-      {
-        detail: 'Voice cloning request failed. The service may be unavailable.',
-        title: 'Clone failed',
-      },
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
   }
 
   private async findRequiredVoice(

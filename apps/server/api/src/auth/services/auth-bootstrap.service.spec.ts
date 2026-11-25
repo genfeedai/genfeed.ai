@@ -346,12 +346,6 @@ describe('AuthBootstrapService', () => {
       currentUser: { id: 'user_1' } as never,
       fleetCapabilities: {
         brandEnabled: true,
-        fleet: {
-          images: true,
-          llm: true,
-          videos: true,
-          voices: true,
-        },
       },
       settings: null,
       streak: null,

@@ -156,14 +156,13 @@ export function buildDeliveryHarness(
   );
   const xBilling = new ScheduledPostXBilling(
     logger,
-    {
-      isSubscriptionGatedFresh: async () => false,
-    } as unknown as XBillingDeps[1],
+    { check: async () => null } as unknown as XBillingDeps[1],
     {
       checkOrganizationCreditsAvailable: async () => true,
       deductCreditsFromOrganization: async () => undefined,
     } as unknown as XBillingDeps[2],
     libsPrisma,
+    { get: () => 'https://app.genfeed.ai' } as unknown as XBillingDeps[4],
   );
   const service = new ScheduledPostDeliveryService(
     logger,

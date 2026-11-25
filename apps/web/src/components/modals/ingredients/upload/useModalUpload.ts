@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   AssetParent,
@@ -89,7 +88,6 @@ export function useModalUpload({
   openKey,
   formRef,
 }: UseModalUploadParams) {
-  const { selectedBrand, fleetCapabilities } = useBrand();
   // A platform image slot crops to, and checks against, that platform's size.
   const slotSpec =
     category === AssetCategory.BANNER && kitSlot
@@ -104,9 +102,6 @@ export function useModalUpload({
   const [files, setFiles] = useState<File[]>([]);
   const [urlValue, setUrlValue] = useState('');
   const [voiceCloneName, setVoiceCloneName] = useState('');
-  const [voiceCloneProvider, setVoiceCloneProvider] = useState<VoiceProvider>(
-    VoiceProvider.ELEVENLABS,
-  );
 
   const hasAutoQueuedInitialFilesRef = useRef(false);
   const hasAutoSubmittedRef = useRef(false);
@@ -142,10 +137,6 @@ export function useModalUpload({
 
   const isVoiceLike =
     category === IngredientCategory.VOICE || category === 'voice';
-
-  const isSelfHostedVoiceAvailable =
-    Boolean(selectedBrand?.isFleetEnabled) &&
-    Boolean(fleetCapabilities?.fleet.voices);
 
   const {
     clearRecordedFile,
@@ -352,13 +343,6 @@ export function useModalUpload({
     hasAutoSubmittedRef.current = false;
   }
 
-  if (
-    voiceCloneProvider === VoiceProvider.GENFEED_AI &&
-    !isSelfHostedVoiceAvailable
-  ) {
-    setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
-  }
-
   // use-effect-audit: ignore queues the files handed to the modal once on open
   useEffect(() => {
     if (
@@ -408,7 +392,6 @@ export function useModalUpload({
     setFileStatuses(new Map());
     setScope(AssetScope.USER);
     setVoiceCloneName('');
-    setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
     clearRecordedFile();
     onComplete(uploadedIngredients);
   };
@@ -450,7 +433,7 @@ export function useModalUpload({
         const service = await getVoiceCloneService();
         const formData = new FormData();
         formData.append('name', voiceCloneName.trim());
-        formData.append('provider', voiceCloneProvider);
+        formData.append('provider', VoiceProvider.ELEVENLABS);
         formData.append('file', selectedFiles[0]);
         const voice = await service.cloneVoice(formData);
         closeModalUpload([voice]);
@@ -735,11 +718,8 @@ export function useModalUpload({
     setUrlValue,
     voiceCloneName,
     setVoiceCloneName,
-    voiceCloneProvider,
-    setVoiceCloneProvider,
     // derived booleans & computed
     isVoiceLike,
-    isSelfHostedVoiceAvailable,
     isImageLike,
     isVideoLike,
     isAudioLike,

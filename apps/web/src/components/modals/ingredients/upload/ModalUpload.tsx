@@ -49,10 +49,7 @@ export default function ModalUpload({
     urlValue,
     voiceCloneName,
     setVoiceCloneName,
-    voiceCloneProvider,
-    setVoiceCloneProvider,
     isVoiceLike,
-    isSelfHostedVoiceAvailable,
     maxSize,
     maxFiles,
     acceptedTypes,
@@ -109,9 +106,6 @@ export default function ModalUpload({
           <UploadVoiceCloneSection
             voiceCloneName={voiceCloneName}
             onVoiceCloneNameChange={setVoiceCloneName}
-            voiceCloneProvider={voiceCloneProvider}
-            onVoiceCloneProviderChange={setVoiceCloneProvider}
-            isSelfHostedVoiceAvailable={isSelfHostedVoiceAvailable}
             isRecording={isRecording}
             isRecordingSupported={isRecordingSupported}
             recordedFile={recordedFile}
