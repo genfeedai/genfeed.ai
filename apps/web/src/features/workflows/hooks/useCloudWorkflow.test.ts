@@ -57,6 +57,7 @@ describe('useCloudWorkflow autosave', () => {
     act(() => {
       useWorkflowStore.getState().onNodesChange([
         {
+          id: 'n1',
           type: 'add',
           item: {
             id: 'n1',
@@ -89,6 +90,7 @@ describe('useCloudWorkflow autosave', () => {
     act(() => {
       useWorkflowStore.getState().onNodesChange([
         {
+          id: 'n1',
           type: 'add',
           item: {
             id: 'n1',
@@ -126,6 +128,7 @@ describe('useCloudWorkflow autosave', () => {
       act(() => {
         useWorkflowStore.getState().onNodesChange([
           {
+            id,
             type: 'add',
             item: {
               id,

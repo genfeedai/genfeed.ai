@@ -203,8 +203,6 @@ describe('GitHub Action version updater', () => {
       'portless',
       // Existing desktop data needs PGlite 0.5.10; upgrades require a migration plan.
       '@electric-sql/pglite',
-      // @xyflow/react 13 changes the node and edge change types the canvases use.
-      '@xyflow/react',
     ]);
     expect(command).toContain('--cooldown 3h');
     expect(command.split(' && ').slice(1)).toEqual([
