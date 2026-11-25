@@ -16,7 +16,7 @@ export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
   {
     name: 'manage_brand_kit',
     description:
-      'Save one Brand Kit section for an explicit brand. Use visual_identity for colors and fonts (owner or admin), writing_voice for tone and writing guidance, or strategy for goals, platforms, and cadence. Send only fields for that section.',
+      'Save one Brand Kit section for an explicit brand. Use visual_identity for colors, fonts and the visual direction of images and video (owner or admin), writing_voice for tone and writing guidance, or strategy for goals, platforms, and cadence. Send only fields for that section.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -39,6 +39,11 @@ export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
             fontFamily: text,
             primaryColor: text,
             secondaryColor: text,
+            visualDirection: {
+              ...text,
+              description:
+                'The look of the brand images and video, in plain sentences (medium, light, mood, composition). Image and video generation use it; text generation never does.',
+            },
             colorPalette,
             fontRoles: {
               ...fontRoles,

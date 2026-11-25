@@ -336,3 +336,77 @@ describe('useOutreachCampaignDetail — cached campaign', () => {
     await waitFor(() => expect(result.current.campaign?.status).toBe('active'));
   });
 });
+
+describe('useOutreachCampaignDetail — load error notices', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(1000);
+    mocks.searchParams = new URLSearchParams('page=1');
+    mocks.findOne.mockResolvedValue({
+      campaignType: 'manual',
+      id: 'campaign-1',
+      label: 'Sequence',
+      platform: 'twitter',
+      status: 'draft',
+    });
+    mocks.getTargets.mockRejectedValue(new Error('targets offline'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    mocks.searchParams = new URLSearchParams();
+  });
+
+  it('notifies for the failed target page on screen after the campaign read recovered', async () => {
+    const client = createTestQueryClient();
+    const { rerender } = renderDetail(client);
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledTimes(1),
+    );
+
+    // Page 2 fails later than page 1.
+    vi.setSystemTime(2000);
+    mocks.searchParams = new URLSearchParams('page=2');
+    rerender();
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledTimes(2),
+    );
+
+    // The campaign read fails later than both pages, then recovers.
+    vi.setSystemTime(3000);
+    mocks.findOne.mockRejectedValue(new Error('campaign offline'));
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ['outreach-campaign'] });
+    });
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledTimes(3),
+    );
+
+    vi.setSystemTime(3500);
+    mocks.findOne.mockResolvedValue({
+      campaignType: 'manual',
+      id: 'campaign-1',
+      label: 'Sequence',
+      platform: 'twitter',
+      status: 'draft',
+    });
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ['outreach-campaign'] });
+    });
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledTimes(4),
+    );
+
+    // The same failed page rendered again does not notify twice.
+    rerender();
+    expect(mocks.notificationsError).toHaveBeenCalledTimes(4);
+
+    // Back to the cached failed page 1: its own failure is the one shown.
+    mocks.searchParams = new URLSearchParams('page=1');
+    rerender();
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledTimes(5),
+    );
+  });
+});

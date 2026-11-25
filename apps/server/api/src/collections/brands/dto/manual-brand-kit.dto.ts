@@ -83,6 +83,11 @@ export class ManualBrandKitDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
+  visualDirection?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(255)
   guidanceDocumentName?: string;
 

@@ -21,6 +21,8 @@ import type {
 } from '@genfeedai/harness';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/;
 
 type BrandSource = Pick<
   Brand,
@@ -198,6 +200,23 @@ function readBrandOsString(
   return toOptionalString(readBrandOsValue(revision, key));
 }
 
+const MAX_VISUAL_DIRECTION_SENTENCES = 12;
+const MAX_VISUAL_DIRECTION_SENTENCE_LENGTH = 240;
+
+/**
+ * The owner's art direction as one entry per sentence, so a media prompt keeps
+ * or drops a sentence on its own and one stray word never removes the rest.
+ */
+function splitVisualDirection(text: string | undefined): string[] {
+  if (!text) return [];
+  return text
+    .split(LINE_BREAK_PATTERN)
+    .flatMap((line) => line.split(SENTENCE_BOUNDARY_PATTERN))
+    .map((sentence) => trimLine(sentence, MAX_VISUAL_DIRECTION_SENTENCE_LENGTH))
+    .filter(Boolean)
+    .slice(0, MAX_VISUAL_DIRECTION_SENTENCES);
+}
+
 function buildApprovedBrandOsVoice(
   revision: IBrandOsRevision,
 ): HarnessVoiceProfile {
@@ -265,9 +284,13 @@ function buildApprovedBrandOsIdentity(
         ...policy.bannedPhrases.map((phrase) => `Never write: ${phrase}`),
       ]
     : [];
+  const visualDirections = music
+    ? []
+    : splitVisualDirection(readBrandOsString(revision, 'visualDirection'));
   return {
     systemDirectives,
     styleDirectives,
+    ...(visualDirections.length > 0 ? { visualDirections } : {}),
     ...(guardrails.length > 0 ? { guardrails } : {}),
   };
 }

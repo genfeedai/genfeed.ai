@@ -277,6 +277,26 @@ describe('BrandOsRevisionsService', () => {
     });
   });
 
+  it('saves the visual direction on the brand and the draft revision, apart from the writing guidance', async () => {
+    const { brandWrites, service } = harness([row()]);
+
+    const result = await service.applyVisualIdentity(ORG, BRAND, {
+      visualDirection: 'Oil painting, monochrome.',
+    });
+
+    expect(brandWrites).toEqual([
+      { visualDirection: 'Oil painting, monochrome.' },
+    ]);
+    expect(result.content.fields.visualDirection).toMatchObject({
+      currentValue: 'Oil painting, monochrome.',
+      group: 'visual',
+      ownerPath: 'brand.visualDirection',
+    });
+    expect(result.content.fields.promptGuidelines?.currentValue).not.toBe(
+      'Oil painting, monochrome.',
+    );
+  });
+
   it('refuses an invalid palette before saving any visual fields', async () => {
     const { brandWrites, service } = harness([row()]);
 
