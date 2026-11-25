@@ -35,4 +35,4 @@ release path — it is lost work that looks finished.
   number (`claim_work_before_starting.md`). If a branch exists with no PR,
   open the PR from that branch instead of starting a new one.
 - Board sync treats a pushed branch without a PR as In Progress drift, not as
-  Human Review.
+  Review.
