@@ -6,7 +6,6 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/service
 import type { ElevenLabsConnectionService } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
 import type { HeyGenClonedVoice } from '@api/services/integrations/heygen/helpers/heygen-twin';
 import type { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
-import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ElevenLabsError } from '@elevenlabs/elevenlabs-js';
@@ -103,10 +102,6 @@ describe('VoiceCloneService', () => {
     cloneVoice: ReturnType<typeof vi.fn>;
     deleteVoice: ReturnType<typeof vi.fn>;
   };
-  let managedInferenceRuntime: {
-    cloneVoice: ReturnType<typeof vi.fn>;
-    isAvailable: ReturnType<typeof vi.fn>;
-  };
   let logger: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -137,10 +132,6 @@ describe('VoiceCloneService', () => {
       cloneVoice: vi.fn().mockResolvedValue({ voiceId: 'external-voice-1' }),
       deleteVoice: vi.fn(),
     };
-    managedInferenceRuntime = {
-      cloneVoice: vi.fn().mockResolvedValue({ jobId: 'job-1' }),
-      isAvailable: vi.fn().mockResolvedValue(true),
-    };
     logger = { error: vi.fn(), log: vi.fn() };
     notifications = { publishAssetStatus: vi.fn() };
     shared = {
@@ -157,7 +148,6 @@ describe('VoiceCloneService', () => {
       connections as unknown as ElevenLabsConnectionService,
       elevenLabs as unknown as ElevenLabsService,
       heyGen as unknown as HeyGenTwinService,
-      managedInferenceRuntime as unknown as ManagedInferenceRuntimeService,
       logger as unknown as LoggerService,
       notifications as unknown as NotificationsPublisherService,
       shared as unknown as SharedService,
@@ -211,7 +201,7 @@ describe('VoiceCloneService', () => {
     );
   });
 
-  it('accepts an asynchronous Fleet clone without settling controller credits', async () => {
+  it('refuses a Genfeed AI clone and creates nothing', async () => {
     await expect(
       service.clone(
         user,
@@ -223,43 +213,9 @@ describe('VoiceCloneService', () => {
         undefined,
         request,
       ),
-    ).resolves.toMatchObject({ id: ingredientId });
-    expect(request).toMatchObject({ creditsConfig: { deferred: true } });
-    expect(managedInferenceRuntime.cloneVoice).toHaveBeenCalledWith({
-      audioUrl: 'https://example.com/audio.mp3',
-      handle: ingredientId,
-      label: 'Clone',
-    });
-    expect(voices.patchAll).toHaveBeenCalledWith(
-      expect.objectContaining({ organizationId }),
-      {
-        providerData: { fleet: { jobId: 'job-1', jobKind: 'voice-clone' } },
-      },
-    );
-  });
-
-  it('marks an ingredient failed when Fleet rejects the clone job', async () => {
-    managedInferenceRuntime.cloneVoice.mockResolvedValue(null);
-
-    await expect(
-      service.clone(
-        user,
-        {
-          audioUrl: 'https://example.com/audio.mp3',
-          name: 'Clone',
-          provider: VoiceProvider.GENFEED_AI,
-        },
-        undefined,
-        request,
-      ),
-    ).rejects.toMatchObject({ status: HttpStatus.INTERNAL_SERVER_ERROR });
-    expect(voices.patchAll).toHaveBeenLastCalledWith(
-      expect.objectContaining({ organizationId }),
-      {
-        cloneStatus: VoiceCloneStatus.FAILED,
-        status: IngredientStatus.FAILED,
-      },
-    );
+    ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+    expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+    expect(voices.patchAll).not.toHaveBeenCalled();
   });
 
   it('tenant-scopes deletion and soft-deletes by the canonical voice id', async () => {

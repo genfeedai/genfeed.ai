@@ -195,13 +195,14 @@ export class StepExecutorService {
       }
 
       case VideoTaskModel.COMFYUI: {
-        const result = await this.managedInferenceRuntimeService.generateVideo({
-          imageUrl,
-          organizationId: context.organizationId,
-          prompt,
-        });
+        const result =
+          await this.managedInferenceRuntimeService.generateManagedVideoForOrg({
+            imageUrl,
+            organizationId: context.organizationId,
+            prompt,
+          });
         if (!result) {
-          throw new Error('Fleet videos instance not available');
+          throw new Error('Managed videos instance not available');
         }
         return this.pollComfyUIJob(result.jobId, context.organizationId);
       }
@@ -322,18 +323,19 @@ export class StepExecutorService {
 
   private async pollComfyUIJob(
     jobId: string,
-    organizationId?: string,
+    organizationId: string,
   ): Promise<StepResult> {
     const pollInterval = 10000;
     const timeout = 600000;
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-      const status = await this.managedInferenceRuntimeService.pollJob(
-        'videos',
-        jobId,
-        organizationId,
-      );
+      const status =
+        await this.managedInferenceRuntimeService.pollManagedJobForOrg(
+          organizationId,
+          'videos',
+          jobId,
+        );
 
       if (
         status &&

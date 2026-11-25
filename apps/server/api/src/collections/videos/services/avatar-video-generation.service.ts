@@ -808,7 +808,7 @@ export class AvatarVideoGenerationService {
       voiceDoc.sampleAudioUrl
     ) {
       const runtimeResult =
-        await this.managedInferenceRuntimeService.generateVoice({
+        await this.managedInferenceRuntimeService.generateManagedVoiceForOrg({
           organizationId,
           referenceAudio: voiceDoc.sampleAudioUrl,
           text,
@@ -824,11 +824,12 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      const pollResult = await this.managedInferenceRuntimeService.pollJob(
-        'voices',
-        runtimeResult.jobId,
-        organizationId,
-      );
+      const pollResult =
+        await this.managedInferenceRuntimeService.pollManagedJobForOrg(
+          organizationId,
+          'voices',
+          runtimeResult.jobId,
+        );
 
       if (!pollResult?.audioUrl || typeof pollResult.audioUrl !== 'string') {
         throw new HttpException(

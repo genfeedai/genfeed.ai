@@ -144,10 +144,6 @@ export interface IEnvConfig {
   /** Overrides the documented host `https://api.higgsfield.ai`. */
   HIGGSFIELD_API_BASE_URL?: string;
 
-  GPU_IMAGES_URL?: string;
-  GPU_VOICES_URL?: string;
-  GPU_VIDEOS_URL?: string;
-
   ANTHROPIC_API_KEY?: string;
 
   OPENAI_API_KEY?: string;

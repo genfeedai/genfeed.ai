@@ -5,7 +5,6 @@ import {
   elevenlabsSchema,
   falSchema,
   generalAiSchema,
-  gpuFleetSchema,
   hedraSchema,
   heygenSchema,
   higgsfieldSchema,
@@ -391,28 +390,6 @@ describe('Config Schemas', () => {
 
     it('should validate with defaults when optional', () => {
       const schema = Joi.object(newsApiSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
-  describe('gpuFleetSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof gpuFleetSchema).toBe('object');
-      const keys = Object.keys(gpuFleetSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(
-          Joi.isSchema((gpuFleetSchema as Record<string, unknown>)[key]),
-        ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(gpuFleetSchema);
       const { error } = schema.validate({}, { allowUnknown: true });
       // Some schemas have required fields, so error is acceptable
       if (error) {

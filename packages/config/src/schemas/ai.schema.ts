@@ -156,15 +156,6 @@ export const newsApiSchema = {
 };
 
 /**
- * GPU Fleet — self-hosted GPU instances (images, voices, videos)
- */
-export const gpuFleetSchema = {
-  GPU_IMAGES_URL: Joi.string().uri().optional(),
-  GPU_VIDEOS_URL: Joi.string().uri().optional(),
-  GPU_VOICES_URL: Joi.string().uri().optional(),
-};
-
-/**
  * Training credits pricing
  */
 /**
