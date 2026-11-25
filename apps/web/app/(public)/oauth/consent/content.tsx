@@ -51,6 +51,7 @@ import type {
   ConsentState,
   OAuthDecisionResponse,
 } from '@/features/auth/props/oauth-consent-content.props';
+import OAuthConsentFallback from './consent-fallback';
 import { redirectToOAuthClient } from './redirect';
 
 const WHITESPACE_RUN_PATTERN = /\s+/;
@@ -587,7 +588,7 @@ export default function OAuthConsentContent() {
   }
 
   if (!isLoaded) {
-    return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
+    return <OAuthConsentFallback />;
   }
 
   // Someone without a session signs in or signs up right here, with every

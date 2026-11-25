@@ -7,6 +7,7 @@ import {
 import { SkillsQueryDto } from '@api/collections/skills/dto/skills-query.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { resolvePageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -18,6 +19,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { SkillSurface } from '@genfeedai/contracts';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { parseSkillSurface } from '@genfeedai/helpers';
 import { SkillSerializer } from '@genfeedai/serializers';
 import {
@@ -130,6 +132,7 @@ export class SkillsController {
   }
 
   @Post('skills')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createSkill(
     @Req() req: Request,
     @CurrentUser() user: User,
@@ -146,6 +149,7 @@ export class SkillsController {
   }
 
   @Post('skills/:id/customize')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async customizeSkill(
     @Req() req: Request,
     @CurrentUser() user: User,
@@ -167,6 +171,7 @@ export class SkillsController {
   }
 
   @Patch('skills/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateSkill(
     @Req() req: Request,
     @CurrentUser() user: User,

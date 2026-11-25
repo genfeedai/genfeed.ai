@@ -8,7 +8,6 @@ import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import Spinner from '@ui/primitives/spinner';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
@@ -18,6 +17,7 @@ import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desk
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import { ProtectedAuthGate } from '@/providers/protected-providers/protected-providers';
+import OnboardingShellFallback from './onboarding/components/onboarding-shell-fallback';
 import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
@@ -53,9 +53,7 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
         />
       </main>
     ) : (
-      <main className="flex min-h-dvh w-full items-center justify-center bg-background">
-        <Spinner className="size-16 text-primary" />
-      </main>
+      <OnboardingShellFallback />
     )
   ) : (
     <FeatureFlagProvider defaults={platformFlags}>
@@ -84,5 +82,9 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
     return content;
   }
 
-  return <ProtectedAuthGate>{content}</ProtectedAuthGate>;
+  return (
+    <ProtectedAuthGate fallback={<OnboardingShellFallback />}>
+      {content}
+    </ProtectedAuthGate>
+  );
 }

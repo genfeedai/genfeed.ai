@@ -32,6 +32,7 @@ import StudioPlaygroundTopbar from '@/features/studio/playground/components/Stud
 import { useStudioAssetActions } from '@/features/studio/playground/hooks/useStudioAssetActions';
 import { useStudioAttachedAssets } from '@/features/studio/playground/hooks/useStudioAttachedAssets';
 import { useStudioAttachmentUploads } from '@/features/studio/playground/hooks/useStudioAttachmentUploads';
+import { useStudioBrandDefaultReferences } from '@/features/studio/playground/hooks/useStudioBrandDefaultReferences';
 import { useStudioComposerContextGroups } from '@/features/studio/playground/hooks/useStudioComposerContextGroups';
 import { useStudioComposerState } from '@/features/studio/playground/hooks/useStudioComposerState';
 import { useStudioContentReferenceActions } from '@/features/studio/playground/hooks/useStudioContentReferenceActions';
@@ -391,6 +392,15 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     type,
     updateSettings,
   });
+  const brandDefaults = useStudioBrandDefaultReferences({
+    brandId,
+    hasOwnReferences:
+      attachments.length > 0 ||
+      contentReferences.length > 0 ||
+      restoredAttachments.length > 0,
+    settings,
+    type,
+  });
   const handleStarterIdea = useStudioStarterIdea({
     brandId,
     setAgentPromptSeed,
@@ -433,6 +443,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   } = useStudioSubmit({
     agentPromptSeed,
     attachedReferenceSources,
+    brandReferences: brandDefaults.request,
     cancelJob,
     clearAttachments,
     crunModel,
@@ -522,6 +533,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const { attachedAssets, handleRemoveAttachedAsset, resolveAttachmentRole } =
     useStudioAttachedAssets({
       attachments,
+      brandDefaults,
       clearCrunRestore,
       contentReferences,
       getAttachmentRole,

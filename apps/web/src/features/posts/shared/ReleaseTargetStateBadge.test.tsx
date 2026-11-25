@@ -10,7 +10,7 @@ vi.mock('next-intl', async () => {
 });
 
 describe('ReleaseTargetStateBadge', () => {
-  it('reads Delivered to TikTok Inbox for an Inbox receipt stored as published', () => {
+  it('reads Delivered for an Inbox receipt stored as published', () => {
     render(
       <ReleaseTargetStateBadge
         executionState={TargetExecutionState.PUBLISHED}
@@ -18,7 +18,7 @@ describe('ReleaseTargetStateBadge', () => {
       />,
     );
 
-    expect(screen.getByText('Delivered to TikTok Inbox')).toBeInTheDocument();
+    expect(screen.getByText('Delivered')).toBeInTheDocument();
     expect(screen.queryByText(/^published$/i)).not.toBeInTheDocument();
   });
 
@@ -30,8 +30,6 @@ describe('ReleaseTargetStateBadge', () => {
     );
 
     expect(screen.getByText(/published/i)).toBeInTheDocument();
-    expect(
-      screen.queryByText('Delivered to TikTok Inbox'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Delivered')).not.toBeInTheDocument();
   });
 });

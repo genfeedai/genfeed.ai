@@ -55,6 +55,12 @@ function assertMissing(target, reason) {
   }
 }
 
+function assertPresent(target, reason) {
+  if (!fs.existsSync(target)) {
+    throw new Error(`${reason}: ${target}`);
+  }
+}
+
 function assertWithinBudget(label, bytes, budgetMib) {
   const sizeMib = bytes / MEBIBYTE;
 
@@ -96,6 +102,17 @@ assertMissing(
   path.join(appServerRoot, '(protected)', 'admin'),
   'Platform admin routes leaked into the packaged app shell',
 );
+
+// `/serwist/sw.js` ends in `//# sourceMappingURL=sw.js.map`, and the route
+// answers each file from its prerendered body. A missing body does not 404:
+// the packaged server falls back to compiling `app/sw.ts`, which it does not
+// ship, and answers 500 (#6302).
+for (const file of ['sw.js.body', 'sw.js.map.body']) {
+  assertPresent(
+    path.join(appServerRoot, 'serwist', file),
+    'Service worker output is missing from the packaged app shell',
+  );
+}
 
 const oversizedManifests = findOversizedManifests(
   listRouteManifests(appServerRoot),

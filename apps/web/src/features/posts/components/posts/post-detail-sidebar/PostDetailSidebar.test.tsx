@@ -219,7 +219,7 @@ describe('PostDetailSidebar', () => {
       />,
     );
 
-    expect(screen.getByText('Delivered to TikTok Inbox')).toBeVisible();
+    expect(screen.getByText('Delivered')).toBeVisible();
     expect(
       screen.getByText('Open your TikTok Inbox to finish editing and publish.'),
     ).toBeVisible();
@@ -251,9 +251,7 @@ describe('PostDetailSidebar', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Published' })).toBeVisible();
-    expect(
-      screen.queryByText('Delivered to TikTok Inbox'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Delivered')).not.toBeInTheDocument();
   });
 
   it('only shows Details | Preview tabs when a preview is provided', async () => {

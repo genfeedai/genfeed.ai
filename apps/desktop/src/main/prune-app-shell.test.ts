@@ -10,7 +10,6 @@ interface PruneAppShell {
   compactBuildJson(nextDirectory: string): number;
   pruneFullSegmentPayloads(serverDirectory: string): number;
   pruneTracedSourceFiles(serverDirectory: string): number;
-  pruneUnusedBuildFiles(serverRoot: string): number;
   pruneUnusedNextRuntimeFiles(nodeModulesRoot: string): number;
 }
 
@@ -140,16 +139,6 @@ describe('desktop app shell pruning', () => {
       'load.js',
       'react-dom-server.node.production.js',
     ]);
-  });
-
-  it('removes the service worker source map body and keeps the worker', () => {
-    write('.next/server/app/serwist/sw.js.map.body', 'map');
-    write('.next/server/app/serwist/sw.js.body', 'worker');
-
-    expect(prune.pruneUnusedBuildFiles(root)).toBe('map'.length);
-    expect(fs.readdirSync(path.join(root, '.next/server/app/serwist'))).toEqual(
-      ['sw.js.body'],
-    );
   });
 
   it('removes full-page segment payloads only where the HTML does not request them', () => {

@@ -1444,6 +1444,17 @@ describe('ImageGenerationService', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('adds nothing when the caller removed the defaults it was shown', async () => {
+      const { dispatched, harness } = await generate({
+        skipBrandReferences: true,
+      });
+
+      expect(dispatched).not.toContain(urlOf(styleId));
+      expect(
+        harness.brandsService.resolveBrandKitAssets,
+      ).not.toHaveBeenCalled();
+    });
+
     it('adds nothing for a brand without references', async () => {
       const { dispatched } = await generate({}, { references: [] });
 

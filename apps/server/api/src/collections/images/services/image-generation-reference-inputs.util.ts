@@ -19,7 +19,8 @@ export interface ImageReferenceInputs {
 /**
  * The reference images a request dispatches with. A request that attached
  * nothing gets the brand's own references (style, then product), unless it is
- * an edit, branding is off or the prompt runs raw. The receipt records the
+ * an edit, branding is off, the prompt runs raw or the caller removed the
+ * defaults it was shown (`skipBrandReferences`). The receipt records the
  * attached asset ids, or why a model that accepts none got none.
  */
 export const resolveImageReferenceInputs = traced(
@@ -42,6 +43,7 @@ export const resolveImageReferenceInputs = traced(
       params.isEditing ||
       generationHarness.brandMode === 'raw' ||
       createImageDto.brandingMode === 'off' ||
+      createImageDto.skipBrandReferences === true ||
       params.referenceIds.length > 0
         ? undefined
         : resolveBrandDefaultReferences({

@@ -8,6 +8,7 @@ import { AttributionService } from '@api/collections/content-performance/service
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -18,6 +19,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ContentPerformanceSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -51,6 +53,7 @@ export class ContentPerformanceController {
    * POST /content-performance
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() req: Request,
@@ -92,6 +95,7 @@ export class ContentPerformanceController {
    * POST /content-performance/import/csv
    */
   @Post('import/csv')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importCsv(@Body() dto: ImportCsvDto, @CurrentUser() user: User) {
     return this.contentPerformanceService.importCsv(
@@ -106,6 +110,7 @@ export class ContentPerformanceController {
    * POST /content-performance/import/manual
    */
   @Post('import/manual')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importManual(
     @Req() req: Request,
@@ -126,6 +131,7 @@ export class ContentPerformanceController {
    * POST /content-performance/manual-import
    */
   @Post('manual-import')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async manualImport(
     @Req() req: Request,
@@ -234,6 +240,7 @@ export class ContentPerformanceController {
    * DELETE /content-performance/:id
    */
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async delete(@Param('id') id: string, @CurrentUser() user: User) {
     const record = await this.contentPerformanceService.findOneSelect(
