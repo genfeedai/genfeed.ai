@@ -890,7 +890,7 @@ export type Flux2DevCapabilityProfile = z.infer<
   typeof flux2DevCapabilityProfileSchema
 >;
 
-export const FLUX_2_DEV_CAPABILITY_PROFILE_VERSION = 1;
+export const FLUX_2_DEV_CAPABILITY_PROFILE_VERSION = 2;
 export const FLUX_V2_ASPECT_RATIOS = [
   '1:1',
   '16:9',
@@ -932,6 +932,7 @@ export const FLUX_2_DEV_CAPABILITY_PROFILE =
     references: {
       max: 4,
       nativeFields: ['input_images'],
+      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
       roles: ALL_IMAGE_REFERENCE_ROLES,
     },
     resolution: { supported: false },
@@ -961,7 +962,7 @@ export type Flux2FlexCapabilityProfile = z.infer<
   typeof flux2FlexCapabilityProfileSchema
 >;
 
-export const FLUX_2_FLEX_CAPABILITY_PROFILE_VERSION = 1;
+export const FLUX_2_FLEX_CAPABILITY_PROFILE_VERSION = 2;
 export const FLUX_2_FLEX_CAPABILITY_PROFILE_ID = 'flux-2-flex-capability';
 export const FLUX_2_FLEX_MODEL_KEY = 'black-forest-labs/flux-2-flex';
 export const FLUX_2_FLEX_CAPABILITY_PROFILE =
@@ -994,6 +995,7 @@ export const FLUX_2_FLEX_CAPABILITY_PROFILE =
     references: {
       max: 10,
       nativeFields: ['input_images'],
+      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
       roles: ALL_IMAGE_REFERENCE_ROLES,
     },
     resolution: { supported: true },
@@ -1020,7 +1022,7 @@ export type Flux2ProCapabilityProfile = z.infer<
   typeof flux2ProCapabilityProfileSchema
 >;
 
-export const FLUX_2_PRO_CAPABILITY_PROFILE_VERSION = 1;
+export const FLUX_2_PRO_CAPABILITY_PROFILE_VERSION = 2;
 
 function buildFlux2ProCapabilityProfile(
   id: string,
@@ -1048,6 +1050,7 @@ function buildFlux2ProCapabilityProfile(
     references: {
       max: 8,
       nativeFields: ['input_images'],
+      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
       roles: ALL_IMAGE_REFERENCE_ROLES,
     },
     resolution: { supported: true },

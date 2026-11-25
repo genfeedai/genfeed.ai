@@ -5,6 +5,6 @@
   "input_images": ["asset_product_123", "asset_product_124"],
   "output_format": "jpg",
   "output_quality": 80,
-  "prompt": "Create a launch image for the new bottle. Reusable bottle. sun-drenched ceramics studio. Centered product portrait. soft window light. Clean editorial product photography. Visible text: NEW. Keep the bottle label readable",
+  "prompt": "Create a launch image for the new bottle. Reusable bottle. sun-drenched ceramics studio. Centered product portrait. soft window light. Clean editorial product photography. Visible text: NEW. Keep the bottle label readable. Image 1 is the product: keep it exactly. Image 2 is the product: keep it exactly",
   "seed": 42
 }
