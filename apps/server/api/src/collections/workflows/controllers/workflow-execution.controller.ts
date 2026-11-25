@@ -15,11 +15,13 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/contracts';
@@ -71,6 +73,7 @@ export class WorkflowExecutionController {
    * so a 1-node prompt actually executes.
    */
   @Post(':workflowId/execute')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async execute(
@@ -121,6 +124,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/execute/partial')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async executePartial(
@@ -152,6 +156,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/execute/resume/:runId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resumeExecution(
@@ -219,6 +224,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/executions/:executionId/approve')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async submitApproval(
@@ -266,6 +272,7 @@ export class WorkflowExecutionController {
    * `lock` adds node ids to the locked set, `unlock` removes them.
    */
   @Patch(':workflowId/nodes')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async patchNodes(
