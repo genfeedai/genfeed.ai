@@ -15,10 +15,12 @@ import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -29,6 +31,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -76,6 +79,7 @@ export class TasksController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   override async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -221,12 +225,10 @@ export class TasksController extends BaseCRUDController<
       ];
     }
 
-    // Numeric direction (1 = asc, -1 = desc); the BaseService query normalizer
-    // maps these to Prisma values. Array form preserves reviewState asc, then
-    // updatedAt desc, matching the legacy /inbox route.
-    // The explicit SortObject[] annotation stops TS from widening the mixed-key
-    // array literal to a `{ key: dir; other?: undefined }` union that would break
-    // the Record index signature on the base buildFindAllQuery return type.
+    // Numeric direction (1 = asc, -1 = desc), mapped to Prisma by the BaseService
+    // normalizer; reviewState asc then updatedAt desc, as the legacy /inbox route.
+    // The SortObject[] annotation stops TS widening the mixed-key array literal to
+    // a union that would break the base buildFindAllQuery return type.
     const sort: SortObject | SortObject[] =
       query.view === 'inbox'
         ? [{ reviewState: 1 }, { updatedAt: -1 }]
@@ -304,6 +306,7 @@ export class TasksController extends BaseCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   override async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -347,11 +350,7 @@ export class TasksController extends BaseCRUDController<
     return result;
   }
 
-  /**
-   * Apply a review transition (approve/request-changes/dismiss) driven by the
-   * `reviewState` field on a `PATCH /tasks/:id`. The transition is exclusive —
-   * it cannot be combined with other field updates.
-   */
+  /** Review transition driven by `reviewState` on `PATCH /tasks/:id`; exclusive with other field updates. */
   private async applyReviewTransition(
     request: Request,
     user: User,
@@ -404,11 +403,9 @@ export class TasksController extends BaseCRUDController<
     return serializeSingle(request, TaskSerializer, doc);
   }
 
-  /**
-   * Keep or un-keep a task output. `isKept: true` marks the output as an
-   * approved keeper; `false` reverts it.
-   */
+  /** Keep or un-keep a task output: `isKept: true` marks an approved keeper. */
   @Patch(':id/outputs/:outputId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async setOutputKept(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -430,10 +427,9 @@ export class TasksController extends BaseCRUDController<
     return serializeSingle(request, TaskSerializer, doc);
   }
 
-  /**
-   * Trash (soft-delete) a task output.
-   */
+  /** Trash (soft-delete) a task output. */
   @Delete(':id/outputs/:outputId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async trashOutput(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -453,6 +449,7 @@ export class TasksController extends BaseCRUDController<
   }
 
   @Post(':id/checkout')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   async checkout(
     @Req() request: Request,
@@ -482,6 +479,7 @@ export class TasksController extends BaseCRUDController<
   }
 
   @Post(':id/release')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   async release(
     @Req() request: Request,
