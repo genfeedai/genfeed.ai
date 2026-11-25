@@ -1,3 +1,4 @@
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 /**
@@ -26,7 +27,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -73,6 +78,7 @@ export class TrainingsOperationsController {
   ) {}
 
   @Post(':trainingId/train')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async relaunchTraining(
     @Req() request: Request,

@@ -10,11 +10,12 @@ import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ApiKeyScope } from '@genfeedai/contracts';
 import { ContentRunSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -32,6 +33,7 @@ export class BrandRemixGenerationController {
   constructor(private readonly generation: BrandRemixGenerationService) {}
 
   @Post('content-runs/:id/remix/generation/quote')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async quote(
     @Req() request: Request,
     @Param('id') id: string,
@@ -46,6 +48,7 @@ export class BrandRemixGenerationController {
   }
 
   @Post('content-runs/:id/remix/generation/execute')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Credits({
     description: 'Brand remix generation',
     source: ActivitySource.SCRIPT,

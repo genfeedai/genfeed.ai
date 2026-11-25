@@ -7,13 +7,18 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { claimOAuth1VerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
-import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  CredentialPlatform,
+  MemberRole,
+} from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -67,6 +72,7 @@ export class XAdsController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async connect(
     @Req() request: Request,
@@ -137,6 +143,7 @@ export class XAdsController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async verify(
     @Req() request: Request,

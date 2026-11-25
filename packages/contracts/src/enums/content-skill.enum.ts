@@ -32,3 +32,13 @@ export enum SkillSurface {
   AGENT = 'agent',
   STUDIO = 'studio',
 }
+
+/**
+ * Where a skill executes. A web skill runs in the Agent, on web and in Desktop.
+ * A desktop skill needs tools a browser tab cannot reach (Chrome, ffmpeg), so it
+ * runs in a Claude Code session in the Desktop terminal.
+ */
+export enum SkillRunsOn {
+  DESKTOP = 'desktop',
+  WEB = 'web',
+}

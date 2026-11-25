@@ -4,11 +4,13 @@ import {
   SourcePostNativeActionDto,
 } from '@api/collections/social-sources/dto/social-timeline.dto';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { resolveRequiredBrandRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { SocialTimelineService } from '@api/services/social-timeline/social-timeline.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   Body,
   Controller,
@@ -38,6 +40,7 @@ export class SocialTimelineController {
   }
 
   @Post('refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   refresh(
     @CurrentUser() user: AuthenticatedUser,
@@ -51,6 +54,7 @@ export class SocialTimelineController {
   }
 
   @Post('posts/:id/actions')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   act(
     @CurrentUser() user: AuthenticatedUser,

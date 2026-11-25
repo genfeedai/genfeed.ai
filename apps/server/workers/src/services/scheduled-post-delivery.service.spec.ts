@@ -2307,6 +2307,81 @@ describe('ScheduledPostDeliveryService', () => {
     });
   });
 
+  describe('provider outcomes that end a post', () => {
+    function mockPublisherThrowing(error: PublishError) {
+      const publish = vi.fn().mockRejectedValue(error);
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish,
+        supportsThreads: false,
+      });
+      return publish;
+    }
+
+    function failedWrite() {
+      return mocks.schedulerPublishStateService.transitionPost.mock.calls
+        .map((call) => call[1])
+        .find(
+          (update) => update.executionState === TargetExecutionState.FAILED,
+        );
+    }
+
+    it('stops at once on an exhausted provider balance, with one provider call and a warning', async () => {
+      const publish = mockPublisherThrowing(
+        new PublishError(
+          PublishErrorKind.PROVIDER_CREDITS_DEPLETED,
+          'X API credits depleted. Add credits to the X developer account, then retry.',
+        ),
+      );
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 0 }),
+        'scheduled_sweep',
+      );
+
+      expect(publish).toHaveBeenCalledTimes(1);
+      expect(failedWrite()).toMatchObject({
+        error: {
+          code: 'provider_credits_depleted',
+          isRetryable: false,
+        },
+      });
+      expect(mocks.logger.error).not.toHaveBeenCalled();
+    });
+
+    it('fails a duplicate X post under its own code without retrying it', async () => {
+      const publish = mockPublisherThrowing(
+        new PublishError(
+          PublishErrorKind.CONTENT_REJECTED,
+          'You are not allowed to create a Tweet with duplicate content.',
+          { httpStatus: 403, providerCode: 'duplicate_content' },
+        ),
+      );
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 0 }),
+        'scheduled_sweep',
+      );
+
+      expect(publish).toHaveBeenCalledTimes(1);
+      expect(failedWrite()).toMatchObject({
+        error: { code: 'duplicate_content', isRetryable: false },
+      });
+      expect(mocks.logger.error).not.toHaveBeenCalled();
+    });
+
+    it('still logs an error for a failure the provider never explained', async () => {
+      mockPublisherThrowing(
+        new Error('Cannot read properties of undefined') as PublishError,
+      );
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(mocks.logger.error).toHaveBeenCalled();
+    });
+  });
+
   describe('provider rate limits', () => {
     function mockRateLimitedPublisher(retryAfterMs?: number) {
       const publish = vi.fn().mockResolvedValue({

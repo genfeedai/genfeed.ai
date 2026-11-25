@@ -14,11 +14,13 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
+  DUPLICATE_CONTENT_PROVIDER_CODE,
   type IChannelTargetError,
   PublishError,
   readPublishErrorKind,
 } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
@@ -72,6 +74,8 @@ function codeForKind(kind: PublishErrorKind): string {
       return 'token_must_refresh';
     case PublishErrorKind.CONTENT_REJECTED:
       return 'content_rejected';
+    case PublishErrorKind.PROVIDER_CREDITS_DEPLETED:
+      return 'provider_credits_depleted';
     case PublishErrorKind.CHANNEL_DISCONNECTED:
       return 'channel_disconnected';
   }
@@ -79,7 +83,13 @@ function codeForKind(kind: PublishErrorKind): string {
 
 export function getPublishErrorCode(error: unknown): string {
   const kind = readPublishErrorKind(error);
-  if (kind) return codeForKind(kind);
+  if (kind) {
+    return kind === PublishErrorKind.CONTENT_REJECTED &&
+      isRecord(error) &&
+      error.providerCode === DUPLICATE_CONTENT_PROVIDER_CODE
+      ? DUPLICATE_CONTENT_PROVIDER_CODE
+      : codeForKind(kind);
+  }
   const rawCode =
     isRecord(error) && 'code' in error
       ? String(error.code ?? '').toLowerCase()
@@ -259,4 +269,30 @@ export function createPublishUnverifiedActivity(
     userId: readPostString(post, ['userId']) ?? null,
     value: summary,
   };
+}
+
+/**
+ * Logs a failed publish attempt. A classified provider outcome (the publisher
+ * read the provider's answer and said what it means) is reported once, when it
+ * ends the post, so it is a warning here. Any other failure is a fault.
+ */
+export function logPublishFailure(
+  logger: Pick<LoggerService, 'error' | 'warn'>,
+  message: string,
+  context: Record<string, unknown>,
+  cause: unknown,
+): void {
+  if (readPublishErrorKind(cause) === null) {
+    logger.error(message, context);
+    return;
+  }
+  logger.warn(message, context);
+}
+
+/**
+ * Whether a terminal failure is something the owner fixes by editing the post.
+ * It is told by the failure alert and is not an alert for the team.
+ */
+export function isOwnerActionablePublishCode(errorCode: string): boolean {
+  return errorCode === DUPLICATE_CONTENT_PROVIDER_CODE;
 }

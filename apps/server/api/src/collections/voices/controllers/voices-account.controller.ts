@@ -3,6 +3,7 @@ import { AccountVoicesQueryDto } from '@api/collections/voices/dto/account-voice
 import { ImportAccountVoiceDto } from '@api/collections/voices/dto/import-account-voice.dto';
 import { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -11,6 +12,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   ElevenLabsAccountVoicePage,
   JsonApiSingleResponse,
@@ -57,6 +59,7 @@ export class VoicesAccountController {
   }
 
   @Post('elevenlabs/account/import')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     operationId: 'VoicesController.importAccountVoice',
     summary: 'importAccountVoice',
@@ -76,6 +79,7 @@ export class VoicesAccountController {
   }
 
   @Delete('imported/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     operationId: 'VoicesController.unlinkImportedVoice',
     summary: 'unlinkImportedVoice',

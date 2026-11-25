@@ -34,6 +34,15 @@ export class SkillsQueryDto extends PaginationQueryDto {
   @MaxLength(32)
   modality?: string;
 
+  @ApiProperty({
+    description: 'Filter by where the skill runs: web or desktop',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  runsOn?: string;
+
   @ApiProperty({ description: 'Filter by workflow stage', required: false })
   @IsOptional()
   @IsString()

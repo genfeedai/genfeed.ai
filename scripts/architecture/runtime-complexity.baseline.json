@@ -66,7 +66,7 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1024,
+    "actual": 991,
     "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
@@ -246,7 +246,7 @@
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts"
   },
   {
-    "actual": 1175,
+    "actual": 964,
     "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx"

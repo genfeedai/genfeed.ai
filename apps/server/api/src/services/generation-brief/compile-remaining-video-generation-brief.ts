@@ -1,5 +1,4 @@
 import {
-  fitBrandContextToPromptBudget,
   joinGenerationBriefPromptParts,
   recordOmittedGenerationBriefSignal,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
@@ -251,19 +250,6 @@ export function compileRemainingVideoGenerationBrief(
     }
   }
 
-  // Independent of fidelity policy — brand voice follows Brand voice only.
-  // Fit into whatever budget is left after everything else (#4676).
-  const fittedBrandContext = fitBrandContextToPromptBudget({
-    brandContext: brief.intent.brandContext,
-    maxCharacters: profile.prompt.maxCharacters,
-    modelLabel: spec.modelLabel,
-    omitted,
-    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
-  });
-  if (fittedBrandContext) {
-    parts.push(fittedBrandContext);
-  }
-
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
@@ -398,7 +384,6 @@ export function compileRemainingVideoGenerationBrief(
       ...(brief.intent.motion ? ['intent.motion'] : []),
       ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
       ...(brief.intent.audioDirection ? ['intent.audioDirection'] : []),
-      ...(brief.intent.brandContext ? ['intent.brandContext'] : []),
       ...(firstFrameAssetId ? ['references.first_frame'] : []),
       ...(lastFrameAssetId ? ['references.last_frame'] : []),
       ...[...extraReferenceRoles]

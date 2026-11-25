@@ -7,6 +7,7 @@ import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-f
 import { type FontFamilyDocument } from '@api/collections/font-families/schemas/font-family.schema';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -15,6 +16,7 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { FontFamilySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -83,6 +85,7 @@ export class FontFamiliesController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   create(
@@ -94,6 +97,7 @@ export class FontFamiliesController extends BaseCRUDController<
   }
 
   @Patch(':fontFamilyId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
@@ -109,6 +113,7 @@ export class FontFamiliesController extends BaseCRUDController<
   }
 
   @Delete(':fontFamilyId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(

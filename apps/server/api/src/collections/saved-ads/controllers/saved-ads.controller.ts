@@ -7,6 +7,7 @@ import {
 } from '@api/collections/saved-ads/dto/saved-ad.dto';
 import { SavedAdsService } from '@api/collections/saved-ads/services/saved-ads.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,6 +17,7 @@ import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { SavedAdSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -61,6 +63,7 @@ export class SavedAdsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async save(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -81,6 +84,7 @@ export class SavedAdsController {
   }
 
   @Patch()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateNotes(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -100,6 +104,7 @@ export class SavedAdsController {
   }
 
   @Delete()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async unsave(
     @CurrentUser() user: User,
     @Body(new ParseArrayPipe({ items: UnsaveSavedAdDto }))

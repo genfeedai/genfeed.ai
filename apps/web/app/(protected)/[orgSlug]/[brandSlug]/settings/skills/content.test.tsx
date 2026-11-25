@@ -352,6 +352,32 @@ describe('BrandSettingsSkillsPage', () => {
   });
 
   it.each([
+    { expected: 'desktop', filter: 'Desktop' },
+    { expected: 'web', filter: 'Web' },
+  ])(
+    'asks the server for the $filter runs on filter',
+    async ({ expected, filter }) => {
+      const user = userEvent.setup();
+      render(<BrandSettingsSkillsPage />);
+      expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
+
+      await user.click(screen.getByRole('button', { name: /^Filters/ }));
+      screen.getByRole('menuitem', { name: /^Runs on/ }).focus();
+      await user.keyboard('{ArrowRight}');
+      await user.click(
+        await screen.findByRole('menuitemradio', { name: filter }),
+      );
+
+      await waitFor(() =>
+        expect(listSkillsPageMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ page: 1, runsOn: expected }),
+          expect.any(AbortSignal),
+        ),
+      );
+    },
+  );
+
+  it.each([
     { expected: 'image', filter: 'Image' },
     { expected: 'video', filter: 'Video' },
     { expected: 'text', filter: 'Text' },

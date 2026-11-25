@@ -1,8 +1,6 @@
 import type { AgentExternalRuntimeKey } from '../constants/agent-external-runtime.constant';
 import type { IAgentThreadExternalRuntime } from '../interfaces/ai/agent-external-turn.interface';
 
-/* Desktop IPC Channel Names */
-
 /**
  * Build-time switch for the local/offline runtime mode (PGlite workspace).
  * Genfeed Desktop is cloud-only while this is `false`: the renderer hides every
@@ -950,6 +948,8 @@ export interface IDesktopTerminalCreateOptions {
   /** Absolute directory to start in; ignored when it does not exist. */
   cwd?: string;
   kind?: DesktopTerminalKind;
+  /** Opening prompt of a `claude` session, passed as its one argument; ignored for other kinds. */
+  prompt?: string;
   rows?: number;
   workspaceId?: string | null;
 }

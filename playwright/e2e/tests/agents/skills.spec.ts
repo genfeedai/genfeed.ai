@@ -41,7 +41,7 @@ test.describe('Brand Skills settings', () => {
     ).toBeVisible();
   });
 
-  test('search carries the Source, Modality and Stage Filters inside its field', async ({
+  test('search carries the Runs on, Source, Modality and Stage Filters inside its field', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(brandPath(APP_ROUTES.SETTINGS.SKILLS), {
@@ -60,11 +60,51 @@ test.describe('Brand Skills settings', () => {
       authenticatedPage.getByText('YouTube Script Setup').first(),
     ).toBeVisible();
 
-    for (const facet of ['Source', 'Modality', 'Stage']) {
+    for (const facet of ['Runs on', 'Source', 'Modality', 'Stage']) {
       await openFilterFacet(authenticatedPage, facet, field);
       await authenticatedPage.keyboard.press('Escape');
       await authenticatedPage.keyboard.press('Escape');
     }
+  });
+
+  test('marks a desktop skill and offers Get Desktop instead of a run on web', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.SETTINGS.SKILLS), {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const table = authenticatedPage.getByRole('table', {
+      name: 'Catalog',
+      exact: true,
+    });
+    await expect(
+      table.getByRole('columnheader', { name: 'Runs on' }),
+    ).toBeVisible();
+    await expect(table.getByText('Desktop', { exact: true })).toBeVisible();
+
+    await authenticatedPage.getByText('Motion Video', { exact: true }).click();
+
+    const getDesktop = authenticatedPage.getByRole('link', {
+      name: 'Get Desktop',
+    });
+    await expect(getDesktop).toHaveAttribute(
+      'href',
+      'https://genfeed.ai/desktop',
+    );
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Run In Terminal' }),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Open sample prompt' }),
+    ).toHaveCount(0);
+
+    await authenticatedPage
+      .getByText('YouTube Script Setup', { exact: true })
+      .click();
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Get Desktop' }),
+    ).toHaveCount(0);
   });
 });
 

@@ -1287,92 +1287,25 @@ describe('ImageGenerationService', () => {
       ).toHaveBeenCalledWith(ORG, 20);
     });
 
-    // #10186: Brand voice comes from the approved revision the enhancement
-    // receipt carries, never from the live brand row or a template.
-    describe('brand voice injection (#10186)', () => {
-      const fluxSchnellModel =
-        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
-      const brandVoice = 'Brand voice for Brand:\nTone: warm and direct';
+    // #11030: tone, audience and values are copy concepts; an image model
+    // draws or ignores them, so nothing about writing voice reaches the prompt.
+    it('adds no brand voice text to a compiled image prompt', async () => {
+      const { service, replicateService } = createService();
 
-      function withBrandVoice(
-        enhancementService: ReturnType<
-          typeof createService
-        >['enhancementService'],
-      ) {
-        enhancementService.enhance.mockImplementation(
-          async (input: { prompt: string; brandId: string }) => ({
-            originalPrompt: input.prompt,
-            enhancedPrompt: input.prompt,
-            brandId: input.brandId,
-            brandVoice,
-            status: 'applied',
-            source: 'default',
-            appliedPacks: [],
-          }),
-        );
-      }
-
-      it.each([
-        ['brand', 'brand'],
-        ['unset (MCP and agent calls)', undefined],
-      ] as const)(
-        'injects the approved revision brand voice when branding is %s',
-        async (_label, brandingMode) => {
-          const { service, replicateService, enhancementService } =
-            createService();
-          withBrandVoice(enhancementService);
-
-          await service.generateImage(
-            buildUser(),
-            baseDto({
-              ...(brandingMode ? { brandingMode } : {}),
-              model: fluxSchnellModel,
-              text: 'a sunset over the ocean',
-            }),
-            buildRequest(),
-          );
-
-          const dispatch = replicateService.generateTextToImage.mock
-            .calls[0]?.[1] as { prompt: string };
-          expect(dispatch.prompt).toContain('a sunset over the ocean');
-          expect(dispatch.prompt).toContain(brandVoice);
-        },
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          brandingMode: 'brand',
+          model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+          text: 'a sunset over the ocean',
+        }),
+        buildRequest(),
       );
 
-      it('excludes brand-voice text when Brand voice is off, even when avoid terms force a guided fidelity mode', async () => {
-        const { service, replicateService, enhancementService } =
-          createService();
-        withBrandVoice(enhancementService);
-
-        await service.generateImage(
-          buildUser(),
-          baseDto({
-            blacklist: ['neon signage'],
-            brandingMode: 'off',
-            model: fluxSchnellModel,
-            text: 'a sunset over the ocean',
-          }),
-          buildRequest(),
-        );
-
-        const dispatch = replicateService.generateTextToImage.mock
-          .calls[0]?.[1] as { prompt: string };
-        expect(dispatch.prompt).not.toContain('Brand voice');
-      });
-
-      it('adds no brand voice when the receipt carries none', async () => {
-        const { service, replicateService } = createService();
-
-        await service.generateImage(
-          buildUser(),
-          baseDto({ brandingMode: 'brand', model: fluxSchnellModel }),
-          buildRequest(),
-        );
-
-        const dispatch = replicateService.generateTextToImage.mock
-          .calls[0]?.[1] as { prompt: string };
-        expect(dispatch.prompt).not.toContain('Brand voice');
-      });
+      const dispatch = replicateService.generateTextToImage.mock
+        .calls[0]?.[1] as { prompt: string };
+      expect(dispatch.prompt).toContain('a sunset over the ocean');
+      expect(dispatch.prompt).not.toContain('Brand voice');
     });
   });
 

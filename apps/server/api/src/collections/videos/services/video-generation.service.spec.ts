@@ -1428,87 +1428,20 @@ describe('VideoGenerationService', () => {
       );
     });
 
-    // #10186: Brand voice comes from the approved revision the enhancement
-    // receipt carries, never from the live brand row or a template.
-    describe('brand voice injection (#10186)', () => {
-      const brandVoice = 'Brand voice for Brand:\nTone: warm and direct';
+    // #11030: tone, audience and values are copy concepts; a video model
+    // renders them as scene content, so nothing about writing voice reaches it.
+    it('adds no brand voice text to a compiled video prompt', async () => {
+      const { replicateService, service } = createService();
 
-      function withBrandVoice(
-        enhancementService: ReturnType<
-          typeof createService
-        >['enhancementService'],
-      ) {
-        enhancementService.enhance.mockImplementation(
-          async (input: { prompt: string; brandId: string }) => ({
-            originalPrompt: input.prompt,
-            enhancedPrompt: input.prompt,
-            brandId: input.brandId,
-            brandVoice,
-            status: 'applied',
-            source: 'default',
-            appliedPacks: [],
-          }),
-        );
-      }
-
-      it.each([
-        ['brand', 'brand'],
-        ['unset (MCP and agent calls)', undefined],
-      ] as const)(
-        'injects the approved revision brand voice when branding is %s',
-        async (_label, brandingMode) => {
-          const { replicateService, service, enhancementService } =
-            createService();
-          withBrandVoice(enhancementService);
-
-          await service.generateVideo(
-            buildUser(),
-            baseDto({
-              ...(brandingMode ? { brandingMode } : {}),
-              model: COMPILED_MODEL_MINIMAX,
-            }),
-            buildRequest(),
-          );
-
-          const dispatch = replicateService.generateTextToVideo.mock
-            .calls[0]?.[1] as { prompt: string };
-          expect(dispatch.prompt).toContain(brandVoice);
-        },
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ brandingMode: 'brand', model: COMPILED_MODEL_MINIMAX }),
+        buildRequest(),
       );
 
-      it('excludes brand-voice text when Brand voice is off, even when avoid terms force a guided fidelity mode', async () => {
-        const { replicateService, service, enhancementService } =
-          createService();
-        withBrandVoice(enhancementService);
-
-        await service.generateVideo(
-          buildUser(),
-          baseDto({
-            blacklist: ['no watermark'],
-            brandingMode: 'off',
-            model: COMPILED_MODEL_MINIMAX,
-          }),
-          buildRequest(),
-        );
-
-        const dispatch = replicateService.generateTextToVideo.mock
-          .calls[0]?.[1] as { prompt: string };
-        expect(dispatch.prompt).not.toContain('Brand voice');
-      });
-
-      it('adds no brand voice when the receipt carries none', async () => {
-        const { replicateService, service } = createService();
-
-        await service.generateVideo(
-          buildUser(),
-          baseDto({ brandingMode: 'brand', model: COMPILED_MODEL_MINIMAX }),
-          buildRequest(),
-        );
-
-        const dispatch = replicateService.generateTextToVideo.mock
-          .calls[0]?.[1] as { prompt: string };
-        expect(dispatch.prompt).not.toContain('Brand voice');
-      });
+      const dispatch = replicateService.generateTextToVideo.mock
+        .calls[0]?.[1] as { prompt: string };
+      expect(dispatch.prompt).not.toContain('Brand voice');
     });
 
     // A Strict-fidelity brief can only be constructed today by calling the

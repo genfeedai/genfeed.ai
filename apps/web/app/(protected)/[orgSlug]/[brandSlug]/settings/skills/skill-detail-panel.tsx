@@ -1,16 +1,21 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, SkillRunsOn } from '@genfeedai/contracts';
+import { resolveSkillRunsOn } from '@genfeedai/helpers';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Monitor, Terminal } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type { SkillDetailPanelProps } from '@/features/settings/props/skills.props';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import { DESKTOP_PAGE_URL } from '@/lib/navigation/desktop-links';
 import SkillDetailCard from './SkillDetailCard';
+import SkillRunsOnBadge from './skill-runs-on-badge';
 import SkillVersionsPanel from './skill-versions-panel';
 
 /**
@@ -28,6 +33,7 @@ export default function SkillDetailPanel({
   onCustomize,
   onExportSkill,
   onOpenSamplePrompt,
+  onRunInTerminal,
   onSaveSkill,
   onSkillDraftChange,
   savingSkill,
@@ -37,6 +43,10 @@ export default function SkillDetailPanel({
 }: SkillDetailPanelProps) {
   const translate = useTranslations('common.settings.skills');
   const isAgentAvailable = useIsAppAvailable('agent');
+  const isDesktopClient = useIsDesktopClient();
+  const isDesktopSkill =
+    selectedSkill !== null &&
+    resolveSkillRunsOn(selectedSkill) === SkillRunsOn.DESKTOP;
 
   return (
     <ContextSidebarPanel
@@ -65,6 +75,7 @@ export default function SkillDetailPanel({
                   })}
                 </Badge>
               ) : null}
+              <SkillRunsOnBadge skill={selectedSkill} />
             </>
           }
         >
@@ -99,7 +110,35 @@ export default function SkillDetailPanel({
                 variant={ButtonVariant.SECONDARY}
               />
             ) : null}
-            {isAgentAvailable ? (
+            {isDesktopSkill && isDesktopClient && onRunInTerminal ? (
+              <Button
+                data-testid="skill-run-in-terminal"
+                disabled={savingSkill || customizing}
+                icon={<Terminal className="size-4" />}
+                label={translate('actions.runInTerminal')}
+                onClick={onRunInTerminal}
+                variant={ButtonVariant.DEFAULT}
+              />
+            ) : null}
+            {isDesktopSkill && !isDesktopClient ? (
+              <Button
+                asChild
+                data-testid="skill-get-desktop"
+                size={ButtonSize.DEFAULT}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              >
+                <Link
+                  href={DESKTOP_PAGE_URL}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <Monitor className="size-4" />
+                  {translate('actions.getDesktop')}
+                </Link>
+              </Button>
+            ) : null}
+            {isAgentAvailable && !isDesktopSkill ? (
               <Button
                 icon={<MessageSquare className="size-4" />}
                 label={translate('actions.openSamplePrompt')}

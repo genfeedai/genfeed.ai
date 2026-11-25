@@ -2,12 +2,13 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -40,6 +41,7 @@ export class SlackController {
    * POST /services/slack/connect
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -78,6 +80,7 @@ export class SlackController {
    * POST /services/slack/verify
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @CurrentUser() user: User,

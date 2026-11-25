@@ -21,6 +21,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { BrandOsRevisionSerializer } from '@genfeedai/serializers';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -84,7 +85,11 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.create(this.organizationId(user), id, dto.content),
+      await this.revisions.create(
+        this.writeOrganizationId(user),
+        id,
+        dto.content,
+      ),
     );
   }
 
@@ -102,7 +107,7 @@ export class BrandOsRevisionsController {
       request,
       BrandOsRevisionSerializer,
       await this.revisions.update(
-        this.organizationId(user),
+        this.writeOrganizationId(user),
         id,
         revisionId,
         dto.content,
@@ -128,7 +133,7 @@ export class BrandOsRevisionsController {
       request,
       BrandOsRevisionSerializer,
       await this.revisions.approve(
-        this.organizationId(user),
+        this.writeOrganizationId(user),
         id,
         revisionId,
         userId,
@@ -136,6 +141,21 @@ export class BrandOsRevisionsController {
         dto.reviewedGenerationRulesHash,
       ),
     );
+  }
+
+  /**
+   * Writes belong to the organization the request is pinned to. For a verified
+   * super admin that is the `?organizationId=` override; everyone else is
+   * pinned to the session organization, so the value is the same as before.
+   * Reading the session organization here made the Prisma tenant guard reject
+   * an overridden write (#11066).
+   */
+  private writeOrganizationId(user: User): string {
+    const organizationId =
+      getTenantContext()?.organizationId ?? user.organizationId;
+    if (!organizationId)
+      throw new ForbiddenException('Organization context is required');
+    return organizationId;
   }
 
   private organizationId(user: User, readScope?: ITenantReadScope): string {

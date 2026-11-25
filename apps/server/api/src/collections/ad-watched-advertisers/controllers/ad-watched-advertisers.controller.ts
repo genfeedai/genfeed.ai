@@ -5,6 +5,7 @@ import { UpdateAdWatchedAdvertiserDto } from '@api/collections/ad-watched-advert
 import type { AdWatchedAdvertiserDocument } from '@api/collections/ad-watched-advertisers/schemas/ad-watched-advertiser.schema';
 import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -15,6 +16,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { AdWatchedAdvertiserSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -124,6 +126,7 @@ export class AdWatchedAdvertisersController extends BaseCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -147,6 +150,7 @@ export class AdWatchedAdvertisersController extends BaseCRUDController<
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async remove(
     @Req() request: Request,
     @CurrentUser() user: User,

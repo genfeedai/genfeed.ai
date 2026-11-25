@@ -6,6 +6,7 @@ import {
   OutreachCampaignTargetOperationsService,
 } from '@api/collections/outreach-campaigns/services/outreach-campaign-target-operations.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -14,6 +15,7 @@ import type {
   CampaignPlatform,
   CampaignTargetType,
 } from '@genfeedai/contracts';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   Body,
   Controller,
@@ -36,6 +38,7 @@ export class OutreachCampaignTargetsController {
   ) {}
 
   @Post(':id/targets')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     operationId: 'OutreachCampaignsController.addTargets',
@@ -51,6 +54,7 @@ export class OutreachCampaignTargetsController {
   }
 
   @Post('parse-url')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     operationId: 'OutreachCampaignsController.parseUrlEndpoint',
@@ -87,6 +91,7 @@ export class OutreachCampaignTargetsController {
   }
 
   @Post(':id/targets/discover')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     operationId: 'OutreachCampaignsController.discoverTargets',
@@ -102,6 +107,7 @@ export class OutreachCampaignTargetsController {
   }
 
   @Post(':id/targets/:targetId/preview')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     operationId: 'OutreachCampaignsController.previewReply',

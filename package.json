@@ -115,6 +115,7 @@
     "check:short-lived-media-grants": "bun run scripts/architecture/check-short-lived-media-grants.ts",
     "check:cross-org-unsafe": "bun run scripts/architecture/check-cross-org-unsafe.ts",
     "check:authority-field-optional": "bun run scripts/architecture/check-authority-field-optional.ts",
+    "check:api-key-route-scopes": "bun run scripts/architecture/check-api-key-route-scopes.ts",
     "check:ratchet-growth": "bun run scripts/architecture/check-ratchet-growth.ts",
     "check:billing-account-scope-registration": "bun run scripts/architecture/check-billing-account-scope-registration.ts",
     "check:typecheck-alias-inputs": "bun run scripts/architecture/check-typecheck-alias-inputs.ts",
@@ -357,7 +358,7 @@
   "overrides": {
     "ip-address": "10.7.1",
     "fast-uri": "3.1.8",
-    "undici": "7.29.1",
+    "undici": "7.30.2",
     "hono": "4.13.7",
     "@hono/node-server": "2.0.10",
     "mysql2": "3.24.3",
@@ -372,6 +373,10 @@
     "plasmo>fflate": "0.8.3",
     "@plasmohq/parcel-transformer-inline-css>browserslist": "4.29.3",
     "vue": "3.5.42",
-    "speech-rule-engine>@xmldom/xmldom": "0.9.12"
+    "speech-rule-engine>@xmldom/xmldom": "0.9.12",
+    "body-parser": "2.4.0",
+    "vite": "8.3.8",
+    "node-forge": "1.4.4",
+    "effect": "3.22.5"
   }
 }

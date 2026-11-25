@@ -4,6 +4,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import type { SkillsTableProps } from '@/features/settings/props/skills.props';
+import SkillRunsOnBadge from './skill-runs-on-badge';
 
 function getSourceBadgeVariant(
   source: Skill['source'],
@@ -65,6 +66,11 @@ export default function SkillsTable({
               </div>
             </div>
           ),
+        },
+        {
+          header: translate('table.runsOn'),
+          key: 'runsOn',
+          render: (skill) => <SkillRunsOnBadge skill={skill} />,
         },
         {
           header: translate('table.source'),

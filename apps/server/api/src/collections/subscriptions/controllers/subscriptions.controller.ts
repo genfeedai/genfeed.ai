@@ -12,6 +12,7 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -20,6 +21,7 @@ import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenan
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   OrganizationBillingResponse,
@@ -139,6 +141,7 @@ export class SubscriptionsController {
   }
 
   @Patch('current')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseFilters(SubscriptionBillingExceptionFilter)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async changePlan(
@@ -176,6 +179,7 @@ export class SubscriptionsController {
   }
 
   @Post('current/preview')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseFilters(SubscriptionBillingExceptionFilter)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async previewChange(

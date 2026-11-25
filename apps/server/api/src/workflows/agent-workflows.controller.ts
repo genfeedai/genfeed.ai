@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -7,6 +8,7 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { PatchAgentWorkflowDto } from '@api/workflows/dto/patch-agent-workflow.dto';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -19,6 +21,7 @@ export class AgentWorkflowsController {
   constructor(private readonly agentWorkflowsService: AgentWorkflowsService) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Create an agent workflow state machine' })
   async createWorkflow(
     @Body() dto: CreateAgentWorkflowDto,
@@ -45,6 +48,7 @@ export class AgentWorkflowsController {
   }
 
   @Patch(':workflowId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     summary: 'Apply an event to an agent workflow state machine',
   })
