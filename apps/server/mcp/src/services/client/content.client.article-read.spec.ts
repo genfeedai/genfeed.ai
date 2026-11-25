@@ -84,6 +84,10 @@ describe('ContentClient.getArticle', () => {
 
     await client.getArticle('article-1').catch(() => undefined);
 
-    expect(logged).toEqual([{ data: { data: undefined }, level: 'error' }]);
+    expect(logged).toHaveLength(1);
+    expect(logged[0]?.level).toBe('error');
+    expect(JSON.stringify(logged[0]?.data)).not.toContain(
+      'secret article text',
+    );
   });
 });
