@@ -3,6 +3,7 @@ import type { Prisma } from '@genfeedai/prisma';
 type MergedWallet = {
   balance: number;
   earnedBalance: number;
+  earnedSpent: number;
   heldAmount: number;
 };
 
@@ -26,6 +27,7 @@ export function walletMergeUpdate(
       0,
       Math.min(into.earnedBalance + wallet.earnedBalance, balance),
     ),
+    earnedSpent: { increment: wallet.earnedSpent },
     heldAmount: { increment: wallet.heldAmount },
     version: { increment: 1 },
   };

@@ -446,27 +446,48 @@ export class CreditBalanceService {
       reservationId,
     );
     const client = tx ?? this.prisma;
-    const updated = await client.$executeRaw(
+    const restoreCap = Math.max(0, input.restoreEarnedUpTo ?? 0);
+    // What a refund puts back: the remembered earned spend, up to the refund.
+    const restored = Prisma.sql`LEAST(${restoreCap}, "earnedSpent")`;
+    const nextEarned = Prisma.sql`GREATEST(
+      0,
+      LEAST("earnedBalance" + ${earnedDelta} + ${restored}, "balance" + ${balanceDelta})
+    )`;
+    // A spend draws on earned credits only after the rest, so what the clamp
+    // takes off the earned part is what the spend used of it.
+    const consumed = input.trackEarnedSpend
+      ? Prisma.sql`GREATEST(0, "earnedBalance" - ${nextEarned})`
+      : Prisma.sql`0`;
+    const rows = await client.$queryRaw<
+      Array<{ spentAfter: number; spentBefore: number }>
+    >(
       Prisma.sql`
-        UPDATE "credit_balances"
+        WITH previous AS (
+          SELECT "id", "earnedSpent" AS "spentBefore"
+          FROM "credit_balances"
+          WHERE "id" = ${balance.id}
+            AND "organizationId" IS NOT DISTINCT FROM ${balance.organizationId}
+            AND "isDeleted" = false
+          FOR UPDATE
+        )
+        UPDATE "credit_balances" AS wallet
         SET
           "balance" = "balance" + ${balanceDelta},
-          "earnedBalance" = GREATEST(
-            0,
-            LEAST("earnedBalance" + ${earnedDelta}, "balance" + ${balanceDelta})
-          ),
+          "earnedBalance" = ${nextEarned},
+          "earnedSpent" = GREATEST(0, "earnedSpent" - ${restored} + ${consumed}),
           "heldAmount" = "heldAmount" + ${heldDelta},
           "version" = "version" + 1,
           "updatedAt" = CURRENT_TIMESTAMP
-        WHERE "id" = ${balance.id}
-          AND "organizationId" IS NOT DISTINCT FROM ${balance.organizationId}
-          AND "isDeleted" = false
+        FROM previous
+        WHERE wallet."id" = previous."id"
+          AND wallet."isDeleted" = false
           AND "heldAmount" + ${heldDelta} >= 0
           AND ("balance" + ${balanceDelta}) - ("heldAmount" + ${heldDelta}) >= ${-maxOverdraftCredits}
+        RETURNING previous."spentBefore", wallet."earnedSpent" AS "spentAfter"
       `,
     );
 
-    if (updated !== 1) {
+    if (rows.length !== 1) {
       throw new BusinessLogicException(
         `Insufficient organization credits. Available: ${this.toSnapshot(balance).available}, Required: ${Math.max(0, -balanceDelta) + Math.max(0, heldDelta)}, Max overdraft: ${maxOverdraftCredits}`,
         {
@@ -479,6 +500,7 @@ export class CreditBalanceService {
         'INSUFFICIENT_CREDITS',
       );
     }
+    const spentChange = rows[0].spentAfter - rows[0].spentBefore;
 
     const next = await this.findAccessibleWallet(
       organizationId,
@@ -495,7 +517,13 @@ export class CreditBalanceService {
       );
     }
 
-    return this.toSnapshot(next);
+    return {
+      ...this.toSnapshot(next),
+      ...(input.trackEarnedSpend
+        ? { earnedConsumed: Math.max(0, spentChange) }
+        : {}),
+      ...(restoreCap > 0 ? { earnedRestored: Math.max(0, -spentChange) } : {}),
+    };
   }
 
   @HandleErrors('update balance', 'credits')

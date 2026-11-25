@@ -89,15 +89,46 @@ export class FreeTrialService {
    * Authoritative admission check: throws once a never-paid organization is
    * past its trial, whether or not the sweep has removed its credits yet. An
    * organization still inside its window costs one indexed read.
+   *
+   * Earned credits (tips, creator payments) outlive the trial, so with
+   * `requiredCredits` an expired organization is admitted while its earned
+   * balance covers the amount. Its unearned trial credits are collected first,
+   * so a spend never draws on them (a spend uses unearned credits before
+   * earned ones).
    */
   async assertTrialActive(
     organizationId: string,
     now: Date = new Date(),
+    requiredCredits?: number,
   ): Promise<void> {
     const trialEndsAt = await this.findExpiredTrialEnd(organizationId, now);
-    if (trialEndsAt) {
-      throw new FreeTrialExpiredException(trialEndsAt);
+    if (!trialEndsAt) {
+      return;
     }
+    if (requiredCredits !== undefined && requiredCredits > 0) {
+      await this.expireUnearnedCredits(organizationId, now);
+      const spendable = await this.readEarnedSpendable(organizationId);
+      if (requiredCredits <= spendable) {
+        return;
+      }
+    }
+    throw new FreeTrialExpiredException(trialEndsAt);
+  }
+
+  /**
+   * The credits an organization past its trial can still spend: its earned
+   * balance, capped by what is not held. Null while the trial has not expired
+   * (or does not apply), so callers fall back to the whole balance. Read-only;
+   * `assertTrialActive` is what collects the unearned credits.
+   */
+  async expiredTrialSpendableCredits(
+    organizationId: string,
+    now: Date = new Date(),
+  ): Promise<number | null> {
+    if ((await this.findExpiredTrialEnd(organizationId, now)) === null) {
+      return null;
+    }
+    return this.readEarnedSpendable(organizationId);
   }
 
   async isTrialExpired(
@@ -276,6 +307,34 @@ export class FreeTrialService {
       },
     );
     return { balance: after.available, expiredCredits: expiringCredits };
+  }
+
+  private async readEarnedSpendable(organizationId: string): Promise<number> {
+    const wallet = await this.prisma.creditBalance.findFirst({
+      where: { isDeleted: false, organizationId },
+    });
+    if (!wallet) {
+      return 0;
+    }
+    const snapshot = this.creditBalanceService.toSnapshot(wallet);
+    return Math.max(0, Math.min(snapshot.available, snapshot.earned));
+  }
+
+  /** Runs the expiry sweep for one organization when unearned credits are left. */
+  private async expireUnearnedCredits(
+    organizationId: string,
+    now: Date,
+  ): Promise<void> {
+    const wallet = await this.prisma.creditBalance.findFirst({
+      where: { isDeleted: false, organizationId },
+    });
+    if (!wallet) {
+      return;
+    }
+    const snapshot = this.creditBalanceService.toSnapshot(wallet);
+    if (snapshot.settled - snapshot.earned > 0) {
+      await this.expireTrialCredits(organizationId, now);
+    }
   }
 
   private async findExpiredTrialEnd(

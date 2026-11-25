@@ -343,6 +343,35 @@ describe('FreeTrialService', () => {
     });
   });
 
+  describe('expiredTrialSpendableCredits', () => {
+    it('is null while the trial is running, so the whole balance applies', async () => {
+      await expect(
+        buildService().expiredTrialSpendableCredits('org_1', IN_WINDOW),
+      ).resolves.toBeNull();
+    });
+
+    it.each([
+      ['the earned balance when nothing is held', 25, 0, 25],
+      ['what is not held when that is less', 25, 20, 10],
+      ['nothing when no earned credits are left', 0, 0, 0],
+    ])(
+      'is %s once the trial is over',
+      async (_label, earned, held, expected) => {
+        walletFindFirst.mockResolvedValue({
+          balance: 30,
+          billingAccountId: 'ba_1',
+          earnedBalance: earned,
+          heldAmount: held,
+          version: 7,
+        });
+
+        await expect(
+          buildService().expiredTrialSpendableCredits('org_1', PAST_WINDOW),
+        ).resolves.toBe(expected);
+      },
+    );
+  });
+
   describe('assertTrialActive (admission)', () => {
     it('admits an organization inside its window with one cheap read', async () => {
       organizationFindFirst.mockResolvedValueOnce({ createdAt: CREATED_AT });

@@ -3904,6 +3904,10 @@ model CreditBalance {
   /// subscriptions, unlocks). Never expires and survives plan resets; spending
   /// draws on the rest of the balance first, so it is clamped to `balance`.
   earnedBalance    Float           @default(0)
+  /// Earned credits that spends consumed and no refund has restored yet. A
+  /// refund puts back up to this much into `earnedBalance`, so a refunded spend
+  /// does not turn earned credits into ones a plan reset removes.
+  earnedSpent      Float           @default(0)
   version          Int             @default(0)
   isDeleted        Boolean         @default(false)
   createdAt        DateTime        @default(now())

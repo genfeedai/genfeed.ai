@@ -424,19 +424,26 @@ export class AuthBootstrapService {
     base: BootstrapBaseData,
     organizationId: string,
   ): Promise<AccessBootstrapCachePayload['access']> {
-    const [canAffordDefaultGeneration, trial, lowCredits] = await Promise.all([
+    const trial = await this.freeTrialService.getState(organizationId);
+    // Past the trial only earned credits are spendable, so the paywall follows
+    // them: an expired organization whose earned credits cover a default
+    // generation is not shown the expired-trial state.
+    const spendableBalance = trial.isTrialExpired
+      ? await this.freeTrialService.expiredTrialSpendableCredits(organizationId)
+      : null;
+    const [canAffordDefaultGeneration, lowCredits] = await Promise.all([
       this.defaultGenerationAffordability.canAffordDefaultGeneration({
-        balance: base.access.creditsBalance,
+        balance: spendableBalance ?? base.access.creditsBalance,
         organizationDefaultImageModel: base.settings?.defaultImageModel,
         organizationId,
       }),
-      this.freeTrialService.getState(organizationId),
       this.lowCreditThresholdService.resolve(organizationId),
     ]);
     return {
       ...base.access,
       canAffordDefaultGeneration,
-      isTrialExpired: trial.isTrialExpired,
+      isTrialExpired:
+        trial.isTrialExpired && canAffordDefaultGeneration !== true,
       lowCreditThreshold: lowCredits.threshold,
       trialEndsAt: trial.trialEndsAt?.toISOString() ?? null,
     };

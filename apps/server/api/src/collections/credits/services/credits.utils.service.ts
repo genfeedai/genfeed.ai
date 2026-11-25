@@ -3,6 +3,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { publishAvailableBalance } from '@api/collections/credits/services/credit-balance-event.util';
 import { computeCycleCredits } from '@api/collections/credits/services/credit-cycle-metrics.util';
 import type { CreditCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
+import { withEarnedAmount } from '@api/collections/credits/services/credit-earned-amount.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -164,7 +165,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         options?.referenceType === 'credit_reservation' ||
         (options?.maxOverdraftCredits ?? 0) > 0;
       if (!isSettlingAdmittedWork) {
-        await this.freeTrialService.assertTrialActive(organizationId);
+        await this.freeTrialService.assertTrialActive(
+          organizationId,
+          new Date(),
+          creditsToDeduct,
+        );
       }
 
       const { newBalance, wasApplied } =
@@ -308,6 +313,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         balanceDelta: -input.creditsToDeduct,
         billingAccountId: lateReservation?.billingAccountId ?? account.id,
         maxOverdraftCredits,
+        trackEarnedSpend: true,
       },
       tx,
       lateReservation?.id,
@@ -332,9 +338,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         ...(input.options?.idempotencyKey
           ? { idempotencyKey: input.options.idempotencyKey }
           : {}),
-        ...(input.options?.metadata
-          ? { metadata: input.options.metadata }
-          : {}),
+        ...withEarnedAmount(input.options?.metadata, snapshot.earnedConsumed),
         ...(input.options?.referenceId
           ? { referenceId: input.options.referenceId }
           : {}),
@@ -400,7 +404,12 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       requiredCredits > 0 &&
       (await this.freeTrialService.isTrialExpired(organizationId))
     ) {
-      return false;
+      // Past the trial only earned credits are spendable.
+      const spendable =
+        await this.freeTrialService.expiredTrialSpendableCredits(
+          organizationId,
+        );
+      return spendable !== null && requiredCredits <= spendable;
     }
 
     const currentBalance =
@@ -450,7 +459,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     input: IReserveCreditsInput,
     admission?: CreditReservationAdmission,
   ): Promise<ICreditReservation> {
-    await this.freeTrialService.assertTrialActive(input.organizationId);
+    await this.freeTrialService.assertTrialActive(
+      input.organizationId,
+      new Date(),
+      input.amount,
+    );
     const account = await this.billingAccountsService.resolveForOrganization(
       input.organizationId,
     );
@@ -734,12 +747,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
         const newBalance = currentBalance + creditsToRefund;
-        const newSettledBalance = wallet.settled + creditsToRefund;
 
-        await this.creditBalanceService.updateBalance(
+        // A refund puts back the earned credits that spends consumed, so a
+        // refunded spend does not turn them into credits a plan reset removes.
+        const { earnedRestored } = await this.creditBalanceService.applyDelta(
           organizationId,
-          newSettledBalance,
-          wallet.billingAccountId,
+          {
+            balanceDelta: creditsToRefund,
+            billingAccountId: wallet.billingAccountId,
+            restoreEarnedUpTo: creditsToRefund,
+          },
           tx,
         );
         await this.creditTransactionsService.createTransactionEntry(
@@ -752,7 +769,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           description,
           expiresAt,
           tx,
-          options,
+          {
+            ...options,
+            ...withEarnedAmount(options?.metadata, earnedRestored),
+          },
         );
 
         return { currentBalance, newBalance, wasApplied: true };

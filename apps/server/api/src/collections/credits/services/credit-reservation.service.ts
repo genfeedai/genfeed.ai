@@ -1,5 +1,6 @@
 import { isLiveStoryboardHold } from '@api/collections/content-runs/services/storyboard-live-hold.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { withEarnedAmount } from '@api/collections/credits/services/credit-earned-amount.util';
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
@@ -451,6 +452,7 @@ export class CreditReservationService {
         maxOverdraftCredits: recoverEnded
           ? MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS
           : undefined,
+        trackEarnedSpend: true,
       },
       tx,
       reservation.id,
@@ -493,7 +495,7 @@ export class CreditReservationService {
           idempotencyKey: input.settlementIdempotencyKey,
           billingAccountId: reservation.billingAccountId,
           ...(settleBrandId ? { brandId: settleBrandId } : {}),
-          ...(input.metadata ? { metadata: input.metadata } : {}),
+          ...withEarnedAmount(input.metadata, snapshot.earnedConsumed),
           reservationId: reservation.id,
           referenceId: reservation.id,
           referenceType: 'credit_reservation',
