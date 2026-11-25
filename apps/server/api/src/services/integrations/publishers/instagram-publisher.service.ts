@@ -28,6 +28,8 @@ import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 @Traced()
 @Injectable()
 export class InstagramPublisherService extends BasePublisherService {
@@ -73,6 +75,12 @@ export class InstagramPublisherService extends BasePublisherService {
         valid: false,
       };
     }
+    if (placement === 'story' && mediaInfo.mediaUrls.length !== 1) {
+      return {
+        error: 'An Instagram story is one image or one video',
+        valid: false,
+      };
+    }
 
     return { valid: true };
   }
@@ -88,6 +96,11 @@ export class InstagramPublisherService extends BasePublisherService {
     context: PublishContext,
     attemptStartedAt: Date,
   ): Promise<PublishResult | null> {
+    // A story is not in the account's media list, so a feed post of the same
+    // shape could be mistaken for it. It cannot be confirmed this way.
+    if (readChannelSettingString(context.settings, 'placement') === 'story') {
+      return null;
+    }
     const mediaInfo = this.extractMediaInfo(context.post);
     const found = await verifyMediaPublish(
       attemptStartedAt,
@@ -156,6 +169,29 @@ export class InstagramPublisherService extends BasePublisherService {
           context.settings,
           INSTAGRAM_AI_GENERATED_SETTING_KEY,
         ) === true;
+
+      if (readChannelSettingString(context.settings, 'placement') === 'story') {
+        // Stories carry no caption or alt text, so only the AI label is sent.
+        const storyResult = await this.instagramService.uploadStory(
+          organizationId,
+          brandId,
+          mediaInfo.mediaUrls[0],
+          !mediaInfo.isImagePost,
+          credential.id,
+          isAiGenerated,
+        );
+        if (!storyResult.mediaId) {
+          return withErrorKind(
+            this.createFailedResult(this.platform, 'Failed to get external ID'),
+            PublishErrorKind.OUTCOME_UNKNOWN,
+          );
+        }
+        return this.createSuccessResult(
+          storyResult.mediaId,
+          this.platform,
+          this.buildStoryUrl(storyResult.mediaId, credential),
+        );
+      }
 
       if (mediaInfo.isCarousel && mediaInfo.isImagePost) {
         // Carousel of images (2-20 images)
@@ -236,6 +272,25 @@ export class InstagramPublisherService extends BasePublisherService {
       });
       throwAsPublishError(error, mapMetaFailure);
     }
+  }
+
+  /**
+   * A story lives at the account's stories page, not at a `/p/` post URL, and
+   * the API returns no shortcode for it. Without the account handle the link
+   * falls back to the account's profile.
+   */
+  private buildStoryUrl(
+    mediaId: string,
+    credential: CredentialDocument,
+  ): string {
+    const handle = credential.externalHandle?.replace(
+      LEADING_AT_SIGN_PATTERN,
+      '',
+    );
+    if (!handle) {
+      return 'https://www.instagram.com/';
+    }
+    return `https://www.instagram.com/stories/${encodeURIComponent(handle)}/${encodeURIComponent(mediaId)}/`;
   }
 
   /**

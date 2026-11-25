@@ -499,6 +499,7 @@ const channelCapabilities = [
         options: [
           { label: 'Feed', value: 'feed' },
           { label: 'Reel', value: 'reel' },
+          { label: 'Story', value: 'story' },
         ],
         required: true,
         type: 'select',

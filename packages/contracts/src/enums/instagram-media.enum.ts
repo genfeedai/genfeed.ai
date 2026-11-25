@@ -11,4 +11,5 @@ export enum InstagramMediaType {
   CAROUSEL_ALBUM = 'CAROUSEL_ALBUM',
   REELS = 'REELS',
   CAROUSEL = 'CAROUSEL',
+  STORIES = 'STORIES',
 }
