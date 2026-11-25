@@ -209,6 +209,31 @@ export class SchedulerClient {
     );
   }
 
+  searchInstagramMusic(
+    credentialId: string,
+    query?: string,
+    audioType?: string,
+  ): Promise<Array<Record<string, unknown>>> {
+    this.base.logger.debug('Searching Instagram music', { credentialId });
+
+    return this.base.request(
+      'searching Instagram music',
+      async (http) => {
+        const response = await http.get(
+          `/credentials/${encodeURIComponent(credentialId)}/instagram/audio`,
+          {
+            params: {
+              ...(audioType ? { audioType } : {}),
+              ...(query ? { searchQuery: query } : {}),
+            },
+          },
+        );
+        return this.base.unwrapList<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to search Instagram music'),
+    );
+  }
+
   getSchedulerCapability(platform: string): Promise<Record<string, unknown>> {
     this.base.logger.debug(`Getting scheduler capability: ${platform}`);
 

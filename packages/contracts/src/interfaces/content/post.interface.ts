@@ -19,6 +19,7 @@ import type {
   ITag,
   IUser,
 } from '../index';
+import type { InstagramReelAudioSelection } from '../integrations/instagram.interface';
 import type { IBrandPolicyViolation } from '../organization/brand-publish-policy.interface';
 import type { IPublishApproval } from '../publisher/publish-approval.interface';
 import type { IChannelTargetError } from '../scheduler/channel-target.interface';
@@ -173,6 +174,8 @@ export interface IPostPlatformConfig {
   isShareToFeedSelected?: boolean;
   /** Instagram only: publish as a Story instead of a post or Reel. */
   isStory?: boolean;
+  /** Instagram only: the music attached to a Reel. */
+  reelAudio?: InstagramReelAudioSelection;
   referenceState?: string;
   signatureIds?: string[];
 }

@@ -10,7 +10,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'check_channel',
     description:
-      "Check publishing channels. capabilities lists channels and limits when input is omitted; validate checks input.platform and returns errors/warnings/validationState; readiness lists a brand's connected channels and their health; connection_status and linkedin_connection report account connections. Read-only.",
+      "Check publishing channels. capabilities lists channels and limits when input is omitted; validate checks input.platform and returns errors/warnings/validationState; readiness lists a brand's connected channels and their health; music searches the Instagram music catalog for a Reel (input.credentialId, optional input.query); connection_status and linkedin_connection report account connections. Read-only.",
     claudeActions: [
       'capabilities',
       'validate',
@@ -26,6 +26,7 @@ export const MCP_CATALOG_TOOLS = [
       },
       { action: 'validate', executes: 'validate_scheduler_target' },
       { action: 'readiness', executes: 'get_brand_publishing_readiness' },
+      { action: 'music', executes: 'search_instagram_music' },
       { action: 'connection_status', executes: 'get_connection_status' },
       {
         action: 'linkedin_connection',

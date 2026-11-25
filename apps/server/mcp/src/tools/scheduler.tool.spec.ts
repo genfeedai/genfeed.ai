@@ -65,9 +65,42 @@ describe('SCHEDULER_TOOL_NAMES', () => {
       'get_brand_publishing_readiness',
       'get_scheduled_release',
       'get_scheduler_capabilities',
+      'search_instagram_music',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);
+  });
+});
+
+describe('search_instagram_music', () => {
+  it('searches through the connected account and returns the tracks as data', async () => {
+    const tracks = [{ audioId: '1', title: 'Birthday Wish' }];
+    const searchInstagramMusic = vi.fn().mockResolvedValue(tracks);
+
+    const result = await handleSchedulerTool(
+      { searchInstagramMusic } as unknown as ClientService,
+      'search_instagram_music',
+      { audioType: 'music', credentialId: 'cred-1', query: 'birthday' },
+    );
+
+    expect(searchInstagramMusic).toHaveBeenCalledWith(
+      'cred-1',
+      'birthday',
+      'music',
+    );
+    expect(result.content[0].text).toContain('Birthday Wish');
+  });
+
+  it('says so when Instagram returns no music', async () => {
+    const result = await handleSchedulerTool(
+      {
+        searchInstagramMusic: vi.fn().mockResolvedValue([]),
+      } as unknown as ClientService,
+      'search_instagram_music',
+      { credentialId: 'cred-1' },
+    );
+
+    expect(result.content[0].text).toBe('No music tracks found.');
   });
 });
 

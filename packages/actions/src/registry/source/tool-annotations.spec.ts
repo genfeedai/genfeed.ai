@@ -968,7 +968,7 @@ describe('MCP tool annotations', () => {
       ...FROZEN_MCP_PRESENTATIONS.filter((row) =>
         isMcpListedToolName(String(row[0])),
       ),
-      ['check_channel', 'Check Channel', true, false, true, false],
+      ['check_channel', 'Check Channel', true, false, true, true],
       ['upload_media', 'Upload Media', false, false, false, false],
       ...MERGED_READ_PRESENTATIONS,
       ...MERGED_WRITE_PRESENTATIONS,

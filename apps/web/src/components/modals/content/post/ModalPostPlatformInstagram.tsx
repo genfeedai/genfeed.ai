@@ -5,6 +5,7 @@ import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
+import ModalPostPlatformInstagramMusic from './ModalPostPlatformInstagramMusic';
 
 type Props = {
   config: IPostPlatformConfig;
@@ -41,6 +42,7 @@ export default function ModalPostPlatformInstagram({
       updatePlatformConfig(config.credentialId, {
         isShareToFeedSelected: false,
         isStory: true,
+        reelAudio: undefined,
       });
       return;
     }
@@ -50,14 +52,18 @@ export default function ModalPostPlatformInstagram({
         category: PostCategory.IMAGE,
         isShareToFeedSelected: false,
         isStory: false,
+        reelAudio: undefined,
       });
       return;
     }
 
+    // Music needs the reel-only placement, so a Reel that also goes to the
+    // feed keeps none.
     updatePlatformConfig(config.credentialId, {
       category: PostCategory.VIDEO,
       isShareToFeedSelected: value === 'video-feed',
       isStory: false,
+      ...(value === 'video-feed' ? { reelAudio: undefined } : {}),
     });
   }
 
@@ -115,6 +121,15 @@ export default function ModalPostPlatformInstagram({
           <span className="text-sm">{translate('story')}</span>
         </Label>
       </RadioGroup>
+
+      {radioValue === 'video-only' && (
+        <ModalPostPlatformInstagramMusic
+          config={config}
+          isEnabled={isEnabled}
+          isLoading={isLoading}
+          updatePlatformConfig={updatePlatformConfig}
+        />
+      )}
     </div>
   );
 }

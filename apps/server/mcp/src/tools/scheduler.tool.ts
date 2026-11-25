@@ -17,6 +17,7 @@ export const SCHEDULER_TOOL_NAMES = new Set([
   'get_brand_publishing_readiness',
   'get_scheduled_release',
   'get_scheduler_capabilities',
+  'search_instagram_music',
   'update_scheduled_release',
   'validate_scheduler_target',
 ]);
@@ -135,6 +136,25 @@ export function handleSchedulerTool(
               result.length > 0
                 ? `Found ${result.length} publishing channels with readiness:\n\n${formatToolData(result)}`
                 : 'No connected publishing channels found for this brand.',
+            type: 'text' as const,
+          },
+        ],
+      };
+    },
+    search_instagram_music: async (a) => {
+      const result = await client.searchInstagramMusic(
+        requiredString(a, 'credentialId'),
+        optionalString(a, 'query'),
+        optionalString(a, 'audioType'),
+      );
+      return {
+        structuredContent: { data: result },
+        content: [
+          {
+            text:
+              result.length > 0
+                ? `Found ${result.length} music tracks:\n\n${formatToolData(result)}`
+                : 'No music tracks found.',
             type: 'text' as const,
           },
         ],

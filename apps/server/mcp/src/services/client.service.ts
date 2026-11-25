@@ -571,6 +571,14 @@ export class ClientService {
     return this.scheduler.listSchedulerCapabilities(options);
   }
 
+  searchInstagramMusic(
+    credentialId: string,
+    query?: string,
+    audioType?: string,
+  ) {
+    return this.scheduler.searchInstagramMusic(credentialId, query, audioType);
+  }
+
   listBrandPublishingReadiness(
     brandId: string,
   ): Promise<IPublishingProviderReadiness[]> {

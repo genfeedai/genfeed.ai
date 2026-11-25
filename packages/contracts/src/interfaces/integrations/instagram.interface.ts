@@ -178,3 +178,15 @@ export interface InstagramHashtagMedia {
   hashtag: string;
   items: InstagramHashtagMediaItem[];
 }
+
+/** The track a person picked for a Reel in the composer, with what the list showed. */
+export interface InstagramReelAudioSelection {
+  artist?: string;
+  /** The Instagram `audio_id`, sent as the `audioId` target setting. */
+  audioId: string;
+  /** 1 to 100; Instagram uses 100 when omitted. */
+  audioVolume?: number;
+  title: string;
+  /** 1 to 100; Instagram uses 100 when omitted. */
+  videoVolume?: number;
+}
