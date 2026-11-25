@@ -3,9 +3,11 @@ import { RetryAccountGenerationDto } from '@api/collections/posts/dto/retry-acco
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_POST_DRAFTING_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { PostSerializer } from '@genfeedai/serializers';
@@ -25,6 +27,7 @@ export class PostsAccountGenerationRetryController {
    * and the dispatch finishes in the background, like the original run.
    */
   @Post(':postId/generation-retries')
+  @RequiredScopes(...API_KEY_POST_DRAFTING_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async retryAccountGeneration(
     @Req() request: Request,

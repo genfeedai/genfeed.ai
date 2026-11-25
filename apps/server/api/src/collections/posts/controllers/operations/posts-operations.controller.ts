@@ -16,6 +16,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   API_KEY_POST_CREATION_SCOPES,
+  API_KEY_POST_DRAFTING_SCOPES,
   assertApiKeyPostStatusPublishingScope,
   assertApiKeyPublishingScope,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
@@ -396,6 +397,7 @@ export class PostsOperationsController {
    * Links to original post for KPI comparison
    */
   @Post(':postId/remixes')
+  @RequiredScopes(...API_KEY_POST_DRAFTING_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createRemixPost(
     @Req() request: Request,

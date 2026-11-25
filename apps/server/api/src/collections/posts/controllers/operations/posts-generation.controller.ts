@@ -33,11 +33,13 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { API_KEY_POST_DRAFTING_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { finalizeBrandedTextCredits } from '@api/helpers/utils/credits/finalize-branded-text-credits.util';
 import {
   finalizeDeferredTextCredits,
@@ -84,6 +86,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @OrganizationModule('publishing')
+@RequiredScopes(...API_KEY_POST_DRAFTING_SCOPES)
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsGenerationController {

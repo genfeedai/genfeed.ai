@@ -2078,6 +2078,40 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it.each([
+    ['scheduled_sweep', { deliveryMode: 'tiktok_app' }, true],
+    ['scheduled_sweep', {}, false],
+  ])(
+    'a TikTok post retried from %s with %j hands off to the TikTok app: %s',
+    async (source, delivery, isHandoff) => {
+      const publish = mockSuccessfulPublisher(mocks, {
+        executionState: TargetExecutionState.PUBLISHING,
+        externalId: 'v_inbox_file~123',
+        platform: CredentialPlatform.TIKTOK,
+        url: '',
+      });
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        platform: CredentialPlatform.TIKTOK,
+      });
+      const post = createScheduledPost({
+        category: 'VIDEO',
+        ingredients: [{ id: 'video-1' }],
+        platform: CredentialPlatform.TIKTOK,
+        targetSettings: {
+          ...delivery,
+          musicUsageAccepted: true,
+          privacyLevel: 'public',
+        },
+      });
+
+      await executeDelivery(mocks, post, source as 'scheduled_sweep');
+
+      const [{ settings }] = publish.mock.calls[0];
+      expect(settings[TIKTOK_APP_HANDOFF_SETTING] === true).toBe(isHandoff);
+    },
+  );
+
   it('persists a grouped provider success even when the provider omits its id', async () => {
     mockSuccessfulPublisher(mocks, {
       externalId: null,

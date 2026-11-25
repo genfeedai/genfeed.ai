@@ -39,6 +39,7 @@ import { INSTAGRAM_PUBLISHING_SETTINGS } from './instagram-publishing.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_AI_GENERATED_SETTING,
+  TIKTOK_DELIVERY_MODE_SETTING,
   TIKTOK_PRIVACY_OPTIONS,
   validateTikTokPublishingSettings,
 } from './tiktok-publishing.contract';
@@ -453,6 +454,7 @@ const channelCapabilities = [
         type: 'boolean',
       },
       TIKTOK_AI_GENERATED_SETTING,
+      TIKTOK_DELIVERY_MODE_SETTING,
     ],
     status: 'supported',
   },

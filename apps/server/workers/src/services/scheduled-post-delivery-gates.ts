@@ -28,6 +28,10 @@ import {
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  TIKTOK_DELIVERY_MODE_APP,
+  TIKTOK_DELIVERY_MODE_SETTING_KEY,
+} from '@genfeedai/contracts/api-types/contracts/tiktok-publishing.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -516,7 +520,10 @@ export class ScheduledPostDeliveryGates {
     );
     const visibility = resolvePostVisibility(post.visibility);
     const settings =
-      source === 'tiktok_app'
+      source === 'tiktok_app' ||
+      (platform === CredentialPlatform.TIKTOK &&
+        resolvedSettings[TIKTOK_DELIVERY_MODE_SETTING_KEY] ===
+          TIKTOK_DELIVERY_MODE_APP)
         ? {
             ...resolvedSettings,
             [TIKTOK_APP_HANDOFF_SETTING]: true,

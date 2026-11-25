@@ -1,82 +1,18 @@
-import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
-import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
 import { CredentialsPublishingController } from '@api/collections/credentials/controllers/credentials-publishing.controller';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
-import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
-import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  buildGuard,
+  type ControllerClass,
+  type Handler,
+  keyWithScopes,
+  routeContext,
+} from '@api/helpers/guards/api-key/api-key-route-scope.fixture';
+import { UnauthorizedException } from '@nestjs/common';
 import { METHOD_METADATA } from '@nestjs/common/constants';
-import { Reflector } from '@nestjs/core';
-
-function keyWithScopes(scopes: string[]): ApiKeyDocument {
-  return {
-    allowedIps: [],
-    category: ApiKeyCategory.GENFEEDAI,
-    defaultBrandId: null,
-    expiresAt: null,
-    id: 'key-1',
-    isRevoked: false,
-    key: 'hashed',
-    metadata: null,
-    organizationId: 'org-1',
-    rateLimit: 60,
-    scopes,
-    userId: 'user-1',
-  } as unknown as ApiKeyDocument;
-}
-
-function buildGuard(apiKey: ApiKeyDocument): ApiKeyAuthGuard {
-  const apiKeysService = {
-    canSwitchOrganizations: () => false,
-    checkRateLimit: async () => ({
-      allowed: true,
-      limit: 60,
-      retryAfterSeconds: 0,
-    }),
-    findByKey: async () => apiKey,
-    hasScope: ApiKeysService.prototype.hasScope,
-    isIpAllowed: () => true,
-    isMcpOAuthSession: () => false,
-    readMcpAccessMode: () => 'standard',
-    resolveActionOrigin: () => ActionOrigin.API,
-    resolveAnyBrandId: async () => 'brand-1',
-    resolveEffectiveOrganizationId: async () => 'org-1',
-    resolveValidDefaultBrandId: async () => undefined,
-    updateLastUsed: async () => undefined,
-  } as unknown as ApiKeysService;
-
-  return new ApiKeyAuthGuard(apiKeysService, new Reflector());
-}
-
-type Handler = (...args: never[]) => unknown;
-type ControllerClass = new (...args: never[]) => object;
-
-function routeContext(
-  controller: ControllerClass,
-  handler: Handler,
-  method: string,
-): ExecutionContext {
-  const request = {
-    connection: { remoteAddress: '203.0.113.7' },
-    headers: { authorization: 'Bearer gf_test_key' },
-    ip: '203.0.113.7',
-    method,
-    user: null,
-  };
-
-  return {
-    getClass: () => controller,
-    getHandler: () => handler,
-    switchToHttp: () => ({
-      getRequest: () => request,
-      getResponse: () => ({ setHeader: () => undefined }),
-    }),
-  } as unknown as ExecutionContext;
-}
 
 const ACCOUNT_ROUTES: ReadonlyArray<
   readonly [string, ControllerClass, Handler, string]
