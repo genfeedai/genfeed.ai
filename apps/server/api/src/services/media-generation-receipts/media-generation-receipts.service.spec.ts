@@ -1,7 +1,13 @@
+import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
+import { hashBrandArtifactBytes } from '@api/services/brand-validation/brand-validation-artifact.util';
 import type { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { projectProvisionalBrandIdentitySnapshot } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import type { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
-import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import {
+  hashBrandedGenerationArtifactManifestV1,
+  hashBrandedGenerationTextV1,
+  hashBrandIdentitySnapshotV1,
+} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import type { MediaGenerationReceiptOpenInputV1 } from '@api/services/media-generation-receipts/media-generation-receipts.types';
@@ -16,7 +22,10 @@ import {
   brandedGenerationResolutionV1Schema,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
-import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type {
+  BrandArtifactValidationReportV1,
+  BrandedGenerationReceiptV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { buildGenfeedDefaultKitDraft } from '@genfeedai/helpers';
 import {
   type BrandOsRevision,
@@ -28,6 +37,7 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -272,6 +282,7 @@ function fixture() {
     textHash: null,
   };
   const material = {
+    acquire: vi.fn(),
     describeIngredientArtifact: vi.fn().mockResolvedValue(binding),
   };
   const prisma = {
@@ -316,6 +327,7 @@ function fixture() {
     material as unknown as BrandedGenerationArtifactMaterialService,
     snapshots as unknown as BrandIdentitySnapshotService,
     logger as unknown as LoggerService,
+    new BrandValidationService(),
   );
   return { service, receipts, material, prisma, snapshots, logger, binding };
 }
@@ -884,6 +896,194 @@ describe('MediaGenerationReceiptsService', () => {
         isDeleted: false,
       });
       expect(f.receipts.bindArtifact).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('palette proof on a completed branded output', () => {
+    const PARTS_ID = 'images/ingredient-1.png';
+
+    async function solid(background: string): Promise<Uint8Array> {
+      return new Uint8Array(
+        await sharp({
+          create: { background, channels: 3, height: 128, width: 128 },
+        })
+          .png()
+          .toBuffer(),
+      );
+    }
+
+    /** A brand whose only approved color is #123456, required. */
+    function brandSnapshot() {
+      const projected = projectProvisionalBrandIdentitySnapshot(
+        draftRow(),
+        time,
+      );
+      const value = {
+        ...projected,
+        generationRules: {
+          ...projected.generationRules,
+          palette: [
+            {
+              id: 'blue',
+              color: '#123456',
+              usage: 'background' as const,
+              required: true,
+              evidenceIds: projected.generationRules.evidence
+                .slice(0, 1)
+                .map((evidence) => evidence.id),
+            },
+          ],
+        },
+      };
+      return { ...value, contentHash: hashBrandIdentitySnapshotV1(value) };
+    }
+
+    /** The receipt a completed branded image is in when validation is due. */
+    function checkingReceipt(bytes: Uint8Array): BrandedGenerationReceiptV1 {
+      const parts = [
+        {
+          id: PARTS_ID,
+          version: 's3:v:1',
+          contentHash: hashBrandArtifactBytes(bytes),
+          role: 'image' as const,
+        },
+      ];
+      const dispatched = receipt({ state: 'dispatched', revision: 3 });
+      return brandedGenerationReceiptV1Schema.parse({
+        ...dispatched,
+        state: 'checking',
+        mode: 'provisional_brand',
+        compliance: 'unverified',
+        snapshot: brandSnapshot(),
+        execution: {
+          ...dispatched.execution,
+          result: 'completed',
+          completedAt: time,
+        },
+        artifact: {
+          kind: 'ingredient',
+          id: 'ingredient-1',
+          version: 's3:v:1',
+          contentHash: hashBrandedGenerationArtifactManifestV1({
+            mediaKind: 'image',
+            textHash: null,
+            parts,
+          }),
+          mediaKind: 'image',
+          parts,
+        },
+      });
+    }
+
+    /** Completes an output with these bytes; resolves to the stored report. */
+    async function completeWith(bytes: Uint8Array) {
+      const f = fixture();
+      const checking = checkingReceipt(bytes);
+      f.prisma.brandedGenerationReceipt.findFirst.mockResolvedValue({
+        projection: checking,
+      });
+      f.material.acquire.mockResolvedValue({
+        receipt: checking,
+        material: {
+          artifactKind: 'ingredient',
+          artifactId: 'ingredient-1',
+          artifactVersion: 's3:v:1',
+          textBytes: null,
+          parts: [{ partId: PARTS_ID, partVersion: 's3:v:1', bytes }],
+          references: [],
+        },
+      });
+      const stored: { report: BrandArtifactValidationReportV1 | null }[] = [];
+      f.receipts.recordValidation.mockImplementation(
+        async (_actor, _id, _mutation, _kind, report) => {
+          stored.push({ report });
+          return { receipt: outcome('needs_review', 4), replayed: false };
+        },
+      );
+      await f.service.syncTerminal('org-1', 'ingredient-1', 'settled');
+      return { f, stored };
+    }
+
+    it('stores the measured palette result for the approved color that is present', async () => {
+      const { stored } = await completeWith(await solid('#123456'));
+
+      expect(stored).toHaveLength(1);
+      expect(stored[0].report?.checks).toContainEqual(
+        expect.objectContaining({
+          category: 'palette',
+          ruleId: 'blue',
+          result: 'pass',
+          proof: expect.objectContaining({
+            coverage: 1,
+            kind: 'palette',
+            target: '#123456',
+          }),
+        }),
+      );
+    });
+
+    it('stores a fail with zero coverage when the approved color is missing', async () => {
+      const { stored } = await completeWith(await solid('#FFFFFF'));
+
+      expect(stored[0].report?.checks).toContainEqual(
+        expect.objectContaining({
+          category: 'palette',
+          ruleId: 'blue',
+          result: 'fail',
+          reasonCode: 'palette_color_absent',
+          proof: expect.objectContaining({ coverage: 0 }),
+        }),
+      );
+    });
+
+    it('never claims the factual coverage the pixels cannot prove', async () => {
+      const { stored } = await completeWith(await solid('#123456'));
+
+      expect(stored[0].report?.checks).toContainEqual(
+        expect.objectContaining({
+          ruleId: 'system:factual_coverage',
+          result: 'unknown',
+        }),
+      );
+    });
+
+    it('records the output with no report when the bytes cannot be read', async () => {
+      const { stored, f } = await completeWith(new Uint8Array([1, 2, 3]));
+
+      expect(stored[0].report?.checks).toContainEqual(
+        expect.objectContaining({
+          category: 'palette',
+          ruleId: 'blue',
+          result: 'unknown',
+        }),
+      );
+      expect(f.logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('still records the output, with no report, when the proof cannot run', async () => {
+      const f = fixture();
+      const checking = checkingReceipt(await solid('#123456'));
+      f.prisma.brandedGenerationReceipt.findFirst.mockResolvedValue({
+        projection: checking,
+      });
+      f.material.acquire.mockRejectedValue(
+        new ServiceUnavailableException('receipt_material_unavailable'),
+      );
+      const stored: (BrandArtifactValidationReportV1 | null)[] = [];
+      f.receipts.recordValidation.mockImplementation(
+        async (_actor, _id, _mutation, _kind, report) => {
+          stored.push(report);
+          return { receipt: outcome('needs_review', 4), replayed: false };
+        },
+      );
+
+      await f.service.syncTerminal('org-1', 'ingredient-1', 'settled');
+
+      expect(stored).toEqual([null]);
+      expect(f.logger.warn).toHaveBeenCalledWith(
+        'Media palette proof failed',
+        expect.objectContaining({ error: 'receipt_material_unavailable' }),
+      );
     });
   });
 });
