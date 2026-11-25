@@ -811,6 +811,7 @@ describe('resolveChannelTargetSettings', () => {
     expect(
       resolveChannelTargetSettings(CredentialPlatform.YOUTUBE, {}),
     ).toEqual({
+      aiGenerated: true,
       madeForKids: false,
       privacyStatus: 'private',
     });
@@ -1187,4 +1188,18 @@ describe('Instagram Reel music settings', () => {
       ]),
     );
   });
+});
+
+describe('TikTok and YouTube AI-generated label settings', () => {
+  test.each([CredentialPlatform.TIKTOK, CredentialPlatform.YOUTUBE])(
+    '%s labels a post as AI-generated unless the target turns it off',
+    (platform) => {
+      expect(resolveChannelTargetSettings(platform, {})).toMatchObject({
+        aiGenerated: true,
+      });
+      expect(
+        resolveChannelTargetSettings(platform, { aiGenerated: false }),
+      ).toMatchObject({ aiGenerated: false });
+    },
+  );
 });

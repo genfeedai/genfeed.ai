@@ -603,6 +603,40 @@ describe('YoutubeUploadService', () => {
       expect(statusOf()).not.toHaveProperty('selfDeclaredMadeForKids');
     });
 
+    it('discloses altered or synthetic content when the setting is on', async () => {
+      const post = createPost({ status: PostStatus.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        aiGenerated: true,
+      });
+
+      expect(statusOf()).toEqual({
+        containsSyntheticMedia: true,
+        privacyStatus: PostStatus.PUBLIC,
+      });
+    });
+
+    it('says the video is not synthetic when the setting is turned off', async () => {
+      const post = createPost({ status: PostStatus.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        aiGenerated: false,
+      });
+
+      expect(statusOf()).toEqual({
+        containsSyntheticMedia: false,
+        privacyStatus: PostStatus.PUBLIC,
+      });
+    });
+
+    it('keeps the synthetic content field off the request when the setting is absent', async () => {
+      const post = createPost({ status: PostStatus.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post);
+
+      expect(statusOf()).not.toHaveProperty('containsSyntheticMedia');
+    });
+
     it('adds the uploaded video to the requested playlist', async () => {
       const post = createPost();
 
