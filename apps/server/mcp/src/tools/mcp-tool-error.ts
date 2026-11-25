@@ -121,6 +121,8 @@ export class McpUpstreamError extends Error {
   readonly body: unknown;
   readonly retryAfterSeconds: number | undefined;
   readonly status: number | undefined;
+  /** Set once the API client has logged this failure, so the tool layer logs it as a follow-up and not a second fault. */
+  report: { causeCode?: string; invocationId: string } | undefined;
 
   constructor(
     message: string,

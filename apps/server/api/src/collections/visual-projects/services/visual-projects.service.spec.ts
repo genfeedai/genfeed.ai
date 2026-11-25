@@ -78,6 +78,7 @@ function fixture() {
   };
   const assets = { authorize: vi.fn() };
   const billing = {
+    catalog: vi.fn(async () => ({ isAvailable: true, models: [] })),
     quote: vi.fn(async () => ({ maximumCredits: 0, modelKey: 'openai/test' })),
     quoteReceipt: vi.fn(() => ({ kind: 'quote' })),
     reconcileStopped: vi.fn(),
@@ -499,4 +500,76 @@ describe('malformed visual request bodies', () => {
       expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('visual-code catalog brand scope', () => {
+  const context = { organizationId: 'org', userId: 'user' };
+  it.each([undefined, '', '   '])(
+    'answers a missing brand %s with the way out and runs nothing',
+    async (brandId) => {
+      const f = fixture();
+      const result = await f.service.executeAgentAction(
+        'get_visual_code_catalog',
+        { brandId },
+        { ...context, brandId },
+      );
+      expect(result).toEqual({
+        creditsUsed: 0,
+        data: {
+          code: 'brand_context_required',
+          recoveryAction: 'select_brand',
+        },
+        error: expect.stringContaining('Pass brandId from get_brands'),
+        success: false,
+      });
+      expect(f.authorization.authorizeBrand).not.toHaveBeenCalled();
+      expect(f.billing.catalog).not.toHaveBeenCalled();
+    },
+  );
+  it('reads the catalog for the brand named in the call when the connection has no active brand', async () => {
+    const f = fixture();
+    const result = await f.service.executeAgentAction(
+      'get_visual_code_catalog',
+      { brandId: 'brand-b' },
+      context,
+    );
+    expect(result).toMatchObject({
+      data: { isAvailable: true, models: [] },
+      success: true,
+    });
+    expect(f.authorization.authorizeBrand).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-b', organizationId: 'org' }),
+      'brand-b',
+    );
+  });
+  it('still refuses a project operation without a brand', async () => {
+    const f = fixture();
+    await expect(
+      f.service.executeAgentAction(
+        'get_visual_code_project',
+        { projectId: 'project' },
+        context,
+      ),
+    ).rejects.toThrow('brand_context_required');
+  });
+  it('answers the workflow alias with the same result, and keeps the strict contract action throwing', async () => {
+    const f = fixture();
+    f.service.onModuleInit();
+    const handlerFor = (id: string) =>
+      f.workflows.registerAction.mock.calls.find(([name]) => name === id)?.[1];
+    const args = {
+      input: {},
+      context,
+      provenance: { executionId: 'execution' },
+    };
+    await expect(
+      handlerFor('get_visual_code_catalog')(args),
+    ).resolves.toMatchObject({
+      data: { code: 'brand_context_required' },
+      success: false,
+    });
+    await expect(handlerFor('visual-code.catalog')(args)).rejects.toThrow(
+      'brand_context_required',
+    );
+  });
 });

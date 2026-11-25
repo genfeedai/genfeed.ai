@@ -10,6 +10,33 @@ describe('analytics collection failure classification', () => {
     [{ statusCode: 429 }, 'analytics.rate_limited', true],
     [{ status: 422 }, 'analytics.collection_failed', false],
     [{ status: 503 }, 'analytics.provider_unavailable', true],
+    [
+      {
+        response: { data: { error: 'invalid_grant' }, status: 400 },
+      },
+      'analytics.authentication_failed',
+      false,
+    ],
+    [
+      {
+        response: {
+          data: { error: { errors: [{ reason: 'authError' }] } },
+          status: 400,
+        },
+      },
+      'analytics.authentication_failed',
+      false,
+    ],
+    [
+      {
+        response: {
+          data: { error: { errors: [{ reason: 'invalidParameter' }] } },
+          status: 400,
+        },
+      },
+      'analytics.collection_failed',
+      false,
+    ],
   ])('classifies sanitized provider failures', (error, code, isRetryable) => {
     expect(classifyAnalyticsCollectionError(error, 'Twitter')).toEqual(
       expect.objectContaining({ code, isRetryable }),
