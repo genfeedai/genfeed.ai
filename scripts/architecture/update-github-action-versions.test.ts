@@ -205,8 +205,6 @@ describe('GitHub Action version updater', () => {
       '@electric-sql/pglite',
       // @xyflow/react 13 changes the node and edge change types the canvases use.
       '@xyflow/react',
-      // @ui-sdk/* beta.17 changes the page-controls registration the MCP approval cards read.
-      '@ui-sdk/*',
     ]);
     expect(command).toContain('--cooldown 3h');
     expect(command.split(' && ').slice(1)).toEqual([
