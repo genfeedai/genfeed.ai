@@ -182,6 +182,7 @@ describe('InstagramPublisherService', () => {
             uploadCarousel: vi.fn(),
             uploadImage: vi.fn(),
             uploadReel: vi.fn(),
+            uploadStory: vi.fn(),
           },
         },
         {
@@ -504,6 +505,74 @@ describe('InstagramPublisherService', () => {
           false, // isAiGenerated
           [undefined, undefined, undefined], // altTexts
         );
+      });
+    });
+
+    describe('stories', () => {
+      it('publishes an image as a story with the AI label, no caption and a stories link', async () => {
+        instagramService.uploadStory.mockResolvedValue({ mediaId: 'story-1' });
+
+        const result = await service.publish(
+          createPublishContext(mockImagePost, {
+            aiGenerated: true,
+            placement: 'story',
+          }),
+        );
+
+        expect(instagramService.uploadStory).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.stringContaining('/images/'),
+          false,
+          mockCredential.id,
+          true,
+        );
+        expect(instagramService.uploadImage).not.toHaveBeenCalled();
+        expect(result).toMatchObject({
+          externalId: 'story-1',
+          success: true,
+          url: 'https://www.instagram.com/stories/testuser/story-1/',
+        });
+      });
+
+      it('publishes a video as a story, not a Reel', async () => {
+        instagramService.uploadStory.mockResolvedValue({ mediaId: 'story-2' });
+
+        await service.publish(
+          createPublishContext(mockVideoPost, { placement: 'story' }),
+        );
+
+        expect(instagramService.uploadStory).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.stringContaining('/videos/'),
+          true,
+          mockCredential.id,
+          false,
+        );
+        expect(instagramService.uploadReel).not.toHaveBeenCalled();
+      });
+
+      it('refuses a story with more than one media item before any Graph call', async () => {
+        const result = await service.publish(
+          createPublishContext(mockCarouselPost, { placement: 'story' }),
+        );
+
+        expect(result).toMatchObject({
+          error: 'An Instagram story is one image or one video',
+          success: false,
+        });
+        expect(instagramService.uploadStory).not.toHaveBeenCalled();
+        expect(instagramService.uploadCarousel).not.toHaveBeenCalled();
+      });
+
+      it('cannot confirm an unconfirmed story through the media list', async () => {
+        await expect(
+          service.verifyPublished(
+            createPublishContext(mockImagePost, { placement: 'story' }),
+            new Date(),
+          ),
+        ).resolves.toBeNull();
       });
     });
 

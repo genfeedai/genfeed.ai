@@ -706,11 +706,8 @@ export class InstagramService {
   }
 
   /**
-   * Upload a video as a reel to Instagram
-   * Reels are the recommended way to post videos since VIDEO media type is deprecated
+   * Upload a video as a reel (VIDEO media type is deprecated).
    * @param isShareToFeedSelected Whether to share the reel to main feed (default: true)
-   */
-  /**
    * @param credentialId - which connected Instagram account posts this reel.
    */
   public async uploadReel(
@@ -732,6 +729,25 @@ export class InstagramService {
       coverImageUrl,
       hashtags,
       isShareToFeedSelected,
+      credentialId,
+      isAiGenerated,
+    );
+  }
+
+  /** Publish one image or video as a Story from the given connected account. */
+  public async uploadStory(
+    organizationId: string,
+    brandId: string,
+    mediaUrl: string,
+    isVideo: boolean,
+    credentialId?: string,
+    isAiGenerated?: boolean,
+  ): Promise<{ mediaId: string }> {
+    return this.publishingService.uploadStory(
+      organizationId,
+      brandId,
+      mediaUrl,
+      isVideo,
       credentialId,
       isAiGenerated,
     );
