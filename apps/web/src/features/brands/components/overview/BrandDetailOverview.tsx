@@ -109,8 +109,8 @@ export default function BrandDetailOverview({
         </div>
         {visibility ? (
           // The control sits on the header's right edge, beside the name; in a
-          // narrow column it wraps under it and takes the full width.
-          <div className="w-full min-w-0 sm:w-96 sm:max-w-full">{visibility}</div>
+          // narrow column it wraps under it.
+          <div className="min-w-0 max-w-full">{visibility}</div>
         ) : null}
       </div>
 
