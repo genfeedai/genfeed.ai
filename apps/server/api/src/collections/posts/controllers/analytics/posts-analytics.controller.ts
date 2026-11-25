@@ -17,10 +17,15 @@ import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/service
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import {
+  API_KEY_POST_DRAFTING_SCOPES,
+  API_KEY_POST_READ_SCOPES,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -28,6 +33,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  ApiKeyScope,
   CredentialPlatform,
   MemberRole,
   toPrismaCredentialPlatform,
@@ -104,6 +110,7 @@ export class PostsAnalyticsController {
   ) {}
 
   @Post('track-link')
+  @RequiredScopes(...API_KEY_POST_DRAFTING_SCOPES)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
@@ -242,6 +249,7 @@ export class PostsAnalyticsController {
   }
 
   @Post(':postId/refresh-analytics')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ...API_KEY_POST_READ_SCOPES)
   @UsePipes(ValidationPipe)
   @SetMetadata('roles', [
     'superadmin',
@@ -383,6 +391,7 @@ export class PostsAnalyticsController {
   }
 
   @Post('analytics')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ...API_KEY_POST_READ_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async refreshAllAnalytics(
     @CurrentUser() user: User,
