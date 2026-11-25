@@ -4,7 +4,9 @@ import {
   type AdminAddMemberResult,
   AdminOrganizationMembersService,
 } from '@api/endpoints/admin/organization-members/organization-members.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
@@ -39,6 +41,7 @@ export class AdminOrganizationMembersController {
   constructor(private readonly members: AdminOrganizationMembersService) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async add(
     @Param('organizationId') organizationId: string,
