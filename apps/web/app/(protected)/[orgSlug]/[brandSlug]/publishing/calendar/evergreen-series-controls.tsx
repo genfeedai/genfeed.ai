@@ -20,13 +20,18 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import DateText from '@ui/time/DateText';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import type { EvergreenSeriesControlsProps } from '@/features/posts/props/evergreen-series-controls.props';
 
-function scheduledDateToISOString(value: string, timezone: string): string {
+function scheduledDateToISOString(
+  value: string,
+  timezone: string,
+  invalidMessage: string,
+): string {
   const isoString = fromDateTimeLocalInput(value, timezone);
   if (!isoString) {
-    throw new Error('The next occurrence date is invalid.');
+    throw new Error(invalidMessage);
   }
 
   return isoString;
@@ -42,8 +47,8 @@ function recurrenceInput(rule: IRecurrenceRule): RecurrenceInput {
   };
 }
 
-function actionErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'The series action failed.';
+function actionErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 /** The series controls sit inside the post panel, under its settings. */
@@ -56,6 +61,7 @@ function evergreenSeriesQueryKey(groupId: string) {
 export default function EvergreenSeriesControls({
   groupId,
 }: EvergreenSeriesControlsProps): React.JSX.Element | null {
+  const translate = useTranslations('pages.publishing.release.series');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
   const getReleaseGroupsService = useAuthedService((token: string) =>
@@ -97,7 +103,7 @@ export default function EvergreenSeriesControls({
   const error =
     actionError ??
     (!release && releaseQuery.error
-      ? actionErrorMessage(releaseQuery.error)
+      ? actionErrorMessage(releaseQuery.error, translate('actionFailed'))
       : null);
   // The skeleton shows only while there is no series to paint: the first
   // read, or a retry after a failed one.
@@ -113,14 +119,18 @@ export default function EvergreenSeriesControls({
     enabled: Boolean(recurrenceRule && scheduledDate),
     queryFn: async (service, signal) => {
       if (!recurrenceRule) {
-        throw new Error('The series has no recurrence rule.');
+        throw new Error(translate('noRule'));
       }
       return service.preview(
         {
           limit: 3,
           recurrence: recurrenceInput(recurrenceRule),
           repeatCount: recurrenceRule.repeatCount,
-          startAt: scheduledDateToISOString(scheduledDate, previewTimezone),
+          startAt: scheduledDateToISOString(
+            scheduledDate,
+            previewTimezone,
+            translate('invalidDate'),
+          ),
           timezone: previewTimezone,
         },
         signal,
@@ -142,7 +152,7 @@ export default function EvergreenSeriesControls({
   });
   const preview = previewQuery.data ?? null;
   const previewError = previewQuery.error
-    ? actionErrorMessage(previewQuery.error)
+    ? actionErrorMessage(previewQuery.error, translate('actionFailed'))
     : preview && !preview.success
       ? preview.issues.map((issue) => issue.message).join(' ')
       : null;
@@ -166,38 +176,35 @@ export default function EvergreenSeriesControls({
         setIsConfirmingCancel(false);
         notifications.success(successMessage);
       } catch (mutationError) {
-        const message = actionErrorMessage(mutationError);
+        const message = actionErrorMessage(
+          mutationError,
+          translate('actionFailed'),
+        );
         setActionError(message);
         notifications.error(message);
       } finally {
         setPendingAction(null);
       }
     },
-    [getReleaseGroupsService, groupId, notifications, queryClient],
+    [getReleaseGroupsService, groupId, notifications, queryClient, translate],
   );
 
   if (isLoading) {
     return (
-      <aside
-        aria-label="Evergreen series controls"
-        className={SERIES_PANEL_CLASS}
-      >
-        <p className="text-sm text-muted-foreground">Loading series…</p>
+      <aside aria-label={translate('label')} className={SERIES_PANEL_CLASS}>
+        <p className="text-sm text-muted-foreground">{translate('loading')}</p>
       </aside>
     );
   }
 
   if (error && !release) {
     return (
-      <aside
-        aria-label="Evergreen series controls"
-        className={SERIES_PANEL_CLASS}
-      >
-        <p className="font-medium">Series controls unavailable</p>
+      <aside aria-label={translate('label')} className={SERIES_PANEL_CLASS}>
+        <p className="font-medium">{translate('unavailable')}</p>
         <p className="mt-1 text-sm text-muted-foreground">{error}</p>
         <Button
           className="mt-3"
-          label="Retry"
+          label={translate('retry')}
           onClick={() => void refetchRelease()}
         />
       </aside>
@@ -218,19 +225,22 @@ export default function EvergreenSeriesControls({
 
   return (
     <aside
-      aria-label="Evergreen series controls"
+      aria-label={translate('label')}
       className={`${SERIES_PANEL_CLASS} space-y-4`}
     >
       <div>
-        <p className="font-medium">Evergreen series</p>
+        <p className="font-medium">{translate('title')}</p>
         <p className="text-sm text-muted-foreground">
           {isExhausted
-            ? 'Series complete — no future occurrences remain.'
+            ? translate('complete')
             : isPaused
-              ? 'Paused — published history is unchanged.'
+              ? translate('paused')
               : isBlocked
-                ? 'Blocked — add a future schedule before editing.'
-                : `${rule.frequency} · occurrence ${rule.repeatCount + 1}`}
+                ? translate('blocked')
+                : translate('recurring', {
+                    frequency: translate(`frequency.${rule.frequency}`),
+                    number: rule.repeatCount + 1,
+                  })}
         </p>
       </div>
 
@@ -243,7 +253,9 @@ export default function EvergreenSeriesControls({
       {!isExhausted ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="series-next-date">Next occurrence</Label>
+            <Label htmlFor="series-next-date">
+              {translate('nextOccurrence')}
+            </Label>
             <Input
               id="series-next-date"
               type="datetime-local"
@@ -254,7 +266,7 @@ export default function EvergreenSeriesControls({
             <Button
               isDisabled={isBlocked || isPending || !scheduledDate}
               isLoading={pendingAction === 'edit'}
-              label="Save future schedule"
+              label={translate('saveSchedule')}
               onClick={() =>
                 void runAction(
                   'edit',
@@ -263,9 +275,10 @@ export default function EvergreenSeriesControls({
                       scheduledDate: scheduledDateToISOString(
                         scheduledDate,
                         release.timezone,
+                        translate('invalidDate'),
                       ),
                     }),
-                  'Future occurrence updated',
+                  translate('updated'),
                 )
               }
             />
@@ -273,7 +286,7 @@ export default function EvergreenSeriesControls({
 
           {preview?.success ? (
             <div>
-              <p className="text-sm font-medium">Upcoming preview</p>
+              <p className="text-sm font-medium">{translate('upcoming')}</p>
               {preview.occurrences.length ? (
                 <ol className="mt-1 list-decimal pl-5 text-sm text-muted-foreground">
                   {preview.occurrences.map((occurrence) => (
@@ -284,7 +297,7 @@ export default function EvergreenSeriesControls({
                 </ol>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No occurrences remain in this bounded rule.
+                  {translate('noOccurrences')}
                 </p>
               )}
             </div>
@@ -298,7 +311,7 @@ export default function EvergreenSeriesControls({
             <Button
               isDisabled={isPending}
               isLoading={pendingAction === 'toggle'}
-              label={isPaused ? 'Resume series' : 'Pause series'}
+              label={isPaused ? translate('resume') : translate('pause')}
               onClick={() =>
                 void runAction(
                   'toggle',
@@ -307,33 +320,33 @@ export default function EvergreenSeriesControls({
                       ? service.resumeFuture(groupId)
                       : service.pauseFuture(groupId),
                   isPaused
-                    ? 'Evergreen series resumed'
-                    : 'Evergreen series paused',
+                    ? translate('resumedToast')
+                    : translate('pausedToast'),
                 )
               }
             />
             {!isConfirmingCancel ? (
               <Button
                 isDisabled={isPending}
-                label="Cancel future occurrences"
+                label={translate('cancelFuture')}
                 onClick={() => setIsConfirmingCancel(true)}
               />
             ) : (
               <>
                 <Button
                   isDisabled={isPending}
-                  label="Keep series"
+                  label={translate('keep')}
                   onClick={() => setIsConfirmingCancel(false)}
                 />
                 <Button
                   isDisabled={isPending}
                   isLoading={pendingAction === 'cancel'}
-                  label="Confirm cancellation"
+                  label={translate('confirmCancel')}
                   onClick={() =>
                     void runAction(
                       'cancel',
                       (service) => service.cancelFuture(groupId),
-                      'Future occurrences cancelled',
+                      translate('cancelled'),
                     )
                   }
                 />

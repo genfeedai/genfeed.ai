@@ -17,6 +17,13 @@ import type { InputHTMLAttributes, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EvergreenSeriesControls from './evergreen-series-controls';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 const mocks = vi.hoisted(() => ({
   cancelFuture: vi.fn(),
   editFuture: vi.fn(),
@@ -132,6 +139,7 @@ describe('EvergreenSeriesControls', () => {
     render(<EvergreenSeriesControls groupId="release-1" />);
 
     expect(await screen.findByText('Upcoming preview')).toBeInTheDocument();
+    expect(screen.getByText('Weekly · occurrence 2')).toBeInTheDocument();
     expect(mocks.preview).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 3, timezone: 'UTC' }),
       expect.any(AbortSignal),
