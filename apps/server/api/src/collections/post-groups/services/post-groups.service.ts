@@ -746,6 +746,14 @@ export class PostGroupsService {
         }
       }
 
+      await this.readinessService.assertXPostingAllowed(
+        organizationId,
+        targets.filter((target) =>
+          GROUP_ACTION_STATES.has(target.targetExecutionState),
+        ),
+        group.baseContent,
+      );
+
       const scheduledDate = new Date();
       for (const target of targets) {
         if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {

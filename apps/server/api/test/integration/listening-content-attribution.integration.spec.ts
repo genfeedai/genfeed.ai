@@ -288,6 +288,9 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     );
     const readinessService = new PostGroupReadinessService(
       credentialReadinessService,
+      // Attribution is under test here, not X billing: every post may go.
+      { check: async () => null } as never,
+      { get: () => 'https://app.genfeed.ai' } as never,
     );
     const persistenceService = new PostGroupPersistenceService(
       prisma,

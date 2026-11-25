@@ -148,6 +148,19 @@ describe('MCP tool error contract', () => {
     ).toBe('plan_required');
   });
 
+  it('returns the X posting refusal with the credits page as the next step', () => {
+    expect(
+      classifyMcpToolFailure({
+        domainCode: 'x_posting_insufficient_credits',
+        message: 'Not enough credits to post to X.',
+        status: 402,
+      }),
+    ).toMatchObject({
+      code: 'insufficient_credits',
+      nextStepUrl: appUrl(APP_ROUTES.SETTINGS.CREDITS),
+    });
+  });
+
   it('returns insufficient_credits for the ledger exception', () => {
     const error = classifyMcpToolFailure({
       domainCode: 'INSUFFICIENT_CREDITS',

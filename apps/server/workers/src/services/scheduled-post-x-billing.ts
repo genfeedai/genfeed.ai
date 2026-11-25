@@ -1,11 +1,13 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import {
+  isXPlatform,
+  XPostingBillingGate,
+} from '@api/common/subscriptions/x-posting-billing-gate.service';
 import { type PublishResult, scopedWhere } from '@api/index';
 import {
   ActivitySource,
   CredentialPlatform,
-  fromPrismaCredentialPlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { xPostCreditCost, xPostHasLink } from '@genfeedai/pricing';
@@ -13,11 +15,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@workers/config/config.service';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import type { DeliveryGateFailure } from '@workers/services/scheduled-post-delivery.types';
 
-const X_POSTING_REQUIRES_PAID_PLAN_CODE = 'x_posting_requires_paid_plan';
-const X_POSTING_INSUFFICIENT_CREDITS_CODE = 'x_posting_insufficient_credits';
+const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 
 /** One published X post (or thread reply) the organization is charged for. */
 export interface XPublishedPost {
@@ -28,33 +30,26 @@ export interface XPublishedPost {
   userId: string | null | undefined;
 }
 
-export function isXPlatform(platform: unknown): boolean {
-  const domain = fromPrismaCredentialPlatform(String(platform ?? ''));
-  return (
-    String(domain ?? platform ?? '').toLowerCase() ===
-    CredentialPlatform.TWITTER.toLowerCase()
-  );
-}
-
 /**
  * What posting to X costs the organization. X bills Genfeed for every request,
- * so X posting is a paid-plan feature and every published post is charged in
- * credits. The gate runs before the provider call; the charge runs after the
+ * so every published post is charged in credits; an empty wallet is the only
+ * thing that refuses it. The gate runs before the provider call; the charge runs after the
  * provider accepted the post, so it can never fail a publish that happened.
  */
 @Injectable()
 export class ScheduledPostXBilling {
   constructor(
     private readonly logger: LoggerService,
-    private readonly paidAccess: OrganizationPaidAccessService,
+    private readonly gate: XPostingBillingGate,
     private readonly credits: CreditsUtilsService,
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
-   * Refuses an X post before it is sent: an organization on the free plan
-   * (including one that only holds free credits) cannot post to X, and a paid
-   * one needs enough credits for the post. Other platforms pass.
+   * Refuses an X post before it is sent when the wallet cannot cover it. Other
+   * platforms pass. The failure carries the reason and the link that fixes it,
+   * because it is what the owner reads in the app, the alert and any webhook.
    */
   async checkCanPublish(input: {
     organizationId: string | null | undefined;
@@ -63,45 +58,27 @@ export class ScheduledPostXBilling {
     text: string | null | undefined;
     url: string;
   }): Promise<DeliveryGateFailure | null> {
-    if (!isXPlatform(input.platform) || !input.organizationId) {
+    const refusal = await this.gate.check({
+      appUrl: this.configService.get('GENFEEDAI_APP_URL') || DEFAULT_APP_URL,
+      organizationId: input.organizationId,
+      platform: input.platform,
+      text: input.text,
+    });
+    if (!refusal) {
       return null;
     }
-    const platform = CredentialPlatform.TWITTER;
-
-    if (await this.paidAccess.isSubscriptionGatedFresh(input.organizationId)) {
-      this.logger.warn(`${input.url} X posting blocked: free plan`, {
-        organizationId: input.organizationId,
-        postId: input.postId,
-      });
-      return {
-        code: X_POSTING_REQUIRES_PAID_PLAN_CODE,
-        isRetryable: false,
-        message: 'Posting to X needs a paid plan. Upgrade to publish to X.',
-        platform,
-      };
-    }
-
-    const cost = xPostCreditCost(input.text);
-    const hasCredits = await this.credits.checkOrganizationCreditsAvailable(
-      input.organizationId,
-      cost,
-    );
-    if (!hasCredits) {
-      this.logger.warn(`${input.url} X posting blocked: not enough credits`, {
-        cost,
-        organizationId: input.organizationId,
-        postId: input.postId,
-      });
-      return {
-        code: X_POSTING_INSUFFICIENT_CREDITS_CODE,
-        isRetryable: false,
-        message: xPostHasLink(input.text)
-          ? 'Not enough credits to post to X. Posts with a link cost more than posts without one.'
-          : 'Not enough credits to post to X.',
-        platform,
-      };
-    }
-    return null;
+    this.logger.warn(`${input.url} X posting blocked: ${refusal.code}`, {
+      code: refusal.code,
+      cost: refusal.cost,
+      organizationId: input.organizationId,
+      postId: input.postId,
+    });
+    return {
+      code: refusal.code,
+      isRetryable: false,
+      message: refusal.message,
+      platform: CredentialPlatform.TWITTER,
+    };
   }
 
   /**

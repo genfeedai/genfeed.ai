@@ -1,3 +1,4 @@
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -24,7 +25,6 @@ function createMocks() {
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
-    paidAccess: { isSubscriptionGatedFresh: vi.fn().mockResolvedValue(false) },
     prisma: {
       post: {
         count: vi.fn().mockResolvedValue(0),
@@ -55,9 +55,10 @@ function createService(mocks: Mocks): ThreadCommentDeliveryService {
     mocks.sweepLock as never,
     new ScheduledPostXBilling(
       mocks.logger as never,
-      mocks.paidAccess as never,
+      new XPostingBillingGate(mocks.credits as never),
       mocks.credits as never,
       mocks.prisma as never,
+      { get: () => 'https://app.genfeed.ai' } as never,
     ),
   );
 }

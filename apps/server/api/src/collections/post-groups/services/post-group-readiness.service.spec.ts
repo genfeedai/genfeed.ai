@@ -68,6 +68,11 @@ describe('PostGroupReadinessService', () => {
         { get: () => ({ getQuotaStatus: vi.fn() }) } as never,
         { credential: { findMany: vi.fn() } } as never,
       ),
+      { check: vi.fn().mockResolvedValue(null) } as never,
+      {
+        get: (key: string) =>
+          key === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : undefined,
+      } as never,
     );
   }
 
