@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -9,6 +10,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -27,7 +29,11 @@ import { TurboRewriteCreditsGuard } from '@api/services/turbo-run/turbo-rewrite-
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { TurboRunRewriteService } from '@api/services/turbo-run/turbo-run-rewrite.service';
 import { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
-import { ActivitySource, TurboRunStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  TurboRunStatus,
+} from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { TurboRunSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -61,6 +67,7 @@ export class TurboRunController {
   ) {}
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(201)
   @ApiOperation({ summary: 'Create a new Turbo run job' })
   async createTurboRun(
@@ -84,6 +91,7 @@ export class TurboRunController {
   }
 
   @Post('manual-review')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(201)
   @ApiOperation({
     summary: 'Create a manual review run from existing assets',
@@ -204,6 +212,7 @@ export class TurboRunController {
   }
 
   @Post(':id/process')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(200)
   @ApiOperation({ summary: 'Trigger run processing' })
   async processTurboRun(@Param('id') id: string, @CurrentUser() user: User) {
@@ -225,6 +234,7 @@ export class TurboRunController {
   }
 
   @Post(':id/rewrite-jobs')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(202)
   @UseGuards(TurboRewriteCreditsGuard)
   @ApiOperation({
@@ -293,6 +303,7 @@ export class TurboRunController {
   }
 
   @Post(':id/rewrite-jobs/:jobId/cancel')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @OrganizationModule('turbo', 'read')
   @HttpCode(200)
   @ApiOperation({ summary: 'Stop a Turbo rewrite before its next item' })
@@ -313,6 +324,7 @@ export class TurboRunController {
   }
 
   @Post(':id/items/action')
+  @RequiredScopes(ApiKeyScope.POSTS_APPROVE, ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Approve, reject, or request changes on Turbo run items',
@@ -359,6 +371,7 @@ export class TurboRunController {
   }
 
   @Post(':id/items/:itemId/assign')
+  @RequiredScopes(ApiKeyScope.POSTS_APPROVE, ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({ summary: 'Assign a review item to a team member' })
   async assignItem(
@@ -382,6 +395,7 @@ export class TurboRunController {
   }
 
   @Post(':id/items/:itemId/unassign')
+  @RequiredScopes(ApiKeyScope.POSTS_APPROVE, ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({ summary: 'Clear assignment on a review item' })
   async unassignItem(
@@ -403,6 +417,7 @@ export class TurboRunController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(200)
   @ApiOperation({ summary: 'Update a run (e.g. cancel via status)' })
   async patch(
