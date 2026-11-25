@@ -1,10 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers';
 import { Button } from '@ui/primitives/button';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import SidebarLogoMark from '@/components/menus/sidebar-logo-toggle/SidebarLogoMark';
 import SidebarLogoToggleButton from '@/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import { useHistoryNavigation } from '@/hooks/ui/use-history-navigation/use-history-navigation';
 
@@ -14,16 +17,19 @@ type DesktopTitlebarSidebarToggle = {
 };
 
 type DesktopTitlebarControlsProps = {
+  /** The plain Genfeed mark, for pages with no sidebar to toggle. */
+  hasStaticMark?: boolean;
   /** Shown here only while the traffic lights cover the rail's mark band. */
   sidebarToggle?: DesktopTitlebarSidebarToggle | null;
 };
 
 /**
- * Leading edge of the desktop topbar, Codex-style: room for the macOS traffic
- * lights, the sidebar toggle when the lights displace it from the rail, then
- * back / forward. The desktop window has no browser chrome to navigate with.
+ * Leading edge of the desktop topbar: room for the macOS traffic lights, the
+ * Genfeed mark (the sidebar toggle, or a plain mark on pages without a
+ * sidebar) when the lights displace it from the rail, then back / forward. The desktop window has no browser chrome to navigate with.
  */
 export default function DesktopTitlebarControls({
+  hasStaticMark = false,
   sidebarToggle = null,
 }: DesktopTitlebarControlsProps) {
   const router = useRouter();
@@ -52,12 +58,19 @@ export default function DesktopTitlebarControls({
           direction={sidebarToggle.isCollapsed ? 'expand' : 'collapse'}
           onClick={sidebarToggle.onToggle}
         />
+      ) : hasStaticMark ? (
+        <span
+          className="flex size-8 shrink-0 items-center justify-center"
+          data-testid="desktop-titlebar-mark"
+        >
+          <SidebarLogoMark />
+        </span>
       ) : null}
       <Button
         type="button"
         variant={ButtonVariant.GHOST}
         size={ButtonSize.ICON}
-        className="size-8"
+        className={cn('size-8', SHELL_CHROME_FOCUS_CLASS)}
         ariaLabel={translateWindow('back')}
         data-testid="desktop-titlebar-back"
         isDisabled={!canGoBack}
@@ -71,7 +84,7 @@ export default function DesktopTitlebarControls({
         type="button"
         variant={ButtonVariant.GHOST}
         size={ButtonSize.ICON}
-        className="size-8"
+        className={cn('size-8', SHELL_CHROME_FOCUS_CLASS)}
         ariaLabel={translateWindow('forward')}
         data-testid="desktop-titlebar-forward"
         isDisabled={!canGoForward}

@@ -703,7 +703,7 @@ describe('AppRail', () => {
     );
     expect(renderedLauncherAppIds()).toEqual([]);
   });
-  it('keeps grayscale focus indicators and fills only the active item', () => {
+  it('marks keyboard focus with a quiet fill and fills only the active item', () => {
     render(
       <AppRail
         orgSlug="acme"
@@ -717,9 +717,9 @@ describe('AppRail', () => {
 
     expect(workspace).toHaveAccessibleDescription('Command center.');
     expect(workspace).toHaveClass(
-      'focus-visible:ring-2',
-      'focus-visible:ring-ring',
-      'focus-visible:ring-offset-background',
+      'focus-visible:outline-hidden',
+      'focus-visible:ring-0',
+      'focus-visible:bg-accent',
       'rounded-lg',
       'text-foreground',
     );
