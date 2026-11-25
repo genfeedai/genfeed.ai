@@ -16,6 +16,7 @@ import { UpdateWorkflowEmailNotificationPreferenceDto } from '@api/collections/u
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -32,6 +33,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { AGENT_STATUS_NOTIFICATION_TOPIC } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   BrandSerializer,
   NotificationPreferenceSerializer,
@@ -258,6 +260,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch('me/settings')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.updateMeSettings',
@@ -321,6 +324,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch('me/organizations/:organizationId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.updateOrganizationSelection',
@@ -355,6 +359,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch('me/brands/:brandId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.updateBrandSelection',
@@ -380,6 +385,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch(':userId/settings')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.updateSettings',

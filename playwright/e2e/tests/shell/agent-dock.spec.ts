@@ -65,8 +65,9 @@ test.describe('Agent dock', () => {
       await expect(
         dock.getByRole('textbox', { name: 'Conversation prompt' }),
       ).toBeVisible();
-      // The panel is its own card: it starts under the full-width topbar,
-      // ends one 8px inset above the window bottom, and sits beside the page.
+      // The panel is a flush, full-height column: it starts at the top of the
+      // window, ends at the bottom, sits beside the page and the topbar, and
+      // the topbar stops at the panel's left edge.
       const canvas = page.getByRole('region', {
         name: 'Primary workspace canvas',
       });
@@ -78,15 +79,14 @@ test.describe('Agent dock', () => {
       expect(panelBox?.x ?? 0).toBeGreaterThanOrEqual(
         (canvasBox?.x ?? 0) + (canvasBox?.width ?? 0) - 1,
       );
-      const topbarBottom = (topbarBox?.y ?? 0) + (topbarBox?.height ?? 0);
-      expect(Math.abs((panelBox?.y ?? 0) - topbarBottom)).toBeLessThanOrEqual(
-        1,
-      );
+      expect(Math.abs(panelBox?.y ?? 0)).toBeLessThanOrEqual(1);
       expect(
-        (topbarBox?.x ?? 0) + (topbarBox?.width ?? 0),
-      ).toBeGreaterThanOrEqual((panelBox?.x ?? 0) + (panelBox?.width ?? 0) - 1);
+        Math.abs(
+          (topbarBox?.x ?? 0) + (topbarBox?.width ?? 0) - (panelBox?.x ?? 0),
+        ),
+      ).toBeLessThanOrEqual(1);
       expect(
-        Math.abs((panelBox?.y ?? 0) + (panelBox?.height ?? 0) - (900 - 8)),
+        Math.abs((panelBox?.y ?? 0) + (panelBox?.height ?? 0) - 900),
       ).toBeLessThanOrEqual(1);
 
       await page.keyboard.press(shortcut);

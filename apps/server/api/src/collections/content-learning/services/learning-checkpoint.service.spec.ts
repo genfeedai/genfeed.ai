@@ -392,6 +392,31 @@ function fixture(
                 edge.derivedId === args.where?.derivedId,
             ),
         ),
+      createMany: vi
+        .fn()
+        .mockImplementation(
+          async ({ data }: Prisma.ContentLearningDependencyCreateManyArgs) => {
+            const created = (Array.isArray(data) ? data : [data]).map(
+              (edge): ContentLearningDependency => ({
+                id: `edge-${edges.length}`,
+                createdAt: row.receivedAt,
+                updatedAt: row.receivedAt,
+                isDeleted: false,
+                sourceKind: edge.sourceKind,
+                sourceId: edge.sourceId,
+                sourceOrganizationId: edge.sourceOrganizationId ?? null,
+                sourceVersion: edge.sourceVersion,
+                derivedKind: edge.derivedKind,
+                derivedId: edge.derivedId,
+                derivedOrganizationId: edge.derivedOrganizationId ?? null,
+                valid: true,
+                invalidatedAt: null,
+              }),
+            );
+            edges.push(...created);
+            return { count: created.length };
+          },
+        ),
     },
     contentLearningCheckpoint: {
       findMany: vi.fn().mockResolvedValue(rows),
@@ -453,33 +478,18 @@ function fixture(
   };
   const dependencies = {
     invalidate: vi.fn().mockResolvedValue(1),
-    link: vi
-      .fn()
-      .mockImplementation(
-        async (
-          _tx: Prisma.TransactionClient,
-          source: LearningDependencyRefV1,
-          derived: LearningDependencyRefV1,
-        ) => {
-          const edge: ContentLearningDependency = {
-            id: `edge-${edges.length}`,
-            createdAt: row.receivedAt,
-            updatedAt: row.receivedAt,
-            isDeleted: false,
-            sourceKind: source.kind,
-            sourceId: source.id,
-            sourceOrganizationId: source.organizationId,
-            sourceVersion: source.version,
-            derivedKind: derived.kind,
-            derivedId: derived.id,
-            derivedOrganizationId: derived.organizationId,
-            valid: true,
-            invalidatedAt: null,
-          };
-          edges.push(edge);
-          return edge;
-        },
-      ),
+    resolve: vi.fn().mockImplementation(
+      async (
+        kind: LearningDependencyRefV1['kind'],
+        id: string,
+        organizationId: string | null,
+      ): Promise<LearningDependencyRefV1> => ({
+        kind,
+        id,
+        organizationId,
+        version: String(stored.find((item) => item.id === id)?.revision),
+      }),
+    ),
   };
   return {
     prisma,
@@ -1489,6 +1499,7 @@ describe('correction composes tenant-scoped dependency invalidation', () => {
           valid: true,
           invalidatedAt: null,
         },
+        linked: ContentLearningDependency[] = [],
         findMany = vi
           .fn()
           .mockImplementation(
@@ -1497,11 +1508,13 @@ describe('correction composes tenant-scoped dependency invalidation', () => {
             }: {
               where: Prisma.ContentLearningDependencyWhereInput;
             }) =>
-              where.sourceKind === edge.sourceKind &&
-              where.sourceId === edge.sourceId &&
-              where.sourceOrganizationId === edge.sourceOrganizationId
-                ? [edge]
-                : [],
+              where.OR
+                ? linked
+                : where.sourceKind === edge.sourceKind &&
+                    where.sourceId === edge.sourceId &&
+                    where.sourceOrganizationId === edge.sourceOrganizationId
+                  ? [edge]
+                  : [],
           ),
         updateEdge = vi.fn().mockResolvedValue({ count: 1 }),
         updateBaseline = vi
@@ -1524,36 +1537,33 @@ describe('correction composes tenant-scoped dependency invalidation', () => {
           contentLearningDependency: {
             findMany,
             updateMany: updateEdge,
-            findUnique: vi.fn().mockResolvedValue(null),
-            create: vi
+            createMany: vi
               .fn()
               .mockImplementation(
                 async ({
                   data,
-                }: Prisma.ContentLearningDependencyCreateArgs): Promise<ContentLearningDependency> => {
-                  if (
-                    typeof data.sourceKind !== 'string' ||
-                    typeof data.sourceId !== 'string' ||
-                    typeof data.sourceVersion !== 'string' ||
-                    typeof data.derivedKind !== 'string' ||
-                    typeof data.derivedId !== 'string'
-                  )
-                    throw new Error('Invalid typed edge fixture');
-                  return {
-                    id: 'created-edge',
-                    createdAt: original.receivedAt,
-                    updatedAt: original.receivedAt,
-                    isDeleted: false,
-                    sourceKind: data.sourceKind,
-                    sourceId: data.sourceId,
-                    sourceVersion: data.sourceVersion,
-                    sourceOrganizationId: data.sourceOrganizationId ?? null,
-                    derivedKind: data.derivedKind,
-                    derivedId: data.derivedId,
-                    derivedOrganizationId: data.derivedOrganizationId ?? null,
-                    valid: true,
-                    invalidatedAt: null,
-                  };
+                }: Prisma.ContentLearningDependencyCreateManyArgs) => {
+                  const rows = Array.isArray(data) ? data : [data];
+                  linked.push(
+                    ...rows.map((created, index) => ({
+                      id: `created-edge-${index}`,
+                      createdAt: original.receivedAt,
+                      updatedAt: original.receivedAt,
+                      isDeleted: false,
+                      sourceKind: created.sourceKind,
+                      sourceId: created.sourceId,
+                      sourceVersion: created.sourceVersion,
+                      sourceOrganizationId:
+                        created.sourceOrganizationId ?? null,
+                      derivedKind: created.derivedKind,
+                      derivedId: created.derivedId,
+                      derivedOrganizationId:
+                        created.derivedOrganizationId ?? null,
+                      valid: true,
+                      invalidatedAt: null,
+                    })),
+                  );
+                  return { count: rows.length };
                 },
               ),
           },
@@ -1570,7 +1580,7 @@ describe('correction composes tenant-scoped dependency invalidation', () => {
         supersedesId: original.id,
         revision: 3,
       });
-      expect(findMany).toHaveBeenNthCalledWith(1, {
+      expect(findMany).toHaveBeenCalledWith({
         where: {
           sourceKind: 'checkpoint',
           sourceId: original.id,
@@ -1643,14 +1653,16 @@ describe('C2 canonical capture source and atomic ancestry', () => {
       input = captureInput();
     const row = await f.service.capture(input);
     expect(row).not.toBeNull();
-    expect(f.dependencies.link.mock.calls.map(([, source]) => source)).toEqual(
-      learningPublicationDependencyRefsV1(input.publicationSource),
-    );
-    expect(f.edges).toHaveLength(8);
     expect(
-      f.dependencies.link.mock.calls.every(([client]) => client === f.tx),
-    ).toBe(true);
+      f.prisma.contentLearningDependency.createMany,
+    ).toHaveBeenCalledOnce();
+    expect(f.edges.map((edge) => [edge.sourceKind, edge.sourceId])).toEqual(
+      learningPublicationDependencyRefsV1(input.publicationSource).map(
+        (source) => [source.kind, source.id],
+      ),
+    );
     expect(f.tx).not.toBe(f.prisma);
+    expect(f.edges).toHaveLength(8);
     expect(
       f.edges.every(
         (edge) =>
@@ -1660,28 +1672,21 @@ describe('C2 canonical capture source and atomic ancestry', () => {
       ),
     ).toBe(true);
     expect(f.prisma.contentLearningAccount.updateMany).toHaveBeenCalledOnce();
-    expect(f.dependencies.link.mock.invocationCallOrder.at(-1)).toBeLessThan(
+    expect(
+      f.prisma.contentLearningDependency.createMany.mock.invocationCallOrder[0],
+    ).toBeLessThan(
       f.prisma.contentLearningAccount.updateMany.mock.invocationCallOrder[0],
     );
   });
-  it.each([0, 1, 2, 3, 4, 5, 6, 7])(
-    'rolls back checkpoint and every edge when canonical link %s fails',
-    async (index) => {
-      const f = fixture([]),
-        failure = new Error('link failure');
-      const original = f.dependencies.link.getMockImplementation();
-      if (!original) throw new Error('Missing link implementation');
-      let called = 0;
-      f.dependencies.link.mockImplementation(async (...args) => {
-        if (called++ === index) throw failure;
-        return original(...args);
-      });
-      await expect(f.service.capture(captureInput())).rejects.toBe(failure);
-      expect(f.stored).toEqual([]);
-      expect(f.edges).toEqual([]);
-      expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
-    },
-  );
+  it('rolls back the checkpoint and every edge when the edge write fails', async () => {
+    const f = fixture([]),
+      failure = new Error('link failure');
+    f.prisma.contentLearningDependency.createMany.mockRejectedValue(failure);
+    await expect(f.service.capture(captureInput())).rejects.toBe(failure);
+    expect(f.stored).toEqual([]);
+    expect(f.edges).toEqual([]);
+    expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
   it.each(['missing', 'raw-id', 'invalid', 'ninth'])(
     'refuses %s observed replay without repairing ancestry',
     async (mutation) => {
@@ -1705,7 +1710,9 @@ describe('C2 canonical capture source and atomic ancestry', () => {
       const before = structuredClone(f.edges);
       expect(await f.service.capture(captureInput())).toBeNull();
       expect(f.edges).toEqual(before);
-      expect(f.dependencies.link).not.toHaveBeenCalled();
+      expect(
+        f.prisma.contentLearningDependency.createMany,
+      ).not.toHaveBeenCalled();
       expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
       expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
     },
@@ -1726,7 +1733,9 @@ describe('C2 diagnostic and replaced-publication capture semantics', () => {
       }),
       f = fixture([row]);
     expect(await f.service.capture(captureInput())).toBe(row);
-    expect(f.dependencies.link).not.toHaveBeenCalled();
+    expect(
+      f.prisma.contentLearningDependency.createMany,
+    ).not.toHaveBeenCalled();
     expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
   });
   it('rejects correction across a replaced physical publication with the existing same-window error', async () => {
@@ -1739,7 +1748,9 @@ describe('C2 diagnostic and replaced-publication capture semantics', () => {
       f.service.capture({ ...captureInput(), supersedesId: original.id }),
     ).rejects.toThrow('Correction must identify the same observation window');
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
-    expect(f.dependencies.link).not.toHaveBeenCalled();
+    expect(
+      f.prisma.contentLearningDependency.createMany,
+    ).not.toHaveBeenCalled();
     expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
   });
 });
@@ -1747,14 +1758,18 @@ describe('C2 diagnostic and replaced-publication capture semantics', () => {
 describe('C2 exact edge receipt validation', () => {
   it('rolls back a returned edge with incorrect tenant proof', async () => {
     const f = fixture([]),
-      original = f.dependencies.link.getMockImplementation();
-    if (!original) throw new Error('Missing link implementation');
-    f.dependencies.link.mockImplementation(async (...args) => ({
-      ...(await original(...args)),
-      derivedOrganizationId: 'foreign',
-    }));
+      original =
+        f.prisma.contentLearningDependency.createMany.getMockImplementation();
+    if (!original) throw new Error('Missing createMany implementation');
+    f.prisma.contentLearningDependency.createMany.mockImplementation(
+      async (args) => {
+        const result = await original(args);
+        for (const edge of f.edges) edge.derivedOrganizationId = 'foreign';
+        return result;
+      },
+    );
     await expect(f.service.capture(captureInput())).rejects.toThrow(
-      'Learning publication dependency conflict',
+      'Dependency scope conflict',
     );
     expect(f.stored).toEqual([]);
     expect(f.edges).toEqual([]);
