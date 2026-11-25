@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
-import { CampaignsListPage } from '@/features/campaigns';
+import CampaignsListPage from '@/features/campaigns/list/CampaignsListPage';
 
 export const generateMetadata = createPageMetadata('New Campaign');
 
