@@ -3,7 +3,9 @@ import type {
   IMoodBoardLayoutItem,
 } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
+import { NodeChangeset } from '@xyflow/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LibraryCanvasFlowNode } from './library-canvas.types';
 import {
   LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS,
   useLibraryCanvasNodes,
@@ -55,9 +57,11 @@ describe('useLibraryCanvasNodes', () => {
     );
 
     act(() => {
-      result.current.onNodesChange([
-        { id: 'a', type: 'position', position: { x: 50, y: 60 } },
-      ]);
+      result.current.onNodesChange(
+        new NodeChangeset<LibraryCanvasFlowNode>([
+          { id: 'a', type: 'position', position: { x: 50, y: 60 } },
+        ]),
+      );
       result.current.onNodeDragStop();
     });
 
@@ -109,9 +113,11 @@ describe('useLibraryCanvasNodes', () => {
     );
 
     act(() => {
-      result.current.onNodesChange([
-        { id: 'a', type: 'position', position: { x: 50, y: 60 } },
-      ]);
+      result.current.onNodesChange(
+        new NodeChangeset<LibraryCanvasFlowNode>([
+          { id: 'a', type: 'position', position: { x: 50, y: 60 } },
+        ]),
+      );
     });
 
     // A later asset page, or a widened filter, must not snap the dragged tile

@@ -1,6 +1,6 @@
 'use client';
 
-import { useStore as useReactFlowStore } from '@xyflow/react';
+import { useViewport } from '@xyflow/react';
 import { memo, useMemo } from 'react';
 import { useWorkflowStore } from '../stores/workflow';
 
@@ -20,7 +20,7 @@ interface HelperLinesProps {
 
 function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
   const nodes = useWorkflowStore((state) => state.nodes);
-  const transform = useReactFlowStore((state) => state.transform);
+  const { x: tx, y: ty, zoom } = useViewport();
 
   // Calculate helper lines when a node is being dragged
   const lines = useMemo(() => {
@@ -128,7 +128,6 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
   if (lines.length === 0) return null;
 
   // Transform from flow coordinates to screen coordinates
-  const [tx, ty, zoom] = transform;
 
   return (
     <svg
