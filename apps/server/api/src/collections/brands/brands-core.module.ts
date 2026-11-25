@@ -11,6 +11,7 @@ import { BrandLifecycleService } from '@api/collections/brands/services/brand-li
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
+import { BrandReachService } from '@api/collections/brands/services/brand-reach.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
@@ -34,6 +35,7 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [
+    BrandReachService,
     BrandRelocationService,
     BrandAssetAutofillService,
     BrandKitAssetsService,
@@ -72,6 +74,7 @@ import { Module } from '@nestjs/common';
     BrandOsRevisionsService,
     BrandOsScanService,
     BrandFontAssetsService,
+    BrandReachService,
     BrandRelocationService,
     BrandCoverStyleService,
     BrandDataMapper,

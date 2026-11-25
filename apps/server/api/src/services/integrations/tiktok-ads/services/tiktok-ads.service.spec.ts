@@ -1,9 +1,9 @@
+import { TikTokAdsAuthorizationError } from '@api/services/integrations/tiktok-ads/utils/tiktok-ads-authorization.error';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 import type { Mocked } from 'vitest';
-
 import { TikTokAdsService } from './tiktok-ads.service';
 
 const ACCESS_TOKEN = 'test-access-token';
@@ -98,6 +98,29 @@ describe('TikTokAdsService', () => {
       httpService.get.mockReturnValue(of(makeApiResponse({ list: null })));
       const accounts = await service.getAdAccounts(ACCESS_TOKEN);
       expect(accounts).toEqual([]);
+    });
+
+    it('reports a revoked access token as a reconnect warning, not an error', async () => {
+      httpService.get.mockReturnValue(
+        of({
+          data: {
+            code: 40105,
+            data: {},
+            message: 'Access token is incorrect or has been revoked.',
+            request_id: 'req-revoked',
+          },
+        }),
+      );
+
+      const failure = await service
+        .getAdAccounts(ACCESS_TOKEN)
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(TikTokAdsAuthorizationError);
+      expect(failure).toMatchObject({ code: 40105, requestId: 'req-revoked' });
+      expect(String(failure)).not.toContain(ACCESS_TOKEN);
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
     });
 
     it('should throw and log error when API returns non-zero code', async () => {

@@ -24,6 +24,7 @@ import {
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { TextReceiptState } from '@genfeedai/contracts/interfaces';
+import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import {
   joinReplyVariants,
   splitReplyVariants,
@@ -45,6 +46,24 @@ const BRAND_KIT_REPAIR_MESSAGES: Readonly<Partial<Record<string, string>>> = {
   integrity_snapshot_schema_invalid:
     'This Brand Kit has saved fields that generation cannot read. Open Settings → Brand Kit, correct the saved fields, and have a workspace owner or admin approve the revision before trying again.',
 };
+
+/**
+ * The budget failure names its numbers and longest fields on the receipt, so
+ * the person sees what to shorten instead of a bare reason code.
+ */
+function readBudgetExceededMessage(
+  receipt: BrandedGenerationReceiptV1,
+): string | undefined {
+  const detail = receipt.diagnostics.find(
+    (diagnostic) =>
+      diagnostic.code === 'context_budget_exceeded' &&
+      diagnostic.severity === 'error',
+  )?.message;
+  return detail &&
+    detail !== 'Required generation context could not be compiled.'
+    ? `Your brand voice could not be applied. ${detail} Open Settings → Brand Kit, shorten them, and have a workspace owner or admin approve the revision before trying again. Nothing was written.`
+    : undefined;
+}
 
 /** A completed seam outcome is `ready`, `needs_review` or still `checking`; anything else reads as review. */
 function completedReceiptState(state: string): TextReceiptState {
@@ -171,6 +190,9 @@ export class BrandedTextRunnerService {
             code: 'blocked',
             message:
               BRAND_KIT_REPAIR_MESSAGES[outcome.reasonCode] ??
+              (outcome.reasonCode === 'context_budget_exceeded'
+                ? readBudgetExceededMessage(outcome.receipt)
+                : undefined) ??
               `Your brand voice could not be applied (${outcome.reasonCode}). Nothing was written.`,
             hasNewDispatch: outcome.hasNewDispatch,
             reasonCode: outcome.reasonCode,

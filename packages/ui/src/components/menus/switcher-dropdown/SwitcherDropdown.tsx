@@ -21,6 +21,7 @@ import {
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import { Check, Plus } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -214,7 +215,10 @@ export default function SwitcherDropdown({
                     close();
                     action.onAction();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className={cn(
+                    'flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground',
+                    SHELL_CHROME_FOCUS_CLASS,
+                  )}
                 >
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
@@ -316,7 +320,8 @@ function SwitcherItem({
 
 const TRAILING_ACTION_CLASSNAME = cn(
   'flex size-7 flex-shrink-0 items-center justify-center rounded text-muted-foreground transition-colors duration-150',
-  'group-hover:text-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+  'group-hover:text-foreground hover:text-foreground',
+  SHELL_CHROME_FOCUS_CLASS,
 );
 
 function TrailingActionControl({

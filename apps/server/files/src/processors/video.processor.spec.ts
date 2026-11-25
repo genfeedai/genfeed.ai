@@ -1608,6 +1608,33 @@ describe('VideoProcessor', () => {
       expect(ffmpegService.convertVideoToAudio).not.toHaveBeenCalled();
     });
 
+    it('refuses a YouTube source over the limit the caller set, before upload', async () => {
+      ffmpegService.getVideoMetadata.mockResolvedValueOnce({
+        codec: 'h264',
+        duration: 61 * 60,
+        format: { duration: String(61 * 60) },
+        fps: 30,
+        height: 720,
+        streams: [],
+        width: 1280,
+      });
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://youtu.be/over-the-free-limit',
+            maxDurationSeconds: 60 * 60,
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'This video is longer than 60 minutes. Pick a shorter one.',
+      );
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+    });
+
     it('deletes uploaded source and local files when audio extraction fails', async () => {
       ffmpegService.convertVideoToAudio.mockRejectedValueOnce(
         new Error('Audio extraction failed'),

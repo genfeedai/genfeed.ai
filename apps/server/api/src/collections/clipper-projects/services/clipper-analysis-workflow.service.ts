@@ -254,6 +254,7 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
             ? undefined
             : data.source?.ingredientId,
           sourceArtifact?.storageKey,
+          data.maxSourceDurationSeconds,
         );
     const resolvedArtifact = extraction.sourceArtifact ?? sourceArtifact;
     if (extraction.sourceArtifact) {
@@ -581,6 +582,7 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
     projectId: string,
     ingredientId?: string,
     sourceS3Key?: string,
+    maxSourceDurationSeconds?: number,
   ): Promise<AudioExtractionResult> {
     const filesUrl = this.getFilesServiceUrl();
 
@@ -596,7 +598,13 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
             // can later read it by key (provider-hosted Library videos).
             params: sourceS3Key
               ? { s3Key: sourceS3Key }
-              : { inputPath: youtubeUrl, materializeSource: true },
+              : {
+                  inputPath: youtubeUrl,
+                  materializeSource: true,
+                  ...(maxSourceDurationSeconds === undefined
+                    ? {}
+                    : { maxDurationSeconds: maxSourceDurationSeconds }),
+                },
             type: 'video-to-audio',
             userId,
           },

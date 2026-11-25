@@ -1,4 +1,5 @@
 import {
+  isOnboardingCompleted,
   readDraftsStatus,
   readOnboardingDrafts,
   readPrefillMarker,
@@ -17,6 +18,7 @@ function organization(
     scanStatus: null,
     steps: {
       accountConnected: false,
+      activated: false,
       brandScanned: false,
       completed: false,
       draftsReady: false,
@@ -45,6 +47,17 @@ describe('readPrefillMarker', () => {
   });
 });
 
+describe('isOnboardingCompleted', () => {
+  it.each([
+    [{ organization: false, owner: false }, false],
+    [{ organization: true, owner: false }, true],
+    [{ organization: false, owner: true }, true],
+    [{ organization: true, owner: true }, true],
+  ])('is %j -> %s', (flags, expected) => {
+    expect(isOnboardingCompleted(flags)).toBe(expected);
+  });
+});
+
 describe('readDraftsStatus', () => {
   it('reads the result status of an onboarding run', () => {
     expect(readDraftsStatus({ result: { status: 'partial' } })).toBe('partial');
@@ -61,6 +74,7 @@ describe('summarizeOnboardingFunnel', () => {
         id: 'b',
         steps: {
           accountConnected: false,
+          activated: false,
           brandScanned: false,
           completed: false,
           draftsReady: true,
@@ -74,6 +88,7 @@ describe('summarizeOnboardingFunnel', () => {
         id: 'c',
         steps: {
           accountConnected: true,
+          activated: true,
           brandScanned: true,
           completed: true,
           draftsReady: true,
@@ -87,6 +102,7 @@ describe('summarizeOnboardingFunnel', () => {
     expect(totals.total).toBe(3);
     expect(totals.steps).toEqual({
       accountConnected: 1,
+      activated: 1,
       brandScanned: 1,
       completed: 1,
       draftsReady: 2,

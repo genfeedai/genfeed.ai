@@ -36,6 +36,7 @@ export const brandAttributes = createEntityAttributes([
   'isActive',
   'isHighlighted',
   'isFleetEnabled',
+  'isPublicAnalyticsEnabled',
   'isDefault',
   'logoUrl',
   'bannerUrl',

@@ -8,6 +8,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { YoutubeLongFormWorkflowService } from '@api/collections/workflows/services/youtube-long-form-workflow.service';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
+import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   IngredientSerializer,
   PublicYoutubeLongFormToolSerializer,
@@ -86,6 +87,22 @@ describe('PublicYoutubeLongFormController', () => {
     organizationId: 'org-1',
     userId: 'user-1',
   } as unknown as User;
+
+  it('caps a day of free long-form runs across every caller', () => {
+    expect(
+      Reflect.getMetadata(
+        RATE_LIMIT_KEY,
+        PublicYoutubeLongFormController.prototype.create,
+      ),
+    ).toEqual([
+      { limit: 3, scope: 'ip', windowMs: 3_600_000 },
+      expect.objectContaining({
+        limit: 200,
+        scope: 'global',
+        windowMs: 86_400_000,
+      }),
+    ]);
+  });
 
   it('serializes the public preview by execution without a durable content id', async () => {
     const { controller } = buildController();

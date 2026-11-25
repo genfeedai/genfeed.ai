@@ -29,6 +29,7 @@ interface PersistedAnalytics {
 }
 
 interface HarnessLog {
+  errors: unknown[][];
   failed: unknown[];
   persisted: PersistedAnalytics[];
   prepared: unknown[];
@@ -52,6 +53,7 @@ function createHarness(
   behaviour: HarnessBehaviour = {},
 ) {
   const log: HarnessLog = {
+    errors: [],
     failed: [],
     persisted: [],
     prepared: [],
@@ -107,7 +109,9 @@ function createHarness(
     },
   } as unknown as ServerYouTubeAnalytics;
   const logger = {
-    error: () => undefined,
+    error: (...args: unknown[]) => {
+      log.errors.push(args);
+    },
     log: () => undefined,
     warn: () => undefined,
   } satisfies ServerLogger;
@@ -236,6 +240,35 @@ describe('AnalyticsYouTubeCollectionService', () => {
 
     expect(log.failed).toHaveLength(1);
     expect(log.persisted).toEqual([]);
+  });
+
+  it('logs a rejected batch by its sanitized provider category only', async () => {
+    const revoked = Object.assign(new Error('invalid_grant'), {
+      config: { headers: { Authorization: 'Bearer secret-token' } },
+      response: { data: { error: 'invalid_grant' }, status: 400 },
+    });
+    const { log, service } = createHarness(new Map(), {
+      onProvider: () => {
+        throw revoked;
+      },
+    });
+
+    await expect(
+      service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toBe(revoked);
+
+    expect(log.errors).toEqual([
+      [
+        'Failed to process YouTube analytics batch for 1 posts',
+        undefined,
+        {
+          failureCode: 'analytics.authentication_failed',
+          httpStatus: 400,
+          isRetryable: false,
+          providerReason: 'invalid_grant',
+        },
+      ],
+    ]);
   });
 
   it('rejects batch-shaped inputs at the action boundary', async () => {

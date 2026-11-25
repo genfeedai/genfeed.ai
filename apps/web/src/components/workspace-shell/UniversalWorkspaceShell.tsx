@@ -1098,18 +1098,14 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-transition-duration',
       `${isInspectorResizing ? 0 : SIDEBAR_TRANSITION_DURATION_MS}ms`,
     );
-    // Open, the panel is its own card beside the page block. This flag adds
-    // the gap between the two cards to the block's right margin.
-    layoutRoot.dataset.inspectorOpen = String(isPanelOpen);
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
       layoutRoot.style.removeProperty(
         '--workspace-inspector-transition-duration',
       );
-      delete layoutRoot.dataset.inspectorOpen;
     };
-  }, [inspectorRailWidth, isInspectorResizing, isPanelOpen]);
+  }, [inspectorRailWidth, isInspectorResizing]);
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -1362,26 +1358,27 @@ function UniversalWorkspaceShellContent({
             </section>
           </div>
 
-          {/* The side panel starts under the topbar, level with the page
-              block, and sits flush against it (left border is the divider,
-              left corners square). It clips its contents as it closes. */}
+          {/* The side panel runs the full window height, flush against the
+              topbar and the page (its left border is the divider). Its first
+              row is level with the topbar's. It clips its contents as it
+              closes. */}
           <aside
             // Nothing open: the empty, zero-width column is not a landmark.
             aria-hidden={isPanelOpen ? undefined : true}
             aria-label={translateSidePanel('label')}
             className={cn(
-              'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
-              isPanelOpen && 'rounded-l-none border border-border',
+              'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+              isPanelOpen && 'border-l border-border',
             )}
             id="workspace-context-inspector"
             data-motion="layout"
             inert={!isPanelOpen}
             ref={inspectorRef}
             style={{
-              bottom: 'var(--shell-inset, 0px)',
+              bottom: 0,
               minWidth: inspectorRailWidth,
-              right: 'var(--shell-inset, 0px)',
-              top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
+              right: 0,
+              top: 'var(--desktop-titlebar-height)',
               transition: isInspectorResizing
                 ? 'none'
                 : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,

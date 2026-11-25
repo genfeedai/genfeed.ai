@@ -57,6 +57,7 @@ import {
   resolveBlockedTools,
   TURBO_RUN_SCOPED_ALLOWED_TOOLS,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
+import { createTurnToolset } from '@api/services/agent-orchestrator/utils/agent-tool-discovery.util';
 import {
   AGENT_UNPRODUCED_DRAFTS_INSTRUCTION,
   claimsUnproducedDrafts,
@@ -398,6 +399,7 @@ export class AgentOrchestratorStreamLoopService {
       memoryInfluence,
       messages: [...history],
       tools,
+      toolset: createTurnToolset(tools),
     };
   }
 
@@ -520,7 +522,7 @@ export class AgentOrchestratorStreamLoopService {
       seedTitle: seedTitle ?? '',
       source,
       toolChoice: isWrapUpRound ? 'none' : 'auto',
-      tools,
+      tools: inputs.toolset.roundTools(),
       sessionId: threadId,
     });
 
@@ -886,6 +888,7 @@ export class AgentOrchestratorStreamLoopService {
       thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
       threadId,
       toolCalls,
+      toolset: inputs.toolset,
     });
 
     const interrupted = toolRoundResult.wasInterrupted;

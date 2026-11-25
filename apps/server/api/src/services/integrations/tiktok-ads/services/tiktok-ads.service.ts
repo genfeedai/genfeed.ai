@@ -14,6 +14,11 @@ import type {
   TikTokReportRow,
   TikTokVideoUploadResponse,
 } from '@api/services/integrations/tiktok-ads/interfaces/tiktok-ads.interface';
+import {
+  isTikTokAdsAuthorizationError,
+  TIKTOK_ADS_INVALID_ACCESS_TOKEN_CODE,
+  TikTokAdsAuthorizationError,
+} from '@api/services/integrations/tiktok-ads/utils/tiktok-ads-authorization.error';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -73,7 +78,7 @@ export class TikTokAdsService {
         timezone: a.timezone,
       }));
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -114,7 +119,7 @@ export class TikTokAdsService {
         status: c.status,
       }));
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -147,7 +152,7 @@ export class TikTokAdsService {
 
       return (response.list || []).map((row) => this.normalizeReportRow(row));
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -180,7 +185,7 @@ export class TikTokAdsService {
 
       return (response.list || []).map((row) => this.normalizeReportRow(row));
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -213,7 +218,7 @@ export class TikTokAdsService {
 
       return (response.list || []).map((row) => this.normalizeReportRow(row));
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -244,7 +249,7 @@ export class TikTokAdsService {
         queryParams,
       );
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -275,7 +280,7 @@ export class TikTokAdsService {
         queryParams,
       );
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -313,7 +318,7 @@ export class TikTokAdsService {
 
       return (response.list || []).map((row) => this.normalizeReportRow(row));
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -351,7 +356,7 @@ export class TikTokAdsService {
       );
       return response.campaign_id;
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -380,7 +385,7 @@ export class TikTokAdsService {
 
       this.logger.log(`${caller} updated campaign ${campaignId}`);
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -401,7 +406,7 @@ export class TikTokAdsService {
 
       this.logger.log(`${caller} paused campaign ${campaignId}`);
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -443,7 +448,7 @@ export class TikTokAdsService {
       );
       return response.adgroup_id;
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -477,7 +482,7 @@ export class TikTokAdsService {
       );
       return response.ad_id;
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -504,7 +509,7 @@ export class TikTokAdsService {
       );
       return { imageId: response.id, imageUrl: response.image_url };
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -530,7 +535,7 @@ export class TikTokAdsService {
       );
       return { videoId: response.video_id };
     } catch (error: unknown) {
-      this.logger.error(`${caller} failed`, error);
+      this.logFailure(caller, error);
       throw error;
     }
   }
@@ -581,7 +586,29 @@ export class TikTokAdsService {
     };
   }
 
+  /**
+   * A rejected or revoked token is an expected state the advertiser fixes by
+   * reconnecting, so it is a warning. Every other failure stays an error.
+   */
+  private logFailure(caller: string, error: unknown): void {
+    if (isTikTokAdsAuthorizationError(error)) {
+      this.logger.warn(`${caller} failed: reconnect TikTok Ads`, {
+        code: error.code,
+        requestId: error.requestId,
+      });
+      return;
+    }
+    this.logger.error(`${caller} failed`, error);
+  }
+
   private validateResponse<T>(response: TikTokApiResponse<T>): void {
+    if (response.code === TIKTOK_ADS_INVALID_ACCESS_TOKEN_CODE) {
+      throw new TikTokAdsAuthorizationError(
+        response.code,
+        response.message,
+        response.request_id,
+      );
+    }
     if (response.code !== 0) {
       throw new Error(
         `TikTok API error ${response.code}: ${response.message} (request_id: ${response.request_id})`,

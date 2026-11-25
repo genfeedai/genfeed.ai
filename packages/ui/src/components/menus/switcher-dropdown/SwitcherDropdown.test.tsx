@@ -346,7 +346,7 @@ describe('SwitcherDropdown', () => {
     expect(screen.getByText('No organizations')).toBeInTheDocument();
   });
 
-  it('keeps a visible keyboard focus ring on footer actions', () => {
+  it('marks keyboard focus on footer actions with a quiet fill, not a ring', () => {
     renderDropdown({
       footerActions: [{ label: 'New Item', onAction: vi.fn() }],
     });
@@ -354,10 +354,10 @@ describe('SwitcherDropdown', () => {
     const footerAction = screen.getByRole('button', { name: /New Item/i });
     expect(footerAction).toHaveClass(
       'focus-visible:outline-hidden',
-      'focus-visible:ring-2',
-      'focus-visible:ring-ring',
+      'focus-visible:ring-0',
+      'focus-visible:bg-accent',
     );
-    expect(footerAction).not.toHaveClass('focus-visible:ring-0');
+    expect(footerAction).not.toHaveClass('focus-visible:ring-2');
   });
 
   it('disables interaction when isDisabled', () => {
