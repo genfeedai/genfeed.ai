@@ -11,6 +11,7 @@ import {
   type TikTokPublishingCapabilities,
   validateTikTokPublishingSettings,
 } from '@genfeedai/contracts/api-types/contracts';
+import { TIKTOK_AI_GENERATED_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/tiktok-publishing.contract';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { viewerKeyPart } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
@@ -26,6 +27,7 @@ import { SelectField } from '@ui/primitives/select';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import AiGeneratedLabelField from '@/features/posts/components/posts/ai-generated-label/AiGeneratedLabelField';
 import type { TikTokPublishingSettingsProps } from '@/features/posts/props/tiktok-publishing.props';
 
 export default function TikTokPublishingSettings({
@@ -113,8 +115,11 @@ export default function TikTokPublishingSettings({
     settings,
     capabilities?.privacyLevelOptions,
   );
+  // On unless turned off: a post saved before this setting existed has none.
+  const isAiGenerated = settings[TIKTOK_AI_GENERATED_SETTING_KEY] !== false;
   const effectiveSettings = {
     ...settings,
+    [TIKTOK_AI_GENERATED_SETTING_KEY]: isAiGenerated,
     allowComments:
       capabilities?.commentDisabled === false &&
       settings.allowComments === true,
@@ -125,8 +130,12 @@ export default function TikTokPublishingSettings({
   };
   const isSaved =
     Object.entries(effectiveSettings).every(
-      ([key, value]) => post.targetSettings?.[key] === value,
+      ([key, value]) =>
+        key === TIKTOK_AI_GENERATED_SETTING_KEY ||
+        post.targetSettings?.[key] === value,
     ) &&
+    (post.targetSettings?.[TIKTOK_AI_GENERATED_SETTING_KEY] !== false) ===
+      isAiGenerated &&
     ['commercialContent', 'brandedContent', 'yourBrand'].every(
       (key) =>
         (post.targetSettings?.[key] === true) === (settings[key] === true),
@@ -331,6 +340,13 @@ export default function TikTokPublishingSettings({
               </p>
             </div>
           ) : null}
+          <AiGeneratedLabelField
+            isChecked={isAiGenerated}
+            isDisabled={isSaving}
+            onChange={(value) =>
+              setBoolean(TIKTOK_AI_GENERATED_SETTING_KEY, value)
+            }
+          />
           <Checkbox
             label={
               <span>
