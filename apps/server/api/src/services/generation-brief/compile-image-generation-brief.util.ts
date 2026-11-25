@@ -147,7 +147,6 @@ export function buildImageGenerationBriefPrompt(
     }
   }
 
-
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(

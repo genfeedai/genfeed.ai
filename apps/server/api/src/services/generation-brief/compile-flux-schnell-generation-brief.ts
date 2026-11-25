@@ -91,7 +91,6 @@ function buildPrompt(
     }
   }
 
-
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(

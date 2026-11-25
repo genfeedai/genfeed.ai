@@ -83,7 +83,6 @@ export function buildVideoGenerationBriefPrompt(
     }
   }
 
-
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(

@@ -250,7 +250,6 @@ export function compileRemainingVideoGenerationBrief(
     }
   }
 
-
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
