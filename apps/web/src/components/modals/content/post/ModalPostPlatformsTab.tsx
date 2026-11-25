@@ -422,7 +422,11 @@ export function buildComposerPreviewTargets(
         const isVideo =
           config.category === PostCategory.VIDEO ||
           media.some((item) => ['short_video', 'video'].includes(item.kind));
-        overrides.placement = isVideo ? 'reel' : 'feed';
+        overrides.placement = config.isStory
+          ? 'story'
+          : isVideo
+            ? 'reel'
+            : 'feed';
       }
 
       // YouTube's privacyStatus is an audience choice, so it follows the

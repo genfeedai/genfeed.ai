@@ -10,6 +10,7 @@ import {
   PostVisibility,
 } from '@genfeedai/contracts';
 import type { CreatePostRequest } from '@genfeedai/contracts/api-types';
+import { resolveChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ICredential,
@@ -387,6 +388,14 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
             isShareToFeedSelected: config.isShareToFeedSelected,
             label: resolveChannelLabel(config, globalTitle),
             scheduledDate,
+            ...(config.isStory
+              ? {
+                  targetSettings: resolveChannelTargetSettings(
+                    config.platform,
+                    { placement: 'story' },
+                  ),
+                }
+              : {}),
             targetExecutionState: config.targetExecutionState,
             timezone: scheduleTimezone,
             visibility: config.visibility,

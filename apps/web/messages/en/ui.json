@@ -1211,6 +1211,13 @@
     "saveFailed": "Could not save the alt text",
     "saved": "Alt text saved"
   },
+  "instagramPostType": {
+    "heading": "Instagram Post Type",
+    "image": "Image Post",
+    "reelFeed": "Reel + Feed",
+    "reelOnly": "Reel only",
+    "story": "Story"
+  },
   "modelSelectorFilters": {
     "capabilities": "Model capabilities",
     "categories": "Model categories"

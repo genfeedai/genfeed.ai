@@ -116,6 +116,27 @@ describe('syncPlatformConfigs', () => {
     ).toBe(false);
   });
 
+  it('keeps an Instagram target on Story across a re-sync', () => {
+    const instagram = [
+      {
+        externalHandle: '@gram',
+        id: 'ig',
+        isValid: true,
+        platform: CredentialPlatform.INSTAGRAM,
+      },
+    ];
+
+    const synced = syncPlatformConfigs({
+      credentials: instagram,
+      hasUserEdited: true,
+      isImage: true,
+      platforms: [CredentialPlatform.INSTAGRAM],
+      previous: [config(CredentialPlatform.INSTAGRAM, { isStory: true })],
+    });
+
+    expect(synced[0].isStory).toBe(true);
+  });
+
   it('disables a target whose credential is no longer valid and does not add one', () => {
     const next = syncPlatformConfigs({
       credentials: [

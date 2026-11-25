@@ -108,6 +108,7 @@ export function syncPlatformConfigs(input: {
       handle: credential?.externalHandle ?? '',
       isCredentialValid,
       isShareToFeedSelected: kept?.isShareToFeedSelected ?? false,
+      isStory: kept?.isStory ?? false,
       label: kept?.label ?? '',
       overrideSchedule: kept?.overrideSchedule ?? false,
       platform,
