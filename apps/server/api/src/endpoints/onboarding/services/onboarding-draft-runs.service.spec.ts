@@ -227,6 +227,40 @@ describe('OnboardingDraftRunsService', () => {
     ).resolves.toEqual(result);
   });
 
+  it('reads the master image outcome from its ingredient after the request timed out', async () => {
+    const savedRun = {
+      id: 'run-1',
+      status: 'completed',
+      updatedAt: new Date(),
+      config: {
+        surface: 'onboarding',
+        result: { ...result, imageIngredientId: 'img-master' },
+      },
+    };
+    prisma.contentRun.findFirst.mockResolvedValue(savedRun);
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      status: 'PROCESSING',
+      s3Key: null,
+    });
+
+    const pending = await service.latest(user, 'brand-1');
+
+    expect(pending?.result?.imageUrl).toBeNull();
+    expect(pending?.status).toBe('running');
+
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      status: 'GENERATED',
+      s3Key: 'image/master.png',
+    });
+
+    const finished = await service.latest(user, 'brand-1');
+
+    expect(finished?.result?.imageUrl).toBe(
+      'https://cdn.example.com/image/master.png',
+    );
+    expect(finished?.status).toBe('complete');
+  });
+
   it('reconciles a pending platform image from its saved ingredient without generating', async () => {
     prisma.contentRun.findFirst.mockResolvedValue({
       id: 'run-1',

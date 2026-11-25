@@ -5,6 +5,7 @@ export type OnboardingFunnelStep =
   | 'draftsStarted'
   | 'draftsReady'
   | 'completed'
+  | 'activated'
   | 'accountConnected'
   | 'published';
 
@@ -17,6 +18,14 @@ export type OnboardingFunnelEmailClass = 'company' | 'personal' | 'unknown';
  * is saved on one of the brands (from the signup email or a successful scan);
  * a rejected or unreachable link is not saved, so attempts show in the API
  * logs ("Onboarding brand scan"), not here.
+ *
+ * `completed` is the one definition the organizations report shares: the
+ * organization flag or the owner's flag (the classic wizard only set the
+ * owner's). `activated` is a separate fact: the organization has spent a
+ * credit. A completed organization that never activated finished the wizard
+ * and never used the product. The spend includes the first-run drafts'
+ * own cost, so it proves the account generated something, not that it came
+ * back.
  */
 export interface IOnboardingFunnelOrganization {
   createdAt: string;
