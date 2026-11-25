@@ -25,6 +25,7 @@ import {
   ActivitySource,
   CreditTransactionCategory,
 } from '@genfeedai/contracts';
+import type { PublishingQuotaTier } from '@genfeedai/contracts/constants';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -80,6 +81,7 @@ export class OrganizationSettingsService extends BaseService<
       hasOrganizationBilling: hasOrganizationBilling(),
       hasPaidModuleSubscription: null,
       hasPurchasedCredits: null,
+      publishingQuotaTier: null,
     };
   }
 
@@ -108,11 +110,44 @@ export class OrganizationSettingsService extends BaseService<
       return settings;
     if (!settings.organizationId) return settings;
 
-    const [hasPaidModuleSubscription, hasPurchasedCredits] = await Promise.all([
+    const [
+      hasPaidModuleSubscription,
+      hasPurchasedCredits,
+      publishingQuotaTier,
+    ] = await Promise.all([
       this.resolvePaidModuleSubscription(settings.organizationId),
       this.resolveHasPurchasedCredits(settings.organizationId),
+      this.resolvePublishingQuotaTier(settings.organizationId),
     ]);
-    return { ...settings, hasPaidModuleSubscription, hasPurchasedCredits };
+    return {
+      ...settings,
+      hasPaidModuleSubscription,
+      hasPurchasedCredits,
+      publishingQuotaTier,
+    };
+  }
+
+  /** The daily publishing cap tier the settings page shows its sliders for. */
+  private async resolvePublishingQuotaTier(
+    organizationId: string,
+  ): Promise<PublishingQuotaTier | null> {
+    try {
+      // Loaded on first use: the tier service reaches the credits and
+      // subscription services, which reach this one, and a static import would
+      // leave `OrganizationSettingsService` undefined where the cycle starts.
+      const { PublishingQuotaTierService } = await import(
+        '@api/collections/organization-settings/services/publishing-quota-tier.service'
+      );
+      const tiers = this.moduleRef.get(PublishingQuotaTierService, {
+        strict: false,
+      });
+      return tiers ? await tiers.resolve(organizationId) : null;
+    } catch {
+      this.logger?.warn?.('Publishing quota tier unavailable', {
+        organizationId,
+      });
+      return null;
+    }
   }
 
   private async resolvePaidModuleSubscription(
@@ -338,6 +373,7 @@ export class OrganizationSettingsService extends BaseService<
       ...reseeded,
       hasPaidModuleSubscription: setting.hasPaidModuleSubscription ?? null,
       hasPurchasedCredits: setting.hasPurchasedCredits ?? null,
+      publishingQuotaTier: setting.publishingQuotaTier ?? null,
     };
   }
 

@@ -381,11 +381,12 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'platform',
     'wasApplied',
   ],
-  // Fresh deployment mode, paid eligibility and credit purchases are server-computed settings projections.
+  // Fresh deployment mode, paid eligibility, credit purchases and the publishing cap tier are server-computed settings projections.
   'organization-setting:OrganizationSetting': [
     'hasOrganizationBilling',
     'hasPaidModuleSubscription',
     'hasPurchasedCredits',
+    'publishingQuotaTier',
   ],
   'outreach-campaign:OutreachCampaign': [
     'lastActivityAt',

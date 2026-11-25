@@ -12,11 +12,16 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PublishingQuotaTierService } from '@api/collections/organization-settings/services/publishing-quota-tier.service';
 import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
-import { assertOrganizationSettingsPatchAllowed } from '@api/collections/organizations/utils/organization-settings-patch.util';
+import {
+  assertOrganizationSettingsPatchAllowed,
+  assertPublishingQuotaPatchAllowed,
+  patchesPublishingQuota,
+} from '@api/collections/organizations/utils/organization-settings-patch.util';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -76,6 +81,7 @@ import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 export class OrganizationsSettingsController {
   constructor(
     private readonly organizationSettingsService: OrganizationSettingsService,
+    private readonly publishingQuotaTiers: PublishingQuotaTierService,
     private readonly brandsService: BrandsService,
     private readonly ingredientsService: IngredientsService,
     private readonly agentPolicyOverridesService: AgentPolicyOverridesService,
@@ -222,6 +228,14 @@ export class OrganizationsSettingsController {
     ) {
       throw new BadRequestException(
         'At least one model must remain enabled for the organization',
+      );
+    }
+
+    if (patchesPublishingQuota(settingsDto)) {
+      assertPublishingQuotaPatchAllowed(
+        settingsDto,
+        await this.publishingQuotaTiers.resolve(resolvedOrganizationId),
+        isSuperAdmin,
       );
     }
 

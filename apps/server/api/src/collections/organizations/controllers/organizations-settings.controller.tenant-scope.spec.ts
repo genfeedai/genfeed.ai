@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PublishingQuotaTierService } from '@api/collections/organization-settings/services/publishing-quota-tier.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -61,6 +62,7 @@ describe('Organization settings authorized path reads (#6176)', () => {
       controllers: [OrganizationsSettingsController],
       providers: [
         { provide: OrganizationSettingsService, useValue: settingsService },
+        { provide: PublishingQuotaTierService, useValue: {} },
         { provide: BrandsService, useValue: { findOne: read } },
         { provide: IngredientsService, useValue: {} },
         { provide: AgentPolicyOverridesService, useValue: {} },
