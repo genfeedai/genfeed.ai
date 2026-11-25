@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
@@ -30,6 +29,7 @@ import {
   getGenerationPreparationRedirect,
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
+import { recordInsufficientToolCredits } from '@api/services/agent-orchestrator/utils/agent-insufficient-credits-tool-result.util';
 import {
   annotateKnowledgeSearchData,
   readBrandId,
@@ -190,51 +190,8 @@ export class AgentTurnRoundRunnerService {
         input.preflightCreditCost,
       );
     if (canAfford) return false;
-    await this.recordInsufficientCredits(input);
+    await recordInsufficientToolCredits(input);
     return true;
-  }
-
-  private async recordInsufficientCredits(input: {
-    context: AgentChatContext;
-    messages: ExecuteToolRoundParams['messages'];
-    preflightCreditCost: number;
-    requestedToolName: CuratedActionName;
-    startTime: number;
-    state: AgentToolRoundState;
-    strategy: AgentToolRoundStrategy;
-    toolCallId: string;
-    toolName: string;
-    toolParams: Record<string, unknown>;
-  }): Promise<void> {
-    const durationMs = Date.now() - input.startTime;
-    const error = `Insufficient credits (need ${input.preflightCreditCost})`;
-    const summary: ToolCallSummary = {
-      creditsUsed: 0,
-      durationMs,
-      error,
-      status: 'failed',
-      toolName: input.toolName,
-    };
-    input.state.toolCalls.push(summary);
-    if (input.strategy.onToolCompleted) {
-      await input.strategy.onToolCompleted({
-        durationMs,
-        kind: 'insufficient_credits',
-        parameters: input.toolParams,
-        requestedToolName: input.requestedToolName,
-        summary,
-        toolCallId: input.toolCallId,
-        toolName: input.toolName,
-      });
-    }
-    input.messages.push({
-      content: JSON.stringify({
-        error: `Insufficient credits. This tool requires ${input.preflightCreditCost} credits.`,
-        success: false,
-      }),
-      role: 'tool' as const,
-      tool_call_id: input.toolCallId,
-    });
   }
 
   private async recordUnknownToolFailure(input: {
@@ -396,9 +353,9 @@ export class AgentTurnRoundRunnerService {
       },
     );
 
-    // Hold the price before the tool starts: the affordability check above is
-    // a read, so concurrent calls on a balance that pays for one would all
-    // pass it. A tool that bills itself takes its own hold instead.
+    // The affordability read above lets concurrent calls on a balance that
+    // pays for one all start, so hold the price first. A tool that bills
+    // itself takes its own hold instead.
     let hold: AgentToolCreditHold | null = null;
     if (invocation.creditCost > 0 && isOrchestratorBilledAgentTool(toolName)) {
       hold = await reserveAgentToolCredits({
@@ -406,55 +363,42 @@ export class AgentTurnRoundRunnerService {
         amount: invocation.creditCost,
         brandId: context.scope?.brandId,
         credits: this.creditsUtilsService,
-        idempotencyKey: `${context.executionId ?? threadId}:agent-tool:${randomUUID()}`,
         organizationId: context.organizationId,
+        scopeId: context.executionId ?? threadId,
         toolName,
       });
       if (!hold) {
-        await this.recordInsufficientCredits({
-          context,
+        await recordInsufficientToolCredits({
+          ...invocation,
           messages,
-          preflightCreditCost,
-          requestedToolName,
-          startTime,
           state,
           strategy,
           toolCallId: toolCall.id,
-          toolName,
-          toolParams: invocation.toolParams,
         });
         return { kind: 'skipped' };
       }
     }
 
-    let result: AgentToolResult | null;
     try {
-      result = await this.executeToolUntilSettled(
+      const result = await this.executeToolUntilSettled(
         params,
         toolName,
         preparedToolCall,
       );
-    } catch (error: unknown) {
-      await this.releaseToolHold(hold, context.organizationId);
-      throw error;
-    }
-    if (!result) {
-      await this.releaseToolHold(hold, context.organizationId);
-      return {
-        kind: 'cancelled',
-        result: { isCancelled: true, wasInterrupted: true },
-      };
-    }
-
-    try {
+      if (!result) {
+        await this.releaseToolHold(hold, context.organizationId);
+        return {
+          kind: 'cancelled',
+          result: { isCancelled: true, wasInterrupted: true },
+        };
+      }
       return await this.recordExecutedToolCall(params, toolCall, {
         hold,
         invocation: { ...invocation, toolParams: preparedToolCall.parameters },
         result,
       });
     } catch (error: unknown) {
-      // A settled hold cannot be released again, so this only frees a hold the
-      // billing step never reached.
+      // Releasing a hold that was already settled is a no-op.
       await this.releaseToolHold(hold, context.organizationId);
       throw error;
     }
@@ -464,12 +408,13 @@ export class AgentTurnRoundRunnerService {
     hold: AgentToolCreditHold | null,
     organizationId: string,
   ): Promise<void> {
-    if (!hold) return;
-    await releaseAgentToolCredits({
-      credits: this.creditsUtilsService,
-      hold,
-      organizationId,
-    });
+    if (hold) {
+      await releaseAgentToolCredits({
+        credits: this.creditsUtilsService,
+        hold,
+        organizationId,
+      });
+    }
   }
 
   /**
