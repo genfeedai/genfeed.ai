@@ -9,11 +9,7 @@ import type { HeyGenTwinService } from '@api/services/integrations/heygen/servic
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ElevenLabsError } from '@elevenlabs/elevenlabs-js';
-import {
-  IngredientStatus,
-  VoiceCloneStatus,
-  VoiceProvider,
-} from '@genfeedai/contracts';
+import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
