@@ -177,7 +177,11 @@ export class AgentOrchestratorRecurringTaskService {
       // so enforce it here.
       model: await this.agentModelAccess.enforceModel(
         params.organizationId,
-        await this.agentChatModelRegistry.resolveModelKey(binding?.model),
+        await this.agentChatModelRegistry.resolveModelKey(
+          binding?.model,
+          undefined,
+          params.organizationId,
+        ),
       ),
       threadId: params.threadId,
     });

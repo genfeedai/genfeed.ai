@@ -305,6 +305,7 @@ export class AgentOrchestratorPlanModeService {
       idempotencyKey: `${params.context.executionId ?? params.threadId}:agent-plan-round:1`,
       maximumCredits: await this.agentChatModelRegistry.getMaximumRoundCredits(
         params.model,
+        params.context.organizationId,
       ),
       organizationId: params.context.organizationId,
       pricer: this.agentChatModelRegistry,

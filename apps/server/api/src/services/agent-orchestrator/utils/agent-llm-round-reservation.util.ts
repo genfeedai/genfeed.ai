@@ -99,6 +99,7 @@ export async function runReservedAgentLlmRound(params: {
         ? Math.max(0, usage.cost ?? 0)
         : await params.pricer.calculateRoundProviderCostUsd({
             completionTokens,
+            organizationId: params.organizationId,
             promptTokens,
             requestedModel: params.requestedModel,
             responseModel: answeringModel,

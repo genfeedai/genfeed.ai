@@ -107,7 +107,7 @@ export class AgentBrandContextSnapshotService {
       layersUsed: turn.brandContext?.layersUsed ?? [],
       memories,
       memoryPrompt,
-      model: await this.resolveModel(turn.model),
+      model: await this.resolveModel(turn.model, params.organizationId),
       query,
       skills,
       systemPrompt,
@@ -129,12 +129,13 @@ export class AgentBrandContextSnapshotService {
 
   private async resolveModel(
     resolvedModel: string | undefined,
+    organizationId: string,
   ): Promise<IAgentBrandContextModel> {
     const key =
       resolvedModel ?? (await this.agentChatModelRegistry.getDefaultModelKey());
     const [creditsPerRound, selectable] = await Promise.all([
-      this.agentChatModelRegistry.getRoundCredits(key),
-      this.agentChatModelRegistry.listSelectable(),
+      this.agentChatModelRegistry.getRoundCredits(key, organizationId),
+      this.agentChatModelRegistry.listSelectable(organizationId),
     ]);
     const label = selectable.find((row) => row.key === key)?.label;
     return {

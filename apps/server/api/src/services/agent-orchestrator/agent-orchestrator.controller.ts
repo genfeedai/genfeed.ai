@@ -283,7 +283,7 @@ export class AgentOrchestratorController {
       const [balance, modelAccess, modelCosts] = await Promise.all([
         this.creditsUtilsService.getOrganizationCreditsBalance(organization),
         this.agentModelAccessService.resolveAccess(organization),
-        this.agentChatModelRegistry.getMessageCostEstimatesMap(),
+        this.agentChatModelRegistry.getMessageCostEstimatesMap(organization),
       ]);
 
       return { balance, modelAccess, modelCosts };

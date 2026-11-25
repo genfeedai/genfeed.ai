@@ -117,7 +117,10 @@ export class AgentOrchestratorUiActionPlanService {
       seedTitle: '',
       systemPromptOverride: undefined,
       threadId: params.threadId,
-      turnCost: await this.agentChatModelRegistry.getRoundCredits(params.model),
+      turnCost: await this.agentChatModelRegistry.getRoundCredits(
+        params.model,
+        params.context.organizationId,
+      ),
     });
   }
 
@@ -155,7 +158,10 @@ export class AgentOrchestratorUiActionPlanService {
       seedTitle: '',
       systemPromptOverride: request.systemPromptOverride,
       threadId: params.threadId,
-      turnCost: await this.agentChatModelRegistry.getRoundCredits(params.model),
+      turnCost: await this.agentChatModelRegistry.getRoundCredits(
+        params.model,
+        params.context.organizationId,
+      ),
     });
   }
 

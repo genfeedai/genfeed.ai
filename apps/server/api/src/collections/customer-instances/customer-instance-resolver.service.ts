@@ -7,7 +7,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
-type FleetRole = 'images' | 'voices' | 'videos';
+type FleetRole = 'images' | 'voices' | 'videos' | 'llm';
 
 type CustomerInstanceRow = {
   config?: unknown;
@@ -35,7 +35,10 @@ export class CustomerInstanceResolverService
           {
             OR: [
               { config: { equals: role, path: ['role'] } },
-              { config: { equals: 'full', path: ['role'] } },
+              // A full instance serves every media role, never text.
+              ...(role === 'llm'
+                ? []
+                : [{ config: { equals: 'full', path: ['role'] } }]),
             ],
           },
         ],

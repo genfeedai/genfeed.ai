@@ -477,7 +477,10 @@ export class AgentOrchestratorStreamLoopService {
     const maximumRoundCredits =
       state.terminalContent || turnCost === 0
         ? 0
-        : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+        : await this.agentChatModelRegistry.getMaximumRoundCredits(
+            model,
+            context.organizationId,
+          );
     if (!state.terminalContent)
       assertAgentCreditBudget(
         context,

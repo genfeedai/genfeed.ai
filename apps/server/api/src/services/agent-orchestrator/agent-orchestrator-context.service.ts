@@ -268,9 +268,14 @@ export class AgentOrchestratorContextService {
     // back to the platform default with a warning instead of dispatching a chat
     // turn on an unknown key.
     const model = strategyModel
-      ? await this.agentChatModelRegistry.resolveModelKey(strategyModel)
+      ? await this.agentChatModelRegistry.resolveModelKey(
+          strategyModel,
+          undefined,
+          context.organizationId,
+        )
       : await this.agentChatModelRegistry.resolveOverrideModelKey(
           policy.thinkingModelOverride,
+          context.organizationId,
         );
 
     return {

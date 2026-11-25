@@ -457,6 +457,31 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     );
   }
 
+  private async assertTurnCredits(
+    state: { organizationId: string },
+    agentType: AgentType | undefined,
+    model: string,
+  ): Promise<number> {
+    const turnCost =
+      agentType === AgentType.BRAND_INTERVIEW
+        ? 0
+        : await this.agentChatModelRegistry.getRoundCredits(
+            model,
+            state.organizationId,
+          );
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        state.organizationId,
+        turnCost,
+      );
+    if (!hasCredits) {
+      throw new Error(
+        `Insufficient credits. You need at least ${turnCost} credits for ${model}.`,
+      );
+    }
+    return turnCost;
+  }
+
   async execute(
     state: PreparedAgentTurnState,
   ): Promise<AgentTurnWorkflowResult> {
@@ -489,20 +514,11 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     // Already free-tier locked by the context service's resolution chokepoint.
     const model = resolved.model;
     request = { ...request, model };
-    const turnCost =
-      request.agentType === AgentType.BRAND_INTERVIEW
-        ? 0
-        : await this.agentChatModelRegistry.getRoundCredits(model);
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        state.organizationId,
-        turnCost,
-      );
-    if (!hasCredits) {
-      throw new Error(
-        `Insufficient credits. You need at least ${turnCost} credits for ${model}.`,
-      );
-    }
+    const turnCost = await this.assertTurnCredits(
+      state,
+      request.agentType,
+      model,
+    );
     const generationPriority = state.strategyId
       ? resolved.policy.generationPriority
       : (toRouterPriority(userSettings?.generationPriority) ??
