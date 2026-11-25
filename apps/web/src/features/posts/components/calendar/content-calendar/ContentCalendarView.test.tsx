@@ -602,6 +602,42 @@ describe('ContentCalendarView', () => {
     expect(screen.getByText('Launch note')).toBeVisible();
   });
 
+  it('tells the page which event the pointer reached in day view, before any click', async () => {
+    const onEventClick = vi.fn();
+    const onEventIntent = vi.fn();
+
+    render(
+      <ContentCalendarView
+        items={[makeItem({ scheduledDate: '2026-03-10T13:07:00.000Z' })]}
+        onEventClick={onEventClick}
+        onEventIntent={onEventIntent}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        timezone="UTC"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg(
+          '2026-03-10',
+          '2026-03-11',
+          'timeGridDay',
+        ),
+      );
+    });
+    fireEvent.pointerEnter(await screen.findByText('Launch note'));
+
+    expect(onEventIntent).toHaveBeenCalledTimes(1);
+    expect(onEventIntent.mock.calls[0]?.[0]).toMatchObject({
+      title: 'Launch note',
+    });
+    expect(onEventClick).not.toHaveBeenCalled();
+  });
+
   it('does not mount FullCalendar while the host is still loading', () => {
     render(
       <ContentCalendarView

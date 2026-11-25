@@ -96,6 +96,11 @@ export interface ContentCalendarProps<T extends CalendarItem> {
   title?: string;
   description?: string;
   onEventClick: (item: T) => void;
+  /**
+   * Called when pointer or keyboard focus reaches an event, before it is
+   * clicked, so the caller can prepare the page the click will open.
+   */
+  onEventIntent?: (item: T) => void;
   onDatesChange: (start: Date, end: Date) => void;
   getEventColor: (item: T) => string;
   /**
