@@ -19,9 +19,16 @@ import { mapMetaFailure } from '@api/services/integrations/publishers/social-pub
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import {
   readChannelSettingBoolean,
+  readChannelSettingNumber,
   readChannelSettingString,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import { INSTAGRAM_AI_GENERATED_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
+import {
+  INSTAGRAM_AI_GENERATED_SETTING_KEY,
+  INSTAGRAM_AUDIO_ID_SETTING_KEY,
+  INSTAGRAM_AUDIO_VOLUME_SETTING_KEY,
+  INSTAGRAM_VIDEO_VOLUME_SETTING_KEY,
+  type InstagramAudioConfiguration,
+} from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -242,6 +249,7 @@ export class InstagramPublisherService extends BasePublisherService {
           shareToFeed,
           credential.id,
           isAiGenerated,
+          this.readAudioConfiguration(context),
         );
         externalId = reelResult.mediaId;
         externalShortcode = reelResult.shortcode;
@@ -291,6 +299,32 @@ export class InstagramPublisherService extends BasePublisherService {
       return 'https://www.instagram.com/';
     }
     return `https://www.instagram.com/stories/${encodeURIComponent(handle)}/${encodeURIComponent(mediaId)}/`;
+  }
+
+  /** The Reel's music from the target settings, or none when no track is set. */
+  private readAudioConfiguration(
+    context: PublishContext,
+  ): InstagramAudioConfiguration | undefined {
+    const audioId = readChannelSettingString(
+      context.settings,
+      INSTAGRAM_AUDIO_ID_SETTING_KEY,
+    )?.trim();
+    if (!audioId) {
+      return undefined;
+    }
+    const audioVolume = readChannelSettingNumber(
+      context.settings,
+      INSTAGRAM_AUDIO_VOLUME_SETTING_KEY,
+    );
+    const videoVolume = readChannelSettingNumber(
+      context.settings,
+      INSTAGRAM_VIDEO_VOLUME_SETTING_KEY,
+    );
+    return {
+      audio_id: audioId,
+      ...(audioVolume !== undefined ? { audio_volume: audioVolume } : {}),
+      ...(videoVolume !== undefined ? { video_volume: videoVolume } : {}),
+    };
   }
 
   /**

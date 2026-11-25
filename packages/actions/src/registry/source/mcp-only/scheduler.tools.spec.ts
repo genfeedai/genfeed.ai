@@ -13,6 +13,7 @@ describe('MCP_SCHEDULER_TOOLS', () => {
       'get_brand_publishing_readiness',
       'get_scheduled_release',
       'get_scheduler_capabilities',
+      'search_instagram_music',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);

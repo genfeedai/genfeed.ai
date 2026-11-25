@@ -266,6 +266,33 @@ describe('InstagramService', () => {
     });
   });
 
+  describe('listAudio', () => {
+    it('delegates the catalogue lookup to the publishing service', async () => {
+      const tracks = [{ audioType: 'music', id: '1234', title: 'Track' }];
+      const listAudio = vi
+        .spyOn(
+          (
+            service as unknown as {
+              publishingService: { listAudio: (...args: unknown[]) => unknown };
+            }
+          ).publishingService,
+          'listAudio',
+        )
+        .mockResolvedValue(tracks);
+
+      await expect(
+        service.listAudio('org', 'brand', 'music', 'lofi', 'credential-id'),
+      ).resolves.toBe(tracks);
+      expect(listAudio).toHaveBeenCalledWith(
+        'org',
+        'brand',
+        'music',
+        'lofi',
+        'credential-id',
+      );
+    });
+  });
+
   describe('getTrends', () => {
     it('returns empty trends when no Instagram credential is connected', async () => {
       (credentialsMock.findOne as Mock).mockResolvedValue(null);

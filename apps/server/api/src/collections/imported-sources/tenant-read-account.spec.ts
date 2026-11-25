@@ -60,13 +60,13 @@ function context(
 }
 const interceptor = new TenantContextInterceptor();
 describe('account tenant read policies', () => {
-  it('enumerates the settled 54 routes and 25 controllers with actual handler metadata', () => {
-    expect(TENANT_READ_ACCOUNT_ROUTES).toHaveLength(54);
+  it('enumerates the settled 55 routes and 25 controllers with actual handler metadata', () => {
+    expect(TENANT_READ_ACCOUNT_ROUTES).toHaveLength(55);
     expect(
       new Set(TENANT_READ_ACCOUNT_ROUTES.map((r) => r.controller)).size,
     ).toBe(25);
     expect(new Set(TENANT_READ_ACCOUNT_ROUTES.map((r) => r.route)).size).toBe(
-      54,
+      55,
     );
     for (const entry of TENANT_READ_ACCOUNT_ROUTES) {
       const controllerPaths = [

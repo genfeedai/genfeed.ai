@@ -1,3 +1,4 @@
+import type { InstagramAudioTrack } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   AccountHealthSummary,
@@ -39,6 +40,23 @@ export class CredentialsService extends BaseService<Credential> {
           (item) => new CredentialInstagram(item),
         ),
       );
+  }
+
+  /** Tracks a Reel can carry from Instagram's catalogue; blank query lists trending audio. */
+  public async findCredentialInstagramAudio(
+    id: string,
+    searchQuery: string,
+    signal?: AbortSignal,
+  ): Promise<InstagramAudioTrack[]> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(`/${id}/instagram/audio`, {
+        params: {
+          audioType: 'music',
+          ...(searchQuery ? { searchQuery } : {}),
+        },
+        signal,
+      })
+      .then((res) => this.extractCollection<InstagramAudioTrack>(res.data));
   }
 
   public async refreshCredential(credentialId: string): Promise<Credential> {

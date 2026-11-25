@@ -1,6 +1,7 @@
 import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -15,10 +16,12 @@ describe('CredentialPublishingOperationsService', () => {
   };
   const organizationsService = { findOne: vi.fn() };
   const quotaService = { checkQuota: vi.fn() };
+  const instagramService = { listAudio: vi.fn() };
   const service = new CredentialPublishingOperationsService(
     credentialsService as unknown as CredentialsService,
     organizationsService as unknown as OrganizationsService,
     quotaService as unknown as QuotaService,
+    instagramService as unknown as InstagramService,
   );
 
   afterEach(() => {
@@ -151,4 +154,53 @@ describe('CredentialPublishingOperationsService', () => {
       }
     },
   );
+
+  describe('listInstagramAudio', () => {
+    const brandId = testId('brand');
+
+    it('reads the catalogue with this credential, scoped to the organization', async () => {
+      const tracks = [{ audioId: '1', title: 'Track' }];
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: 'encrypted',
+        brandId: { toString: () => brandId },
+        id: { toString: () => credentialId },
+      });
+      instagramService.listAudio.mockResolvedValue(tracks);
+
+      await expect(
+        service.listInstagramAudio(credentialId, organizationId, 'music', 'x'),
+      ).resolves.toBe(tracks);
+      expect(credentialsService.findOne).toHaveBeenCalledWith({
+        id: credentialId,
+        organizationId,
+        platform: CredentialPlatform.INSTAGRAM,
+      });
+      expect(instagramService.listAudio).toHaveBeenCalledWith(
+        organizationId,
+        brandId,
+        'music',
+        'x',
+        credentialId,
+      );
+    });
+
+    it.each([
+      ['no credential', null],
+      ['no access token', { brandId: testId('brand') }],
+      ['no brand', { accessToken: 'encrypted' }],
+    ] as const)(
+      'rejects with the not-connected 400 when there is %s',
+      async (_case, credential) => {
+        credentialsService.findOne.mockResolvedValue(credential);
+
+        await expect(
+          service.listInstagramAudio(credentialId, organizationId, 'music'),
+        ).rejects.toMatchObject({
+          response: { title: 'Not Connected' },
+          status: HttpStatus.BAD_REQUEST,
+        });
+        expect(instagramService.listAudio).not.toHaveBeenCalled();
+      },
+    );
+  });
 });

@@ -112,6 +112,7 @@ export function syncPlatformConfigs(input: {
       label: kept?.label ?? '',
       overrideSchedule: kept?.overrideSchedule ?? false,
       platform,
+      reelAudio: kept?.reelAudio,
       targetExecutionState:
         kept?.targetExecutionState ?? TargetExecutionState.SCHEDULED,
       visibility: kept?.visibility ?? defaultPlatformVisibility(platform),

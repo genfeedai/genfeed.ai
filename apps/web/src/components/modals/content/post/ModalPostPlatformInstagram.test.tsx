@@ -47,6 +47,81 @@ function renderCard(value: IPostPlatformConfig) {
 }
 
 describe('ModalPostPlatformInstagram', () => {
+  it('offers music for a Reel and not for a Story or an image', () => {
+    const { rerender } = render(
+      <ModalPostPlatformInstagram
+        config={config()}
+        isEnabled
+        isLoading={false}
+        updatePlatformConfig={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Reel music')).toBeInTheDocument();
+
+    rerender(
+      <ModalPostPlatformInstagram
+        config={config({ isStory: true })}
+        isEnabled
+        isLoading={false}
+        updatePlatformConfig={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('Reel music')).not.toBeInTheDocument();
+
+    rerender(
+      <ModalPostPlatformInstagram
+        config={config({ category: PostCategory.IMAGE })}
+        isEnabled
+        isLoading={false}
+        updatePlatformConfig={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('Reel music')).not.toBeInTheDocument();
+  });
+
+  it('offers no music for a Reel that also goes to the feed, and drops it on switching', () => {
+    render(
+      <ModalPostPlatformInstagram
+        config={config({ isShareToFeedSelected: true })}
+        isEnabled
+        isLoading={false}
+        updatePlatformConfig={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('Reel music')).not.toBeInTheDocument();
+  });
+
+  it('drops the music when the person switches to Reel + Feed', () => {
+    const update = renderCard(
+      config({ reelAudio: { audioId: '1', title: 'Birthday Wish' } }),
+    );
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Reel + Feed' }));
+
+    expect(update).toHaveBeenCalledWith('cred-1', {
+      category: PostCategory.VIDEO,
+      isShareToFeedSelected: true,
+      isStory: false,
+      reelAudio: undefined,
+    });
+  });
+
+  it('drops the music when the person switches to a Story', () => {
+    const update = renderCard(
+      config({
+        reelAudio: { audioId: '1', title: 'Birthday Wish' },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Story' }));
+
+    expect(update).toHaveBeenCalledWith('cred-1', {
+      isShareToFeedSelected: false,
+      isStory: true,
+      reelAudio: undefined,
+    });
+  });
+
   it('offers Story and selects it for a Story config', () => {
     renderCard(config({ isStory: true }));
 

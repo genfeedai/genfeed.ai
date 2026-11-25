@@ -1218,6 +1218,21 @@
     "reelOnly": "Reel only",
     "story": "Story"
   },
+  "instagramReelMusic": {
+    "attach": "Add {title} by {artist}",
+    "attached": "{title} by {artist}",
+    "empty": "No music found",
+    "heading": "Reel music",
+    "licenseHint": "Instagram only lists music authorised for third-party use.",
+    "loadFailed": "Could not load Instagram music. Check that the account is a Business or Creator account.",
+    "musicVolume": "Music volume",
+    "remove": "Remove music",
+    "results": "Music results",
+    "searchLabel": "Search Instagram music",
+    "searchPlaceholder": "Search Instagram music",
+    "trending": "Trending music",
+    "videoVolume": "Video sound volume"
+  },
   "modelSelectorFilters": {
     "capabilities": "Model capabilities",
     "categories": "Model categories"

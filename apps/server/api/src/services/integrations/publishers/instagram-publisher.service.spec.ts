@@ -396,6 +396,7 @@ describe('InstagramPublisherService', () => {
           true, // isShareToFeedSelected
           mockCredential.id,
           false, // isAiGenerated
+          undefined, // audio
         );
       });
 
@@ -423,6 +424,7 @@ describe('InstagramPublisherService', () => {
           false,
           mockCredential.id,
           false, // isAiGenerated
+          undefined, // audio
         );
       });
 
@@ -451,6 +453,7 @@ describe('InstagramPublisherService', () => {
           true,
           mockCredential.id,
           false,
+          undefined, // audio
         );
       });
 
@@ -476,6 +479,7 @@ describe('InstagramPublisherService', () => {
           true,
           mockCredential.id,
           false, // isAiGenerated
+          undefined, // audio
         );
       });
 
@@ -503,6 +507,7 @@ describe('InstagramPublisherService', () => {
           false,
           mockCredential.id,
           false, // isAiGenerated
+          undefined, // audio
         );
       });
     });
@@ -601,6 +606,39 @@ describe('InstagramPublisherService', () => {
             new Date(),
           ),
         ).resolves.toBeNull();
+      });
+    });
+
+    describe('Reel music', () => {
+      beforeEach(() => {
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'm2',
+          shortcode: 'S2',
+        });
+      });
+
+      it('passes the chosen track and volumes to the Reel upload', async () => {
+        await service.publish(
+          createPublishContext(mockVideoPost, {
+            audioId: ' 1234 ',
+            audioVolume: 80,
+            videoVolume: 10,
+          }),
+        );
+
+        expect(instagramService.uploadReel.mock.calls[0][9]).toEqual({
+          audio_id: '1234',
+          audio_volume: 80,
+          video_volume: 10,
+        });
+      });
+
+      it('passes no audio when no track is chosen', async () => {
+        await service.publish(
+          createPublishContext(mockVideoPost, { audioVolume: 80 }),
+        );
+
+        expect(instagramService.uploadReel.mock.calls[0][9]).toBeUndefined();
       });
     });
 

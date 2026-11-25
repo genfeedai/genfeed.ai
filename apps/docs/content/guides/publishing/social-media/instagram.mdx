@@ -80,6 +80,26 @@ setting to the id of an image in your organization's Library (from the MCP
 it. An image from another organization is refused. If Instagram refuses the
 cover, Genfeed publishes the Reel again without it, keeping the AI label.
 
+A Reel can also carry a **music track** from Instagram's audio catalogue. Set
+the post's `audioId` setting to a track id, and optionally `audioVolume` and
+`videoVolume` (1 to 100) to balance the track against the Reel's own sound.
+List tracks with `GET /credentials/{credentialId}/instagram/audio` using
+`audioType` (`music` or `original_sound`) and an optional `searchQuery`; with no
+query Instagram returns trending audio. Only Reels use it. If Instagram refuses
+the track, the publish fails with that error instead of posting a silent Reel,
+so pick another track and retry. The connected account needs the
+`instagram_basic` and `instagram_content_publish` permissions.
+
+In the composer, choose **Reel only** and **Add music**: search by keyword or open
+the list to see trending tracks, then set how loud the music is against the
+Reel's own sound. Through MCP, search with `check_channel(action=music)` and
+the credential id from `check_channel(action=readiness)`, then set `audioId`
+(the track `id`), `audioVolume` and `videoVolume` in an Instagram target whose
+placement is `reel`. A Reel that also goes to the feed carries no music.
+Instagram returns only music it authorises for third-party use; Genfeed does
+not check whether that covers a brand's commercial posts, so confirm it with
+Instagram. Instagram cannot preview a Reel with music before it publishes.
+
 Instagram's own media rules (image format, file size, Reel length, aspect
 ratio) are in Meta's
 [content publishing reference](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media).

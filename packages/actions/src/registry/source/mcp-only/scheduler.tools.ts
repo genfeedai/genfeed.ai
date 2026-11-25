@@ -372,6 +372,32 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Search the music catalog a Reel can carry, through one connected Instagram account (credentialId from check_channel(action=readiness)). Returns id, title, artist, durationMs and a preview link; a blank query returns trending tracks. Only music Instagram authorises for third-party use is returned, and brand-use licensing is not confirmed. Attach a track by setting audioId (id from this search) and optional audioVolume and videoVolume (1 to 100) in the settings of an Instagram target whose placement is reel. Read-only.',
+    name: 'search_instagram_music',
+    parameters: {
+      properties: {
+        audioType: {
+          description: 'music (default) or original_sound',
+          enum: ['music', 'original_sound'],
+          type: 'string',
+        },
+        credentialId: {
+          description: 'Instagram credential ID that searches the catalog',
+          type: 'string',
+        },
+        query: {
+          description: 'Search words; omit for trending audio',
+          type: 'string',
+        },
+      },
+      required: ['credentialId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Scheduler channel capabilities: caption limits, media rules, publish modes, required settings, status. Pass platform for one channel; omit it to list every channel. Read-only.',
     name: 'get_scheduler_capabilities',
     parameters: SCHEDULER_CAPABILITIES_PARAMETERS,

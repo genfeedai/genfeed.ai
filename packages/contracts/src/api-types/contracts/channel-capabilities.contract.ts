@@ -17,6 +17,7 @@ import {
   collectCaptionWarnings,
   validateCaption,
 } from './channel-caption.contract';
+import { validateProviderConstraints } from './channel-provider-constraints.contract';
 import {
   type ChannelSettingDefinition,
   type ChannelSettingFieldType,
@@ -40,10 +41,7 @@ import {
   TIKTOK_PRIVACY_OPTIONS,
   validateTikTokPublishingSettings,
 } from './tiktok-publishing.contract';
-import {
-  validateXQuotedPost,
-  X_QUOTED_POST_SETTING,
-} from './x-quote-post.contract';
+import { X_QUOTED_POST_SETTING } from './x-quote-post.contract';
 
 export {
   type ChannelSettingDefinition,
@@ -474,6 +472,12 @@ const channelCapabilities = [
         label: 'Instagram professional account',
         lookupPath: '/credentials/{credentialId}/instagram/pages',
         required: true,
+      },
+      {
+        key: 'instagram.audio_styles',
+        kind: 'audio_style',
+        label: 'Instagram Reel music',
+        lookupPath: '/credentials/{credentialId}/instagram/audio',
       },
     ],
     label: 'Instagram',
@@ -1034,7 +1038,9 @@ export function validateChannelTargetSettings(
   errors.push(...validatePublishMode(parsedInput.data, capability));
   errors.push(...validateSettings(parsedInput.data, capability));
   errors.push(...validateVisibility(parsedInput.data, capability));
-  errors.push(...validateProviderConstraints(parsedInput.data, capability));
+  errors.push(
+    ...validateProviderConstraints(parsedInput.data, capability.platform),
+  );
   if (
     normalizedPlatform === CredentialPlatform.TIKTOK &&
     parsedInput.data.publishMode !== 'draft'
@@ -1171,6 +1177,16 @@ export function readChannelSettingString(
 ): string | undefined {
   const value = settings[key];
   return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+export function readChannelSettingNumber(
+  settings: ChannelTargetSettings,
+  key: string,
+): number | undefined {
+  const value = settings[key];
+  return typeof value === 'number' && Number.isFinite(value)
     ? value
     : undefined;
 }
@@ -1424,32 +1440,4 @@ function validateSettings(
   }
 
   return errors;
-}
-
-function validateProviderConstraints(
-  input: ValidateChannelTargetSettingsInput,
-  capability: ChannelCapability,
-): ChannelValidationIssue[] {
-  const quotedIssue = validateXQuotedPost(capability.platform, input.settings);
-  if (quotedIssue) {
-    return [quotedIssue];
-  }
-
-  if (
-    capability.platform === CredentialPlatform.BEEHIIV &&
-    input.publishMode === 'scheduled' &&
-    input.settings?.providerStatus === 'draft'
-  ) {
-    return [
-      {
-        code: 'channel_target.beehiiv_draft_cannot_be_scheduled',
-        field: 'settings.providerStatus',
-        message:
-          'Beehiiv drafts cannot carry a scheduled send time. Choose Send or publish the target immediately as a provider draft.',
-        severity: 'error',
-      },
-    ];
-  }
-
-  return [];
 }

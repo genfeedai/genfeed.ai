@@ -785,6 +785,13 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['validate_scheduler_target'],
   },
 
+  {
+    method: 'Get',
+    sub: ':credentialId/instagram/audio',
+    controller: 'credentialsPublishing',
+    tools: ['search_instagram_music'],
+  },
+
   // ── Meta Ads (services/meta-ads) ──
   {
     method: 'Get',

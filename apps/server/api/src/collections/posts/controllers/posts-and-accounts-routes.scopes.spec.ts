@@ -100,6 +100,11 @@ const ACCOUNT_READ_ROUTES: ReadonlyArray<
     CredentialsController.prototype.findAll,
   ],
   [
+    'GET /credentials/:credentialId/instagram/audio',
+    CredentialsPublishingController,
+    CredentialsPublishingController.prototype.findAllInstagramAudio,
+  ],
+  [
     'GET /credentials/:credentialId/instagram/pages',
     CredentialsController,
     CredentialsController.prototype.findAllInstagramPages,

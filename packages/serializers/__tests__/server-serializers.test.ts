@@ -92,6 +92,7 @@ import { PromptSerializer } from '@serializers/server/management/prompt.serializ
 import { TagSerializer } from '@serializers/server/management/tag.serializer';
 import { BrandSerializer } from '@serializers/server/organizations/brand.serializer';
 import {
+  CredentialInstagramAudioSerializer,
   CredentialInstagramPagesSerializer,
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -450,6 +451,21 @@ describe('Server Serializers', () => {
       expect(typeof CredentialInstagramPagesSerializer.serialize).toBe(
         'function',
       );
+    });
+  });
+
+  describe('CredentialInstagramAudioSerializer', () => {
+    it('serializes an audio track as a credential-instagram-audio resource', () => {
+      const result = CredentialInstagramAudioSerializer.serialize({
+        artist: 'Artist',
+        audioType: 'music',
+        id: '1234567890',
+        title: 'Track',
+      }) as { data: { attributes: Record<string, unknown>; type: string } };
+
+      expect(result.data.type).toBe('credential-instagram-audio');
+      expect(result.data.attributes.title).toBe('Track');
+      expect(result.data.attributes.audioType).toBe('music');
     });
   });
 

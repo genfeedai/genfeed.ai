@@ -1,8 +1,13 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import type { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type {
+  InstagramAudioTrack,
+  InstagramAudioType,
+} from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -22,6 +27,7 @@ export class CredentialPublishingOperationsService {
     private readonly credentialsService: CredentialsService,
     private readonly organizationsService: OrganizationsService,
     private readonly quotaService: QuotaService,
+    private readonly instagramService: InstagramService,
   ) {}
 
   async getMentions(
@@ -96,5 +102,40 @@ export class CredentialPublishingOperationsService {
         type: 'quota-status',
       },
     };
+  }
+
+  /**
+   * Instagram's licensed-music catalogue, read with this credential's own
+   * token. Returns the ids a Reel's `audioId` target setting accepts.
+   */
+  async listInstagramAudio(
+    credentialId: string,
+    organizationId: string,
+    audioType: InstagramAudioType,
+    searchQuery?: string,
+  ): Promise<InstagramAudioTrack[]> {
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId,
+      platform: CredentialPlatform.INSTAGRAM,
+    });
+
+    if (!credential?.accessToken || !credential.brandId) {
+      throw new HttpException(
+        {
+          detail: 'Instagram account is not connected',
+          title: 'Not Connected',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return this.instagramService.listAudio(
+      organizationId,
+      credential.brandId.toString(),
+      audioType,
+      searchQuery,
+      credential.id.toString(),
+    );
   }
 }

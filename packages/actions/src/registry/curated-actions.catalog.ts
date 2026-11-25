@@ -1863,6 +1863,13 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'content',
   },
   {
+    category: 'social',
+    dataSource: 'provider',
+    name: 'search_instagram_music',
+    surfaces: ['mcp'],
+    toolset: 'scheduler',
+  },
+  {
     category: 'other',
     dataSource: 'provider',
     name: 'search_knowledge',

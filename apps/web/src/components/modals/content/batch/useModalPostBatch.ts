@@ -395,7 +395,20 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
                     { placement: 'story' },
                   ),
                 }
-              : {}),
+              : config.reelAudio
+                ? {
+                    targetSettings: resolveChannelTargetSettings(
+                      config.platform,
+                      {
+                        // Music is valid only on the reel-only placement.
+                        placement: 'reel',
+                        audioId: config.reelAudio.audioId,
+                        audioVolume: config.reelAudio.audioVolume,
+                        videoVolume: config.reelAudio.videoVolume,
+                      },
+                    ),
+                  }
+                : {}),
             targetExecutionState: config.targetExecutionState,
             timezone: scheduleTimezone,
             visibility: config.visibility,

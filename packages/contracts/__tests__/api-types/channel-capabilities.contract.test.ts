@@ -1120,3 +1120,71 @@ describe('Instagram AI label setting', () => {
     ).toMatchObject({ aiGenerated: true });
   });
 });
+
+describe('Instagram Reel music settings', () => {
+  const reel = (settings: Record<string, unknown>) =>
+    validateChannelTargetSettings({
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.INSTAGRAM,
+      publishMode: 'scheduled',
+      settings: { placement: 'reel', ...settings },
+    });
+
+  test('accepts a track with in-range volumes on a Reel', () => {
+    const result = reel({ audioId: '1234', audioVolume: 80, videoVolume: 1 });
+
+    expect(result.errors).toEqual([]);
+  });
+
+  test('rejects music on a placement that is not a Reel', () => {
+    const result = validateChannelTargetSettings({
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.INSTAGRAM,
+      publishMode: 'scheduled',
+      settings: { audioId: '1234', placement: 'story' },
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.instagram_invalid_audio',
+        }),
+      ]),
+    );
+  });
+
+  test.each([0, 101, 50.5])('rejects the volume %s', (volume) => {
+    const result = reel({ audioId: '1234', audioVolume: volume });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.instagram_invalid_audio',
+        }),
+      ]),
+    );
+  });
+
+  test('rejects a volume without a track', () => {
+    const result = reel({ videoVolume: 50 });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.instagram_invalid_audio',
+        }),
+      ]),
+    );
+  });
+
+  test('exposes the audio catalogue as a lookup helper', () => {
+    expect(getChannelCapability(CredentialPlatform.INSTAGRAM)?.helpers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'audio_style',
+          lookupPath: '/credentials/{credentialId}/instagram/audio',
+        }),
+      ]),
+    );
+  });
+});

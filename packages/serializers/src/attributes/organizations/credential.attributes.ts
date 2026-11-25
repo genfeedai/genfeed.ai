@@ -116,4 +116,15 @@ export const credentialInstagramAttributes = createEntityAttributes([
   'isAlreadyConnected',
 ]);
 
+export const credentialInstagramAudioAttributes = createEntityAttributes([
+  'title',
+  'artist',
+  'durationMs',
+  'audioType',
+  'coverArtworkUrl',
+  'previewUrl',
+  'igUsername',
+  'isAdsEligible',
+]);
+
 export const credentialOAuthAttributes = createEntityAttributes(['url']);
