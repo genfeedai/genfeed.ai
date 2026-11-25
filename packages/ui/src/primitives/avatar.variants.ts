@@ -13,17 +13,15 @@ import { cva } from 'class-variance-authority';
  * `fill` takes the width of its parent and leaves the height to an `aspect-*`
  * class, for picture tiles in a grid.
  */
-const SQUARE_CORNERS = [
-  { class: 'rounded-sm', shape: 'square', size: '2xs' },
-  { class: 'rounded-md', shape: 'square', size: ['xs', 'sm', 'md', 'lg'] },
-  { class: 'rounded-xl', shape: 'square', size: ['xl', '2xl', '3xl'] },
-  { class: 'rounded-md', shape: 'square', size: 'fill' },
-] as const;
-
 export const avatarVariants = cva(
   'group relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden bg-border font-semibold text-foreground/80',
   {
-    compoundVariants: [...SQUARE_CORNERS],
+    compoundVariants: [
+      { class: 'rounded-sm', shape: 'square', size: '2xs' },
+      { class: 'rounded-md', shape: 'square', size: ['xs', 'sm', 'md', 'lg'] },
+      { class: 'rounded-xl', shape: 'square', size: ['xl', '2xl', '3xl'] },
+      { class: 'rounded-md', shape: 'square', size: 'fill' },
+    ],
     defaultVariants: {
       shape: 'circle',
       size: 'lg',
@@ -54,7 +52,12 @@ export const avatarVariants = cva(
  * instead of drawing a square around a circle.
  */
 export const avatarBadgeFrameVariants = cva('relative inline-flex shrink-0', {
-  compoundVariants: [...SQUARE_CORNERS],
+  compoundVariants: [
+    { class: 'rounded-sm', shape: 'square', size: '2xs' },
+    { class: 'rounded-md', shape: 'square', size: ['xs', 'sm', 'md', 'lg'] },
+    { class: 'rounded-xl', shape: 'square', size: ['xl', '2xl', '3xl'] },
+    { class: 'rounded-md', shape: 'square', size: 'fill' },
+  ],
   defaultVariants: {
     shape: 'circle',
     size: 'lg',
