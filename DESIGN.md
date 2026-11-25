@@ -503,9 +503,8 @@ solid step everywhere else. They are interchangeable by design.
 
 Four planes, one step apart, and no fifth:
 
-1. `bg-background` — the page canvas. The app rail and the topbar sit on the
-   `gray-100` window plane; the menu shares that step inside the page block —
-   see Shell Layout.
+1. `bg-background` — the page canvas, and the topbar. The app rail and the
+   menu sit one step off it on `gray-100` — see Shell Layout.
 2. `bg-card` / `bg-elevated` — the raised content plane: cards and panels on
    `bg-card` (`#121212` in Dark, white in Light). Overlays
    (dropdowns, dialogs, tooltips) sit on `bg-elevated` (`popover`): `#1A1A1A`
@@ -876,43 +875,57 @@ the same overlay surface — never `bg-hover`, never the page canvas.
 
 ### Shell Layout
 
-Codex chrome. The app rail and the topbar share the `gray-100` window plane
-(`#0A0A0A` dark, `#F5F5F5` light). The rail is full height, flush under the
-titlebar, with no border of its own. The rail's bottom holds Admin (platform
-admins), Help, and the account avatar, whose menu carries the name, email and
-settings scopes; the sidebar has no profile row.
+Flush chrome, in the manner of Vercel and Claude: no gray gutter, no rounded
+card, no inline inset. Single 1px `border-border` lines divide every region.
+Decided 2026-11-25 (issue #11268, prototype approved by Vincent); the earlier
+Codex layout floated the page in a rounded block, which put the panel's header
+icons off the topbar's centre line.
 
-The menu and the page share one block directly beside the app rail, flush with
-the window's right edge and inset by `--shell-inset` (8px, desktop) at the bottom.
-The top of the block sits on the bottom of the topbar: `rounded-lg` and
-`border border-border`. The menu
-is `gray-100`, one step off the page (`bg-background`; pure black in Dark), with
-`border-r border-border` while expanded. The page owns scrolling, so
-`sticky top-0` inside a page sticks under the block's top. The topbar sits on
-the rail plane, outside that block, in the band above it. Its leading edge
-holds the organization switcher, then the brand switcher, then the breadcrumb.
-Credits, notifications, and sync stay at the trailing edge. The Genfeed mark
-lives in the rail, in a band the same height as this bar. The details toggle
-is the last control of the page sub-nav, and only when something is selected,
-because it opens the inspector inside the content. With nothing selected the
-column stays closed and the control is not shown. On desktop
-the menu has no header row, so a page without a brand (Help, personal
-settings) starts with its items.
+The app rail runs the full window height, flush under the titlebar, on
+`gray-100` (`#0A0A0A` dark, `#F5F5F5` light) with `border-r`. Its first row is
+48px, shares the topbar's bottom line and holds the Genfeed mark, which collapses
+the page menu (a plain mark on pages without one). On macOS desktop the traffic
+lights cover that row, so the mark moves into the topbar after them, followed by
+back and forward. The rail's bottom holds Admin (platform admins), Help, and the
+account avatar, whose menu carries the name, email and settings scopes; the
+sidebar has no profile row.
 
-The workspace inspector attaches to the block's right side as one surface: the
-block squares its right corners and the inspector carries the outer right
-radius. The block's right border is their shared divider.
+The topbar is a 48px row on the page plane (`bg-background`) with
+`border-b border-border`. Organization and brand switchers sit on the leading
+edge; the breadcrumb is centred in the row from `lg` (a `1fr / auto / 1fr`
+grid), so the dropdowns have room; credits, notifications, sync and the panel
+toggles sit on the trailing edge. Side padding is 8px, so the first and last
+icon centres are 24px from the edge, mirroring the rail. Below `lg` the
+breadcrumb follows the switchers.
+
+The page menu and the page share one flush block under the topbar, beside the
+rail. The menu is `gray-100`, one step off the page, with `border-r
+border-border` while expanded. The page owns scrolling, so `sticky top-0`
+inside a page sticks under the topbar.
+
+The context panel runs the full window height, like the rail. The topbar and the
+page stop at its left border, which is their divider. Its first row is 48px, in
+line with the topbar: the selection title (or view title) on the left, the page's
+header actions and the panel toggle on the right, with the toggle shown pressed.
+Pressing the topbar's Context toggle or this one closes it.
 Both sidebars use the same width curtain and content fade with shared duration
-and easing; the page's reserved inspector space moves on that same clock.
-Dragging either sidebar tracks immediately. Reduced motion remains respected.
-Every route starts at the top of the page scroll. Mobile has no inset: document
-scroll under a fixed topbar on the same plane, and the rail + menu live in the
-navigation drawer.
+and easing; the topbar's and the page's reserved panel space move on that same
+clock. Dragging either sidebar tracks immediately. Reduced motion remains
+respected. Every route starts at the top of the page scroll. Mobile has no
+panel column: document scroll under a fixed topbar, and the rail + menu live in
+the navigation drawer.
+
+**Focus on shell chrome is a quiet fill.** Rail items, topbar switchers and icon
+buttons, the logo toggle and switcher menu rows mark keyboard focus with
+`SHELL_CHROME_FOCUS_CLASS` (`focus-visible:bg-accent`, no ring, no offset, no
+browser outline). After a menu closes with Escape, focus returns to its trigger,
+and the 2px white ring stayed there until the next click (issue #11310). The ring
+stays for form controls and content.
 
 ### Sidebar
 
-Inside the rounded block (see Shell Layout), on `gray-100`, with `border-r`
-against the page. Menu items use ghost semantics: transparent,
+Beside the rail and under the topbar (see Shell Layout), on `gray-100`, with
+`border-r` against the page. Menu items use ghost semantics: transparent,
 `hover:bg-hover`, active is `bg-hover text-foreground`.
 Section labels are `caption` type, uppercase, `text-gray-800`.
 

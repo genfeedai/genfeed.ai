@@ -41,18 +41,18 @@ export default function WorkspaceFrameSkeleton({
     <div
       aria-busy="true"
       aria-label={label}
-      className="flex h-dvh overflow-hidden bg-gray-100"
+      className="flex h-dvh overflow-hidden bg-background"
       data-testid="workspace-frame-skeleton"
       role="status"
       style={FRAME_STYLE}
     >
       <div
         aria-hidden={bootRecord ? undefined : 'true'}
-        className="hidden w-[var(--desktop-rail-width)] shrink-0 flex-col items-center md:flex"
+        className="hidden w-[var(--desktop-rail-width)] shrink-0 flex-col items-center border-r border-border bg-gray-100 md:flex"
         data-testid="workspace-frame-skeleton-rail"
       >
         <div
-          className="flex h-[var(--shell-topbar-height)] w-full shrink-0 items-center justify-center"
+          className="flex h-[var(--shell-topbar-height)] w-full shrink-0 items-center justify-center border-b border-border"
           data-testid="workspace-frame-skeleton-mark"
         >
           <span className="size-4 text-foreground">
@@ -73,7 +73,7 @@ export default function WorkspaceFrameSkeleton({
       <div className="flex min-w-0 flex-1 flex-col">
         <div
           aria-hidden="true"
-          className="flex h-[var(--shell-topbar-height)] shrink-0 items-center justify-between gap-3 border-b border-border px-3 md:border-b-0"
+          className="flex h-[var(--shell-topbar-height)] shrink-0 items-center justify-between gap-3 border-b border-border px-2"
         >
           <div className="flex items-center gap-2">
             <span className="size-4 text-foreground md:hidden">
@@ -90,7 +90,7 @@ export default function WorkspaceFrameSkeleton({
         </div>
 
         <div
-          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:mr-2 md:mb-2 md:flex-row md:rounded-lg md:border md:border-border"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:flex-row"
           data-testid="workspace-frame-skeleton-panel"
         >
           {hasSidebar ? (

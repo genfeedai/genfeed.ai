@@ -94,10 +94,11 @@ export default function AppLayout({
     }
   }, [isSidebarOpen]);
 
-  // Codex chrome: the rail and the topbar share the window plane. The menu and
-  // the page share one rounded block, inset from that plane. The page owns
-  // its own scroll (desktop only; mobile keeps document scrolling under the
-  // fixed topbar).
+  // Flush chrome (Claude and Vercel style): no gray gutter, no rounded card.
+  // The rail and the context panel run the full window height; the topbar sits
+  // between them, and single 1px lines divide every region. The page owns its
+  // own scroll (desktop only; mobile keeps document scrolling under the fixed
+  // topbar).
   const hasChrome = Boolean(railComponent);
   const TopbarComponent = topbarComponent;
   const topbarContent =
@@ -108,7 +109,7 @@ export default function AppLayout({
     ? { isCollapsed: isDesktopCollapsed, onToggle: handleToggleDesktopSidebar }
     : null;
   // The traffic lights cover the rail's mark band, so its toggle moves into
-  // the topbar after them (Codex layout). Fullscreen hides the lights and
+  // the topbar after them. Fullscreen hides the lights and
   // gives the band back.
   const isSidebarToggleInTitlebar = isTopbarTitlebar && hasInlineTrafficLights;
   const desktopSidebar = menuComponent ? (
@@ -138,7 +139,7 @@ export default function AppLayout({
           'overflow-x-hidden',
           hasChrome
             ? cn(
-                'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px] md:[--shell-inset:0.5rem]',
+                'bg-background',
                 topbarContent
                   ? '[--shell-topbar-offset:var(--shell-topbar-height)]'
                   : '[--shell-topbar-offset:0px]',
@@ -235,13 +236,11 @@ export default function AppLayout({
             hasChrome
               ? cn(
                   // The shell starts after the rail. The topbar is the chrome
-                  // band; the rounded block below it carries the menu and the
-                  // page. The inspector reserves its width on the right.
-                  // Inspector width stays off this shell. The topbar is a child of
-                  // it, and padding here slides the topbar's right icons
-                  // whenever the details column opens. The panel reserves
-                  // that width instead.
-                  'bg-background md:bg-transparent md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)]',
+                  // band; the block below it carries the menu and the page.
+                  // Inspector width stays off this shell: the topbar and the
+                  // block each reserve it with their own right margin, so the
+                  // panel can run the full window height beside them.
+                  'bg-background md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)]',
                   lockViewportHeight
                     ? 'h-dvh overflow-hidden'
                     : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -257,21 +256,24 @@ export default function AppLayout({
             <div
               data-testid="app-topbar-shell"
               className={cn(
-                'fixed top-0 right-0 left-0 z-50 h-[var(--shell-topbar-height)] border-b border-border',
+                'fixed top-0 right-0 left-0 z-50 h-[var(--shell-topbar-height)] border-b border-border bg-background',
                 hasChrome
-                  ? // The topbar spans the full width; the side panel starts
-                    // under it, level with the page block.
-                    'bg-gray-100 md:static md:z-auto md:shrink-0 md:border-b-0'
-                  : 'bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
+                  ? // The topbar ends at the panel's left edge: the panel
+                    // runs the full window height beside it.
+                    'md:static md:z-auto md:shrink-0 xl:mr-[var(--workspace-inspector-width,0px)]'
+                  : 'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
               )}
               style={{
                 top: 'var(--desktop-titlebar-height)',
-                transition: hasChrome ? undefined : sidebarOffsetTransition,
+                transition: hasChrome
+                  ? `margin-right var(--workspace-inspector-transition-duration, ${SIDEBAR_TRANSITION_DURATION_MS}ms) ${SIDEBAR_TRANSITION_EASING}`
+                  : sidebarOffsetTransition,
               }}
             >
               {isDesktop && hasChrome ? (
                 <div className="flex h-full w-full">
                   <DesktopTitlebarControls
+                    hasStaticMark={!menuComponent && isSidebarToggleInTitlebar}
                     sidebarToggle={
                       isSidebarToggleInTitlebar ? desktopSidebarToggle : null
                     }
@@ -296,13 +298,11 @@ export default function AppLayout({
             }
             className={cn(
               'flex flex-1 flex-col bg-background',
-              // Menu and page share one block directly beside the rail and
-              // below the topbar. It keeps its border and rounding in every
-              // state. The inspector sits against its right edge: opening it
-              // narrows this block to the panel's left border, with no gap,
-              // and squares the two touching corners.
+              // Menu and page share one flush block beside the rail and below
+              // the topbar. The inspector sits against its right edge:
+              // opening it narrows this block to the panel's left border.
               hasChrome &&
-                'md:mr-[var(--shell-inset)] md:mb-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset))] xl:[[data-inspector-open=true]_&]:rounded-r-none xl:[[data-inspector-open=true]_&]:border-r-0',
+                'md:min-h-0 md:flex-row md:overflow-hidden xl:mr-[var(--workspace-inspector-width,0px)]',
             )}
           >
             {hasChrome ? desktopSidebar : null}

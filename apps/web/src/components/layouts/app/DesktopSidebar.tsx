@@ -24,8 +24,8 @@ type DesktopSidebarProps = {
   children: ReactNode;
   collapsedWidth?: number;
   /**
-   * In-flow column inside the rounded content block. Fixed positioning would
-   * escape the block's overflow clip and sit on the window chrome instead.
+   * In-flow column inside the content block. Fixed positioning would escape
+   * the block's overflow clip and sit on the window chrome instead.
    */
   embedded?: boolean;
   isCollapsed: boolean;
@@ -85,12 +85,12 @@ export default function DesktopSidebar({
           ? 'none'
           : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
         width: widthStyle,
-        // Fixed only when the host has no rounded block to clip into.
+        // Fixed only when the host has no content block to clip into.
         ...(embedded
           ? {}
           : {
               left: 'var(--desktop-rail-width, 0px)',
-              top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
+              top: 'var(--desktop-titlebar-height)',
             }),
       }}
     >
