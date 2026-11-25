@@ -33,12 +33,19 @@ export default function BrandDetailOverview({
   const t = useTranslations('pages.brandDetailOverview');
 
   return (
-    <header className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 px-1 sm:gap-x-6">
+    <header
+      className={cn(
+        'grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 sm:gap-x-6',
+        isAvatarOverlapping ? 'px-4 sm:px-6' : 'px-1',
+      )}
+    >
       <div
         className={cn(
-          'relative z-10 w-fit sm:row-span-3',
+          'relative z-10 w-fit sm:row-span-2',
+          // The ring is drawn on the picture's own frame, so it follows the
+          // corners exactly and never pokes past the banner's edge.
           isAvatarOverlapping &&
-            '-mt-12 rounded-2xl bg-background p-1.5 sm:-mt-16',
+            '-mt-12 rounded-xl bg-background ring-4 ring-background sm:-mt-16',
         )}
       >
         <BrandAvatar
@@ -112,7 +119,9 @@ export default function BrandDetailOverview({
       </div>
 
       {visibility ? (
-        <div className="col-span-2 sm:col-span-1 sm:col-start-2">
+        // Full width, under the picture and text, so the control starts on
+        // the picture's left edge and has the whole row in a narrow panel.
+        <div className="col-span-2 min-w-0">
           {visibility}
         </div>
       ) : null}
