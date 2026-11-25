@@ -416,6 +416,25 @@ async function validateRuntimeOptions(options: VisualCodeRuntimeOptions) {
     { flag: 'wx', mode: 0o600 },
   );
 }
+/**
+ * A failed job's message can hide the real error: a system workflow whose
+ * failure workflow also failed reports only "both failed". Walk `errors` and
+ * `cause` so the acceptance evidence names the first failure.
+ */
+function describeFailure(error: unknown, depth = 0): string {
+  if (!(error instanceof Error)) return String(error);
+  const parts = [error.message];
+  if (depth >= 4) return parts[0] ?? '';
+  const nested: unknown[] = [];
+  if (error instanceof AggregateError) nested.push(...error.errors);
+  if (error.cause !== undefined) nested.push(error.cause);
+  for (const inner of nested) {
+    parts.push(`  caused by: ${describeFailure(inner, depth + 1)}`);
+  }
+  if (depth === 0 && error.stack) parts.push(error.stack);
+  return parts.join('\n');
+}
+
 function hybridSource(ids: string[]) {
   if (ids.length !== 3)
     throw new Error('Hybrid authoring requires exactly three local asset IDs');
@@ -1354,7 +1373,7 @@ export async function createVisualCodeAcceptanceFixture(
       );
       worker.on('error', (error) => workerErrors.push(error.message));
       worker.on('failed', (job, error) =>
-        workerErrors.push(`${job?.id}: ${error.message}`),
+        workerErrors.push(`${job?.id}: ${describeFailure(error)}`),
       );
       const observedCompletions = new Set<string>();
       // Record the actual worker event only after its local pause completes.

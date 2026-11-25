@@ -1,4 +1,3 @@
-import { performance } from 'node:perf_hooks';
 import {
   type CrossPostCandidate,
   crossPostTextKey,
@@ -229,19 +228,28 @@ describe('findCrossPostIds against the pairwise pairing', () => {
     );
   });
 
-  it('pairs 200 native and 1,000 network posts with long captions at least 20 times faster than the pairwise pairing', () => {
-    const natives: CrossPostCandidate[] = Array.from(
-      { length: 200 },
-      (_, index) => ({
+  it('reads each of 200 native and 1,000 network captions once, and pairs 600 of them', () => {
+    let captionReads = 0;
+    const counted = (
+      posts: readonly CrossPostCandidate[],
+    ): CrossPostCandidate[] =>
+      posts.map(({ description, ...post }) => ({
+        ...post,
+        get description() {
+          captionReads += 1;
+          return description;
+        },
+      }));
+    const natives = counted(
+      Array.from({ length: 200 }, (_, index) => ({
         description: `<p>Post number ${index} about the studio launch, with a long caption ${'text '.repeat(40)}</p>`,
         id: `n-${index}`,
         platform: 'genfeed',
         publishedAt: new Date(Date.UTC(2026, 10, 1) + index * 3_600_000),
-      }),
+      })),
     );
-    const networkPosts: CrossPostCandidate[] = Array.from(
-      { length: 1000 },
-      (_, index) => ({
+    const networkPosts = counted(
+      Array.from({ length: 1000 }, (_, index) => ({
         description: `Post number ${index % 400} about the studio launch, with a long caption ${'text '.repeat(40)}`,
         id: `x-${index}`,
         platform: 'twitter',
@@ -249,28 +257,14 @@ describe('findCrossPostIds against the pairwise pairing', () => {
           Date.UTC(2026, 10, 1) + (index % 200) * 3_600_000,
         ),
         url: `https://x.com/acme/status/${index}`,
-      }),
+      })),
     );
-    const expected = pairwiseCrossPostIds(natives, networkPosts);
-    expect(expected.length).toBeGreaterThan(0);
 
-    // Both are timed in this process, back to back, so a busy CI machine
-    // slows them alike and only the ratio is asserted. The fastest of several
-    // runs: load slows a run, never speeds one.
-    const fastest = (pair: typeof findCrossPostIds): number => {
-      pair(natives, networkPosts);
-      let best = Number.POSITIVE_INFINITY;
-      for (let run = 0; run < 7; run += 1) {
-        const startedAt = performance.now();
-        const ids = pair(natives, networkPosts);
-        best = Math.min(best, performance.now() - startedAt);
-        expect(ids).toEqual(expected);
-      }
-      return best;
-    };
+    const ids = findCrossPostIds(natives, networkPosts);
 
-    expect(
-      fastest(pairwiseCrossPostIds) / fastest(findCrossPostIds),
-    ).toBeGreaterThan(20);
+    // Work, not time: the pairwise pairing read a caption 2 x 200 x 1,000
+    // times, and a clock on a busy CI machine said nothing about that.
+    expect(captionReads).toBe(natives.length + networkPosts.length);
+    expect(ids).toHaveLength(600);
   });
 });
