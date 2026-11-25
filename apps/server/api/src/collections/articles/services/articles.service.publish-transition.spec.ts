@@ -223,6 +223,88 @@ describe('ArticlesService publish-state transition', () => {
     expect(data.publishedAt).toBeUndefined();
     expect(notificationsService.dispatch).not.toHaveBeenCalled();
   });
+  describe('a status-only publish of a validated revision', () => {
+    const revision = new Date('2026-11-25T10:00:00.000Z');
+
+    function draftAt(updatedAt: Date) {
+      return {
+        content: '<p>Clean body.</p>',
+        id: articleId,
+        organizationId,
+        publishedAt: null,
+        status: 'DRAFT',
+        updatedAt,
+        userId,
+      };
+    }
+
+    function lastUpdateWhere(delegate: { update: ReturnType<typeof vi.fn> }) {
+      const call = delegate.update.mock.calls.at(-1)?.[0] as
+        | { where?: Record<string, unknown> }
+        | undefined;
+      return call?.where;
+    }
+
+    it('writes only while the stored revision is the one it validated', async () => {
+      const { delegate, service } = buildService();
+      delegate.findFirst.mockResolvedValue(draftAt(revision));
+
+      await service.update(
+        articleId,
+        { status: ArticleStatus.PUBLISHED } as UpdateArticleDto,
+        userId,
+        organizationId,
+        brandId,
+      );
+
+      expect(lastUpdateWhere(delegate)).toMatchObject({
+        id: articleId,
+        updatedAt: revision,
+      });
+      expect(readPatchedData(delegate).status).toBe('PUBLISHED');
+    });
+
+    it('rejects the publish when the content was saved after it was validated', async () => {
+      const { delegate, notificationsService, service } = buildService();
+      delegate.findFirst.mockResolvedValue(draftAt(revision));
+      // The guarded write finds no row: another save moved updatedAt on.
+      delegate.update.mockRejectedValue(
+        Object.assign(new Error('No record was found for an update.'), {
+          code: 'P2025',
+        }),
+      );
+
+      await expect(
+        service.update(
+          articleId,
+          { status: ArticleStatus.PUBLISHED } as UpdateArticleDto,
+          userId,
+          organizationId,
+          brandId,
+        ),
+      ).rejects.toThrow('changed while it was being published');
+      expect(notificationsService.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('does not guard a publish that carries its own validated content', async () => {
+      const { delegate, service } = buildService();
+      delegate.findFirst.mockResolvedValue(draftAt(revision));
+
+      await service.update(
+        articleId,
+        {
+          content: '<p>Other clean body.</p>',
+          status: ArticleStatus.PUBLISHED,
+        } as UpdateArticleDto,
+        userId,
+        organizationId,
+        brandId,
+      );
+
+      expect(lastUpdateWhere(delegate)).not.toHaveProperty('updatedAt');
+    });
+  });
+
   describe('research and drafting notes', () => {
     const leakedHtml =
       '<p>Body.</p><h2>What we could not verify</h2><ul><li>A page blocked access.</li></ul>';
