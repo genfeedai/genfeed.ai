@@ -170,6 +170,28 @@ describe('BrandOsRevisionsController', () => {
     });
   });
 
+  it('serializes the saved text count beside the revision, in the list and on a read', async () => {
+    const scoped = {
+      ...content,
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+    } as typeof content;
+    const { controller } = harness([{ ...revision, content: scoped }]);
+
+    const list = await controller.list(request, user, 'brand-1');
+    const detail = await controller.get(request, user, 'brand-1', 'rev-1');
+
+    for (const output of [list, detail]) {
+      const resource = Array.isArray(output.data)
+        ? output.data[0]
+        : output.data;
+      expect(resource.attributes.requiredTextContext).toMatchObject({
+        maxCharacters: 6000,
+        overflowCharacters: 0,
+      });
+    }
+  });
+
   it('applies the concurrency token and records the canonical approver', async () => {
     const { controller, rows } = harness();
     const edited = { ...content, label: 'Acme 2' } as typeof content;

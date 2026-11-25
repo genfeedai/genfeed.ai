@@ -7,6 +7,7 @@ import {
   UpdateBrandOsRevisionDto,
 } from '@api/collections/brands/dto/brand-os-revision.dto';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { withRequiredTextContext } from '@api/collections/brands/utils/brand-kit-required-context.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -51,7 +52,9 @@ export class BrandOsRevisionsController {
     @Param('id') id: string,
   ) {
     const docs = await this.revisions.list(this.organizationId(user), id);
-    return serializeCollection(request, BrandOsRevisionSerializer, { docs });
+    return serializeCollection(request, BrandOsRevisionSerializer, {
+      docs: docs.map(withRequiredTextContext),
+    });
   }
 
   @TenantReadPolicy('selected')
@@ -65,10 +68,12 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.get(
-        this.organizationId(user, resolveTenantReadScope(user)),
-        id,
-        revisionId,
+      withRequiredTextContext(
+        await this.revisions.get(
+          this.organizationId(user, resolveTenantReadScope(user)),
+          id,
+          revisionId,
+        ),
       ),
     );
   }
@@ -85,10 +90,12 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.create(
-        this.writeOrganizationId(user),
-        id,
-        dto.content,
+      withRequiredTextContext(
+        await this.revisions.create(
+          this.writeOrganizationId(user),
+          id,
+          dto.content,
+        ),
       ),
     );
   }
@@ -106,12 +113,14 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.update(
-        this.writeOrganizationId(user),
-        id,
-        revisionId,
-        dto.content,
-        dto.updatedAt,
+      withRequiredTextContext(
+        await this.revisions.update(
+          this.writeOrganizationId(user),
+          id,
+          revisionId,
+          dto.content,
+          dto.updatedAt,
+        ),
       ),
     );
   }
@@ -132,13 +141,15 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.approve(
-        this.writeOrganizationId(user),
-        id,
-        revisionId,
-        userId,
-        dto.updatedAt,
-        dto.reviewedGenerationRulesHash,
+      withRequiredTextContext(
+        await this.revisions.approve(
+          this.writeOrganizationId(user),
+          id,
+          revisionId,
+          userId,
+          dto.updatedAt,
+          dto.reviewedGenerationRulesHash,
+        ),
       ),
     );
   }
