@@ -181,15 +181,13 @@ describe('BrandOsRevisionsController', () => {
     const list = await controller.list(request, user, 'brand-1');
     const detail = await controller.get(request, user, 'brand-1', 'rev-1');
 
-    for (const output of [list, detail]) {
-      const resource = Array.isArray(output.data)
-        ? output.data[0]
-        : output.data;
-      expect(resource.attributes.requiredTextContext).toMatchObject({
-        maxCharacters: 6000,
-        overflowCharacters: 0,
-      });
-    }
+    const count = { maxCharacters: 6000, overflowCharacters: 0 };
+    expect(list).toMatchObject({
+      data: [{ attributes: { requiredTextContext: count } }],
+    });
+    expect(detail).toMatchObject({
+      data: { attributes: { requiredTextContext: count } },
+    });
   });
 
   it('applies the concurrency token and records the canonical approver', async () => {
