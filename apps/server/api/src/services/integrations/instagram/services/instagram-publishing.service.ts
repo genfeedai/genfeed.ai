@@ -16,6 +16,7 @@ import type {
   InstagramCredentialResponse,
   InstagramMessageRecipient,
 } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
+import { readNonBlankString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -90,10 +91,6 @@ function audioParams(
   };
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value : undefined;
-}
-
 /** One `ig_audio` entry as a track, or `undefined` when it has no id. */
 function toAudioTrack(
   entry: unknown,
@@ -101,7 +98,7 @@ function toAudioTrack(
 ): InstagramAudioTrack | undefined {
   if (!entry || typeof entry !== 'object') return undefined;
   const raw = entry as Record<string, unknown>;
-  const id = readString(raw.audio_id);
+  const id = readNonBlankString(raw.audio_id);
   if (!id) return undefined;
   const audioType =
     raw.audio_type === 'original_sound'
@@ -112,21 +109,21 @@ function toAudioTrack(
   return {
     audioType,
     id,
-    title: readString(raw.title) ?? id,
-    ...(readString(raw.display_artist)
-      ? { artist: readString(raw.display_artist) }
+    title: readNonBlankString(raw.title) ?? id,
+    ...(readNonBlankString(raw.display_artist)
+      ? { artist: readNonBlankString(raw.display_artist) }
       : {}),
     ...(typeof raw.duration_in_ms === 'number'
       ? { durationMs: raw.duration_in_ms }
       : {}),
-    ...(readString(raw.cover_artwork_thumbnail_uri)
-      ? { coverArtworkUrl: readString(raw.cover_artwork_thumbnail_uri) }
+    ...(readNonBlankString(raw.cover_artwork_thumbnail_uri)
+      ? { coverArtworkUrl: readNonBlankString(raw.cover_artwork_thumbnail_uri) }
       : {}),
-    ...(readString(raw.on_platform_audio_preview_link)
-      ? { previewUrl: readString(raw.on_platform_audio_preview_link) }
+    ...(readNonBlankString(raw.on_platform_audio_preview_link)
+      ? { previewUrl: readNonBlankString(raw.on_platform_audio_preview_link) }
       : {}),
-    ...(readString(raw.ig_username)
-      ? { igUsername: readString(raw.ig_username) }
+    ...(readNonBlankString(raw.ig_username)
+      ? { igUsername: readNonBlankString(raw.ig_username) }
       : {}),
     ...(typeof raw.is_ads_eligible === 'boolean'
       ? { isAdsEligible: raw.is_ads_eligible }
