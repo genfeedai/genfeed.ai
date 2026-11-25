@@ -1,20 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupInput,
   inputGroupButtonClassName,
 } from '@ui/primitives/input-group';
 import { Switch } from '@ui/primitives/switch';
 import { ExternalLink, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-
-const URL_SCHEME_PATTERN = /^https?:\/\//;
 
 export interface BrandProfileVisibilityProps {
   isPublic: boolean;
@@ -25,10 +21,11 @@ export interface BrandProfileVisibilityProps {
 }
 
 /**
- * Who can see the profile, in one input group: the visibility switch, the
- * profile link, then the two things you can only do with a public profile
- * (copy the link, open it). Copy and open are disabled while the profile is
- * private, so the switch is what turns them on.
+ * Who can see the profile, in one joined control: the visibility switch, then
+ * the two things you can only do with a public profile (copy its link, open
+ * it). The link itself is not shown: the handle under the name already says
+ * it. Copy and open are disabled while the profile is private, so the switch
+ * is what turns them on.
  */
 export default function BrandProfileVisibility({
   isPublic,
@@ -40,7 +37,7 @@ export default function BrandProfileVisibility({
   const t = useTranslations('pages.brandDetailOverview');
 
   return (
-    <InputGroup aria-label={t('profileVisibility')} className="max-w-md">
+    <InputGroup aria-label={t('profileVisibility')} className="w-fit">
       <InputGroupAddon>
         <Switch
           aria-label={t('publicProfileSwitch')}
@@ -51,13 +48,6 @@ export default function BrandProfileVisibility({
           size="sm"
         />
       </InputGroupAddon>
-      <InputGroupInput
-        aria-label={t('publicProfileLink')}
-        className={cn(!isPublic && 'text-muted-foreground/60')}
-        onFocus={(event) => event.currentTarget.select()}
-        readOnly
-        value={profileUrl.replace(URL_SCHEME_PATTERN, '')}
-      />
       <Button
         ariaLabel={t('copyPublicProfileLink')}
         className={inputGroupButtonClassName}

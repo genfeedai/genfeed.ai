@@ -132,7 +132,6 @@ export { Input, type InputProps } from './input';
 export {
   InputGroup,
   InputGroupAddon,
-  InputGroupInput,
   inputGroupButtonClassName,
 } from './input-group';
 export { Kbd, type KbdProps } from './kbd';
