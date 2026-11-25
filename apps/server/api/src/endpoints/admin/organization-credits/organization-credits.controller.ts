@@ -3,11 +3,13 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ADMIN_CREDIT_GRANT_SOURCE } from '@api/collections/credits/services/free-trial-state.util';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   AdminCreditLedgerEntrySerializer,
   CreditUsageSerializer,
@@ -134,6 +136,7 @@ export class AdminOrganizationCreditsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async grant(
     @Req() request: Request,

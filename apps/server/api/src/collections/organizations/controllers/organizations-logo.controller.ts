@@ -4,13 +4,14 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource, MemberRole } from '@genfeedai/contracts';
+import { ActivitySource, ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
 import {
@@ -41,6 +42,7 @@ export class OrganizationsLogoController {
    * only after generation has started (same flow and price as brand logos).
    */
   @Post(':organizationId/logo/generate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @Credits({
     amount: 200, // same price as brand logo generation (POST /assets/generate)

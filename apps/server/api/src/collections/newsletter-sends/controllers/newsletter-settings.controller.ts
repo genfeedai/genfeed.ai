@@ -4,11 +4,13 @@ import { UpdateNewsletterSettingsDto } from '@api/collections/newsletter-sends/d
 import { NewsletterSettingsService } from '@api/collections/newsletter-sends/services/newsletter-settings.service';
 import { NewsletterUsageService } from '@api/collections/newsletter-sends/services/newsletter-usage.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { INewsletterUsage } from '@genfeedai/contracts/interfaces';
 import { NewsletterSettingsSerializer } from '@genfeedai/serializers';
 import {
@@ -52,6 +54,7 @@ export class NewsletterSettingsController {
   }
 
   @Patch('settings')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async update(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,

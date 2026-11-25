@@ -9,6 +9,7 @@ import { PrepareWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dt
 import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { WarmupPreviewsService } from '@api/endpoints/admin/warmup-accounts/warmup-previews.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   resolvePageWindow,
@@ -19,6 +20,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   ContentPreviewSerializer,
   WarmupAccountSerializer,
@@ -111,6 +113,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/invitation/send')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send a pending warm-up invitation' })
   async sendInvitation(
@@ -136,6 +139,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/invitation/resend')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend a warm-up invitation' })
   async resendInvitation(
@@ -161,6 +165,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/invitation/revoke')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke a warm-up invitation' })
   async revokeInvitation(
@@ -186,6 +191,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/prepare')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Repair, fund, prepare or archive a warm-up workspace',
@@ -207,6 +213,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/previews')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Mint a public, token-gated preview of prepared content',
@@ -228,6 +235,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/previews/:previewId/revoke')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke a preview; its link returns 404 at once' })
   async revokePreview(
@@ -247,6 +255,7 @@ export class WarmupAccountsController {
   }
 
   @Post(':id/previews/:previewId/extend')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Extend a preview lifetime' })
   async extendPreview(
