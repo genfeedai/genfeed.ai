@@ -1,11 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { returnBadRequest } from '@api/helpers/utils/response/response.util';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   IWhatsappSendMessageParams,
   IWhatsappSendTemplateParams,
@@ -26,6 +28,7 @@ export class WhatsappController {
   ) {}
 
   @Post('send')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async sendMessage(
     @CurrentUser() user: User,
     @Body() body: IWhatsappSendMessageParams & { brandId: string },
@@ -62,6 +65,7 @@ export class WhatsappController {
   }
 
   @Post('template')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async sendTemplateMessage(
     @CurrentUser() user: User,
     @Body() body: IWhatsappSendTemplateParams & { brandId: string },

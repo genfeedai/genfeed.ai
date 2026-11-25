@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -19,6 +20,7 @@ import {
 } from '@api/services/integrations/ghost/utils/ghost-connect-input.util';
 import {
   ApiKeyConnectErrorCode,
+  ApiKeyScope,
   CredentialPlatform,
 } from '@genfeedai/contracts';
 import type {
@@ -48,6 +50,7 @@ export class GhostController {
    * POST /services/ghost/connect
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -162,6 +165,7 @@ export class GhostController {
    * POST /services/ghost/posts
    */
   @Post('posts')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createPost(
     @CurrentUser() _user: User,
     @Body() body: GhostCreatePostPayload,

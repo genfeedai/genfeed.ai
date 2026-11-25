@@ -11,6 +11,7 @@ import {
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -24,7 +25,7 @@ import {
   getSafeLinkedInOAuthErrorLog,
   throwMappedLinkedInOAuthError,
 } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import {
   buildGrantedScopesCredentialPatch,
   parseGrantedOAuthScopes,
@@ -61,6 +62,7 @@ export class LinkedInController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -113,6 +115,7 @@ export class LinkedInController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
@@ -271,6 +274,7 @@ export class LinkedInController {
   }
 
   @Post(':credentialId/authorized-signals/refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async refreshAuthorizedSignals(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -15,6 +15,7 @@ import { ListeningTopicAttributionService } from '@api/collections/listening-top
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -23,6 +24,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   ListeningEvidenceSerializer,
   ListeningSignalSerializer,
@@ -74,6 +76,7 @@ export class ListeningTopicsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -97,6 +100,7 @@ export class ListeningTopicsController {
   }
 
   @Post(':id/collect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   async collect(
     @Req() request: Request,
@@ -115,6 +119,7 @@ export class ListeningTopicsController {
   }
 
   @Post(':id/analyze')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   async analyze(
     @Req() request: Request,
@@ -133,6 +138,7 @@ export class ListeningTopicsController {
   }
 
   @Patch(':topicId/themes/:themeId/review')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async reviewTheme(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -172,6 +178,7 @@ export class ListeningTopicsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -189,6 +196,7 @@ export class ListeningTopicsController {
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,

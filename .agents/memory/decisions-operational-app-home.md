@@ -73,3 +73,14 @@ an unverified key or expose unscoped operational data.
 **How to apply:** Keep configured-state checks fail-closed, derive every link
 from authorized protected context, and stop rather than adding a backend
 contract inside this issue.
+
+## Connect card moved to the topbar Apps menu (2026-11-25, #11279)
+
+The Overview no longer shows the Connect card or the verified line. The MCP
+connector, the Desktop download and the CLI install command sit in one topbar
+Apps menu, so a member finds how to use Genfeed outside the browser in one
+place on every page, and the Overview carries only operational summaries. The
+connected state stays visible in the menu row (agent name and verification
+time), read from the same verified-connection evidence as above. The Desktop
+row shows only on a Mac browser (the build is Apple Silicon) and never inside
+Desktop; onboarding does not mention Desktop.

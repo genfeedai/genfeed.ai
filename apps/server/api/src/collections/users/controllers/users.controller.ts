@@ -307,6 +307,7 @@ export class UsersController {
   // Internal onboarding hand-off — excluded from the OpenAPI documentation.
   @ApiExcludeEndpoint()
   @Post('me/signup-attribution')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(204)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async recordMeSignupAttribution(
@@ -329,6 +330,7 @@ export class UsersController {
   // it persists a client preference rather than a public API operation.
   @ApiExcludeEndpoint()
   @Patch('me/asset-gate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMeAssetGate(
     @Req() request: Request,
@@ -381,6 +383,7 @@ export class UsersController {
   }
 
   @Patch(':userId/onboarding')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateOnboardingStatus(
     @Req() request: Request,
@@ -437,6 +440,7 @@ export class UsersController {
   }
 
   @Patch(':userId/profile')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   async updateAdminProfile(
     @Req() request: Request,
@@ -456,6 +460,7 @@ export class UsersController {
   }
 
   @Post(':userId/onboarding/reset')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @SetMetadata('roles', ['superadmin'])
   async resetOnboarding(

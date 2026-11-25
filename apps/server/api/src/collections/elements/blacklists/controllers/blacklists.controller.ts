@@ -10,6 +10,7 @@ import {
 } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -19,7 +20,7 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { BlacklistSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -110,6 +111,7 @@ export class ElementsBlacklistsController extends ElementsCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Create a new blacklist entry' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -122,6 +124,7 @@ export class ElementsBlacklistsController extends ElementsCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a blacklist entry' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -190,6 +193,7 @@ export class ElementsBlacklistsController extends ElementsCRUDController<
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a blacklist entry' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })

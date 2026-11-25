@@ -30,7 +30,6 @@ export interface RunImageGenerationBriefInput {
    * `fidelityMode`, which `avoid` terms can force to `guided` independently
    * of branding.
    */
-  brandContext?: string;
   composition?: string;
   fidelityMode?: GenerationFidelityMode;
   height: number;
@@ -115,7 +114,6 @@ export function runImageGenerationBrief(
         }));
   const brief = assembleImageGenerationBrief({
     avoid: input.avoid,
-    brandContext: input.brandContext,
     composition: input.composition,
     fidelityMode,
     height: input.height,

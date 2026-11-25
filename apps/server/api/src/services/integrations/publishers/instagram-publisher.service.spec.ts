@@ -766,6 +766,43 @@ describe('InstagramPublisherService', () => {
         expect(logger.error).toHaveBeenCalled();
       });
 
+      it('keeps the reason Instagram gave for a rejected request and logs it once as a warning', async () => {
+        const context = createPublishContext(mockImagePost);
+        instagramService.uploadImage.mockRejectedValue(
+          Object.assign(new Error('Request failed with status code 400'), {
+            isAxiosError: true,
+            response: {
+              data: {
+                error: {
+                  code: 100,
+                  error_user_msg: 'The image aspect ratio is not supported.',
+                  message: 'Invalid parameter',
+                },
+              },
+              status: 400,
+            },
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          httpStatus: 400,
+          kind: 'content_rejected',
+          message:
+            'Request failed with status code 400 - The image aspect ratio is not supported.',
+          providerCode: '100',
+        });
+        expect(logger.error).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('failed to publish'),
+          expect.objectContaining({
+            error:
+              'Request failed with status code 400 - The image aspect ratio is not supported.',
+            httpStatus: 400,
+            providerCode: '100',
+          }),
+        );
+      });
+
       it('reports the daily publishing limit as a rate limit', async () => {
         const context = createPublishContext(mockImagePost);
         instagramService.uploadImage.mockRejectedValue(

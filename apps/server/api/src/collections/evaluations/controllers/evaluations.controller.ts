@@ -9,6 +9,7 @@ import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/reco
 import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -21,7 +22,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  EvaluationType,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -113,6 +118,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Cost: 1 credit
    */
   @Post('posts/:postId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async evaluatePost(
     @Req() request: Request,
@@ -138,6 +144,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Cost: 1 credit
    */
   @Post('articles/:articleId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async evaluateArticle(
     @Req() request: Request,
@@ -163,6 +170,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Cost: 1 credit
    */
   @Post('images/:imageId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async evaluateImage(
     @Req() request: Request,
@@ -188,6 +196,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Cost: 1 credit
    */
   @Post('videos/:videoId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async evaluateVideo(
     @Req() request: Request,
@@ -211,6 +220,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Evaluate external content from URL
    */
   @Post('external')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async evaluateExternal(
     @Req() request: Request,
@@ -247,6 +257,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Compare completed evaluations and rank alternatives
    */
   @Post('compare')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async compareEvaluations(
     @Body() dto: CompareEvaluationsDto,
@@ -262,6 +273,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Record human reviewer feedback for an evaluation
    */
   @Patch(':evaluationId/review')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async recordReviewerFeedback(
     @Req() request: Request,
@@ -283,6 +295,7 @@ export class EvaluationsController extends BaseCRUDController<
    * Soft delete evaluation
    */
   @Delete(':evaluationId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async deleteEvaluation(
     @Param('evaluationId') evaluationId: string,

@@ -5,6 +5,7 @@ import { KnowledgeScopeDto } from '@api/collections/contexts/dto/knowledge-scope
 import { UpdateKnowledgeSpaceDto } from '@api/collections/contexts/dto/update-knowledge-space.dto';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -13,6 +14,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   KnowledgeSpaceMembershipSerializer,
   KnowledgeSpaceSerializer,
@@ -39,6 +41,7 @@ export class KnowledgeSpacesController {
   constructor(private readonly records: KnowledgeRecordsService) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -60,6 +63,7 @@ export class KnowledgeSpacesController {
   }
 
   @Post('inbox')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -135,6 +139,7 @@ export class KnowledgeSpacesController {
   }
 
   @Patch(':spaceId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -161,6 +166,7 @@ export class KnowledgeSpacesController {
   }
 
   @Delete(':spaceId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -205,6 +211,7 @@ export class KnowledgeSpacesController {
   }
 
   @Put(':spaceId/memberships/:sourceId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -232,6 +239,7 @@ export class KnowledgeSpacesController {
   }
 
   @Delete(':spaceId/memberships/:sourceId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,

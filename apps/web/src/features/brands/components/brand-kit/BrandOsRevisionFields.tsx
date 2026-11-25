@@ -42,6 +42,10 @@ import {
   toColorPickerValue,
 } from './brand-kit-color-value';
 
+/** Matches `UpdateBrandKitVisualIdentityDto`; the counter shows only near the limit. */
+const VISUAL_DIRECTION_MAX_LENGTH = 2000;
+const VISUAL_DIRECTION_COUNTER_FROM = 1800;
+
 function ValueEditor({
   brandId,
   label,
@@ -214,6 +218,28 @@ function ValueEditor({
       />
     );
   }
+  if (fieldKey === 'visualDirection')
+    return (
+      <div className="space-y-1">
+        <Textarea
+          rows={4}
+          aria-label={label}
+          disabled={isDisabled}
+          maxLength={VISUAL_DIRECTION_MAX_LENGTH}
+          placeholder={t('visualDirectionPlaceholder')}
+          value={String(value ?? '')}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        {String(value ?? '').length >= VISUAL_DIRECTION_COUNTER_FROM ? (
+          <p className="text-right text-xs text-muted-foreground">
+            {t('visualDirectionCount', {
+              count: String(value ?? '').length,
+              max: VISUAL_DIRECTION_MAX_LENGTH,
+            })}
+          </p>
+        ) : null}
+      </div>
+    );
   if (fieldKey === 'label')
     return (
       <Input
@@ -302,9 +328,12 @@ export default function BrandOsRevisionFields({
               : (field.proposedValue ?? field.currentValue)
             : field.applyActionDefault === 'reject'
               ? field.currentValue
-              : hasRevisionDisplayValue(field.proposedValue)
+              : key === 'visualDirection' &&
+                  typeof field.proposedValue === 'string'
                 ? field.proposedValue
-                : field.currentValue;
+                : hasRevisionDisplayValue(field.proposedValue)
+                  ? field.proposedValue
+                  : field.currentValue;
         const role = key === 'references' ? 'reference' : key;
         const candidates = content.assetCandidates.filter(
           (candidate) => candidate.role === role,
@@ -460,6 +489,11 @@ export default function BrandOsRevisionFields({
               </div>
               <div className="min-w-0 space-y-2">
                 {editor}
+                {key === 'visualDirection' || key === 'promptGuidelines' ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t(`${key}Hint`)}
+                  </p>
+                ) : null}
                 {isSuggested ? (
                   <div className="flex items-center gap-2 rounded-md border border-border bg-tertiary py-1.5 pl-3 pr-1.5 text-xs text-muted-foreground">
                     <span className="min-w-0 flex-1 truncate">

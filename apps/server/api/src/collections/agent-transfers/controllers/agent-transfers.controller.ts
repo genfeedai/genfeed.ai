@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -11,6 +12,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   AgentTransferSerializer,
@@ -117,6 +119,7 @@ export class AgentTransfersController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Send or explicitly send-and-run a transfer' })
   async create(
@@ -142,6 +145,7 @@ export class AgentTransfersController {
   }
 
   @Post(':id/retry')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Retry a failed send-and-run transfer' })
   async retry(
@@ -167,6 +171,7 @@ export class AgentTransfersController {
   }
 
   @Post(':id/accept')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
     summary: 'Accept a hand-off to your agent; it runs with your authority',
@@ -194,6 +199,7 @@ export class AgentTransfersController {
   }
 
   @Post(':id/decline')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Decline a hand-off to your agent' })
   async decline(

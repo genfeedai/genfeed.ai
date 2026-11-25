@@ -23,6 +23,7 @@ import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   resolvePageWindow,
@@ -36,7 +37,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource, ContentRunStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  ContentRunStatus,
+} from '@genfeedai/contracts';
 import {
   BrandRemixRunSummarySerializer,
   ContentRunSerializer,
@@ -66,6 +71,7 @@ export class ContentRunsController {
   ) {}
 
   @Patch('content-runs/:id/remix/scenes/source')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async attachSceneSource(
     @Req() req: Request,
     @Param('id') id: string,
@@ -84,6 +90,7 @@ export class ContentRunsController {
     );
   }
   @Post('content-runs/:id/remix/scenes/quote')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async quoteScenes(
     @Req() req: Request,
     @Param('id') id: string,
@@ -97,6 +104,7 @@ export class ContentRunsController {
     );
   }
   @Post('content-runs/:id/remix/scenes/execute')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @DeferCreditsUntilModelResolution()
   async executeScenes(
@@ -119,6 +127,7 @@ export class ContentRunsController {
   }
   @OrganizationModule('playground', 'cancel')
   @Post('content-runs/:id/remix/scenes/cancel')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async cancelScenes(
     @Req() req: Request,
     @Param('id') id: string,
@@ -132,6 +141,7 @@ export class ContentRunsController {
     );
   }
   @Post('content-runs/:id/remix/scenes/resume')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @DeferCreditsUntilModelResolution()
   async resumeScenes(
@@ -255,6 +265,7 @@ export class ContentRunsController {
   }
 
   @Patch('content-runs/:id/remix')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async reviseBrandRemixRun(
     @Req() req: Request,
     @Param('id') id: string,
@@ -270,6 +281,7 @@ export class ContentRunsController {
   }
 
   @Post('content-runs/:id/remix/start')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Credits({
     description: 'Brand remix generation',
     source: ActivitySource.SCRIPT,
@@ -294,6 +306,7 @@ export class ContentRunsController {
   }
 
   @Post('content-runs/:id/remix/review')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async submitBrandRemixRunForReview(
     @Req() req: Request,
     @Param('id') id: string,
@@ -311,6 +324,7 @@ export class ContentRunsController {
 
   @OrganizationModule('publishing')
   @Post('content-runs/:id/remix/paid-draft')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async preparePausedMetaCampaignDraft(
     @Req() req: Request,
     @Param('id') id: string,
@@ -327,6 +341,7 @@ export class ContentRunsController {
   }
 
   @Post('content-runs/:id/recommendations')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async analyzeRunRecommendations(
     @Req() req: Request,
     @Param('id') id: string,
@@ -343,6 +358,7 @@ export class ContentRunsController {
   }
 
   @Post('content-runs/:id/remix-pack')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createRemixPack(
     @Req() req: Request,
     @Param('id') id: string,

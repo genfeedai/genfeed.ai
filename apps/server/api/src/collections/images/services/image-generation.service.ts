@@ -307,11 +307,9 @@ export class ImageGenerationService {
       height,
       style,
       outputs,
-      briefBrandContext,
     } = await this.prepareImageGenerationSettings({
       brand,
       createImageDto,
-      generationHarness,
       model,
     });
     const compiledBrief = editing
@@ -322,7 +320,6 @@ export class ImageGenerationService {
           generationSource: 'image-edit',
         }
       : await this.compileImageGenerationBrief({
-          briefBrandContext,
           createImageDto,
           height,
           model,
@@ -754,7 +751,6 @@ export class ImageGenerationService {
    * that has not been onboarded to model-aware compilation.
    */
   private async compileImageGenerationBrief(params: {
-    briefBrandContext?: string;
     createImageDto: CreateImageDto;
     height: number;
     model: string;
@@ -793,7 +789,6 @@ export class ImageGenerationService {
     try {
       const compiled = runImageGenerationBrief({
         avoid,
-        brandContext: params.briefBrandContext,
         brandingMode: params.createImageDto.brandingMode,
         composition: direction.composition,
         fidelityMode: params.createImageDto.fidelityMode,

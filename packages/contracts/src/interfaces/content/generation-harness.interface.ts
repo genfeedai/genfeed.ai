@@ -48,8 +48,6 @@ export interface GenerationHarnessReceipt {
   negativePrompt?: string;
   /** The media brand brief the enhancer was given, verbatim; absent when the brief had nothing visual. */
   enhancerBrief?: string;
-  /** Brand voice (tone, voice, audience, values) from the pinned revision, for brief-compiled models; absent in raw mode. */
-  brandVoice?: string;
   /**
    * A receipt is either `applied` or `skipped`: enhancement off, an explicit
    * `raw` opt-out, or a failed enhancement that fell back to the prompt as

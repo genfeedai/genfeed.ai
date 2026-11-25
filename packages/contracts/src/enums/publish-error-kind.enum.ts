@@ -15,4 +15,9 @@ export enum PublishErrorKind {
   CHANNEL_DISCONNECTED = 'channel_disconnected',
   /** The request may have reached the provider; verify before any retry. */
   OUTCOME_UNKNOWN = 'outcome_unknown',
+  /**
+   * The provider account Genfeed publishes through is out of credits. Nothing
+   * was published, and a retry cannot succeed until an operator adds credits.
+   */
+  PROVIDER_CREDITS_DEPLETED = 'provider_credits_depleted',
 }

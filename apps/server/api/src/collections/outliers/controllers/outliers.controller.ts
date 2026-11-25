@@ -9,6 +9,7 @@ import { OutlierConfigurationService } from '@api/collections/outliers/services/
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -18,7 +19,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   OutlierBaselineSnapshotSerializer,
   OutlierConfigurationSerializer,
@@ -72,6 +73,7 @@ export class OutliersController {
     );
   }
   @Patch('configuration')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async patchConfiguration(
     @Req() request: Request,
@@ -85,6 +87,7 @@ export class OutliersController {
     );
   }
   @Post('refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async refresh(
     @Req() request: Request,

@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
@@ -6,6 +7,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { NotificationInboxService } from '@api/services/notifications/inbox/notification-inbox.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   NotificationInboxCountSerializer,
   NotificationInboxSerializer,
@@ -67,6 +69,7 @@ export class UsersNotificationInboxController {
   }
 
   @Patch('read')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async read(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
@@ -86,6 +89,7 @@ export class UsersNotificationInboxController {
   }
 
   @Patch('read-all')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async readAll(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,

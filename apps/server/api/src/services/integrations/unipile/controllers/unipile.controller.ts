@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -11,6 +12,7 @@ import {
   SendUnipileEmailDto,
 } from '@api/services/integrations/unipile/dto/unipile.dto';
 import { UnipileService } from '@api/services/integrations/unipile/services/unipile.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   BadRequestException,
   Body,
@@ -26,6 +28,7 @@ export class UnipileController {
   constructor(private readonly unipileService: UnipileService) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   configure(
     @CurrentUser() user: User,
     @Body() body: ConfigureUnipileDto,
@@ -93,6 +96,7 @@ export class UnipileController {
   }
 
   @Post('emails/send')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   sendEmail(
     @CurrentUser() user: User,
     @Body() body: SendUnipileEmailDto,

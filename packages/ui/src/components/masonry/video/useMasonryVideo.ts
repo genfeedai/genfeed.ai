@@ -134,10 +134,8 @@ export function useMasonryVideo({
   // Video hover handler with playback control
   const handleMouseHover = useCallback(
     (isHover: boolean = true, event?: MouseEvent) => {
-      if (!videoRef.current) {
-        return;
-      }
-
+      // No video element is no reason to stop here: an expired tile mounts
+      // none and still reveals its actions. Playback below checks the ref.
       if (playTimeoutRef.current) {
         clearTimeout(playTimeoutRef.current);
         playTimeoutRef.current = null;

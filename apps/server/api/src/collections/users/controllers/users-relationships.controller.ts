@@ -89,6 +89,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch('me/notification-preferences/workflow-status/email')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.updateWorkflowEmailNotificationPreference',
@@ -124,6 +125,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch('me/notification-preferences/agent-status/email')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.updateAgentEmailNotificationPreference',
@@ -156,6 +158,7 @@ export class UsersRelationshipsController {
   }
 
   @Patch('me/notification-preferences/product/:topic/email')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateProductEmailPreference(
     @Req() request: Request,
     @CurrentUser() user: User,

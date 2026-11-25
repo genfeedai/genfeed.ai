@@ -4,6 +4,7 @@ import {
   UpdatePlaybookDto,
 } from '@api/collections/content-intelligence/dto/create-playbook.dto';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -15,6 +16,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -96,6 +98,7 @@ export class PlaybooksController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -114,6 +117,7 @@ export class PlaybooksController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -145,6 +149,7 @@ export class PlaybooksController {
   }
 
   @Post(':id/build')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async buildInsights(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -175,6 +180,7 @@ export class PlaybooksController {
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,

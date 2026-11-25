@@ -5,6 +5,7 @@ import {
   type AvatarTwinActor,
   AvatarTwinsService,
 } from '@api/collections/avatar-twins/services/avatar-twins.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -13,6 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { IAvatarTwinConsentLink } from '@genfeedai/contracts/interfaces';
 import { AvatarTwinSerializer } from '@genfeedai/serializers';
 import {
@@ -43,6 +45,7 @@ export class AvatarTwinsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   async start(
     @Req() request: Request,
@@ -72,6 +75,7 @@ export class AvatarTwinsController {
   }
 
   @Post(':id/consent-link')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async consentLink(
     @Req() request: Request,
@@ -93,6 +97,7 @@ export class AvatarTwinsController {
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async remove(
     @Req() request: Request,

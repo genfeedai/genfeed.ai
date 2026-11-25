@@ -139,6 +139,13 @@ describe('first-party skill loader', () => {
     expect(imagePrompt?.instructions).toContain('# Image Prompt Engineer');
     expect(imagePrompt?.instructions.length).toBeGreaterThan(2000);
     expect(imagePrompt?.modalities).toContain('image');
+    expect(imagePrompt?.runsOn).toBe('web');
+
+    // `local` in a skill's metadata tags marks the skills that need this machine.
+    const motionVideo = definitions.find(
+      (entry) => entry.slug === 'motion-video',
+    );
+    expect(motionVideo?.runsOn).toBe('desktop');
 
     const geo = definitions.find(
       (entry) => entry.slug === 'content-geo-optimizer',

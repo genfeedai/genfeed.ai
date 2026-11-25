@@ -1,8 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { UpdateGenerationHarnessSettings } from '@genfeedai/contracts/interfaces';
 import { Body, Controller, Get, Patch, Query } from '@nestjs/common';
 import {
@@ -45,6 +47,7 @@ export class GenerationHarnessController {
   }
 
   @Patch('settings')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   set(
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: UpdateGenerationHarnessSettingsDto,

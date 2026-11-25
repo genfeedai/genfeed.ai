@@ -694,27 +694,6 @@ describe('MediaPromptEnhancementService', () => {
     );
   });
 
-  it('records the approved revision brand voice, without hashtags or taglines', async () => {
-    const { service, snapshots } = setup();
-    snapshots.preview.mockResolvedValue({
-      generationRules: {},
-      identity: { name: 'Acme' },
-      revisionId: 'revision-approved',
-      revisionVersion: 3,
-      voice: {
-        audience: ['founders'],
-        avoid: ['#hashtags'],
-        messagingPillars: ['Ship daily #ship'],
-        tone: 'warm',
-        values: [],
-      },
-    });
-    const receipt = await service.enhance({ ...input, contentType: 'video' });
-    expect(receipt.brandVoice).toBe(
-      'Brand voice for Acme:\nTone: warm\nAudience: founders',
-    );
-  });
-
   it('tells the enhancer how the approved brand moves in video', async () => {
     const { service, harness, snapshots } = setup();
     harness.resolveBrief.mockResolvedValue({
@@ -743,10 +722,27 @@ describe('MediaPromptEnhancementService', () => {
     );
   });
 
-  it('records no brand voice for a snapshot without one', async () => {
-    const { service } = setup();
+  it('sends no tone, audience or values to the enhancer or the receipt', async () => {
+    const { service, snapshots, promptEnhancement } = setup();
+    snapshots.preview.mockResolvedValue({
+      generationRules: {},
+      identity: { name: 'Acme' },
+      revisionId: 'revision-approved',
+      revisionVersion: 3,
+      voice: {
+        audience: ['founders'],
+        avoid: [],
+        messagingPillars: [],
+        tone: 'warm',
+        values: ['candor'],
+      },
+    });
     const receipt = await service.enhance({ ...input, contentType: 'video' });
     expect(receipt).not.toHaveProperty('brandVoice');
+    expect(JSON.stringify(receipt)).not.toMatch(/warm|founders|candor/);
+    expect(JSON.stringify(promptEnhancement.enhance.mock.calls)).not.toMatch(
+      /warm|founders|candor/,
+    );
   });
 
   it('sends no brand brief when the brief has nothing visual', async () => {

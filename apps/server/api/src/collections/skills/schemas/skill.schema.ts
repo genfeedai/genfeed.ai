@@ -32,6 +32,8 @@ export const SKILL_WORKFLOW_STAGES = [
 
 export const SKILL_SURFACES = ['agent', 'studio'] as const;
 
+export const SKILL_RUNS_ON = ['web', 'desktop'] as const;
+
 export const SKILL_SOURCES = [
   'built_in',
   'imported',
@@ -55,6 +57,8 @@ export interface SkillDocument extends Skill {
   name?: string;
   requiredProviders?: string[];
   reviewDefaults?: Record<string, unknown>;
+  /** Where the skill executes; absent on rows that predate it, which run on web. */
+  runsOn?: string;
   slug?: string;
   sourceListingId?: string;
   /** Composer surfaces this skill is offered on; derived when absent. */

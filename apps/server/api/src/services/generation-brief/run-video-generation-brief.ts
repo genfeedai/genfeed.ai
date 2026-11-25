@@ -33,7 +33,6 @@ export interface RunVideoGenerationBriefInput {
    * `fidelityMode`, which `avoid` terms can force to `guided` independently
    * of branding.
    */
-  brandContext?: string;
   cameraMovement?: string;
   fidelityMode?: GenerationFidelityMode;
   composition?: string;
@@ -140,7 +139,6 @@ export function runVideoGenerationBrief(
     audioDirection: input.audioDirection,
     audioReferenceIds: input.audioReferenceIds,
     avoid: input.avoid,
-    brandContext: input.brandContext,
     composition: input.composition,
     durationSeconds: input.durationSeconds,
     endFrameId: input.endFrameId,

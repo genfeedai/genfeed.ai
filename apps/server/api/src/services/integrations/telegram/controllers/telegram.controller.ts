@@ -1,10 +1,12 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   type TelegramAuthData,
   TelegramService,
 } from '@api/services/integrations/telegram/services/telegram.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   Body,
   Controller,
@@ -26,6 +28,7 @@ export class TelegramController {
    * POST /services/telegram/verify
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @CurrentUser() user: AuthenticatedUser,
     @Body('brandId') brandId: string,

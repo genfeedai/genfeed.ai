@@ -6,6 +6,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { buildMemberOrderBy } from '@api/collections/members/utils/member-list-order.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
@@ -23,7 +24,7 @@ import {
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import {
   MemberInvitationSerializer,
@@ -165,6 +166,7 @@ export class MembersController {
    * Revoke a pending invitation.
    */
   @Delete('invitations/:invitationId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async revokeInvitation(
@@ -194,6 +196,7 @@ export class MembersController {
    * Resend a pending invitation email.
    */
   @Post('invitations/:invitationId/resend')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resendInvitation(

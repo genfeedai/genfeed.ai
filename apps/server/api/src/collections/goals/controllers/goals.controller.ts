@@ -4,11 +4,13 @@ import { GoalQueryDto } from '@api/collections/goals/dto/goal-query.dto';
 import { UpdateGoalDto } from '@api/collections/goals/dto/update-goal.dto';
 import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
 import { GoalsService } from '@api/collections/goals/services/goals.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { GoalSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -33,6 +35,7 @@ export class GoalsController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -80,6 +83,7 @@ export class GoalsController extends BaseCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async patch(
     @Req() request: Request,
     @CurrentUser() user: User,

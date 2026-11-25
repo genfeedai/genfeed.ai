@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -14,6 +15,7 @@ import {
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
 import {
   ApiKeyConnectErrorCode,
+  ApiKeyScope,
   CredentialPlatform,
 } from '@genfeedai/contracts';
 import { CredentialSerializer } from '@genfeedai/serializers';
@@ -41,6 +43,7 @@ export class DevtoController {
    * POST /services/devto/connect
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -10,6 +10,7 @@ import {
   toVoiceCatalogWireFormat,
 } from '@api/collections/voices/utils/voice-provider.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -19,6 +20,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -94,6 +96,7 @@ export class VoicesCatalogController {
   }
 
   @Patch('catalog/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     operationId: 'VoicesController.patchCatalogVoice',
     summary: 'patchCatalogVoice',
@@ -126,6 +129,7 @@ export class VoicesCatalogController {
   }
 
   @Post('import')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     operationId: 'VoicesController.importCatalogVoices',
     summary: 'importCatalogVoices',

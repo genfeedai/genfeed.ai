@@ -10,6 +10,7 @@ export const skillAttributes = createEntityAttributes([
   'channels',
   'workflowStage',
   'surfaces',
+  'runsOn',
   'requiredProviders',
   'configSchema',
   'inputSchema',

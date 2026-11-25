@@ -68,6 +68,7 @@ export class SkillsController {
         {
           isDefault: query.isDefault,
           modality: query.modality,
+          runsOn: query.runsOn,
           search: query.q,
           source: query.source,
           stage: query.stage,
