@@ -355,8 +355,16 @@ Genfeed session can also use the tools within its existing brand access.
 1. Call `get_context(action=brand_completeness)` with the selected `brandId` to find gaps.
 2. Call `setup_brand(action=brand_kit)` with `brandId`, `action`, and `fields`. Use
    `visual_identity` for colors and fonts, `writing_voice` for tone and writing
-   guidance, or `strategy` for goals, platforms, and cadence. Visual edits
-   require an organization owner or admin. Use the upload tools to change assets.
+   guidance, `strategy` for goals, platforms, and cadence, or `identity` for the
+   brand name (`label`) and `description`. A brand with no name fails every
+   branded text generation. Identity and visual edits require an organization
+   owner or admin. Use the upload tools to change assets.
+   To make the draft the approved Brand Kit, an owner or admin calls
+   `setup_brand(action=brand_kit)` with `action: approve`. The first call approves
+   nothing and returns the draft; once you agree in the conversation, the agent
+   repeats it with `confirmed: true` and the `revisionId` and `updatedAt` it
+   returned. A draft that carries generation rules is approved in the web app,
+   where the rules are read in full.
 3. For an AI-drafted voice profile, call `setup_brand(action=voice_draft)` with the
    explicit `brandId`. Review the one-credit draft before passing its
    `voiceProfile` to `setup_brand(action=voice_save)` for the same brand.

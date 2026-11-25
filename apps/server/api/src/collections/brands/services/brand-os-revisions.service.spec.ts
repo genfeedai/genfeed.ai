@@ -277,6 +277,53 @@ describe('BrandOsRevisionsService', () => {
     });
   });
 
+  it('writes the brand name and description to the brand and the open draft', async () => {
+    const { brandWrites, service } = harness([row()]);
+
+    const result = await service.applyIdentity(ORG, BRAND, {
+      description: ' Pasta, daily ',
+      label: ' Acme Pasta ',
+    });
+
+    expect(brandWrites).toEqual([
+      { description: 'Pasta, daily', label: 'Acme Pasta' },
+    ]);
+    expect(result.content.fields.label?.currentValue).toBe('Acme Pasta');
+    expect(result.content.fields.description?.currentValue).toBe(
+      'Pasta, daily',
+    );
+  });
+
+  it('turns the Genfeed default kit into an edited draft when the name is set', async () => {
+    const { service } = harness([
+      {
+        ...row(),
+        content: buildGenfeedDefaultKitDraft({
+          description: null,
+          id: BRAND,
+          label: '',
+        }) as unknown as Prisma.JsonValue,
+      },
+    ]);
+
+    const result = await service.applyIdentity(ORG, BRAND, { label: 'Acme' });
+
+    expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+    expect(result.content.fields.label?.currentValue).toBe('Acme');
+  });
+
+  it.each([[{ label: '   ' }], [{}]])(
+    'refuses %j as a brand name without writing',
+    async (patch) => {
+      const { brandWrites, service } = harness([row()]);
+
+      await expect(service.applyIdentity(ORG, BRAND, patch)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(brandWrites).toEqual([]);
+    },
+  );
+
   it('refuses an invalid palette before saving any visual fields', async () => {
     const { brandWrites, service } = harness([row()]);
 

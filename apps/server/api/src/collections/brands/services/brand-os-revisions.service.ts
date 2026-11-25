@@ -1,11 +1,17 @@
+import type { UpdateBrandKitIdentityDto } from '@api/collections/brands/dto/update-brand-kit-identity.dto';
 import type { UpdateBrandKitVisualIdentityDto } from '@api/collections/brands/dto/update-brand-kit-visual-identity.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
+import {
+  parseBrandIdentity,
+  withBrandIdentity,
+} from '@api/collections/brands/utils/brand-identity.util';
 import { assertBrandKitRequiredTextContextFits } from '@api/collections/brands/utils/brand-kit-required-context.util';
 import {
   validateBrandOsDiagnostics,
   validateBrandOsEvidence,
 } from '@api/collections/brands/utils/brand-os-revision-validation.util';
+import { reviewedRulesHash } from '@api/collections/brands/utils/brand-rules-review.util';
 import {
   brandVisualIdentityColumns,
   parseVisualIdentity,
@@ -56,8 +62,6 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-
-const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
 @Traced()
 @Injectable()
@@ -334,6 +338,35 @@ export class BrandOsRevisionsService {
     patch: UpdateBrandKitVisualIdentityDto,
   ): Promise<IBrandOsRevision> {
     const values = parseVisualIdentity(patch);
+    return this.applyOwnerEdit(
+      organizationId,
+      brandId,
+      (previous) => withVisualIdentity(previous, values),
+      brandVisualIdentityColumns(values),
+    );
+  }
+
+  /** Apply the brand name and description to the brand and to the open draft. */
+  async applyIdentity(
+    organizationId: string,
+    brandId: string,
+    patch: UpdateBrandKitIdentityDto,
+  ): Promise<IBrandOsRevision> {
+    const values = parseBrandIdentity(patch);
+    return this.applyOwnerEdit(
+      organizationId,
+      brandId,
+      (previous) => withBrandIdentity(previous, values),
+      values,
+    );
+  }
+
+  private async applyOwnerEdit(
+    organizationId: string,
+    brandId: string,
+    edit: (previous: IBrandKitDraft) => IBrandKitDraft,
+    columns: Prisma.BrandUpdateManyMutationInput,
+  ): Promise<IBrandOsRevision> {
     return this.prisma.$transaction(async (tx) => {
       const brand = await this.lockBrand(tx, organizationId, brandId);
       const revision = await tx.brandOsRevision.findFirst({
@@ -349,17 +382,13 @@ export class BrandOsRevisionsService {
         ? (revision.content as unknown as IBrandKitDraft)
         : await this.buildCurrentBrandContent(brand, organizationId, brandId);
       const persisted = this.normalize(
-        this.resolveDefaultKitContent(
-          previous,
-          withVisualIdentity(previous, values),
-          true,
-        ),
+        this.resolveDefaultKitContent(previous, edit(previous), true),
         organizationId,
         brandId,
       );
       // sql-risk-audit: ignore bulk-write-tenant-review -- scoped by the locked brand id and organization.
       await tx.brand.updateMany({
-        data: brandVisualIdentityColumns(values),
+        data: columns,
         where: { id: brandId, isDeleted: false, organizationId },
       });
       return this.saveDraft(tx, organizationId, brandId, persisted, revision);
@@ -423,31 +452,10 @@ export class BrandOsRevisionsService {
         organizationId,
         brandId,
       );
-      if (
-        reviewedGenerationRulesHash !== undefined &&
-        (typeof reviewedGenerationRulesHash !== 'string' ||
-          reviewedGenerationRulesHash.length !== 71 ||
-          !SHA256_DIGEST_PATTERN.test(reviewedGenerationRulesHash))
-      )
-        throw new BadRequestException('Invalid generation rules review hash');
-      let generationRulesReviewHash: string | null = null;
-      if (content.generationRules !== undefined) {
-        try {
-          generationRulesReviewHash = hashBrandGenerationRulesReviewV1(
-            content.generationRules,
-          );
-        } catch {
-          throw new BadRequestException('Invalid Brand OS generation rules');
-        }
-        if (reviewedGenerationRulesHash === undefined)
-          throw new BadRequestException(
-            'A valid generation rules review hash is required',
-          );
-        if (reviewedGenerationRulesHash !== generationRulesReviewHash)
-          throw new ConflictException(
-            'These generation rules changed. Reload and review them before approving.',
-          );
-      }
+      const generationRulesReviewHash = reviewedRulesHash(
+        content,
+        reviewedGenerationRulesHash,
+      );
       for (const [key, field] of Object.entries(content.fields)) {
         if (!field) continue;
         if (field.applyActionDefault === 'reject') {

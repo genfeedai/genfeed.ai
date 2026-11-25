@@ -7,6 +7,7 @@ import {
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type IBrandKitDraft,
+  type IBrandKitFieldOwner,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
@@ -47,13 +48,15 @@ export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
 
 type VisualIdentity = ReturnType<typeof parseVisualIdentity>;
 
-export function withVisualIdentity(
+/** Writes the given values into the draft fields of one Brand Kit group. */
+export function withOwnedFields(
   previous: IBrandKitDraft,
-  values: VisualIdentity,
+  group: IBrandKitFieldOwner['group'],
+  values: object,
 ): IBrandKitDraft {
   const content = structuredClone(previous);
   for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
-    if (owner.group !== 'visual') continue;
+    if (owner.group !== group) continue;
     const value: unknown = Reflect.get(values, owner.key);
     if (value === undefined) continue;
     const field = content.fields[owner.key];
@@ -70,6 +73,13 @@ export function withVisualIdentity(
     };
   }
   return content;
+}
+
+export function withVisualIdentity(
+  previous: IBrandKitDraft,
+  values: VisualIdentity,
+): IBrandKitDraft {
+  return withOwnedFields(previous, 'visual', values);
 }
 
 export function brandVisualIdentityColumns(values: VisualIdentity) {

@@ -11,13 +11,16 @@ import {
 } from './brand-kit.client';
 
 function createClient(status: number, detail: string) {
+  const refuse = async () => {
+    throw Object.assign(new Error(`Request failed with status ${status}`), {
+      response: { data: { errors: [{ detail }] }, status },
+    });
+  };
   const http = {
     interceptors: { request: { use: () => 0 } },
-    patch: async () => {
-      throw Object.assign(new Error(`Request failed with status ${status}`), {
-        response: { data: { errors: [{ detail }] }, status },
-      });
-    },
+    get: refuse,
+    patch: refuse,
+    post: refuse,
   } as unknown as AxiosInstance;
   const logger = {
     debug: () => 0,
@@ -59,5 +62,28 @@ describe('BrandKitClient.updateSection refusals', () => {
       .catch((error: unknown) => error);
 
     expect((failure as McpUpstreamError).message).toBe('tone must be a string');
+  });
+
+  it.each([
+    [
+      'reading the draft',
+      (client: BrandKitClient) => client.getApprovalDraft('brand-1'),
+    ],
+    [
+      'approving it',
+      (client: BrandKitClient) =>
+        client.approveDraft('brand-1', {
+          revisionId: 'rev-1',
+          updatedAt: 'now',
+        }),
+    ],
+  ])('names the missing scope when %s is refused', async (_step, call) => {
+    const failure = await call(createClient(403, 'Forbidden')).catch(
+      (error: unknown) => error,
+    );
+
+    expect((failure as McpUpstreamError).message).toBe(
+      BRAND_KIT_EDIT_REFUSED_MESSAGE,
+    );
   });
 });
