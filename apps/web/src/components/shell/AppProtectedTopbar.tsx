@@ -15,7 +15,7 @@ import { isPersonalSettingsPage } from '@/components/layouts/protected/app-prote
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
-import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
+import TopbarAppsMenu from '@/components/shell/TopbarAppsMenu';
 import TopbarPanelToggles from '@/components/shell/TopbarPanelToggles';
 import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
 import CreditsLiveSync from '@/components/topbars/credits-bar/CreditsLiveSync';
@@ -152,7 +152,7 @@ function AppProtectedTopbarContent({
             {/* Out of credits, trial ended or running low: one pill, one action. */}
             {!isAdminChrome ? <TopbarCreditsStatus /> : null}
 
-            {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
+            {!isAdminChrome ? <TopbarAppsMenu orgSlug={orgSlug} /> : null}
           </div>
           {!isAdminChrome ? <GenerationToasts /> : null}
 
