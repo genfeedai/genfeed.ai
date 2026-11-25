@@ -9,7 +9,7 @@ import {
   type IBrandKitDraft,
   type IBrandKitFieldOwner,
 } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 
 export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
@@ -20,8 +20,14 @@ export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
     fontRoles,
     primaryColor,
     secondaryColor,
+    visualDirection,
   } = patch;
-  const styles = { backgroundColor, primaryColor, secondaryColor };
+  const styles = {
+    backgroundColor,
+    primaryColor,
+    secondaryColor,
+    visualDirection,
+  };
   if (
     Object.values(styles).some(
       (value) => value !== undefined && typeof value !== 'string',
@@ -44,6 +50,12 @@ export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
   if (Object.values(values).every((value) => value === undefined))
     throw new BadRequestException('At least one visual field is required');
   return values;
+}
+
+/** A brand edit: the brand columns to write and the matching draft change. */
+export interface OwnerEdit {
+  columns: Prisma.BrandUpdateManyMutationInput;
+  edit: (previous: IBrandKitDraft) => IBrandKitDraft;
 }
 
 type VisualIdentity = ReturnType<typeof parseVisualIdentity>;

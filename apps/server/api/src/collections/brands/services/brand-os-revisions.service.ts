@@ -14,6 +14,7 @@ import {
 import { reviewedRulesHash } from '@api/collections/brands/utils/brand-rules-review.util';
 import {
   brandVisualIdentityColumns,
+  type OwnerEdit,
   parseVisualIdentity,
   withVisualIdentity,
 } from '@api/collections/brands/utils/brand-visual-identity.util';
@@ -338,34 +339,28 @@ export class BrandOsRevisionsService {
     patch: UpdateBrandKitVisualIdentityDto,
   ): Promise<IBrandOsRevision> {
     const values = parseVisualIdentity(patch);
-    return this.applyOwnerEdit(
-      organizationId,
-      brandId,
-      (previous) => withVisualIdentity(previous, values),
-      brandVisualIdentityColumns(values),
-    );
+    return this.applyOwnerEdit(organizationId, brandId, {
+      columns: brandVisualIdentityColumns(values),
+      edit: (previous) => withVisualIdentity(previous, values),
+    });
   }
 
-  /** Apply the brand name and description to the brand and to the open draft. */
   async applyIdentity(
     organizationId: string,
     brandId: string,
     patch: UpdateBrandKitIdentityDto,
   ): Promise<IBrandOsRevision> {
     const values = parseBrandIdentity(patch);
-    return this.applyOwnerEdit(
-      organizationId,
-      brandId,
-      (previous) => withBrandIdentity(previous, values),
-      values,
-    );
+    return this.applyOwnerEdit(organizationId, brandId, {
+      columns: values,
+      edit: (previous) => withBrandIdentity(previous, values),
+    });
   }
 
   private async applyOwnerEdit(
     organizationId: string,
     brandId: string,
-    edit: (previous: IBrandKitDraft) => IBrandKitDraft,
-    columns: Prisma.BrandUpdateManyMutationInput,
+    { columns, edit }: OwnerEdit,
   ): Promise<IBrandOsRevision> {
     return this.prisma.$transaction(async (tx) => {
       const brand = await this.lockBrand(tx, organizationId, brandId);
@@ -499,7 +494,7 @@ export class BrandOsRevisionsService {
   }
 
   /**
-   * Palette and font roles live on the brand row too, so prompts and the agent
+   * Palette, font roles and the visual direction live on the brand row too, so prompts and the agent
    * read the approved kit without resolving a revision. Only fields the
    * revision carries are written; a revision without them leaves the brand as
    * it is.
@@ -516,9 +511,11 @@ export class BrandOsRevisionsService {
     const fontRoles = brandFontRolesSchema.safeParse(
       content.fields.fontRoles?.currentValue,
     );
+    const visualDirection = content.fields.visualDirection?.currentValue;
     const data: Prisma.BrandUpdateManyMutationInput = {
       ...(palette.success ? { colorPalette: toPrismaJson(palette.data) } : {}),
       ...(fontRoles.success ? { fontRoles: toPrismaJson(fontRoles.data) } : {}),
+      ...(typeof visualDirection === 'string' ? { visualDirection } : {}),
     };
     if (Object.keys(data).length === 0) return;
     // sql-risk-audit: ignore bulk-write-tenant-review -- organizationId, isDeleted:false and the unique brand id bound the write to the one brand under the approval lock.

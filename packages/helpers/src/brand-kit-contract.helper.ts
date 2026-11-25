@@ -46,6 +46,7 @@ export interface BrandKitSourceBrand {
   label?: string | null;
   description?: string | null;
   text?: string | null;
+  visualDirection?: string | null;
   fontFamily?: string | null;
   primaryColor?: string | null;
   secondaryColor?: string | null;
@@ -297,6 +298,8 @@ function readCurrentValue(
       const roles = readBrandFontRoles(brand.fontRoles);
       return Object.keys(roles).length > 0 ? roles : undefined;
     }
+    case 'visualDirection':
+      return brand.visualDirection ?? undefined;
     case 'promptGuidelines':
       return brand.text ?? undefined;
     case 'voiceTone':
@@ -785,60 +788,29 @@ export function buildBrandKitDraftFromManualInput(
 ): IBrandKitDraft {
   const proposedValues: Partial<Record<BrandKitFieldKey, unknown>> = {};
 
-  setManualProposedValue(proposedValues, 'label', input.label);
-  setManualProposedValue(proposedValues, 'description', input.description);
-  setManualProposedValue(proposedValues, 'primaryColor', input.primaryColor);
-  setManualProposedValue(
-    proposedValues,
-    'secondaryColor',
-    input.secondaryColor,
-  );
-  setManualProposedValue(
-    proposedValues,
-    'backgroundColor',
-    input.backgroundColor,
-  );
-  setManualProposedValue(proposedValues, 'fontFamily', input.fontFamily);
-  setManualProposedValue(
-    proposedValues,
-    'promptGuidelines',
-    input.guidanceText,
-  );
-  setManualProposedValue(proposedValues, 'voiceTone', input.voiceTone);
-  setManualProposedValue(proposedValues, 'voiceStyle', input.voiceStyle);
-  setManualProposedValue(proposedValues, 'voiceAudience', input.voiceAudience);
-  setManualProposedValue(proposedValues, 'voiceValues', input.voiceValues);
-  setManualProposedValue(
-    proposedValues,
-    'voiceMessagingPillars',
-    input.voiceMessagingPillars,
-  );
-  setManualProposedValue(
-    proposedValues,
-    'voiceDoNotSoundLike',
-    input.voiceDoNotSoundLike,
-  );
-  setManualProposedValue(
-    proposedValues,
-    'voiceSampleOutput',
-    input.voiceSampleOutput,
-  );
-  setManualProposedValue(
-    proposedValues,
-    'strategyContentTypes',
-    input.strategyContentTypes,
-  );
-  setManualProposedValue(
-    proposedValues,
-    'strategyPlatforms',
-    input.strategyPlatforms,
-  );
-  setManualProposedValue(proposedValues, 'strategyGoals', input.strategyGoals);
-  setManualProposedValue(
-    proposedValues,
-    'strategyFrequency',
-    input.strategyFrequency,
-  );
+  const manualValues: ReadonlyArray<[BrandKitFieldKey, unknown]> = [
+    ['label', input.label],
+    ['description', input.description],
+    ['primaryColor', input.primaryColor],
+    ['secondaryColor', input.secondaryColor],
+    ['backgroundColor', input.backgroundColor],
+    ['fontFamily', input.fontFamily],
+    ['promptGuidelines', input.guidanceText],
+    ['visualDirection', input.visualDirection],
+    ['voiceTone', input.voiceTone],
+    ['voiceStyle', input.voiceStyle],
+    ['voiceAudience', input.voiceAudience],
+    ['voiceValues', input.voiceValues],
+    ['voiceMessagingPillars', input.voiceMessagingPillars],
+    ['voiceDoNotSoundLike', input.voiceDoNotSoundLike],
+    ['voiceSampleOutput', input.voiceSampleOutput],
+    ['strategyContentTypes', input.strategyContentTypes],
+    ['strategyPlatforms', input.strategyPlatforms],
+    ['strategyGoals', input.strategyGoals],
+    ['strategyFrequency', input.strategyFrequency],
+  ];
+  for (const [key, value] of manualValues)
+    setManualProposedValue(proposedValues, key, value);
 
   const assetValues = (input.assets ?? [])
     .map(createManualAssetValue)

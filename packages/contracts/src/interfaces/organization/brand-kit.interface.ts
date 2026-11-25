@@ -51,6 +51,7 @@ export type BrandKitFieldKey =
   | 'fontFamily'
   | 'colorPalette'
   | 'fontRoles'
+  | 'visualDirection'
   | 'promptGuidelines'
   | 'voiceTone'
   | 'voiceStyle'
@@ -77,6 +78,7 @@ export type BrandKitFieldOwnerPath =
   | 'brand.fontFamily'
   | 'brand.colorPalette'
   | 'brand.fontRoles'
+  | 'brand.visualDirection'
   | 'brand.text'
   | 'brand.agentConfig.voice.tone'
   | 'brand.agentConfig.voice.style'
@@ -171,6 +173,7 @@ export interface IBrandKitManualInput {
   backgroundColor?: string;
   fontFamily?: string;
   guidanceText?: string;
+  visualDirection?: string;
   guidanceDocumentName?: string;
   voiceTone?: string;
   voiceStyle?: string;
@@ -571,6 +574,14 @@ export const BRAND_KIT_FIELD_OWNERSHIP: readonly IBrandKitFieldOwner[] = [
     label: 'Font roles',
     ownerPath: 'brand.fontRoles',
     valueKind: 'fontRoles',
+  },
+  {
+    applyActionDefault: 'preserve',
+    group: 'visual',
+    key: 'visualDirection',
+    label: 'Visual direction',
+    ownerPath: 'brand.visualDirection',
+    valueKind: 'string',
   },
   {
     applyActionDefault: 'preserve',
