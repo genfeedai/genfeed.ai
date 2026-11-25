@@ -29,13 +29,13 @@
     "@types/node": "26.6.6",
     "@types/react": "19.3.2",
     "@types/react-dom": "19.3.0",
-    "@vitest/coverage-v8": "5.1.1",
+    "@vitest/coverage-v8": "5.1.0",
     "jsdom": "29.1.1",
     "postcss": "8.5.33",
     "prettier": "3.10.1",
     "tailwindcss": "4.3.5",
     "@typescript/native": "npm:typescript@7.0.2",
-    "vitest": "5.1.1"
+    "vitest": "5.1.0"
   },
   "displayName": "Genfeed",
   "exports": {

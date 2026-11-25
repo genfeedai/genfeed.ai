@@ -40,7 +40,7 @@
     "@tiptap/suggestion": "3.35.0",
     "@ui-sdk/core": "0.1.0-beta.17",
     "@ui-sdk/react": "0.1.0-beta.17",
-    "@xyflow/react": "13.0.3",
+    "@xyflow/react": "12.12.1",
     "axios": "1.21.1",
     "date-fns": "4.4.0",
     "fullcalendar": "7.1.5",

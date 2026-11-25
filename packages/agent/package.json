@@ -38,14 +38,14 @@
     "@testing-library/jest-dom": "8.0.0",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.13",
-    "@vitest/browser": "5.1.1",
-    "@vitest/browser-playwright": "5.1.1",
+    "@vitest/browser": "5.1.0",
+    "@vitest/browser-playwright": "5.1.0",
     "jsdom": "29.1.1",
     "playwright": "1.65.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "@typescript/native": "npm:typescript@7.0.2",
-    "vitest": "5.1.1",
+    "vitest": "5.1.0",
     "vitest-browser-react": "2.3.0"
   },
   "exports": {

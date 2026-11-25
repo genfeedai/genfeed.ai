@@ -4,7 +4,7 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "@nestjs/axios": "12.0.2",
-    "@nestjs/common": "12.6.1",
+    "@nestjs/common": "12.5.0",
     "@sentry/nestjs": "11.17.0",
     "grammy": "1.48.0",
     "reflect-metadata": "0.2.2",
