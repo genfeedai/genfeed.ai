@@ -183,6 +183,7 @@ export class CredentialsController {
   }
 
   @Post(':credentialId/refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async refreshCredentialToken(
     @Req() request: Request,
@@ -476,6 +477,7 @@ export class CredentialsController {
   }
 
   @Post(':credentialId/tags')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createCredentialTag(
     @Req() request: Request,

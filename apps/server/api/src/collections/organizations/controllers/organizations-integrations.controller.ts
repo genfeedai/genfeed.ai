@@ -2,11 +2,13 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { OrgIntegrationSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -24,6 +26,7 @@ import {
 import type { Request } from 'express';
 
 @Controller('organizations/:organizationId/integrations')
+@RequiredScopes(ApiKeyScope.ADMIN)
 export class OrganizationsIntegrationsController {
   constructor(private readonly integrationsService: IntegrationsService) {}
 
