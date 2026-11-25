@@ -1192,7 +1192,9 @@
         "fork": "Fork",
         "forking": "Forking…",
         "saveSkill": "Save skill",
-        "openSamplePrompt": "Open sample prompt"
+        "openSamplePrompt": "Open sample prompt",
+        "getDesktop": "Get Desktop",
+        "runInTerminal": "Run In Terminal"
       },
       "catalog": {
         "description": "Browse built-in, imported, and organization-owned content skills.",
@@ -1212,7 +1214,13 @@
         "generalChannels": "general channels",
         "stage": "Stage",
         "stageDescription": "Designed for the {stage} step of the content workflow.",
-        "version": "v{version}"
+        "version": "v{version}",
+        "runsOn": {
+          "label": "Runs on",
+          "web": "Runs in the Agent, on web and in Desktop.",
+          "desktopOnWeb": "This skill renders on your computer with tools a browser tab cannot reach, such as Chrome and ffmpeg. Run it in Genfeed Desktop.",
+          "desktopInDesktop": "Runs in the Desktop terminal, in a Claude Code session on your computer. Claude Code asks before it runs a command or writes a file."
+        }
       },
       "errors": {
         "authenticationUnavailable": "Authentication token unavailable",
@@ -1268,6 +1276,12 @@
         "search": {
           "label": "Search skills",
           "placeholder": "Search skills"
+        },
+        "runsOn": {
+          "menuLabel": "Runs on",
+          "all": "All",
+          "web": "Web",
+          "desktop": "Desktop"
         }
       },
       "heading": "Skills",
@@ -1280,9 +1294,18 @@
         "modality": "Modality",
         "name": "Name",
         "source": "Source",
-        "stage": "Stage"
+        "stage": "Stage",
+        "runsOn": "Runs on"
       },
-      "samplePrompt": "Help me explore a small {channel} example for the skill named {name}."
+      "samplePrompt": "Help me explore a small {channel} example for the skill named {name}.",
+      "runsOn": {
+        "web": "Web",
+        "desktop": "Desktop"
+      },
+      "terminal": {
+        "title": "Run {name} in the terminal",
+        "description": "A Claude Code session on this computer, opened on the skill. Closing this window ends the session."
+      }
     },
     "organizationAutomation": {
       "title": "Breakouts and brand checks",

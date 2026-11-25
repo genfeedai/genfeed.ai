@@ -102,6 +102,7 @@ export class SkillCatalogSeedService {
       modalities: definition.modalities,
       name: definition.name,
       requiredProviders: [],
+      runsOn: definition.runsOn,
       slug: definition.slug,
       source: 'built_in',
       status: 'published',

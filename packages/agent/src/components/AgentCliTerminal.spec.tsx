@@ -80,6 +80,7 @@ import {
   type AgentCliTerminalController,
   useAgentCliTerminal,
 } from '@genfeedai/agent/components/AgentCliTerminal';
+import type { TerminalLaunchRequest } from '@genfeedai/agent/components/agent-cli-terminal.helpers';
 
 type DesktopWindow = Window & { genfeedDesktop?: unknown };
 
@@ -93,12 +94,14 @@ const SESSION: TerminalSessionDto = {
 
 function TerminalHarness({
   apiService,
+  initialLaunch,
   onController,
 }: {
   apiService: AgentApiService;
+  initialLaunch?: TerminalLaunchRequest;
   onController?: (controller: AgentCliTerminalController) => void;
 }) {
-  const controller = useAgentCliTerminal(apiService);
+  const controller = useAgentCliTerminal(apiService, true, initialLaunch);
   onController?.(controller);
 
   return <AgentCliTerminalBody containerRef={controller.containerRef} />;
@@ -227,6 +230,57 @@ describe('useAgentCliTerminal', () => {
           .terminalSessionsByThread.get('thread-active')
           ?.map((session) => session.id),
       ).toEqual(['pty-1']);
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+    }
+  });
+
+  it('opens the requested desktop session on its prompt once the terminal is ready', async () => {
+    const terminalBridge = {
+      create: vi.fn().mockResolvedValue({
+        command: 'claude',
+        createdAt: '2026-09-25T00:00:00.000Z',
+        cwd: '/Users/me',
+        id: 'pty-claude',
+        kind: 'claude',
+        pid: 43,
+      }),
+      kill: vi.fn().mockResolvedValue(undefined),
+      onData: vi.fn(() => () => undefined),
+      onExit: vi.fn(() => () => undefined),
+      resize: vi.fn().mockResolvedValue(undefined),
+      write: vi.fn().mockResolvedValue(undefined),
+    };
+    (window as DesktopWindow).genfeedDesktop = { terminal: terminalBridge };
+    const apiService = {
+      getToken: vi.fn().mockResolvedValue('terminal-token'),
+    } as unknown as AgentApiService;
+    let controller: AgentCliTerminalController | null = null;
+
+    try {
+      render(
+        <TerminalHarness
+          apiService={apiService}
+          initialLaunch={{
+            kind: 'claude',
+            prompt: 'Use the motion-video skill',
+          }}
+          onController={(next) => {
+            controller = next;
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(controller?.activeSessionId).toBe('pty-claude');
+      });
+      expect(terminalBridge.create).toHaveBeenCalledTimes(1);
+      expect(terminalBridge.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'claude',
+          prompt: 'Use the motion-video skill',
+        }),
+      );
     } finally {
       delete (window as DesktopWindow).genfeedDesktop;
     }
