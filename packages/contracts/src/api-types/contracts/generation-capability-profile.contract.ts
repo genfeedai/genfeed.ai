@@ -67,12 +67,6 @@ export const generationCapabilityReferencesSchema = z
   .object({
     max: z.number().int().nonnegative().max(32),
     nativeFields: z.array(generationCapabilityIdSchema).max(20),
-    /**
-     * Roles the compiler names in the prompt, one line per reference by
-     * position ("Image 2 is the product"), because the model has no native
-     * field that tells a style image from a product photo. A role missing
-     * from `roles` is one the model cannot take at all.
-     */
     promptLabelRoles: z
       .array(imageGenerationReferenceRoleSchema)
       .max(20)
@@ -204,6 +198,20 @@ export const FLUX_SCHNELL_CAPABILITY_PROFILE =
  */
 
 const ALL_IMAGE_REFERENCE_ROLES = [...imageGenerationReferenceRoleValues];
+
+/** A model that takes every image role; `hasPromptLabels` names each in the prompt. */
+function imageReferences(
+  max: number,
+  nativeFields: string[],
+  hasPromptLabels = false,
+) {
+  return {
+    max,
+    nativeFields,
+    ...(hasPromptLabels ? { promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES } : {}),
+    roles: ALL_IMAGE_REFERENCE_ROLES,
+  };
+}
 
 export const imagenDispatchDefaultsSchema = z
   .object({
@@ -346,12 +354,7 @@ export const NANO_BANANA_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 15,
-      nativeFields: ['image_input'],
-      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(15, ['image_input'], true),
     resolution: { supported: false },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -424,12 +427,7 @@ function buildNanoBanana2CapabilityProfile(input: {
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: input.maxReferences,
-      nativeFields: ['image_input'],
-      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(input.maxReferences, ['image_input'], true),
     resolution: { supported: input.hasResolution },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -529,11 +527,7 @@ export const SEEDREAM_4_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 10,
-      nativeFields: ['image_input'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(10, ['image_input']),
     resolution: { supported: false },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -579,11 +573,7 @@ function buildSeedream45CapabilityProfile(
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 14,
-      nativeFields: ['image_input'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(14, ['image_input']),
     resolution: { supported: false },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -647,11 +637,7 @@ export const SEEDREAM_5_PRO_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 10,
-      nativeFields: ['image_input'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(10, ['image_input']),
     resolution: { supported: true },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -763,11 +749,7 @@ function buildIdeogramV3CapabilityProfile(
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 1,
-      nativeFields: ['image'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(1, ['image']),
     resolution: { supported: true },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -860,11 +842,7 @@ export const FLUX_1_1_PRO_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 1,
-      nativeFields: ['image_prompt'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(1, ['image_prompt']),
     resolution: { supported: false },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -929,11 +907,7 @@ export const FLUX_2_DEV_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 4,
-      nativeFields: ['input_images'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(4, ['input_images']),
     resolution: { supported: false },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -991,11 +965,7 @@ export const FLUX_2_FLEX_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 10,
-      nativeFields: ['input_images'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(10, ['input_images']),
     resolution: { supported: true },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -1045,11 +1015,7 @@ function buildFlux2ProCapabilityProfile(
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 8,
-      nativeFields: ['input_images'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(8, ['input_images']),
     resolution: { supported: true },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -1133,11 +1099,7 @@ function buildFluxKontextProCapabilityProfile(
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 1,
-      nativeFields: ['input_image'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(1, ['input_image']),
     resolution: { supported: false },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -1218,11 +1180,7 @@ export const QWEN_IMAGE_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 1,
-      nativeFields: ['image'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(1, ['image']),
     resolution: { supported: false },
     seed: { supported: true },
     textRendering: 'prompt_only',
@@ -1275,11 +1233,7 @@ export const RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: {
-      max: 3,
-      nativeFields: ['reference_images'],
-      roles: ALL_IMAGE_REFERENCE_ROLES,
-    },
+    references: imageReferences(3, ['reference_images']),
     resolution: { supported: true },
     seed: { supported: true },
     textRendering: 'prompt_only',
