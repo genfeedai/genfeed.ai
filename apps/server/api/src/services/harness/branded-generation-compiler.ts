@@ -8,6 +8,10 @@ import type {
 } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { sanitizeAgentUntrustedInput } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import {
+  buildBrandRequiredContextReport,
+  formatBrandRequiredContextOverflow,
+} from '@api/services/harness/brand-required-context-report.util';
 import { deriveBrandLearningCompatibility } from '@api/services/harness/branded-generation-compatibility';
 import { BrandedGenerationCompileError } from '@api/services/harness/branded-generation-compile.error';
 import {
@@ -562,6 +566,7 @@ function blockedSnapshotResolution(
   diagnostics: BrandIdentitySnapshotV1['diagnostics'],
   reasonCode: string,
   diagnosticCode = reasonCode,
+  message?: string,
 ): BrandedGenerationResolutionV1 {
   const primary = {
     code: diagnosticCode,
@@ -569,7 +574,7 @@ function blockedSnapshotResolution(
     message:
       diagnosticCode === SNAPSHOT_BOUNDS_DIAGNOSTIC.code
         ? SNAPSHOT_BOUNDS_DIAGNOSTIC.message
-        : 'Required generation context could not be compiled.',
+        : (message ?? 'Required generation context could not be compiled.'),
   };
   const candidateDiagnostics = [...diagnostics, primary];
   const fits = snapshotDiagnosticsFit(candidateDiagnostics);
@@ -791,6 +796,7 @@ export function compileSnapshotBriefResolution(
     diagnostic = reason,
     layers: BrandGenerationLayerReceiptV1[] = [],
     extra: BrandIdentitySnapshotV1['diagnostics'] = [],
+    message?: string,
   ) =>
     blockedSnapshotResolution(
       input,
@@ -800,6 +806,7 @@ export function compileSnapshotBriefResolution(
       [...diagnostics, ...extra],
       reason,
       diagnostic,
+      message,
     );
   if (failure) return blocked(failure[0], failure[1]);
   if (!snapshot)
@@ -881,11 +888,20 @@ export function compileSnapshotBriefResolution(
     );
   } catch (error) {
     if (!(error instanceof BrandedGenerationCompileError)) throw error;
+    if (error.code !== 'context_budget_exceeded')
+      return blocked('context_unavailable', error.code);
     return blocked(
-      error.code === 'context_budget_exceeded'
-        ? error.code
-        : 'context_unavailable',
       error.code,
+      error.code,
+      [],
+      [],
+      formatBrandRequiredContextOverflow(
+        buildBrandRequiredContextReport(
+          required,
+          error.requiredCharacters,
+          error.maxCharacters,
+        ),
+      ),
     );
   }
 }

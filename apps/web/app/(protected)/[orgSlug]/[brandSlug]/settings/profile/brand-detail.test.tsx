@@ -4,7 +4,7 @@ import {
   AssetScope,
   CredentialPlatform,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandDetail from './brand-detail';
@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
     totalPages: 1,
   } as Record<string, unknown>,
   brandDetail: {} as Record<string, unknown>,
+  reach: null as Record<string, number | null> | null,
   searchParams: new URLSearchParams(),
   handleCopy: vi.fn(),
   handleGenerateBanner: vi.fn(),
@@ -98,21 +99,20 @@ vi.mock('@/features/brands/hooks/use-brand-profile-articles', () => ({
   useBrandProfileArticles: () => mocks.articles,
 }));
 
+vi.mock('@/features/brands/hooks/use-brand-reach', () => ({
+  useBrandReach: () => mocks.reach,
+}));
+
 vi.mock('@/features/brands/components/articles/BrandProfileArticles', () => ({
   default: ({
     articles,
-    limit,
-    seeAllHref,
   }: {
     articles: Array<{ id: string; label: string }>;
-    limit?: number;
-    seeAllHref?: string;
   }) => (
     <section aria-label="Articles">
-      {articles.slice(0, limit ?? articles.length).map((article) => (
+      {articles.map((article) => (
         <p key={article.id}>{article.label}</p>
       ))}
-      {seeAllHref ? <a href={seeAllHref}>See all</a> : null}
     </section>
   ),
 }));
@@ -167,7 +167,7 @@ vi.mock('@ui/layout/container/Container', () => ({
     right?: ReactNode;
   }) => (
     <main>
-      {right}
+      {right ? <div data-testid="container-right">{right}</div> : null}
       {children}
     </main>
   ),
@@ -297,6 +297,7 @@ describe('BrandDetail', () => {
     vi.clearAllMocks();
     mocks.brandDetail = createBrandDetailState();
     mocks.searchParams = new URLSearchParams();
+    mocks.reach = null;
     mocks.handleRefreshBrand.mockResolvedValue(undefined);
     mocks.handleUpdateAccount.mockResolvedValue(undefined);
   });
@@ -329,7 +330,7 @@ describe('BrandDetail', () => {
     expect(screen.getByText('Banner')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(
-      screen.getByRole('region', { name: 'Website links' }),
+      screen.getByRole('region', { name: 'Articles' }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Public posts/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Latest (Videos|Images|Articles)/)).toBeNull();
@@ -375,10 +376,73 @@ describe('BrandDetail', () => {
     );
   });
 
-  it('shows the connected accounts and opens the Connect account modal from the header', () => {
+  it('has no Connect account in the top bar', () => {
     render(<BrandDetail />);
 
+    expect(screen.queryByTestId('container-right')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Connect account' }),
+    ).toBeNull();
+  });
+
+  it('shows Articles and Settings tabs, Articles first, with no Overview', () => {
+    render(<BrandDetail />);
+
+    const tabs = within(
+      screen.getByRole('navigation', { name: 'Profile sections' }),
+    ).getAllByRole('link');
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      'Articles 2',
+      'Settings',
+    ]);
+    expect(screen.getByText('First article')).toBeInTheDocument();
+    expect(screen.queryByText('Accounts 1 page')).toBeNull();
+  });
+
+  it('shows Articles for the old Overview link', () => {
+    mocks.searchParams = new URLSearchParams('tab=overview');
+    render(<BrandDetail />);
+
+    expect(screen.getByText('Second article')).toBeInTheDocument();
+    expect(screen.queryByText('Accounts 1 page')).toBeNull();
+  });
+
+  it('holds Public analytics, accounts and website links under Settings', () => {
+    mocks.searchParams = new URLSearchParams('tab=settings');
+    render(<BrandDetail />);
+
+    expect(screen.queryByText('First article')).toBeNull();
     expect(screen.getByText('Accounts 1 page')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Website links' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Public analytics' }));
+    expect(mocks.handleUpdateAccount).toHaveBeenCalledWith(
+      'isPublicAnalyticsEnabled',
+      false,
+    );
+  });
+
+  it('shows Public analytics off once the owner turned it off', () => {
+    mocks.searchParams = new URLSearchParams('tab=settings');
+    mocks.brandDetail = createBrandDetailState({
+      brand: {
+        ...(createBrandDetailState().brand as Record<string, unknown>),
+        isPublicAnalyticsEnabled: false,
+      },
+    });
+    render(<BrandDetail />);
+
+    expect(
+      screen.getByRole('switch', { name: 'Public analytics' }),
+    ).not.toBeChecked();
+  });
+
+  it('opens the Connect account modal from the Accounts header', () => {
+    mocks.searchParams = new URLSearchParams('tab=settings');
+    render(<BrandDetail />);
+
     expect(
       screen.getByRole('heading', { name: 'Accounts' }),
     ).toBeInTheDocument();
@@ -389,29 +453,17 @@ describe('BrandDetail', () => {
     expect(screen.getByText('Connect account modal')).toBeInTheDocument();
   });
 
-  it('shows the newest articles on Overview and all of them on the Articles tab', () => {
-    const { rerender } = render(<BrandDetail />);
+  it('shows the reach line in the header once there is data', () => {
+    mocks.reach = { engagements: 12, impressions: null, views: 1200 };
+    render(<BrandDetail />);
 
-    expect(screen.getByText('First article')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'See all' })).toHaveAttribute(
-      'href',
-      '?tab=articles',
-    );
-    expect(screen.getByRole('link', { name: /^Articles/ })).toHaveTextContent(
-      'Articles 2',
-    );
-    expect(screen.getByText('2 articles')).toBeInTheDocument();
-    expect(screen.getByText('Accounts 1 page')).toBeInTheDocument();
-
-    mocks.searchParams = new URLSearchParams('tab=articles');
-    rerender(<BrandDetail />);
-
-    expect(screen.getByText('Second article')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'See all' })).toBeNull();
-    expect(screen.queryByText('Accounts 1 page')).toBeNull();
+    const summary = screen.getByTestId('metric-summary');
+    expect(summary).toHaveTextContent(/1\.2K\s*views/);
+    expect(summary).toHaveTextContent(/12\s*engagements/);
+    expect(summary).not.toHaveTextContent('impressions');
   });
 
-  it('keeps copy and view public off until the profile is public', () => {
+  it('keeps copy and open off until the profile is public', () => {
     mocks.brandDetail = createBrandDetailState({
       brand: {
         ...(createBrandDetailState().brand as Record<string, unknown>),
@@ -426,9 +478,8 @@ describe('BrandDetail', () => {
     expect(
       screen.getByRole('button', { name: 'Copy public profile link' }),
     ).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'View public' })).toBeDisabled();
     expect(
-      screen.getByText('Only you and your team can see this profile.'),
-    ).toBeInTheDocument();
+      screen.getByRole('button', { name: 'View public profile' }),
+    ).toBeDisabled();
   });
 });
