@@ -3,7 +3,7 @@ import { renderPostsListPage } from '@app/(protected)/[orgSlug]/[brandSlug]/publ
 import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
-import { CampaignDetailShell } from '@/features/campaigns';
+import CampaignDetailShell from '@/features/campaigns/detail/CampaignDetailShell';
 
 export const generateMetadata = createPageMetadata('Campaign Content');
 

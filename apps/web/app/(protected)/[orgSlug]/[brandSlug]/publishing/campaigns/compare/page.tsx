@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import Container from '@ui/layout/container/Container';
 import { Suspense } from 'react';
-import { CampaignComparePage } from '@/features/campaigns';
+import CampaignComparePage from '@/features/campaigns/detail/CampaignComparePage';
 
 export const generateMetadata = createPageMetadata('Compare Campaigns');
 

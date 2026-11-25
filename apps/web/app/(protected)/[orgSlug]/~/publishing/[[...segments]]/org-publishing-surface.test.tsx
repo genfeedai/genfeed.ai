@@ -136,17 +136,26 @@ vi.mock(
   }),
 );
 
-vi.mock('@/features/campaigns', () => ({
-  CampaignDetailAds: ({ campaignId }: { campaignId: string }) => (
+vi.mock('@/features/campaigns/detail/CampaignDetailAds', () => ({
+  default: ({ campaignId }: { campaignId: string }) => (
     <div data-campaign-id={campaignId} data-testid="campaign-ads" />
   ),
-  CampaignDetailOverview: ({ campaignId }: { campaignId: string }) => (
+}));
+
+vi.mock('@/features/campaigns/detail/CampaignDetailOverview', () => ({
+  default: ({ campaignId }: { campaignId: string }) => (
     <div data-campaign-id={campaignId} data-testid="campaign-overview" />
   ),
-  CampaignDetailPerformance: ({ campaignId }: { campaignId: string }) => (
+}));
+
+vi.mock('@/features/campaigns/detail/CampaignDetailPerformance', () => ({
+  default: ({ campaignId }: { campaignId: string }) => (
     <div data-campaign-id={campaignId} data-testid="campaign-performance" />
   ),
-  CampaignDetailShell: ({
+}));
+
+vi.mock('@/features/campaigns/detail/CampaignDetailShell', () => ({
+  default: ({
     campaignId,
     children,
     section,
@@ -163,10 +172,16 @@ vi.mock('@/features/campaigns', () => ({
       {children}
     </section>
   ),
-  CampaignFormPage: ({ campaignId }: { campaignId?: string }) => (
+}));
+
+vi.mock('@/features/campaigns/form/CampaignFormPage', () => ({
+  default: ({ campaignId }: { campaignId?: string }) => (
     <div data-campaign-id={campaignId} data-testid="campaign-form-page" />
   ),
-  CampaignsListPage: () => <div data-testid="campaigns-list-page" />,
+}));
+
+vi.mock('@/features/campaigns/list/CampaignsListPage', () => ({
+  default: () => <div data-testid="campaigns-list-page" />,
 }));
 
 const { default: OrgPublishingSurface } = await import(
