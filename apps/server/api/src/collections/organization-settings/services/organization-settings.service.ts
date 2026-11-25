@@ -4,7 +4,6 @@ import { allowlistHasLiveModel } from '@api/collections/models/utils/enabled-mod
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
-import { PublishingQuotaTierService } from '@api/collections/organization-settings/services/publishing-quota-tier.service';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -133,6 +132,12 @@ export class OrganizationSettingsService extends BaseService<
     organizationId: string,
   ): Promise<PublishingQuotaTier | null> {
     try {
+      // Loaded on first use: the tier service reaches the credits and
+      // subscription services, which reach this one, and a static import would
+      // leave `OrganizationSettingsService` undefined where the cycle starts.
+      const { PublishingQuotaTierService } = await import(
+        '@api/collections/organization-settings/services/publishing-quota-tier.service'
+      );
       const tiers = this.moduleRef.get(PublishingQuotaTierService, {
         strict: false,
       });
