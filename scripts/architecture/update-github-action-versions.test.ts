@@ -205,8 +205,6 @@ describe('GitHub Action version updater', () => {
       '@electric-sql/pglite',
       // @xyflow/react 13 changes the node and edge change types the canvases use.
       '@xyflow/react',
-      // stripe 23.2 moves the pinned API version type; change both together.
-      'stripe',
       // @ui-sdk/* beta.17 changes the page-controls registration the MCP approval cards read.
       '@ui-sdk/*',
     ]);
