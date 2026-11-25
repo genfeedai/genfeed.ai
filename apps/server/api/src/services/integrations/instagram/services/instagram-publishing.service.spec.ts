@@ -30,8 +30,10 @@ function createGraphDouble(
     | 'cover_url'
     | 'is_ai_generated' = 'is_ai_generated',
   audioCatalogue: unknown = { audio: [] },
+  containerIdFor: (createIndex: number) => string = () => 'container-1',
 ) {
   const posts: GraphPost[] = [];
+  let createIndex = 0;
   const http = {
     get: vi.fn((url: string, _config?: { params: GraphPost['params'] }) =>
       of({
@@ -61,6 +63,10 @@ function createGraphDouble(
               status: refuseLabel.status,
             },
           }));
+        }
+        if (url.endsWith('/media')) {
+          createIndex += 1;
+          return of({ data: { id: containerIdFor(createIndex) } });
         }
         return of({ data: { id: 'container-1' } });
       },
@@ -239,6 +245,36 @@ describe('InstagramPublishingService when Instagram refuses the AI label', () =>
     ).rejects.toBeDefined();
 
     expect(graph.createCalls()).toHaveLength(1);
+  });
+});
+
+describe('InstagramPublishingService carousel at the 20-image limit', () => {
+  it('creates 20 child containers and sends their ids in order to the carousel parent', async () => {
+    const graph = createGraphDouble(
+      undefined,
+      'is_ai_generated',
+      { audio: [] },
+      (createIndex) => `child-${createIndex}`,
+    );
+    const imageUrls = Array.from(
+      { length: 20 },
+      (_, index) => `https://cdn.test/${index + 1}.jpg`,
+    );
+
+    await graph.service.uploadCarousel('org', 'brand', imageUrls, 'caption');
+
+    const creates = graph.createCalls();
+    const children = creates.filter((call) => call.params.is_carousel_item);
+    const parents = creates.filter((call) => call.params.children);
+
+    expect(children.map((call) => call.params.image_url)).toEqual(imageUrls);
+    expect(parents).toHaveLength(1);
+    expect(parents[0].params.media_type).toBe('CAROUSEL');
+    expect(parents[0].params.children).toBe(
+      Array.from({ length: 20 }, (_, index) => `child-${index + 1}`).join(','),
+    );
+    expect(graph.publishCalls()).toHaveLength(1);
+    expect(graph.publishCalls()[0].params.creation_id).toBe('child-21');
   });
 });
 
