@@ -171,6 +171,7 @@ export function compileNanoBanana2GenerationBrief(
     outputFormat: profile.defaults.outputFormat,
     profileId: profile.id,
     profileVersion: profile.version,
+    referenceAssetIds: included.map((reference) => reference.assetId),
   });
 
   return { brief, dispatch, evidence };

@@ -165,6 +165,10 @@ describe('compileNanoBanana2GenerationBrief', () => {
     expect(result.dispatch.prompt).toContain(
       'Image 1 is the product: keep it exactly. Image 2 is a style reference: match its palette, texture and lighting, not its subject',
     );
+    expect(result.evidence.referenceAssetIds).toEqual([
+      'asset_product_1',
+      'asset_style_1',
+    ]);
     expect(result.dispatch.prompt).not.toContain('asset_');
     expect(result.evidence.appliedFields).toContain('references.roles');
     expect(result.evidence.compilerVersion).toBe(2);
