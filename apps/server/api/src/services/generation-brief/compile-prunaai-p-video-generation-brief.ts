@@ -128,7 +128,6 @@ export function compilePrunaaiPVideoGenerationBrief(
     ...(input.brief.intent.motion ? ['intent.motion'] : []),
     ...(input.brief.intent.visualDirection ? ['intent.visualDirection'] : []),
     ...(input.brief.intent.audioDirection ? ['intent.audioDirection'] : []),
-    ...(input.brief.intent.brandContext ? ['intent.brandContext'] : []),
     ...(input.brief.intent.requestedText.length > 0
       ? ['intent.requestedText']
       : []),

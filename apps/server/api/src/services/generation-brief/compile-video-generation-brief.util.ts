@@ -1,5 +1,4 @@
 import {
-  fitBrandContextToPromptBudget,
   joinGenerationBriefPromptParts,
   recordOmittedGenerationBriefSignal,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
@@ -82,19 +81,6 @@ export function buildVideoGenerationBriefPrompt(
         model.label,
       );
     }
-  }
-
-  // Independent of fidelity policy — brand voice follows Brand voice only.
-  // Fit into whatever budget is left after everything else (#4676).
-  const fittedBrandContext = fitBrandContextToPromptBudget({
-    brandContext: brief.intent.brandContext,
-    maxCharacters: model.maxCharacters,
-    modelLabel: model.label,
-    omitted,
-    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
-  });
-  if (fittedBrandContext) {
-    parts.push(fittedBrandContext);
   }
 
   const prompt = joinGenerationBriefPromptParts(parts);
