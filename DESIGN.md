@@ -885,10 +885,11 @@ The app rail runs the full window height, flush under the titlebar, on
 `gray-100` (`#0A0A0A` dark, `#F5F5F5` light) with `border-r`. Its first row is
 48px, shares the topbar's bottom line and holds the Genfeed mark, which collapses
 the page menu (a plain mark on pages without one). On macOS desktop the traffic
-lights cover that row, so the mark moves into the topbar after them, followed by
-back and forward. The rail's bottom holds Admin (platform admins), Help, and the
-account avatar, whose menu carries the name, email and settings scopes; the
-sidebar has no profile row.
+lights cover that row and run on over the menu's top row: the mark (the toggle),
+back and forward sit in that row after the lights. With the menu collapsed they
+sit in the topbar at the same x, so the toggle does not jump. The rail's bottom
+holds Admin (platform admins), Help, and the account avatar, whose menu carries
+the name, email and settings scopes; the sidebar has no profile row.
 
 The topbar is a 48px row on the page plane (`bg-background`) with
 `border-b border-border`. Organization and brand switchers sit on the leading
@@ -898,10 +899,12 @@ toggles sit on the trailing edge. Side padding is 8px, so the first and last
 icon centres are 24px from the edge, mirroring the rail. Below `lg` the
 breadcrumb follows the switchers.
 
-The page menu and the page share one flush block under the topbar, beside the
-rail. The menu is `gray-100`, one step off the page, with `border-r
-border-border` while expanded. The page owns scrolling, so `sticky top-0`
-inside a page sticks under the topbar.
+The page menu runs the full window height beside the rail, like the rail and
+the panel, so the topbar and the page start at its right edge. The menu is
+`gray-100`, one step off the page, with `border-r border-border` while expanded.
+Its first row is 48px with the same bottom line as the topbar (empty on web, the
+window controls on macOS desktop); the items start under it. The page owns
+scrolling, so `sticky top-0` inside a page sticks under the topbar.
 
 The context panel runs the full window height, like the rail. The topbar and the
 page stop at its left border, which is their divider. Its first row is 48px, in

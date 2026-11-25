@@ -1,5 +1,11 @@
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -325,9 +331,22 @@ describe('AppLayout', () => {
     );
     expect(panel).toHaveAttribute('data-motion', 'layout');
     expect(panel.style.transition).toContain('margin-right');
-    expect(panel).toContainElement(sidebar);
+    // The menu is a column of the content shell, the full window height beside
+    // the rail: not inside the page block, and not under the topbar.
+    expect(contentShell).toContainElement(sidebar);
+    expect(panel).not.toContainElement(sidebar);
+    expect(
+      screen.getByTestId('app-topbar-shell').compareDocumentPosition(sidebar) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+    expect(contentShell).toHaveClass('md:flex-row');
     expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'after:bg-border');
     expect(sidebar).not.toHaveClass('fixed');
+    // Its first row is the topbar's height, with the same bottom line.
+    expect(screen.getByTestId('desktop-sidebar-header')).toHaveClass(
+      'h-[var(--shell-topbar-height)]',
+      'border-b',
+    );
     expect(panel).not.toContainElement(screen.getByTestId('app-topbar-shell'));
     expect(contentShell).toContainElement(
       screen.getByTestId('app-topbar-shell'),
@@ -743,7 +762,7 @@ describe('AppLayout desktop titlebar', () => {
     );
   });
 
-  it('makes the topbar the macOS titlebar with the controls after the traffic lights', () => {
+  it("puts the macOS window controls in the open menu's top row and moves them to the topbar when it collapses", () => {
     desktopGlobal.__GENFEED_RUNTIME_CONFIG__ = { clientSurface: 'desktop' };
     vi.stubGlobal('navigator', {
       platform: 'MacIntel',
@@ -759,9 +778,15 @@ describe('AppLayout desktop titlebar', () => {
       '--desktop-traffic-lights-inset': '76px',
     });
 
+    // The lights cover the rail's mark band, so the mark and the toggle sit in
+    // the menu's top row, which runs the full window height beside the rail.
     const controls = screen.getByTestId('desktop-titlebar-controls');
-    expect(screen.getByTestId('app-topbar-shell')).toContainElement(controls);
-    // The lights cover the rail's mark band, so its toggle moves here.
+    expect(screen.getByTestId('desktop-sidebar-header')).toContainElement(
+      controls,
+    );
+    expect(screen.getByTestId('app-topbar-shell')).not.toContainElement(
+      controls,
+    );
     expect(controls).toContainElement(
       screen.getByRole('button', { name: 'Collapse sidebar' }),
     );
@@ -771,6 +796,24 @@ describe('AppLayout desktop titlebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
     expect(routerMock.back).toHaveBeenCalledTimes(1);
     expect(routerMock.forward).toHaveBeenCalledTimes(1);
+
+    // Collapsed, the menu has no top row: the controls move into the topbar.
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    const collapsedControls = screen.getByTestId('desktop-titlebar-controls');
+    expect(screen.getByTestId('app-topbar-shell')).toContainElement(
+      collapsedControls,
+    );
+    expect(screen.getByTestId('desktop-sidebar-header')).not.toContainElement(
+      collapsedControls,
+    );
+    expect(
+      within(collapsedControls).getByRole('button', { name: 'Expand sidebar' }),
+    ).toBeInTheDocument();
+
+    // The collapsed state persists in storage; leave it as found.
+    fireEvent.click(
+      within(collapsedControls).getByRole('button', { name: 'Expand sidebar' }),
+    );
   });
 
   it('keeps the sidebar toggle in the rail on a native window frame', () => {

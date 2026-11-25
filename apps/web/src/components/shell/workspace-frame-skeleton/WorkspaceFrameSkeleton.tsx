@@ -70,6 +70,22 @@ export default function WorkspaceFrameSkeleton({
         )}
       </div>
 
+      {hasSidebar ? (
+        <div
+          aria-hidden="true"
+          className="hidden shrink-0 flex-col border-r border-border bg-gray-100 md:flex"
+          data-testid="workspace-frame-skeleton-sidebar"
+          style={{ width: SIDEBAR_DEFAULT_WIDTH }}
+        >
+          <div className="h-[var(--shell-topbar-height)] shrink-0 border-b border-border" />
+          <div className="flex flex-col gap-3 px-4 py-5">
+            {SIDEBAR_ROW_WIDTHS.map((width) => (
+              <Skeleton key={width} className="h-4" width={width} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex min-w-0 flex-1 flex-col">
         <div
           aria-hidden="true"
@@ -93,17 +109,6 @@ export default function WorkspaceFrameSkeleton({
           className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:flex-row"
           data-testid="workspace-frame-skeleton-panel"
         >
-          {hasSidebar ? (
-            <div
-              aria-hidden="true"
-              className="hidden shrink-0 flex-col gap-3 border-r border-border bg-gray-100 px-4 py-5 md:flex"
-              style={{ width: SIDEBAR_DEFAULT_WIDTH }}
-            >
-              {SIDEBAR_ROW_WIDTHS.map((width) => (
-                <Skeleton key={width} className="h-4" width={width} />
-              ))}
-            </div>
-          ) : null}
           <div className="min-w-0 flex-1 overflow-hidden" />
         </div>
       </div>
