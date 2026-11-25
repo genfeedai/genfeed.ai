@@ -7,6 +7,7 @@ import { validateReferenceMentions } from '@genfeedai/helpers/content/reference-
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { usePromptCommandExtension } from '@/features/studio/components/prompt-editor/use-prompt-command-extension';
+import type { StudioBrandDefaultReferencesRequest } from '@/features/studio/playground/hooks/useStudioBrandDefaultReferences';
 import type { useStudioCrunQuote } from '@/features/studio/playground/hooks/useStudioCrunQuote';
 import type { StudioCrunRestoreStatus } from '@/features/studio/playground/hooks/useStudioCrunRestore';
 import type { UseStudioGenerationReturn } from '@/features/studio/playground/hooks/useStudioGeneration';
@@ -38,6 +39,8 @@ export interface UseStudioSubmitParams
   attachedReferenceSources: ReturnType<
     typeof useStudioReferenceSources
   >['attachedReferenceSources'];
+  /** What the brand's default reference chips add to an image request. */
+  brandReferences: StudioBrandDefaultReferencesRequest;
   cancelJob: UseStudioGenerationReturn['cancelJob'];
   crunModel: ReturnType<typeof useStudioCrunQuote>['crunModel'];
   crunQuote: ReturnType<typeof useStudioCrunQuote>['crunQuote'];
@@ -77,6 +80,7 @@ export interface UseStudioSubmitParams
 export function useStudioSubmit({
   agentPromptSeed,
   attachedReferenceSources,
+  brandReferences,
   cancelJob,
   clearAttachments,
   crunModel,
@@ -173,7 +177,10 @@ export function useStudioSubmit({
       // enhancement pass, never the generator, so they come off first.
       const prepared = prepareCrunGenerationIntent({
         document: promptDocumentRef.current,
-        existingReferenceIds: resolvedReferences.imageReferenceIds,
+        existingReferenceIds: [
+          ...resolvedReferences.imageReferenceIds,
+          ...brandReferences.referenceIds,
+        ],
         prompt,
         resolvePromptCommands,
         resolveCharacterMentions,
@@ -201,6 +208,9 @@ export function useStudioSubmit({
           ...(previewOption ?? {}),
           ...submitOptions,
           originalText: prompt,
+          ...(brandReferences.skipBrandReferences
+            ? { skipBrandReferences: true }
+            : {}),
           ...(promptAuthor ? { promptAuthor } : {}),
           ...(crunModel
             ? {
@@ -265,6 +275,7 @@ export function useStudioSubmit({
       resolvedReferences,
       referenceMentions,
       attachedReferenceSources,
+      brandReferences,
       resolveCharacterMentions,
       rejectUnsupportedSkillSelection,
       resolvePromptCommands,

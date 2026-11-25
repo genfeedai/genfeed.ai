@@ -8,10 +8,12 @@ import type {
 } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
+  ApiKeyScope,
   MemberRole,
   Platform,
   SocialConversationType,
@@ -35,6 +37,7 @@ export class SocialInboxSyncController {
   ) {}
 
   @Post('youtube/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent YouTube comments',
@@ -52,6 +55,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('facebook/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent Facebook Page comments',
@@ -69,6 +73,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('threads/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent Threads replies',
@@ -86,6 +91,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('instagram/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent Instagram comments',
@@ -103,6 +109,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('instagram/dms/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent Instagram direct messages',
@@ -120,6 +127,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('x/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent X mentions and replies',
@@ -137,6 +145,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('x/dms/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent X direct messages',
@@ -154,6 +163,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('linkedin/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Enqueue a background sync of recent LinkedIn comments',
@@ -171,6 +181,7 @@ export class SocialInboxSyncController {
   }
 
   @Post('linkedin/dms/sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary:

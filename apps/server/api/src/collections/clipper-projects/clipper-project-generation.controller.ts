@@ -7,11 +7,13 @@ import { ClipperGenerationDispatchService } from '@api/collections/clipper-proje
 import { HookClipApprovalService } from '@api/collections/clipper-projects/services/hook-clipper-approval.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import type {
   ClipperReferenceApplication,
   HookClipApprovalStatus,
@@ -44,6 +46,7 @@ export class ClipperProjectGenerationController {
   ) {}
 
   @Post(':projectId/generate')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
@@ -66,6 +69,7 @@ export class ClipperProjectGenerationController {
   }
 
   @Post(':projectId/retry-failed')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
@@ -105,6 +109,7 @@ export class ClipperProjectGenerationController {
   }
 
   @Post(':projectId/hook-approval')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     operationId: 'ClipperProjectsController.submitHookClipDecision',

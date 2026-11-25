@@ -693,6 +693,24 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Patch',
+    sub: 'identity',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Get',
+    sub: 'approval',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Post',
+    sub: 'approve',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Patch',
     sub: 'writing-voice',
     controller: 'brandKitEdits',
     tools: ['manage_brand_kit'],

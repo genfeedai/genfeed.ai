@@ -1,9 +1,11 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { WorkspaceInboxReadDto } from '@api/collections/tasks/dto/workspace-inbox-read.dto';
 import { WorkspaceInboxReadService } from '@api/collections/tasks/services/workspace-inbox-read.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { WorkspaceInboxReadSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Get, Patch, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -29,6 +31,7 @@ export class WorkspaceInboxReadController {
   }
 
   @Patch('read-state')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async read(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
@@ -46,6 +49,7 @@ export class WorkspaceInboxReadController {
   }
 
   @Patch('read-all')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async readAll(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,

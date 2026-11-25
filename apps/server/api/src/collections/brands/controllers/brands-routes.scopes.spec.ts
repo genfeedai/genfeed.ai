@@ -267,6 +267,11 @@ const BRAND_READ_ROUTES: ReadonlyArray<
     BrandKitController.prototype.downloadLogo,
   ],
   [
+    'GET /brands/:brandId/kit/default-references',
+    BrandKitController,
+    BrandKitController.prototype.defaultReferences,
+  ],
+  [
     'GET /brands/:brandId/kit/logo-colors',
     BrandKitController,
     BrandKitController.prototype.logoColorCandidates,

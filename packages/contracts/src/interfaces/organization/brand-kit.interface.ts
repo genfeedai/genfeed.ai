@@ -388,6 +388,24 @@ export interface IBrandKitResolvedAssets {
   references: IBrandKitResolvedAsset[];
 }
 
+/** One brand reference a generation would attach by default, for preview. */
+export interface IBrandDefaultReference {
+  assetId: string;
+  label?: string;
+  role: 'character' | 'product' | 'style';
+  url: string;
+}
+
+/**
+ * The references a generation on one model attaches when the caller attaches
+ * none. `skippedReason` is set when the brand has references and the model
+ * accepts none.
+ */
+export interface IBrandDefaultReferences {
+  references: IBrandDefaultReference[];
+  skippedReason?: 'model_accepts_no_references';
+}
+
 /** Outcome of resizing the master banner into one platform image slot. */
 export interface IBrandKitPlatformFillResult {
   slot: BrandKitSlot;
