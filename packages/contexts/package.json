@@ -6,22 +6,22 @@
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@tanstack/react-query": "5.107.1",
-    "@tiptap/core": "3.34.0",
+    "@tanstack/react-query": "5.108.4",
+    "@tiptap/core": "3.35.0",
     "@genfeedai/contracts": "workspace:*",
-    "lucide-react": "1.73.0",
+    "lucide-react": "1.80.0",
     "next-themes": "0.4.6",
     "react-hook-form": "7.92.0"
   },
   "description": "Shared React contexts for Genfeed applications",
   "devDependencies": {
-    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/jest-dom": "8.0.0",
     "@testing-library/react": "16.3.3",
     "@vitejs/plugin-react": "6.3.0",
     "jsdom": "29.1.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   },
   "exports": {
     "./*": "./*"

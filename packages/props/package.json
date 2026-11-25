@@ -5,14 +5,14 @@
     "@genfeedai/models": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@remotion/player": "4.0.543",
-    "@tiptap/core": "3.34.0",
+    "@remotion/player": "4.0.547",
+    "@tiptap/core": "3.35.0",
     "react-hook-form": "7.92.0"
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
     "@genfeedai/tsconfig": "workspace:*",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   },
   "exports": {
     "./*": "./*"
