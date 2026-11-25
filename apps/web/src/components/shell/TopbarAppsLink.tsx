@@ -8,6 +8,7 @@ import {
 import { cn } from '@genfeedai/helpers';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import { Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -42,7 +43,11 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
       asChild
       variant={ButtonVariant.GHOST}
       size={ButtonSize.ICON}
-      className={cn('relative size-8', isActive && 'text-foreground')}
+      className={cn(
+        'relative size-8',
+        SHELL_CHROME_FOCUS_CLASS,
+        isActive && 'text-foreground',
+      )}
       data-active={isActive ? 'true' : 'false'}
       data-testid="topbar-apps-link"
       tooltip={translate('launcher')}

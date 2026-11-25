@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -9,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import {
   Activity,
   BarChart3,
@@ -34,9 +36,9 @@ const PRIMARY_VIEWS = [
 
 /**
  * Icon-only view switcher for the sidebar header, the same pattern as the
- * topbar panel toggles: ghost buttons, the open view pressed. Rarer views and
- * actions sit behind the "..." menu. There is no tab strip and no close
- * button; the topbar Context toggle closes the panel.
+ * topbar panel toggles: 32px ghost buttons on a 36px pitch, the open view
+ * pressed. Rarer views and actions sit behind the "..." menu. There is no tab
+ * strip; the panel header's toggle closes the panel.
  */
 export default function ReleaseViewSwitcher({
   activeView,
@@ -58,7 +60,7 @@ export default function ReleaseViewSwitcher({
   return (
     <div
       aria-label={translate('views.label')}
-      className="flex shrink-0 items-center gap-0.5"
+      className="flex shrink-0 items-center gap-1"
       data-testid="release-view-switcher"
       role="toolbar"
     >
@@ -70,18 +72,15 @@ export default function ReleaseViewSwitcher({
           <Button
             ariaLabel={label}
             aria-pressed={isActive}
-            className={isActive ? undefined : 'size-8'}
+            className={cn('size-8', SHELL_CHROME_FOCUS_CLASS)}
             key={id}
             onClick={() => onViewChange(id)}
-            size={isActive ? ButtonSize.SM : ButtonSize.ICON}
+            size={ButtonSize.ICON}
             tooltip={label}
             variant={isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
             withWrapper={false}
           >
-            <Icon className="size-3.5" />
-            {isActive ? (
-              <span className="text-xs font-medium">{label}</span>
-            ) : null}
+            <Icon className="size-4" />
           </Button>
         );
       })}
@@ -90,7 +89,7 @@ export default function ReleaseViewSwitcher({
           {/* ui-guard-allow:selection-button -- shows the History view open, like the icon buttons beside it */}
           <Button
             ariaLabel={translate('views.more')}
-            className="size-8"
+            className={cn('size-8', SHELL_CHROME_FOCUS_CLASS)}
             size={ButtonSize.ICON}
             tooltip={translate('views.more')}
             variant={
@@ -100,7 +99,7 @@ export default function ReleaseViewSwitcher({
             }
             withWrapper={false}
           >
-            <MoreHorizontal className="size-3.5" />
+            <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
