@@ -92,6 +92,21 @@ function reviewedArticleResponse(
 }
 
 /** Articles, social posts/publishing, and trending topics. */
+/** One stable message per kind of refusal, so a caller knows what to change. */
+function articleReadFailureMessage(status: number | undefined): string {
+  switch (status) {
+    case 400:
+      return 'Article read was rejected. Check the articleId and brandId.';
+    case 401:
+    case 403:
+      return 'You do not have access to this article. Check the brandId and your connection.';
+    case 404:
+      return 'Article not found. Check the articleId and brandId.';
+    default:
+      return 'Failed to get article';
+  }
+}
+
 export class ContentClient {
   constructor(private readonly base: BaseApiClient) {}
 
@@ -272,7 +287,8 @@ export class ContentClient {
   getArticle(articleId: string, brandId?: string): Promise<ArticleResponse> {
     this.base.logger.debug(`Getting article: ${articleId}`);
 
-    return this.base.request(
+    // The upstream body can carry the article, so only its status is logged.
+    return this.base.requestWithSafeFailure(
       'getting article',
       async (http) => {
         const response = await http.get(`/articles/${articleId}`, {
@@ -294,7 +310,7 @@ export class ContentClient {
           wordCount: countWords(content),
         };
       },
-      this.base.failWith('Failed to get article'),
+      articleReadFailureMessage,
     );
   }
 
