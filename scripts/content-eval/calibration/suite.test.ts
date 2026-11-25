@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UsageError } from '../cli';
 import type {
@@ -170,11 +171,11 @@ describe('judge calibration suite', () => {
     ).toMatchObject({ actual: 4, passed: false });
   });
 
-  it('T5 creates three cross-family arms and records one same-family skip', async () => {
+  it('T5 creates the cross-family arms and records a same-family skip per profile', async () => {
     const { report } = await runContentEval(
       options(passFixture(), {
         argv: [
-          '--cross-family-judges=openai/gpt-5.6-luna,google/gemini-3.6-flash',
+          `--cross-family-judges=${AGENT_CHAT_MODEL_KEYS.GPT_6_LUNA},${AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5}`,
         ],
       }),
     );
@@ -186,11 +187,16 @@ describe('judge calibration suite', () => {
           (arm.profileId === 'content-quality' ||
             arm.profileId === 'evaluations'),
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(2);
     expect(report.calibration?.skippedCrossFamily).toEqual([
       {
-        model: 'google/gemini-3.6-flash',
+        model: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
         profileId: 'content-quality',
+        reason: 'same-family',
+      },
+      {
+        model: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
+        profileId: 'evaluations',
         reason: 'same-family',
       },
     ]);

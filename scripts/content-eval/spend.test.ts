@@ -1,3 +1,4 @@
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import type { CallProvenance } from './contracts';
 import {
@@ -8,6 +9,8 @@ import {
   upperBoundTokens,
   usdToCredits,
 } from './spend';
+
+const CHEAP_MODEL: string = AGENT_CHAT_MODEL_KEYS.GEMINI_3_5_FLASH_LITE;
 
 function provenance(costUsd: number, credits: number): CallProvenance {
   return {
@@ -79,26 +82,20 @@ describe('pricing', () => {
   });
 
   it('prices exact catalogue keys and nothing else', () => {
-    expect(
-      catalogueCostUsd('google/gemini-2.5-flash-lite', 1_000_000, 0),
-    ).toBeGreaterThan(0);
+    expect(catalogueCostUsd(CHEAP_MODEL, 1_000_000, 0)).toBeGreaterThan(0);
     expect(catalogueCostUsd('unknown/model', 1000, 1000)).toBeNull();
     // A router settles from the provider's reported cost, never the catalogue.
     expect(catalogueCostUsd('openrouter/auto', 1000, 1000)).toBeNull();
   });
 
   it('reserves the repair retry as well as the first attempt', () => {
-    const single = catalogueCostUsd('google/gemini-2.5-flash-lite', 1000, 1000);
-    const reserved = reservationCostUsd(
-      'google/gemini-2.5-flash-lite',
-      1000,
-      1000,
-    );
+    const single = catalogueCostUsd(CHEAP_MODEL, 1000, 1000);
+    const reserved = reservationCostUsd(CHEAP_MODEL, 1000, 1000);
 
     expect(single).not.toBeNull();
     // Two prompts, the rejected answer echoed back, and two completions.
     expect(reserved).toBeCloseTo(
-      catalogueCostUsd('google/gemini-2.5-flash-lite', 3000, 2000) ?? 0,
+      catalogueCostUsd(CHEAP_MODEL, 3000, 2000) ?? 0,
     );
   });
 
@@ -109,11 +106,7 @@ describe('pricing', () => {
 
   it('reserves an unpriced model at the priciest catalogue rate', () => {
     const unknown = reservationCostUsd('unknown/model', 1000, 1000);
-    const cheap = reservationCostUsd(
-      'google/gemini-2.5-flash-lite',
-      1000,
-      1000,
-    );
+    const cheap = reservationCostUsd(CHEAP_MODEL, 1000, 1000);
 
     expect(unknown).toBeGreaterThan(cheap);
   });
