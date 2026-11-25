@@ -3,6 +3,7 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
+import { PUBLIC_POSTS_ORDER_BY } from '@api/endpoints/public/utils/public-posts-order.util';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
@@ -383,6 +384,19 @@ describe('PublicPostsController', () => {
         isHiddenFromProfile: false,
       });
       expect(callArgs.where.scope).toBeUndefined();
+    });
+
+    it('lists posts in publish order, the order their tiles show dates in', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      await controller.findPublicPosts(mockRequest, createBaseQuery());
+
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        orderBy: unknown;
+      };
+      expect(callArgs.orderBy).toBe(PUBLIC_POSTS_ORDER_BY);
     });
 
     it('should handle invalid account id gracefully', async () => {
