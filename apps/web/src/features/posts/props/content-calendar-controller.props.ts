@@ -36,6 +36,8 @@ export interface ContentCalendarItemsOptions {
   slots: ICalendarSlot[];
   globalFilterQuery: string;
   calendarView: CalendarViewKey;
+  /** Cancelled posts are hidden unless the person filters for them. */
+  includeCancelled?: boolean;
   translate: ContentCalendarTranslate;
 }
 export interface ContentCalendarLoadOptions {
@@ -62,6 +64,8 @@ export interface ContentCalendarData {
   slots: ICalendarSlot[];
 }
 export interface CalendarReleaseActionsOptions {
+  /** Set on a campaign calendar, which lists only that campaign's releases. */
+  campaignId?: string;
   releases: IReleaseGroup[];
   setReleases: Dispatch<SetStateAction<IReleaseGroup[]>>;
   getReleaseGroupsService: () => Promise<ReleaseGroupsService>;
@@ -98,6 +102,8 @@ export interface CalendarBulkGenerationOptions {
 }
 
 export interface CalendarEventPresentationOptions {
+  /** The brand's connected accounts, to draw the avatars a release goes to. */
+  credentials: ICredential[];
   translate: ContentCalendarTranslate;
   generateSlotByIdentity: (
     identityKey: string,

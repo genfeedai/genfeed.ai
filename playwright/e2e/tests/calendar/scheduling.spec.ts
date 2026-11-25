@@ -311,7 +311,7 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.getEventByText('Navigable Post').click();
     await expect(calendarPage.postModal).toBeVisible();
     // The sidebar opens on the post preview; the target's validation badge
-    // lives in its Details view.
+    // lives in its Settings view.
     await calendarPage.openPostDetails();
     // The target passed validation: the sidebar panel shows its validation badge.
     await expect(

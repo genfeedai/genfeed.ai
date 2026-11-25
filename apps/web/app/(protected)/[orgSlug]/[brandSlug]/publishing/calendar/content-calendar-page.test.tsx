@@ -17,6 +17,7 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/contracts';
+import { PLATFORM_COLORS } from '@genfeedai/contracts/constants';
 import type {
   ICalendarSlot,
   IChannelTarget,
@@ -36,6 +37,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
 import type {
+  CalendarEventAccount,
   CalendarEventAction,
   CalendarEventBadge,
   CalendarEventChannel,
@@ -136,6 +138,7 @@ const postingCadencesService = {
 
 const calendarRenderProps: Array<{
   emptyState?: ReactNode;
+  getEventAccounts: (item: CalendarItemShape) => CalendarEventAccount[];
   getEventActions: (item: CalendarItemShape) => CalendarEventAction[];
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
   getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
@@ -242,6 +245,7 @@ vi.mock(
   () => ({
     default: ({
       emptyState,
+      getEventAccounts,
       getEventActions,
       getEventBadge,
       getEventChannels,
@@ -257,6 +261,7 @@ vi.mock(
       timezone,
     }: {
       emptyState?: ReactNode;
+      getEventAccounts?: (item: CalendarItemShape) => CalendarEventAccount[];
       getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
       getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
       getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
@@ -273,6 +278,7 @@ vi.mock(
     }) => {
       calendarRenderProps.push({
         emptyState,
+        getEventAccounts: getEventAccounts ?? (() => []),
         getEventActions: getEventActions ?? (() => []),
         getEventBadge,
         getEventChannels,
@@ -356,6 +362,7 @@ vi.mock(
         pendingAction,
         reconnectHref,
         release,
+        seriesControls,
       }: {
         error: string | null;
         onRescheduleRelease: (scheduledDate: string) => void;
@@ -364,11 +371,13 @@ vi.mock(
         pendingAction: string | null;
         reconnectHref: string;
         release: { id: string } | null;
+        seriesControls?: ReactNode;
       }) => (
         <div data-testid="release-drawer">
           <span data-testid="reconnect-href">{reconnectHref}</span>
           <span data-testid="drawer-release">{release?.id ?? 'closed'}</span>
           <span data-testid="drawer-pending">{pendingAction ?? 'idle'}</span>
+          {seriesControls}
           {error ? <span data-testid="drawer-error">{error}</span> : null}
           <button
             type="button"
@@ -602,10 +611,26 @@ describe('ContentCalendarPage', () => {
     expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
       '/acme-org/acme-creator/settings/profile',
     );
+    // A one-off post has no series, so the drawer gets no series controls.
+    expect(
+      screen.queryByTestId('evergreen-series-controls'),
+    ).not.toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('gives a recurring post its series controls inside the drawer', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        recurrence: { frequency: 'weekly', interval: 1, weekdays: [] },
+      } as unknown as Partial<IReleaseGroup>),
+    ]);
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: 'open:release-1' }));
+
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',
     );
-    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it('mounts the standalone calendar article modal and preserves creation navigation', async () => {
@@ -672,10 +697,17 @@ describe('ContentCalendarPage', () => {
     const { getEventBadge, items } = latestCalendarProps();
     const releaseItem = items.find((item) => item.itemType === 'release');
 
-    expect(getEventBadge(releaseItem as CalendarItemShape)).toEqual({
-      label: ReleaseStatus.SCHEDULED,
-      tone: 'info',
-    });
+    // "Scheduled" is the normal state, so it carries no badge; a problem does.
+    expect(getEventBadge(releaseItem as CalendarItemShape)).toBeNull();
+    expect(
+      getEventBadge({
+        ...(releaseItem as CalendarItemShape),
+        release: {
+          ...(releaseItem as CalendarItemShape).release,
+          status: ReleaseStatus.FAILED,
+        },
+      } as CalendarItemShape),
+    ).toMatchObject({ tone: 'danger' });
     expect(
       getEventBadge({
         id: 'article-9',
@@ -715,10 +747,42 @@ describe('ContentCalendarPage', () => {
     const taggedArticle = items.find((item) => item.id === 'article-9');
 
     expect(getEventColor(taggedRelease as CalendarItemShape)).toBe('#ef4444');
+    // Untagged posts wear the colour of the platform they go to (Instagram).
     expect(getEventColor(untaggedRelease as CalendarItemShape)).toBe(
-      CALENDAR_DEFAULT_EVENT_COLOR,
+      PLATFORM_COLORS.instagram.base,
     );
     expect(getEventColor(taggedArticle as CalendarItemShape)).toBe('#f97316');
+  });
+
+  it('lists the connected account each release goes to for the avatar stack', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        targets: [
+          target({
+            credentialId: 'credential-1',
+            credential: {
+              externalAvatar: 'https://cdn.test/shayla.jpg',
+              externalHandle: 'shayla',
+              platform: CredentialPlatform.INSTAGRAM,
+            },
+          } as Partial<IChannelTarget>),
+        ],
+      }),
+    ]);
+    await renderLoaded();
+
+    const { getEventAccounts, items } = latestCalendarProps();
+    const releaseItem = items.find((item) => item.itemType === 'release');
+
+    expect(getEventAccounts(releaseItem as CalendarItemShape)).toEqual([
+      {
+        avatarUrl: 'https://cdn.test/shayla.jpg',
+        handle: 'shayla',
+        id: 'credential-1',
+        name: null,
+        platform: CredentialPlatform.INSTAGRAM,
+      },
+    ]);
   });
 
   it('does not paint missing ghosts with a tag color', async () => {
@@ -832,7 +896,7 @@ describe('ContentCalendarPage', () => {
     ).toEqual([]);
   });
 
-  it('refuses to drag a cancelled release and lets a published card be moved', async () => {
+  it('hides a cancelled release from the calendar and lets a published card be moved', async () => {
     findReleasesMock.mockResolvedValue([
       release(),
       release({
@@ -871,11 +935,7 @@ describe('ContentCalendarPage', () => {
         items.find((item) => item.id === 'release-2') as CalendarItemShape,
       ),
     ).toBe(true);
-    expect(
-      isItemDraggable(
-        items.find((item) => item.id === 'release-3') as CalendarItemShape,
-      ),
-    ).toBe(false);
+    expect(items.find((item) => item.id === 'release-3')).toBeUndefined();
   });
 
   it('persists a drag as a release-level reschedule', async () => {

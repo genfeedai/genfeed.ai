@@ -182,4 +182,36 @@ describe('ReleaseTargetPreview', () => {
       'https://cdn.test/r.jpg',
     );
   });
+
+  it('fills the URL of a release media reference from the post ingredient with the same asset id', async () => {
+    findOne.mockResolvedValue({
+      id: 'target-1',
+      ingredients: [
+        { category: 'image', cdnUrl: 'https://cdn.test/a.jpg', id: 'a' },
+        { category: 'image', cdnUrl: 'https://cdn.test/b.jpg', id: 'b' },
+      ],
+    });
+
+    render(
+      <ReleaseTargetPreview
+        release={
+          {
+            ...release,
+            media: [
+              { assetId: 'b', kind: 'image', order: 0 },
+              { assetId: 'a', kind: 'image', order: 1 },
+            ],
+          } as unknown as IReleaseGroup
+        }
+        target={target(CredentialPlatform.INSTAGRAM)}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('target-preview')).toHaveAttribute(
+        'data-media',
+        'https://cdn.test/b.jpg,https://cdn.test/a.jpg',
+      ),
+    );
+  });
 });

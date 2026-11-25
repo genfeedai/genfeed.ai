@@ -17,6 +17,13 @@ import type { InputHTMLAttributes, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EvergreenSeriesControls from './evergreen-series-controls';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 const mocks = vi.hoisted(() => ({
   cancelFuture: vi.fn(),
   editFuture: vi.fn(),
@@ -132,6 +139,7 @@ describe('EvergreenSeriesControls', () => {
     render(<EvergreenSeriesControls groupId="release-1" />);
 
     expect(await screen.findByText('Upcoming preview')).toBeInTheDocument();
+    expect(screen.getByText('Weekly · occurrence 2')).toBeInTheDocument();
     expect(mocks.preview).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 3, timezone: 'UTC' }),
       expect.any(AbortSignal),
@@ -211,10 +219,12 @@ describe('EvergreenSeriesControls', () => {
 
   it('renders empty, exhausted, and error states explicitly', async () => {
     mocks.getOne.mockResolvedValueOnce({ ...release, recurrence: null });
-    const { rerender, unmount } = render(
+    const { container, rerender, unmount } = render(
       <EvergreenSeriesControls groupId="one-off" />,
     );
-    expect(await screen.findByText('One-off post')).toBeInTheDocument();
+    await waitFor(() => expect(mocks.getOne).toHaveBeenCalled());
+    // A one-off post has no series to control, so nothing is drawn for it.
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
 
     mocks.getOne.mockResolvedValueOnce({
       ...release,

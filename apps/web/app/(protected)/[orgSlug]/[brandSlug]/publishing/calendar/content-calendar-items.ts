@@ -1,3 +1,4 @@
+import { ReleaseStatus } from '@genfeedai/contracts';
 import {
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
@@ -27,6 +28,7 @@ export function buildContentCalendarItems({
   slots,
   globalFilterQuery,
   calendarView,
+  includeCancelled = false,
   translate,
 }: ContentCalendarItemsOptions): ContentCalendarItem[] {
   const params = new URLSearchParams(globalFilterQuery);
@@ -47,6 +49,9 @@ export function buildContentCalendarItems({
       channel: params.get('platform') ?? 'all',
     },
   );
+  const showsCancelled =
+    includeCancelled ||
+    params.getAll('status').includes(ReleaseStatus.CANCELLED);
   const visibleIds = new Set(globalItems.map((item) => item.id));
   const newsletterItems: NewsletterContentCalendarItem[] = newsletters
     .filter(
@@ -74,7 +79,11 @@ export function buildContentCalendarItems({
     }));
 
   const releaseItems: ReleaseContentCalendarItem[] = releases
-    .filter((release) => visibleIds.has(release.id))
+    .filter(
+      (release) =>
+        visibleIds.has(release.id) &&
+        (showsCancelled || release.status !== ReleaseStatus.CANCELLED),
+    )
     .map((release) => ({
       id: release.id,
       itemType: 'release',

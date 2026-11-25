@@ -35,8 +35,11 @@ export interface ReleaseDetailsViewProps
     | 'onSkipManualPost'
     | 'pendingAction'
     | 'reconnectHref'
+    | 'seriesControls'
   > {
   accountHealth: AccountHealthSummary[];
+  /** The full editor for the caption and media; hidden without one. */
+  editorHref: string | null;
   release: IReleaseGroup;
 }
 

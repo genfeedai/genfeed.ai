@@ -50,6 +50,7 @@ export default function ReleaseDetailDrawer({
   pendingAction,
   reconnectHref,
   release,
+  seriesControls,
 }: ReleaseDetailDrawerProps): React.JSX.Element {
   const translate = useTranslations('pages.publishing.release');
   const { href } = useOrgUrl();
@@ -195,6 +196,7 @@ export default function ReleaseDetailDrawer({
         {activeView === 'details' ? (
           <ReleaseDetailsView
             accountHealth={accountHealth}
+            editorHref={editorHref}
             onAddChannel={onAddChannel}
             onChangeCampaign={onChangeCampaign}
             onCompleteManualPost={onCompleteManualPost}
@@ -205,6 +207,7 @@ export default function ReleaseDetailDrawer({
             pendingAction={pendingAction}
             reconnectHref={reconnectHref}
             release={release}
+            seriesControls={seriesControls}
           />
         ) : null}
         {activeView === 'history' ? (

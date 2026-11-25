@@ -78,7 +78,26 @@
 .gen-calendar-event-time {
   flex: none;
   font-size: 0.75rem;
-  opacity: 0.9;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The profile pictures sit at the start of the event. They are drawn by a React
+ * root mounted on the event element, so they are placed, not flowed, and the
+ * text gives them room.
+ */
+.gen-calendar-event-accounts-root {
+  position: absolute;
+  top: 50%;
+  left: 0.25rem;
+  display: inline-flex;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.gen-calendar-event--with-accounts {
+  padding-left: 1.75rem;
 }
 
 /*
@@ -184,12 +203,39 @@
   opacity: 0.72;
 }
 
+.gen-calendar-event-host--cancelled {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .gen-calendar-event-host--generating {
   opacity: 0.9;
 }
 
 .gen-calendar-event-host--generate-failed {
   opacity: 1;
+}
+
+/* A solid platform-coloured edge on a tinted event. */
+.gen-calendar-event-host {
+  container-type: inline-size;
+  border-left-width: 3px;
+}
+
+/*
+ * Two posts at the same minute share the column, so a chip can be narrower than
+ * its time and its status. Below that width the status collapses to a dot (its
+ * name stays in the hover title) so the account and the time are never cut.
+ */
+@container (max-width: 7.5rem) {
+  .gen-calendar-event-badge {
+    width: 0.5rem;
+    height: 0.5rem;
+    padding: 0;
+    border-radius: 9999px;
+    font-size: 0;
+    line-height: 0;
+  }
 }
 
 /* Disabled events - past or published */

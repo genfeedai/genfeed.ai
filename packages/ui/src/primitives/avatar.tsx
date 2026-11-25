@@ -8,7 +8,11 @@ import type {
   ImgHTMLAttributes,
   ReactNode,
 } from 'react';
-import { avatarBadgeVariants, avatarVariants } from './avatar.variants';
+import {
+  avatarBadgeFrameVariants,
+  avatarBadgeVariants,
+  avatarVariants,
+} from './avatar.variants';
 
 export interface AvatarProps
   extends ComponentPropsWithRef<typeof AvatarPrimitive.Root>,
@@ -89,7 +93,7 @@ function Avatar({
   }
 
   return (
-    <span className={cn('relative inline-flex shrink-0', className)}>
+    <span className={cn(avatarBadgeFrameVariants({ shape, size }), className)}>
       {avatar}
       <span className={avatarBadgeVariants({ size })} data-slot="avatar-badge">
         {badge}

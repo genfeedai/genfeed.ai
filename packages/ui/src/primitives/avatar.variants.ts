@@ -47,6 +47,41 @@ export const avatarVariants = cva(
 );
 
 /**
+ * The box around an avatar that wears a corner badge. It takes the avatar's
+ * corners, so a ring or outline passed in as `className` follows the picture
+ * instead of drawing a square around a circle.
+ */
+export const avatarBadgeFrameVariants = cva('relative inline-flex shrink-0', {
+  compoundVariants: [
+    { class: 'rounded-sm', shape: 'square', size: '2xs' },
+    { class: 'rounded-md', shape: 'square', size: ['xs', 'sm', 'md', 'lg'] },
+    { class: 'rounded-xl', shape: 'square', size: ['xl', '2xl', '3xl'] },
+    { class: 'rounded-md', shape: 'square', size: 'fill' },
+  ],
+  defaultVariants: {
+    shape: 'circle',
+    size: 'lg',
+  },
+  variants: {
+    shape: {
+      circle: 'rounded-full',
+      square: '',
+    },
+    size: {
+      '2xl': '',
+      '2xs': '',
+      '3xl': '',
+      fill: '',
+      lg: '',
+      md: '',
+      sm: '',
+      xl: '',
+      xs: '',
+    },
+  },
+});
+
+/**
  * Corner badge, sized from the avatar it sits on. The ring cuts the badge out
  * of the picture; whatever is passed in (a platform badge, an icon) is
  * stretched to the slot, so callers never size it.

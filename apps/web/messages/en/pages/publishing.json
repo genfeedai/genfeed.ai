@@ -280,6 +280,8 @@
       "title": "Campaign",
       "unavailable": "Another campaign"
     },
+    "editPost": "Edit caption and media",
+    "editPostHint": "Opens the full editor. Schedule, campaign and channels are below.",
     "openEditor": "Open editor",
     "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
     "resume": "Resume post",
@@ -353,7 +355,43 @@
     "preview": {
       "channel": "Preview channel",
       "emptyCaption": "No caption",
-      "global": "Global"
+      "global": "All channels",
+      "globalHint": "The post as written, with every channel it goes to.",
+      "targetHint": "How the post looks on {platform}."
+    },
+    "series": {
+      "actionFailed": "The series action failed.",
+      "blocked": "Blocked — add a future schedule before editing.",
+      "cancelFuture": "Cancel future occurrences",
+      "cancelled": "Future occurrences cancelled",
+      "complete": "Series complete — no future occurrences remain.",
+      "confirmCancel": "Confirm cancellation",
+      "frequency": {
+        "daily": "Daily",
+        "monthly": "Monthly",
+        "never": "One time",
+        "weekly": "Weekly",
+        "yearly": "Yearly"
+      },
+      "invalidDate": "The next occurrence date is invalid.",
+      "keep": "Keep series",
+      "label": "Evergreen series controls",
+      "loading": "Loading series…",
+      "nextOccurrence": "Next occurrence",
+      "noOccurrences": "No occurrences remain in this bounded rule.",
+      "noRule": "The series has no recurrence rule.",
+      "pause": "Pause series",
+      "paused": "Paused — published history is unchanged.",
+      "pausedToast": "Evergreen series paused",
+      "recurring": "{frequency} · occurrence {number}",
+      "resume": "Resume series",
+      "resumedToast": "Evergreen series resumed",
+      "retry": "Retry",
+      "saveSchedule": "Save future schedule",
+      "title": "Evergreen series",
+      "unavailable": "Series controls unavailable",
+      "updated": "Future occurrence updated",
+      "upcoming": "Upcoming preview"
     },
     "summary": {
       "failed": "Failed",
@@ -363,7 +401,7 @@
     "views": {
       "analytics": "Analytics",
       "copyLink": "Copy link",
-      "details": "Details",
+      "details": "Settings",
       "history": "History",
       "label": "Post view",
       "linkCopied": "Link copied",
