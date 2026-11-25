@@ -16,9 +16,11 @@ import {
 import { ClipperProjectLibrarySourceService } from '@api/collections/clipper-projects/services/clipper-project-library-source.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ClipperProjectSerializer } from '@genfeedai/serializers';
@@ -52,6 +54,7 @@ export class ClipperProjectIngestionController {
   ) {}
 
   @Post('drafts')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     description:
@@ -73,6 +76,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Patch(':projectId/draft')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({
     description:
       'Autosave new-project form fields on a draft clip project. Refused once the project has started.',
@@ -95,6 +99,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Post('from-ingredient')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
@@ -114,6 +119,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Post('from-youtube')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
@@ -130,6 +136,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Post('from-upload')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     description:
@@ -146,6 +153,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Post(':projectId/source/finalize')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
@@ -167,6 +175,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Post(':projectId/source/retry')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
@@ -183,6 +192,7 @@ export class ClipperProjectIngestionController {
   }
 
   @Post('analyze')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
