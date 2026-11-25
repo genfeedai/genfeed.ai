@@ -6,6 +6,7 @@ import ora from 'ora';
 import { deleteAsset } from '@/api/assets';
 import { requireAuth } from '@/api/client';
 import { downloadGeneratedFile } from '@/commands/generate/helpers';
+import { uploadAssetFile } from '@/operations/asset-upload';
 import { readAsset, readAssets } from '@/operations/assets';
 import {
   formatHeader,
@@ -69,7 +70,7 @@ function addListOptions(command: Command): Command {
 }
 
 export const libraryCommand = addListOptions(
-  new Command('asset').alias('library').description('Browse and download content assets')
+  new Command('asset').alias('library').description('Browse, upload and download content assets')
 ).action(async (options: AssetListOptions) => {
   try {
     await runAssetList(options);
@@ -126,6 +127,79 @@ libraryCommand.addCommand(
           throw new GenfeedError(`Asset ${id} is not downloadable yet`);
         }
         await downloadGeneratedFile('asset', options.output, asset.cdnUrl);
+      } catch (error) {
+        handleError(error);
+      }
+    })
+);
+
+interface AssetUploadOptions {
+  folder?: string;
+  json?: boolean;
+}
+
+interface AssetUploadResult {
+  assetId?: string;
+  error?: string;
+  folderId?: string | null;
+  libraryUrl?: string;
+  ok: boolean;
+  path: string;
+  status?: string;
+}
+
+libraryCommand.addCommand(
+  new Command('upload')
+    .description('Upload local files to the Library')
+    .argument('<path...>', 'File paths to upload, one after another')
+    .option('--folder <id>', 'Library folder to file the uploads in')
+    .option('--json', 'Output as JSON')
+    .action(async (paths: string[], _options: AssetUploadOptions, command: Command) => {
+      try {
+        const options = command.optsWithGlobals<AssetUploadOptions>();
+        await requireAuth();
+        const results: AssetUploadResult[] = [];
+        for (const path of paths) {
+          const spinner = options.json ? undefined : ora(`Uploading ${path}...`).start();
+          try {
+            const uploaded = await uploadAssetFile(path, { folderId: options.folder });
+            spinner?.stop();
+            results.push({
+              assetId: uploaded.asset.id,
+              folderId: uploaded.asset.folderId ?? null,
+              libraryUrl: uploaded.libraryUrl,
+              ok: true,
+              path,
+              status: uploaded.asset.status,
+            });
+          } catch (error) {
+            spinner?.stop();
+            results.push({
+              error: error instanceof Error ? error.message : String(error),
+              ok: false,
+              path,
+            });
+          }
+        }
+
+        const failed = results.filter((result) => !result.ok);
+        if (options.json) {
+          printJson(results);
+        } else {
+          for (const result of results) {
+            if (result.ok) {
+              print(formatSuccess(`Uploaded ${result.path}`));
+              print(formatLabel('ID', result.assetId ?? ''));
+              if (result.folderId) print(formatLabel('Folder', result.folderId));
+              print(formatLabel('Library', result.libraryUrl ?? ''));
+            } else {
+              print(formatWarning(`Failed ${result.path}: ${result.error}`));
+            }
+          }
+        }
+        if (failed.length > 0) {
+          throw new GenfeedError(`${failed.length} of ${results.length} uploads failed`);
+        }
       } catch (error) {
         handleError(error);
       }
