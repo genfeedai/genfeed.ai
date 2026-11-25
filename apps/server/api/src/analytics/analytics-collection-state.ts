@@ -14,6 +14,37 @@ function readStatus(error: unknown): number | null {
   );
 }
 
+const AUTHORIZATION_PROVIDER_REASONS: ReadonlySet<string> = new Set([
+  'authError',
+  'invalid_grant',
+  'invalid_token',
+  'invalidCredentials',
+  'unauthorized',
+]);
+
+/**
+ * Provider reasons that mean the stored authorization is no longer usable,
+ * whatever status carried them: an OAuth token endpoint answers a revoked
+ * grant with HTTP 400 `invalid_grant`, which is not a malformed request.
+ */
+function hasAuthorizationProviderReason(error: unknown): boolean {
+  const body = readRecordOrNull(
+    readRecordOrNull(readRecordOrNull(error)?.response)?.data,
+  );
+  const nested = readRecordOrNull(body?.error);
+  const reasons = [
+    body?.error,
+    nested?.status,
+    ...(Array.isArray(nested?.errors)
+      ? nested.errors.map((entry) => readRecordOrNull(entry)?.reason)
+      : []),
+  ];
+  return reasons.some(
+    (reason) =>
+      typeof reason === 'string' && AUTHORIZATION_PROVIDER_REASONS.has(reason),
+  );
+}
+
 export function classifyAnalyticsCollectionError(
   error: unknown,
   platform: string,
@@ -36,7 +67,11 @@ export function classifyAnalyticsCollectionError(
   const status = readStatus(error);
   const label = platform.trim() || 'Provider';
 
-  if (status === 401 || status === 403) {
+  if (
+    status === 401 ||
+    status === 403 ||
+    hasAuthorizationProviderReason(error)
+  ) {
     return {
       code: 'analytics.authentication_failed',
       isRetryable: false,

@@ -57,3 +57,30 @@ export function isYoutubeCommentsDisabledError(error: unknown): boolean {
       failure.message.includes('has disabled comments'))
   );
 }
+
+const QUOTA_FAILURE_REASONS: ReadonlySet<unknown> = new Set([
+  'dailyLimitExceeded',
+  'quotaExceeded',
+  'rateLimitExceeded',
+  'userRateLimitExceeded',
+]);
+
+/**
+ * YouTube refused the read with HTTP 403 for a reason other than quota: the
+ * key or channel has no access to this video, or the API is not enabled for
+ * it. The caller names the access problem to the person; retrying the same
+ * read changes nothing, and it is not a fault in our own service.
+ */
+export function isYoutubePermissionDeniedError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+  const failure = error as YoutubeApiErrorShape;
+  return (
+    readYoutubeFailureStatus(failure) === 403 &&
+    !readYoutubeFailureReasons(failure).some((reason) =>
+      QUOTA_FAILURE_REASONS.has(reason),
+    ) &&
+    !isYoutubeCommentsDisabledError(error)
+  );
+}

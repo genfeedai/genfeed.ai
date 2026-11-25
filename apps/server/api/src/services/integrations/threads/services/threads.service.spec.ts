@@ -146,6 +146,84 @@ describe('ThreadsService', () => {
     });
   });
 
+  describe('getGrantedScopes', () => {
+    const configure = (values: Record<string, string>) => {
+      const config = service['configService'].get as ReturnType<typeof vi.fn>;
+      config.mockImplementation((key: string) => values[key] ?? '');
+    };
+    const credentials = {
+      THREADS_CLIENT_ID: 'app-id',
+      THREADS_CLIENT_SECRET: 'app-secret',
+    };
+
+    it('reads the permissions the account granted, sorted, from debug_token with the app token', async () => {
+      configure(credentials);
+      const http = service['httpService'].get as ReturnType<typeof vi.fn>;
+      http.mockReturnValue(
+        of({
+          data: {
+            data: {
+              scopes: ['threads_read_replies', 'threads_basic'],
+              user_id: '1',
+            },
+          },
+        }),
+      );
+
+      await expect(service.getGrantedScopes('user-token')).resolves.toEqual([
+        'threads_basic',
+        'threads_read_replies',
+      ]);
+      expect(http).toHaveBeenCalledWith(
+        'https://graph.threads.net/v1.0/debug_token',
+        expect.objectContaining({
+          params: {
+            access_token: 'TH|app-id|app-secret',
+            input_token: 'user-token',
+          },
+        }),
+      );
+    });
+
+    it('treats an empty list as unknown, not as no permissions', async () => {
+      configure(credentials);
+      (service['httpService'].get as ReturnType<typeof vi.fn>).mockReturnValue(
+        of({ data: { data: { scopes: [] } } }),
+      );
+
+      await expect(
+        service.getGrantedScopes('user-token'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('answers unknown, and logs no token, when debug_token fails', async () => {
+      configure(credentials);
+      const { throwError } = await import('rxjs');
+      (service['httpService'].get as ReturnType<typeof vi.fn>).mockReturnValue(
+        throwError(() => ({ response: { status: 400 } })),
+      );
+
+      await expect(
+        service.getGrantedScopes('user-token'),
+      ).resolves.toBeUndefined();
+      expect(
+        JSON.stringify(
+          (service['loggerService'].warn as ReturnType<typeof vi.fn>).mock
+            .calls,
+        ),
+      ).not.toContain('user-token');
+    });
+
+    it('answers unknown without calling Threads when the app is not configured', async () => {
+      configure({});
+
+      await expect(
+        service.getGrantedScopes('user-token'),
+      ).resolves.toBeUndefined();
+      expect(service['httpService'].get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getTrends', () => {
     it('returns empty trends because Threads has no trending API', () => {
       const trends = service.getTrends();
