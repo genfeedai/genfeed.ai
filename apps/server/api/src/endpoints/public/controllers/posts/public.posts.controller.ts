@@ -8,6 +8,7 @@ import {
   findCrossPostIds,
   listCrossPosts,
 } from '@api/endpoints/public/utils/public-cross-posts.util';
+import { PUBLIC_POSTS_ORDER_BY } from '@api/endpoints/public/utils/public-posts-order.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -211,7 +212,7 @@ export class PublicPostsController {
 
     const aggregate = {
       include: PUBLIC_POST_INCLUDE,
-      orderBy: { createdAt: -1 },
+      orderBy: PUBLIC_POSTS_ORDER_BY,
       where: matchQuery,
     };
 

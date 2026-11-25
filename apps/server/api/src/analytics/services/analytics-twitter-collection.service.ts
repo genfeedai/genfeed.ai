@@ -176,11 +176,9 @@ export class AnalyticsTwitterCollectionService {
       if (firstProcessingError) {
         throw firstProcessingError;
       }
-      if (delayedTargets.length > 0) {
-        throw new Error(
-          `Twitter analytics are not available for post ${delayedTargets[0]?.id ?? 'unknown'}`,
-        );
-      }
+      // A post X returned no metrics for is recorded above as a retryable
+      // `metrics_delayed` outcome and picked up again by the collection
+      // schedule. It is an expected state, so it ends the run without a fault.
 
       this.logger.log(
         `Twitter analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
