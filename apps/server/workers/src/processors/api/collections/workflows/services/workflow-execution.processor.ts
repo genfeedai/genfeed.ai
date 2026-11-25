@@ -16,6 +16,7 @@ import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { isExpectedPublishRefusal } from '@workers/monitoring/workflow-failure-fingerprint';
 import { isAgentTurnInsufficientCredits } from '@workers/processors/api/collections/workflows/services/insufficient-credits-failure.util';
 import { isLostPublishClaim } from '@workers/processors/api/collections/workflows/services/lost-publish-claim.util';
 import {
@@ -201,6 +202,25 @@ export class WorkflowExecutionProcessor extends WorkerHost {
           doubleFailure,
         );
         throw toTerminalSystemRunError(doubleFailure);
+      }
+      if (isExpectedPublishRefusal(error)) {
+        // The claim refused on purpose (a policy hold, or an approval already
+        // invalidated or settled) and the compensation recorded that on the
+        // post. It is a handled outcome, not a workflow fault: the job
+        // completes, so it is neither retried nor reported as a failed job.
+        this.logger.warn(
+          `${this.logContext} scheduled publish refused by its claim`,
+          {
+            canonicalId: systemRun.input.canonicalId,
+            jobId: job.id,
+            organizationId: systemRun.input.organizationId,
+            reason: error instanceof Error ? error.message : String(error),
+          },
+        );
+        return {
+          reason: 'publish_refused',
+          status: WorkflowExecutionStatus.FAILED,
+        };
       }
       throw error;
     }
