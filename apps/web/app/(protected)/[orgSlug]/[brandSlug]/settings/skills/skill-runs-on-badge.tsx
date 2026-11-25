@@ -14,7 +14,7 @@ export default function SkillRunsOnBadge({
   const translate = useTranslations('common.settings.skills');
 
   return resolveSkillRunsOn(skill) === SkillRunsOn.DESKTOP ? (
-    <Badge icon={<Monitor className="size-3" />} variant="info">
+    <Badge icon={<Monitor className="size-3.5" />} variant="info">
       {translate('runsOn.desktop')}
     </Badge>
   ) : (

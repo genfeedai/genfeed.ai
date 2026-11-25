@@ -7,9 +7,9 @@ import {
 import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import type { Skill } from '@services/content/skills.service';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -17,11 +17,11 @@ import {
 } from '@ui/primitives/dialog';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type {
+  SkillTerminalDialogProps,
+  SkillTerminalProps,
+} from '@/features/settings/props/skills.props';
 import { buildDesktopSkillPrompt } from '@/lib/skills/build-desktop-skill-prompt';
-
-interface SkillTerminalProps {
-  skill: Skill;
-}
 
 /**
  * A Claude Code session on this computer, opened on the skill. Mounted only
@@ -57,11 +57,6 @@ function SkillTerminal({ skill }: SkillTerminalProps) {
   );
 }
 
-export interface SkillTerminalDialogProps {
-  onClose: () => void;
-  skill: Skill | null;
-}
-
 export default function SkillTerminalDialog({
   onClose,
   skill,
@@ -84,7 +79,9 @@ export default function SkillTerminalDialog({
             {translate('terminal.description')}
           </DialogDescription>
         </DialogHeader>
-        {skill ? <SkillTerminal key={skill.id} skill={skill} /> : null}
+        <DialogBody>
+          {skill ? <SkillTerminal key={skill.id} skill={skill} /> : null}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

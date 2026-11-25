@@ -143,6 +143,15 @@ export type SkillsPageAction =
   | { type: 'CUSTOMIZE_ERROR'; message: string }
   | { type: 'SET_SKILL_DRAFT'; draft: SkillDraft };
 
+export type SkillTerminalProps = {
+  skill: Skill;
+};
+
+export type SkillTerminalDialogProps = {
+  onClose: () => void;
+  skill: Skill | null;
+};
+
 export type SkillAgentActionProps = {
   agentHref: string;
 };

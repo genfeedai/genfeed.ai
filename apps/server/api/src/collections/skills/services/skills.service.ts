@@ -30,6 +30,10 @@ import {
   updateOwnedPersonalSkill,
 } from '@api/collections/skills/services/skill-caller-scope';
 import {
+  type ListSkillsOptions,
+  matchesSkillFilters,
+} from '@api/collections/skills/services/skill-list-filters';
+import {
   normalizeRequestedSkillSlugs,
   unavailableRequestedSkill,
 } from '@api/collections/skills/utils/requested-skill-slugs.util';
@@ -39,54 +43,13 @@ import { scopedWhere } from '@api/index';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { ByokProvider, type SkillSurface } from '@genfeedai/contracts';
+import { ByokProvider } from '@genfeedai/contracts';
 import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfaces';
 import { isSkillOnSurface, resolveSkillRunsOn } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-export interface ListSkillsOptions {
-  /** Only skills the runtime injects while a brand has no explicit selection. */
-  isDefault?: boolean;
-  /** Narrow to skills that handle one modality (a `multi` skill matches when it is the only one). */
-  modality?: string;
-  /** Narrow to skills that run on web or on desktop. */
-  runsOn?: string;
-  /** Case-insensitive match over name and description. */
-  search?: string;
-  /** Narrow to one skill source. */
-  source?: string;
-  /** Narrow to one workflow stage. */
-  stage?: string;
-  /** Narrow the catalog to skills offered on one composer surface. */
-  surface?: SkillSurface;
-}
-
-function matchesSkillFilters(
-  doc: SkillDocument,
-  options: ListSkillsOptions,
-): boolean {
-  const { isDefault, modality, runsOn, search, source, stage } = options;
-  const query = search?.trim().toLowerCase();
-  const modalities = doc.modalities ?? [];
-
-  return (
-    (isDefault === undefined || Boolean(doc.isDefault) === isDefault) &&
-    (!source || doc.source === source) &&
-    (!runsOn || resolveSkillRunsOn(doc) === runsOn) &&
-    (!stage || doc.workflowStage === stage) &&
-    (!modality ||
-      modalities.includes(modality) ||
-      (modalities.length === 1 && modalities.includes('multi'))) &&
-    (!query ||
-      (doc.name ?? '').toLowerCase().includes(query) ||
-      String(doc.description ?? '')
-        .toLowerCase()
-        .includes(query))
-  );
-}
 
 export interface ResolveBrandSkillsOptions {
   actorUserId?: string;
