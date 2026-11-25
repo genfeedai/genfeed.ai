@@ -1,3 +1,4 @@
+import type { GenerationBrandReferencesReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { render, screen } from '@testing-library/react';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { NextIntlClientProvider } from 'next-intl';
@@ -259,7 +260,7 @@ describe('GenerationHarnessReceipt', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
+  it.each<[GenerationBrandReferencesReceipt, string]>([
     [
       { attachedAssetIds: ['style-1', 'product-1'] },
       '2 brand references were added because none were attached.',
@@ -272,19 +273,16 @@ describe('GenerationHarnessReceipt', () => {
       { attachedAssetIds: [], skippedReason: 'model_accepts_no_references' },
       'None were added: this model does not accept reference images.',
     ],
-  ] as const)(
-    'says what the brand references did (%j)',
-    (brandReferences, expected) => {
-      render(
-        <GenerationHarnessReceipt
-          receipt={{ ...brandedReceipt, brandReferences }}
-        />,
-        { wrapper: EnglishMessages },
-      );
-      expect(screen.getByText('Brand references')).toBeInTheDocument();
-      expect(screen.getByText(expected)).toBeInTheDocument();
-    },
-  );
+  ])('says what the brand references did (%j)', (brandReferences, expected) => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{ ...brandedReceipt, brandReferences }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(screen.getByText('Brand references')).toBeInTheDocument();
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
 
   it('shows no brand references note when the receipt records none', () => {
     render(<GenerationHarnessReceipt receipt={brandedReceipt} />, {
