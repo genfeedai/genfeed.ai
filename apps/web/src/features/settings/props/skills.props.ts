@@ -9,6 +9,7 @@ import type {
 import type { Skill } from '@services/content/skills.service';
 import type {
   ModalityFilterValue,
+  RunsOnFilterValue,
   SourceFilterValue,
   StageFilterValue,
 } from '@/props/settings/skill-filters.props';
@@ -47,6 +48,8 @@ export type SkillDetailPanelProps = SkillDetailCardProps & {
   onClose: () => void;
   onExportSkill?: () => void;
   onOpenSamplePrompt: () => void;
+  /** Opens the skill in a Claude Code session in the Desktop terminal. */
+  onRunInTerminal?: () => void;
 };
 
 type SkillImportFields = {
@@ -89,6 +92,7 @@ export type SkillsPageState = {
   selectedSkillId: string;
   sourceFilter: SourceFilterValue;
   modalityFilter: ModalityFilterValue;
+  runsOnFilter: RunsOnFilterValue;
   stageFilter: StageFilterValue;
   searchQuery: string;
   isLoading: boolean;
@@ -129,6 +133,7 @@ export type SkillsPageAction =
   | { type: 'CLEAR_SELECTED_SKILL' }
   | { type: 'SET_SOURCE_FILTER'; value: SourceFilterValue }
   | { type: 'SET_MODALITY_FILTER'; value: ModalityFilterValue }
+  | { type: 'SET_RUNS_ON_FILTER'; value: RunsOnFilterValue }
   | { type: 'SET_STAGE_FILTER'; value: StageFilterValue }
   | { type: 'SET_SEARCH_QUERY'; value: string }
   | { type: 'SAVE_START' }
@@ -145,9 +150,11 @@ export type SkillAgentActionProps = {
 export type SkillSearchProps = {
   modalityFilter: ModalityFilterValue;
   onModalityFilterChange: (value: ModalityFilterValue) => void;
+  onRunsOnFilterChange: (value: RunsOnFilterValue) => void;
   onSearchQueryChange: (value: string) => void;
   onSourceFilterChange: (value: SourceFilterValue) => void;
   onStageFilterChange: (value: StageFilterValue) => void;
+  runsOnFilter: RunsOnFilterValue;
   searchQuery: string;
   sourceFilter: SourceFilterValue;
   stageFilter: StageFilterValue;

@@ -82,7 +82,11 @@ const baseProps = {
   },
 };
 
-const agent = vi.hoisted(() => ({ isAvailable: true }));
+const agent = vi.hoisted(() => ({ isAvailable: true, isDesktop: false }));
+
+vi.mock('@/hooks/ui/use-is-desktop-client/use-is-desktop-client', () => ({
+  useIsDesktopClient: () => agent.isDesktop,
+}));
 
 vi.mock('@/components/shell/use-available-rail-apps', () => ({
   useIsAppAvailable: () => agent.isAvailable,
@@ -91,6 +95,82 @@ vi.mock('@/components/shell/use-available-rail-apps', () => ({
 describe('SkillDetailPanel', () => {
   beforeEach(() => {
     agent.isAvailable = true;
+    agent.isDesktop = false;
+  });
+
+  describe('a skill that runs on desktop', () => {
+    const desktopSkill = {
+      ...selectedSkillFixture,
+      id: 'skill-desktop',
+      name: 'Motion Video',
+      runsOn: 'desktop',
+      slug: 'motion-video',
+    } as Skill;
+
+    it('offers Get Desktop on web and no run action', async () => {
+      renderInSidebar(
+        <SkillDetailPanel
+          {...baseProps}
+          onRunInTerminal={vi.fn()}
+          selectedSkill={desktopSkill}
+        />,
+      );
+
+      const outlet = await screen.findByTestId('sidebar-outlet');
+      const link = within(outlet).getByRole('link', { name: 'Get Desktop' });
+      expect(link).toHaveAttribute('href', 'https://genfeed.ai/desktop');
+      expect(
+        within(outlet).queryByRole('button', { name: 'Run In Terminal' }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(outlet).queryByRole('button', { name: /open sample prompt/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(outlet).getByText(/Run it in Genfeed Desktop/),
+      ).toBeVisible();
+    });
+
+    it('offers Run In Terminal in Desktop and no download', async () => {
+      agent.isDesktop = true;
+      const onRunInTerminal = vi.fn();
+      renderInSidebar(
+        <SkillDetailPanel
+          {...baseProps}
+          onRunInTerminal={onRunInTerminal}
+          selectedSkill={desktopSkill}
+        />,
+      );
+
+      const outlet = await screen.findByTestId('sidebar-outlet');
+      fireEvent.click(
+        within(outlet).getByRole('button', { name: 'Run In Terminal' }),
+      );
+
+      expect(onRunInTerminal).toHaveBeenCalledTimes(1);
+      expect(
+        within(outlet).queryByRole('link', { name: 'Get Desktop' }),
+      ).not.toBeInTheDocument();
+      expect(within(outlet).getByText(/Claude Code asks before/)).toBeVisible();
+    });
+  });
+
+  it('keeps the sample prompt and no desktop action on a web skill, even in Desktop', async () => {
+    agent.isDesktop = true;
+    renderInSidebar(
+      <SkillDetailPanel
+        {...baseProps}
+        onRunInTerminal={vi.fn()}
+        selectedSkill={selectedSkillFixture}
+      />,
+    );
+
+    const outlet = await screen.findByTestId('sidebar-outlet');
+    expect(
+      within(outlet).getByRole('button', { name: /open sample prompt/i }),
+    ).toBeVisible();
+    expect(
+      within(outlet).queryByRole('button', { name: 'Run In Terminal' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the selected skill detail in the context sidebar', async () => {

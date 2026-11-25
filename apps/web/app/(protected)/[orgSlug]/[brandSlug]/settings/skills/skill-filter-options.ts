@@ -1,5 +1,6 @@
 import type {
   ModalityFilterValue,
+  RunsOnFilterValue,
   SourceFilterValue,
   StageFilterValue,
 } from '@/props/settings/skill-filters.props';
@@ -23,6 +24,12 @@ export const MODALITY_FILTERS = [
   value: ModalityFilterValue;
 }[];
 
+export const RUNS_ON_FILTERS = [
+  { labelKey: 'all', value: 'all' },
+  { labelKey: 'web', value: 'web' },
+  { labelKey: 'desktop', value: 'desktop' },
+] as const satisfies readonly { labelKey: string; value: RunsOnFilterValue }[];
+
 export const STAGE_FILTERS = [
   { labelKey: 'all', value: 'all' },
   { labelKey: 'research', value: 'research' },
@@ -35,6 +42,7 @@ export const STAGE_FILTERS = [
 
 export type {
   ModalityFilterValue,
+  RunsOnFilterValue,
   SourceFilterValue,
   StageFilterValue,
 } from '@/props/settings/skill-filters.props';

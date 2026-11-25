@@ -1,4 +1,5 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, SkillRunsOn } from '@genfeedai/contracts';
+import { resolveSkillRunsOn } from '@genfeedai/helpers';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import {
@@ -12,6 +13,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { SkillDetailCardProps } from '@/features/settings/props/skills.props';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 
 export default function SkillDetailCard({
   customizing,
@@ -26,6 +28,7 @@ export default function SkillDetailCard({
   skillDraft,
 }: SkillDetailCardProps) {
   const translate = useTranslations('common.settings.skills');
+  const isDesktopClient = useIsDesktopClient();
   const fieldIdPrefix = selectedSkill ? `skill-${selectedSkill.id}` : 'skill';
 
   const isPending = customizing || savingSkill;
@@ -44,6 +47,20 @@ export default function SkillDetailCard({
   return (
     <div className="space-y-5">
       <div className="grid gap-3">
+        <InsetSurface data-testid="skill-runs-on">
+          <p className="gen-label mb-2 text-muted-foreground">
+            {translate('detail.runsOn.label')}
+          </p>
+          <p className="text-sm text-foreground/70">
+            {translate(
+              resolveSkillRunsOn(selectedSkill) === SkillRunsOn.WEB
+                ? 'detail.runsOn.web'
+                : isDesktopClient
+                  ? 'detail.runsOn.desktopInDesktop'
+                  : 'detail.runsOn.desktopOnWeb',
+            )}
+          </p>
+        </InsetSurface>
         <InsetSurface>
           <p className="gen-label mb-2 text-muted-foreground">
             {translate('detail.coverage')}

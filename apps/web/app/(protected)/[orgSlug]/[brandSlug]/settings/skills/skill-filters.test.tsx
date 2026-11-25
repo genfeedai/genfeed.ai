@@ -21,9 +21,11 @@ function renderSearch(
     <SkillSearch
       modalityFilter="all"
       onModalityFilterChange={vi.fn()}
+      onRunsOnFilterChange={vi.fn()}
       onSearchQueryChange={vi.fn()}
       onSourceFilterChange={vi.fn()}
       onStageFilterChange={vi.fn()}
+      runsOnFilter="all"
       searchQuery=""
       sourceFilter="all"
       stageFilter="all"

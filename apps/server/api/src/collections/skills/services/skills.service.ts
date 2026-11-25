@@ -41,7 +41,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ByokProvider, type SkillSurface } from '@genfeedai/contracts';
 import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfaces';
-import { isSkillOnSurface } from '@genfeedai/helpers';
+import { isSkillOnSurface, resolveSkillRunsOn } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -52,6 +52,8 @@ export interface ListSkillsOptions {
   isDefault?: boolean;
   /** Narrow to skills that handle one modality (a `multi` skill matches when it is the only one). */
   modality?: string;
+  /** Narrow to skills that run on web or on desktop. */
+  runsOn?: string;
   /** Case-insensitive match over name and description. */
   search?: string;
   /** Narrow to one skill source. */
@@ -66,13 +68,14 @@ function matchesSkillFilters(
   doc: SkillDocument,
   options: ListSkillsOptions,
 ): boolean {
-  const { isDefault, modality, search, source, stage } = options;
+  const { isDefault, modality, runsOn, search, source, stage } = options;
   const query = search?.trim().toLowerCase();
   const modalities = doc.modalities ?? [];
 
   return (
     (isDefault === undefined || Boolean(doc.isDefault) === isDefault) &&
     (!source || doc.source === source) &&
+    (!runsOn || resolveSkillRunsOn(doc) === runsOn) &&
     (!stage || doc.workflowStage === stage) &&
     (!modality ||
       modalities.includes(modality) ||
@@ -824,6 +827,7 @@ export class SkillsService {
       publishedVersionId: row.publishedVersionId,
       sharedVersionId: row.sharedVersionId,
       revision: row.revision,
+      runsOn: resolveSkillRunsOn(config),
       updatedAt: row.updatedAt,
     } as unknown as SkillDocument;
   }

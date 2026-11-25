@@ -950,6 +950,12 @@ export interface IDesktopTerminalCreateOptions {
   /** Absolute directory to start in; ignored when it does not exist. */
   cwd?: string;
   kind?: DesktopTerminalKind;
+  /**
+   * Opening prompt for a `claude` session, passed as its one argument so the
+   * session starts on it. Claude Code still asks before it runs a command or
+   * writes a file. Ignored for every other kind.
+   */
+  prompt?: string;
   rows?: number;
   workspaceId?: string | null;
 }

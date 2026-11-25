@@ -32,6 +32,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -58,6 +59,11 @@ import SkillImportForm, {
 } from './skill-import-form';
 import type { SkillImportInput } from './skill-import-input';
 import SkillsTable from './skills-table';
+
+// xterm and the terminal socket client load only when a Desktop skill is run.
+const SkillTerminalDialog = dynamic(() => import('./skill-terminal-dialog'), {
+  ssr: false,
+});
 
 const PATH_SEPARATOR_CHAR_PATTERN = /[\\/?#]/;
 
@@ -105,6 +111,7 @@ const initialState: PageState = {
   isLoading: true,
   isSavingSkill: false,
   modalityFilter: 'all',
+  runsOnFilter: 'all',
   searchQuery: '',
   selectedSkillId: '',
   skillDraft: emptyDraft(),
@@ -271,6 +278,8 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return { ...state, sourceFilter: action.value };
     case 'SET_MODALITY_FILTER':
       return { ...state, modalityFilter: action.value };
+    case 'SET_RUNS_ON_FILTER':
+      return { ...state, runsOnFilter: action.value };
     case 'SET_STAGE_FILTER':
       return { ...state, stageFilter: action.value };
     case 'SET_SEARCH_QUERY':
@@ -325,6 +334,7 @@ export default function BrandSettingsSkillsPage() {
     isLoading,
     isSavingSkill,
     modalityFilter,
+    runsOnFilter,
     searchQuery,
     selectedSkillId,
     skillDraft,
@@ -383,6 +393,7 @@ export default function BrandSettingsSkillsPage() {
 
   // The table shows one server page, so the defaults come from their own query.
   const [defaultSkillSlugs, setDefaultSkillSlugs] = useState<string[]>([]);
+  const [terminalSkill, setTerminalSkill] = useState<Skill | null>(null);
   const {
     enabledSlugs,
     isLoading: isTogglingSkill,
@@ -409,6 +420,7 @@ export default function BrandSettingsSkillsPage() {
       limit: ITEMS_PER_PAGE,
       modality: modalityFilter === 'all' ? undefined : modalityFilter,
       page: currentPage,
+      runsOn: runsOnFilter === 'all' ? undefined : runsOnFilter,
       search: debouncedSearchQuery,
       source: sourceFilter === 'all' ? undefined : sourceFilter,
       stage: stageFilter === 'all' ? undefined : stageFilter,
@@ -417,6 +429,7 @@ export default function BrandSettingsSkillsPage() {
       currentPage,
       debouncedSearchQuery,
       modalityFilter,
+      runsOnFilter,
       sourceFilter,
       stageFilter,
     ],
@@ -480,6 +493,7 @@ export default function BrandSettingsSkillsPage() {
   const filterSignature = JSON.stringify([
     debouncedSearchQuery,
     modalityFilter,
+    runsOnFilter,
     sourceFilter,
     stageFilter,
   ]);
@@ -951,6 +965,11 @@ export default function BrandSettingsSkillsPage() {
     push(href(`${APP_ROUTES.AGENT.NEW}?prompt=${encodeURIComponent(prompt)}`));
   }, [href, push, selectedSkill, isPending, isScopeMatch, scopeKey, translate]);
 
+  const handleRunInTerminal = useCallback(() => {
+    if (!isScopeMatch || !selectedSkill || isPending) return;
+    setTerminalSkill(selectedSkill);
+  }, [isPending, isScopeMatch, selectedSkill]);
+
   const handleSkillSelect = useCallback(
     (id: string) => {
       if (!isScopeMatch || lifecycleRef.current.scopeKey !== scopeKey) return;
@@ -1002,6 +1021,9 @@ export default function BrandSettingsSkillsPage() {
           onModalityFilterChange={(value) =>
             dispatch({ type: 'SET_MODALITY_FILTER', value })
           }
+          onRunsOnFilterChange={(value) =>
+            dispatch({ type: 'SET_RUNS_ON_FILTER', value })
+          }
           onSearchQueryChange={(value) =>
             dispatch({ type: 'SET_SEARCH_QUERY', value })
           }
@@ -1011,6 +1033,7 @@ export default function BrandSettingsSkillsPage() {
           onStageFilterChange={(value) =>
             dispatch({ type: 'SET_STAGE_FILTER', value })
           }
+          runsOnFilter={runsOnFilter}
           searchQuery={searchQuery}
           sourceFilter={sourceFilter}
           stageFilter={stageFilter}
@@ -1155,6 +1178,7 @@ export default function BrandSettingsSkillsPage() {
         onExportSkill={() => void handleExportSkill()}
         onCustomize={() => void handleCustomize()}
         onOpenSamplePrompt={handleOpenSamplePrompt}
+        onRunInTerminal={handleRunInTerminal}
         onSaveSkill={() => void handleSaveSkill()}
         onSkillDraftChange={(updater) =>
           isScopeMatch &&
@@ -1169,6 +1193,10 @@ export default function BrandSettingsSkillsPage() {
         savingSkill={isSavingSkill}
         selectedSkill={selectedSkill}
         skillDraft={effectiveSkillDraft}
+      />
+      <SkillTerminalDialog
+        onClose={() => setTerminalSkill(null)}
+        skill={terminalSkill}
       />
     </Container>
   );

@@ -1,5 +1,9 @@
 import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
-import { ContentSkillCategory, SkillSurface } from '@genfeedai/contracts';
+import {
+  ContentSkillCategory,
+  SkillRunsOn,
+  SkillSurface,
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('inferFirstPartySkillTaxonomy', () => {
@@ -66,6 +70,16 @@ describe('inferFirstPartySkillTaxonomy', () => {
     expect(taxonomy.modalities).toEqual(['text']);
     expect(taxonomy.surfaces).toEqual([SkillSurface.AGENT]);
     expect(taxonomy.workflowStage).toBe('planning');
+  });
+
+  it.each([
+    [['video', 'local'], SkillRunsOn.DESKTOP],
+    [['video', 'remotion'], SkillRunsOn.WEB],
+    [undefined, SkillRunsOn.WEB],
+  ])('runs a skill tagged %j on %s', (tags, expected) => {
+    expect(inferFirstPartySkillTaxonomy('motion-video', { tags }).runsOn).toBe(
+      expected,
+    );
   });
 
   it('still reads an explicit audio tag as audio', () => {
