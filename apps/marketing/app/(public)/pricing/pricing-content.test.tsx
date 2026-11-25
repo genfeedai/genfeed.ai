@@ -338,5 +338,10 @@ describe('PricingContent', () => {
     expect(
       screen.getByText(/Videos you have not posted are kept for 7 days/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /attached only to a draft, cancelled, or skipped post is not kept/,
+      ),
+    ).toBeInTheDocument();
   });
 });
