@@ -217,6 +217,7 @@ export function hashBrandIdentitySnapshotV1(
     approval,
     identity,
     voice,
+    visualDirection,
     generationRules,
   } = snapshot;
   return hashBrandedGenerationJsonV1(
@@ -230,6 +231,9 @@ export function hashBrandIdentitySnapshotV1(
       approval,
       identity,
       voice,
+      // Undefined is left out of the projection, so a snapshot without a visual
+      // direction keeps the hash it had before the field existed.
+      visualDirection,
       generationRules,
     }),
   );
