@@ -63,6 +63,12 @@ export type IoRedisRetryStrategy = (retries: number) => number | null;
 
 export interface IoRedisConnectionOptions {
   connectTimeout?: number;
+  /**
+   * ioredis queues commands while disconnected by default. Pass `false` for a
+   * client whose callers fail open, so they get an error at once instead of
+   * waiting for the reconnect.
+   */
+  enableOfflineQueue?: boolean;
   /** Defaults to true — caller must invoke `.connect()` explicitly (matches prior node-redis usage). */
   lazyConnect?: boolean;
   retryStrategy?: IoRedisRetryStrategy;
@@ -87,8 +93,6 @@ export interface BullMQWorkerEnvironment {
 const BULLMQ_WORKER_MIN_RETRY_DELAY_MS = 1_000;
 const BULLMQ_WORKER_MAX_RETRY_DELAY_MS = 20_000;
 
-const bullMQProducerRetryStrategy: IoRedisRetryStrategy = () => null;
-
 /** Match BullMQ's production recommendation: retry forever, with capped backoff. */
 const bullMQWorkerRetryStrategy: IoRedisRetryStrategy = (retries: number) => {
   return Math.max(
@@ -96,6 +100,18 @@ const bullMQWorkerRetryStrategy: IoRedisRetryStrategy = (retries: number) => {
     BULLMQ_WORKER_MIN_RETRY_DELAY_MS,
   );
 };
+
+const RECONNECT_MIN_DELAY_MS = 100;
+const RECONNECT_MAX_DELAY_MS = 30_000;
+
+/**
+ * Reconnect delay for a client that must outlive a Redis failover or engine
+ * patch. ioredis treats a non-number as "stop", which parks the client at
+ * `status: 'end'` for the life of the process: every later command fails with
+ * "Connection is closed" until the process restarts.
+ */
+export const redisReconnectBackoff: IoRedisRetryStrategy = (retries) =>
+  Math.min(RECONNECT_MIN_DELAY_MS * 2 ** retries, RECONNECT_MAX_DELAY_MS);
 
 /**
  * Staging mirrors production so the Redis-restart recovery path can be verified
@@ -233,6 +249,9 @@ export function buildIoRedisClientOptions(
   return {
     connectTimeout: options.connectTimeout ?? 3_000,
     ...(config.db !== undefined && { db: config.db }),
+    ...(options.enableOfflineQueue !== undefined && {
+      enableOfflineQueue: options.enableOfflineQueue,
+    }),
     host: config.host,
     lazyConnect: options.lazyConnect ?? true,
     ...(config.password && { password: config.password }),
@@ -246,10 +265,11 @@ export function buildIoRedisClientOptions(
  * Build BullMQ/ioredis connection options (for queues).
  * BullMQ uses ioredis under the hood — TLS is `tls: {}`.
  *
- * The producer profile deliberately fails fast: HTTP/API callers can retry and
- * must not wait indefinitely for Redis. It is also the development default so a
- * missing local Redis instance fails visibly instead of starting a reconnect
- * loop.
+ * The producer profile fails fast on commands: HTTP/API callers can retry and
+ * must not wait indefinitely for Redis, so there is no offline queue and no
+ * per-command retry. The connection itself still reconnects with a capped
+ * backoff: a producer that stops retrying stays closed until the process
+ * restarts, and every enqueue fails long after Redis is back.
  *
  * The worker profile follows BullMQ's production guidance. Worker blocking
  * connections require `maxRetriesPerRequest: null`; their reconnect strategy
@@ -274,9 +294,7 @@ export function buildBullMQConnection(
     enableReadyCheck: false,
     lazyConnect: true,
     maxRetriesPerRequest: isWorker ? null : 0,
-    retryStrategy: isWorker
-      ? bullMQWorkerRetryStrategy
-      : bullMQProducerRetryStrategy,
+    retryStrategy: isWorker ? bullMQWorkerRetryStrategy : redisReconnectBackoff,
     skipVersionCheck: true,
     ...(config.tls && { tls: {} }),
   };

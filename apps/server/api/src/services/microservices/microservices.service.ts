@@ -14,6 +14,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildIoRedisClientOptions,
   parseRedisConnection,
+  redisReconnectBackoff,
 } from '@libs/redis/redis-connection.utils';
 import { isInProcessRedis } from '@libs/redis/redis-driver';
 import { Traced } from '@libs/tracing/traced';
@@ -147,11 +148,18 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
       `${this.constructorName} initializeRedis: Connecting to Redis at ${redisLogTarget}`,
     );
 
+    let hasConnected = false;
+
     try {
       this.redisClient = new Redis(
         buildIoRedisClientOptions(config, {
           connectTimeout: MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
-          retryStrategy: () => null,
+          // Stop only when the first connection fails (the catch below drops
+          // the client). After that never stop: a stopped client answers
+          // "Connection is closed" until the process restarts, so the Redis
+          // health check stays red long after Redis is back.
+          retryStrategy: (retries) =>
+            hasConnected ? redisReconnectBackoff(retries) : null,
         }),
       );
 
@@ -168,6 +176,7 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
         MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
         `${this.constructorName} initializeRedis: Redis connect timed out after ${MicroservicesService.REDIS_CONNECT_TIMEOUT_MS}ms`,
       );
+      hasConnected = true;
       this.loggerService.log(
         `${this.constructorName} initializeRedis: Successfully connected to Redis`,
       );

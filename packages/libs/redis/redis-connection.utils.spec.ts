@@ -15,7 +15,7 @@ function envAccessor(env: Record<string, string | boolean | number>) {
 }
 
 describe('redis connection utilities', () => {
-  it('builds a fail-fast BullMQ producer connection by default', () => {
+  it('builds a BullMQ producer that fails commands fast and keeps reconnecting', () => {
     const config = {
       host: 'redis.internal',
       password: 'secret',
@@ -38,7 +38,8 @@ describe('redis connection utilities', () => {
       skipVersionCheck: true,
       tls: {},
     });
-    expect(connection.retryStrategy(1)).toBeNull();
+    expect(connection.retryStrategy(1)).toBe(200);
+    expect(connection.retryStrategy(100)).toBe(30_000);
   });
 
   it.each([
