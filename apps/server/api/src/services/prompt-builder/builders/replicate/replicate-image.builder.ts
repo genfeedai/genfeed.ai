@@ -34,7 +34,10 @@ import {
   resolveModelSchema,
   schemaHasField,
 } from '@api/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  MODEL_KEYS,
+  NANO_BANANA_DEFAULT_RESOLUTION,
+} from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   getDefaultAspectRatio,
@@ -43,13 +46,6 @@ import {
 import { Injectable, Logger } from '@nestjs/common';
 
 const RESOLUTION_K_PATTERN = /^\d+(?:\.\d+)?k$/i;
-
-/** Resolution Replicate runs when none is sent, per the published model schema. */
-const NANO_BANANA_DEFAULT_RESOLUTION: Readonly<Record<string, string>> = {
-  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2]: '1K',
-  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1]: '1K',
-  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO]: '2K',
-};
 
 /**
  * Replicate image model prompt builder.
