@@ -229,7 +229,7 @@ describe('findCrossPostIds against the pairwise pairing', () => {
     );
   });
 
-  it('pairs 200 native and 1,000 network posts with long captions in under 5 ms', () => {
+  it('pairs 200 native and 1,000 network posts with long captions at least 20 times faster than the pairwise pairing', () => {
     const natives: CrossPostCandidate[] = Array.from(
       { length: 200 },
       (_, index) => ({
@@ -254,17 +254,23 @@ describe('findCrossPostIds against the pairwise pairing', () => {
     const expected = pairwiseCrossPostIds(natives, networkPosts);
     expect(expected.length).toBeGreaterThan(0);
 
-    findCrossPostIds(natives, networkPosts);
-    const runs: number[] = [];
-    for (let run = 0; run < 15; run += 1) {
-      const startedAt = performance.now();
-      const ids = findCrossPostIds(natives, networkPosts);
-      runs.push(performance.now() - startedAt);
-      expect(ids).toEqual(expected);
-    }
-    runs.sort((a, b) => a - b);
+    // Both are timed in this process, back to back, so a busy CI machine
+    // slows them alike and only the ratio is asserted. The fastest of several
+    // runs: load slows a run, never speeds one.
+    const fastest = (pair: typeof findCrossPostIds): number => {
+      pair(natives, networkPosts);
+      let best = Number.POSITIVE_INFINITY;
+      for (let run = 0; run < 7; run += 1) {
+        const startedAt = performance.now();
+        const ids = pair(natives, networkPosts);
+        best = Math.min(best, performance.now() - startedAt);
+        expect(ids).toEqual(expected);
+      }
+      return best;
+    };
 
-    // The fastest of several runs: a busy CI machine slows a run, never speeds one.
-    expect(runs[0]).toBeLessThan(5);
+    expect(
+      fastest(pairwiseCrossPostIds) / fastest(findCrossPostIds),
+    ).toBeGreaterThan(20);
   });
 });
