@@ -379,7 +379,7 @@ export const flux2DevDispatchSchema = z
   .strict();
 export type Flux2DevDispatch = z.infer<typeof flux2DevDispatchSchema>;
 export const FLUX_2_DEV_IMAGE_COMPILER_ID = 'flux-2-dev-image-compiler';
-export const FLUX_2_DEV_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_2_DEV_IMAGE_COMPILER_VERSION = 2;
 
 export const flux2FlexDispatchSchema = z
   .object({
@@ -400,7 +400,7 @@ export const flux2FlexDispatchSchema = z
   .strict();
 export type Flux2FlexDispatch = z.infer<typeof flux2FlexDispatchSchema>;
 export const FLUX_2_FLEX_IMAGE_COMPILER_ID = 'flux-2-flex-image-compiler';
-export const FLUX_2_FLEX_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_2_FLEX_IMAGE_COMPILER_VERSION = 2;
 
 export const flux2ProDispatchSchema = z
   .object({
@@ -418,7 +418,7 @@ export const flux2ProDispatchSchema = z
   .strict();
 export type Flux2ProDispatch = z.infer<typeof flux2ProDispatchSchema>;
 export const FLUX_2_PRO_IMAGE_COMPILER_ID = 'flux-2-pro-image-compiler';
-export const FLUX_2_PRO_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_2_PRO_IMAGE_COMPILER_VERSION = 2;
 
 export const fluxKontextProDispatchSchema = z
   .object({
