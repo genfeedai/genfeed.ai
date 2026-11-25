@@ -330,6 +330,57 @@ export class InstagramPublishingService {
     }
   }
 
+  /**
+   * Publish one image or video as a Story. A Story carries no caption and no
+   * alt text through the API, so only the optional AI label is sent. A video
+   * is processed before it can be published; an image is ready at once.
+   */
+  @Traced()
+  async uploadStory(
+    organizationId: string,
+    brandId: string,
+    mediaUrl: string,
+    isVideo: boolean,
+    credentialId?: string,
+    isAiGenerated = false,
+  ): Promise<{ mediaId: string }> {
+    const url = `InstagramService ${CallerUtil.getCallerName()}`;
+    const credential = await this.resolveCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+
+    try {
+      const createRes = await this.createMediaContainer(
+        externalId,
+        {
+          access_token: accessToken,
+          media_type: InstagramMediaType.STORIES,
+          ...(isVideo ? { video_url: mediaUrl } : { image_url: mediaUrl }),
+        },
+        decorationAttempts(aiLabelParams(isAiGenerated), {}),
+      );
+      const containerId = createRes.data.id;
+      if (isVideo) {
+        await this.waitForMediaProcessing(containerId, accessToken);
+      }
+      const publishRes = await this.publishContainer(
+        externalId,
+        containerId,
+        accessToken,
+      );
+
+      this.loggerService.log(`${url} succeeded`, publishRes.data);
+      return { mediaId: publishRes.data.id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
   @Traced()
   async uploadCarousel(
     organizationId: string,

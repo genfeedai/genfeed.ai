@@ -19,8 +19,8 @@ describe('instagram-media.enum', () => {
   });
 
   describe('InstagramMediaType', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(InstagramMediaType)).toHaveLength(5);
+    it('should have 6 members', () => {
+      expect(Object.values(InstagramMediaType)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
@@ -28,6 +28,7 @@ describe('instagram-media.enum', () => {
       expect(InstagramMediaType.VIDEO).toBe('VIDEO');
       expect(InstagramMediaType.CAROUSEL_ALBUM).toBe('CAROUSEL_ALBUM');
       expect(InstagramMediaType.REELS).toBe('REELS');
+      expect(InstagramMediaType.STORIES).toBe('STORIES');
       expect(InstagramMediaType.CAROUSEL).toBe('CAROUSEL');
     });
   });

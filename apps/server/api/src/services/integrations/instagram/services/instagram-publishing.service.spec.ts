@@ -429,3 +429,68 @@ describe('InstagramPublishingService alt text', () => {
     expect(graph.publishCalls()).toHaveLength(0);
   });
 });
+
+describe('InstagramPublishingService stories', () => {
+  it('creates an image story with no caption and publishes it at once', async () => {
+    const graph = createGraphDouble();
+
+    const result = await graph.service.uploadStory(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      false,
+    );
+
+    const [create] = graph.createCalls();
+    expect(create.params).toMatchObject({
+      image_url: 'https://cdn.test/a.jpg',
+      media_type: 'STORIES',
+    });
+    expect(create.params).not.toHaveProperty('caption');
+    expect(create.params).not.toHaveProperty('video_url');
+    expect(create.params).not.toHaveProperty('is_ai_generated');
+    expect(graph.publishCalls()).toHaveLength(1);
+    expect(result).toEqual({ mediaId: 'container-1' });
+  });
+
+  it('creates a video story, waits for processing and labels it when asked', async () => {
+    const graph = createGraphDouble();
+
+    await graph.service.uploadStory(
+      'org',
+      'brand',
+      'https://cdn.test/a.mp4',
+      true,
+      undefined,
+      true,
+    );
+
+    const [create] = graph.createCalls();
+    expect(create.params).toMatchObject({
+      is_ai_generated: true,
+      media_type: 'STORIES',
+      video_url: 'https://cdn.test/a.mp4',
+    });
+    expect(create.params).not.toHaveProperty('image_url');
+    expect(graph.publishCalls()).toHaveLength(1);
+  });
+
+  it('retries a story without the AI label when Instagram refuses it', async () => {
+    const graph = createGraphDouble({ status: 400 });
+
+    const result = await graph.service.uploadStory(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      false,
+      undefined,
+      true,
+    );
+
+    const creates = graph.createCalls();
+    expect(creates).toHaveLength(2);
+    expect(creates[1].params).not.toHaveProperty('is_ai_generated');
+    expect(graph.publishCalls()).toHaveLength(1);
+    expect(result.mediaId).toBe('container-1');
+  });
+});
