@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import AgentAuthClaimFallback from './claim-fallback';
 import AgentAuthClaimContent from './content';
 
 export const metadata: Metadata = {
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AgentAuthClaimPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AgentAuthClaimFallback />}>
       <AgentAuthClaimContent />
     </Suspense>
   );
