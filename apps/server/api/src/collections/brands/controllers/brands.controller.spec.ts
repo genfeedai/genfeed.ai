@@ -903,6 +903,7 @@ describe('BrandsController', () => {
           endCardDurationSeconds: 3,
           fontFamily: 'MONTSERRAT_BLACK',
           fontRoles: {},
+          visualDirection: null,
           isActive: true,
           isDefault: false,
           isFleetEnabled: false,

@@ -489,7 +489,7 @@ export class BrandOsRevisionsService {
   }
 
   /**
-   * Palette and font roles live on the brand row too, so prompts and the agent
+   * Palette, font roles and the visual direction live on the brand row too, so prompts and the agent
    * read the approved kit without resolving a revision. Only fields the
    * revision carries are written; a revision without them leaves the brand as
    * it is.
@@ -506,9 +506,11 @@ export class BrandOsRevisionsService {
     const fontRoles = brandFontRolesSchema.safeParse(
       content.fields.fontRoles?.currentValue,
     );
+    const visualDirection = content.fields.visualDirection?.currentValue;
     const data: Prisma.BrandUpdateManyMutationInput = {
       ...(palette.success ? { colorPalette: toPrismaJson(palette.data) } : {}),
       ...(fontRoles.success ? { fontRoles: toPrismaJson(fontRoles.data) } : {}),
+      ...(typeof visualDirection === 'string' ? { visualDirection } : {}),
     };
     if (Object.keys(data).length === 0) return;
     // sql-risk-audit: ignore bulk-write-tenant-review -- organizationId, isDeleted:false and the unique brand id bound the write to the one brand under the approval lock.

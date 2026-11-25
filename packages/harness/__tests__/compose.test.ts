@@ -53,6 +53,29 @@ describe('composeContentHarnessBrief', () => {
     });
   });
 
+  it('carries the identity visual direction onto the brief once', async () => {
+    const registry = new ContentHarnessRegistry();
+
+    const brief = await composeContentHarnessBrief(registry, {
+      ...BASE_INPUT,
+      identityContribution: {
+        visualDirections: ['Oil painting.', ' Oil painting. ', 'Monochrome.'],
+      },
+    });
+
+    expect(brief.visualDirections).toEqual(['Oil painting.', 'Monochrome.']);
+    expect(brief.systemDirectives).toEqual([]);
+  });
+
+  it('leaves visualDirections off a brief without any', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      BASE_INPUT,
+    );
+
+    expect(brief).not.toHaveProperty('visualDirections');
+  });
+
   it('skips packs without a contribute function but still lists them', async () => {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(buildPack('inert'));

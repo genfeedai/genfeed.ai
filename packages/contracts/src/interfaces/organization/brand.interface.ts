@@ -77,6 +77,8 @@ export interface IBrand extends IBaseEntity {
   colorPalette?: BrandPaletteColor[];
   /** The font for headings, body text and captions. */
   fontRoles?: BrandFontRoles;
+  /** The look of the brand's images and video. Text generation never reads it. */
+  visualDirection?: string;
 
   voice?: string;
   music?: string;
