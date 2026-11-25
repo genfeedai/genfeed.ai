@@ -15,6 +15,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { DedicatedTextRouteService } from './dedicated-text-route.service';
 import { LlmCompletionTelemetryService } from './llm-completion-telemetry.service';
 import { LlmDispatcherService } from './llm-dispatcher.service';
 import { LlmStructuredOutputError } from './llm-structured-output.error';
@@ -44,6 +45,11 @@ describe('LlmDispatcherService', () => {
     recordCompletion: ReturnType<typeof vi.fn>;
   };
   let configService: { get: ReturnType<typeof vi.fn> };
+  let dedicatedTextRoute: {
+    chatCompletion: ReturnType<typeof vi.fn>;
+    isDedicatedModel: ReturnType<typeof vi.fn>;
+    resolve: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -97,6 +103,11 @@ describe('LlmDispatcherService', () => {
     };
     // Platform keys present by default so openai/* and anthropic/* prefer
     // native clients. Tests that assert OpenRouter fallback clear these.
+    dedicatedTextRoute = {
+      chatCompletion: vi.fn(),
+      isDedicatedModel: vi.fn().mockResolvedValue(false),
+      resolve: vi.fn().mockResolvedValue(null),
+    };
     configService = {
       get: vi.fn((key: string) => {
         if (key === 'ANTHROPIC_API_KEY') {
@@ -132,6 +143,7 @@ describe('LlmDispatcherService', () => {
         },
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
+        { provide: DedicatedTextRouteService, useValue: dedicatedTextRoute },
       ],
     }).compile();
 
@@ -865,6 +877,96 @@ describe('LlmDispatcherService', () => {
         undefined,
       );
       expect(openAiOAuthService.refreshAccessToken).not.toHaveBeenCalled();
+    });
+  });
+  describe('dedicated instance models', () => {
+    const dedicatedParams = {
+      messages: [{ content: 'hi', role: 'user' as const }],
+      model: 'dedicated/org-model',
+    };
+    const dedicatedAnswer = {
+      choices: [
+        {
+          finish_reason: 'stop',
+          message: { content: 'from the instance', role: 'assistant' },
+        },
+      ],
+      id: 'dedicated-1',
+      model: 'dedicated/org-model',
+      usage: { completion_tokens: 3, prompt_tokens: 5, total_tokens: 8 },
+    };
+
+    it('answers from the organization instance and never calls a hosted provider', async () => {
+      dedicatedTextRoute.resolve.mockResolvedValue({
+        apiUrl: 'https://llm.org.example.com',
+        upstreamModel: 'org-model',
+      });
+      dedicatedTextRoute.chatCompletion.mockResolvedValue(dedicatedAnswer);
+
+      const response = await service.chatCompletion(dedicatedParams, 'org-1');
+
+      expect(response.choices[0].message.content).toBe('from the instance');
+      expect(response.usage.is_byok).toBe(false);
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
+      expect(anthropicService.chatCompletion).not.toHaveBeenCalled();
+      expect(openAiLlmService.chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('fails with the instance error and does not fall back to a hosted model', async () => {
+      dedicatedTextRoute.resolve.mockRejectedValue(
+        new Error('The dedicated instance for this model is not running'),
+      );
+
+      await expect(
+        service.chatCompletion(dedicatedParams, 'org-1'),
+      ).rejects.toThrow('not running');
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
+      expect(anthropicService.chatCompletion).not.toHaveBeenCalled();
+      expect(openAiLlmService.chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('does not fall back when the instance call itself fails', async () => {
+      dedicatedTextRoute.resolve.mockResolvedValue({
+        apiUrl: 'https://llm.org.example.com',
+        upstreamModel: 'org-model',
+      });
+      dedicatedTextRoute.chatCompletion.mockRejectedValue(new Error('down'));
+
+      await expect(
+        service.chatCompletion(dedicatedParams, 'org-1'),
+      ).rejects.toThrow('down');
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('streams the instance answer as one token event', async () => {
+      dedicatedTextRoute.resolve.mockResolvedValue({
+        apiUrl: 'https://llm.org.example.com',
+        upstreamModel: 'org-model',
+      });
+      dedicatedTextRoute.chatCompletion.mockResolvedValue(dedicatedAnswer);
+      const tokens: string[] = [];
+
+      const response = await service.streamChatCompletionAggregated(
+        dedicatedParams,
+        'org-1',
+        async (delta) => {
+          tokens.push(delta);
+        },
+      );
+
+      expect(tokens).toEqual(['from the instance']);
+      expect(response.usage.total_tokens).toBe(8);
+      expect(
+        openRouterService.streamChatCompletionAggregated,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('refuses to quote a hosted route for a dedicated model', async () => {
+      dedicatedTextRoute.isDedicatedModel.mockResolvedValue(true);
+
+      await expect(
+        service.getCompletionRoute('dedicated/org-model', 'org-1'),
+      ).rejects.toThrow('route_unavailable');
     });
   });
 });

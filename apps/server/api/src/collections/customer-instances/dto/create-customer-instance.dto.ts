@@ -43,12 +43,12 @@ export class CreateCustomerInstanceDto {
   @ApiProperty({ description: 'AMI ID used to launch the instance' })
   readonly amiId!: string;
 
-  @IsEnum(['images', 'voices', 'videos', 'full'])
+  @IsEnum(['images', 'voices', 'videos', 'llm', 'full'])
   @IsOptional()
   @ApiProperty({
     default: 'full',
     description: 'Generation workload this instance handles',
-    enum: ['images', 'voices', 'videos', 'full'],
+    enum: ['images', 'voices', 'videos', 'llm', 'full'],
     required: false,
   })
   readonly role?: CustomerInstanceRole;

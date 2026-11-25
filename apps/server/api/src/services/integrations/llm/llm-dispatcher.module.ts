@@ -1,5 +1,8 @@
+import { CustomerInstancesModule } from '@api/collections/customer-instances/customer-instances.module';
+import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { AnthropicModule } from '@api/services/integrations/anthropic/anthropic.module';
+import { DedicatedTextRouteService } from '@api/services/integrations/llm/dedicated-text-route.service';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
 import { LlmCostSettlementQueueService } from '@api/services/integrations/llm/llm-cost-settlement-queue.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
@@ -21,8 +24,11 @@ export const LlmDispatcherModule = createServiceModule(LlmDispatcherService, {
     OpenAiLlmModule,
     OpenRouterModule,
     ByokModule,
+    CustomerInstancesModule,
+    AgentChatModelRegistryModule,
   ],
   additionalProviders: [
+    DedicatedTextRouteService,
     LlmCostSettlementQueueService,
     LlmCompletionTelemetryService,
     LlmVendorCostLedgerService,

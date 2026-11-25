@@ -32,6 +32,8 @@ import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export interface AgentChatRegistryRow {
   cost: number;
+  /** The model's own name at its provider, when it differs from `key`. */
+  externalId?: string | null;
   isActive: boolean;
   isDefault: boolean;
   isFree: boolean;
@@ -105,6 +107,7 @@ const AGENT_CHAT_ROW_FILTER = [
 
 const REGISTRY_ROW_SELECT = {
   cost: true,
+  externalId: true,
   isActive: true,
   isDefault: true,
   isDiscovered: true,
@@ -121,6 +124,7 @@ const REGISTRY_ROW_SELECT = {
 
 interface StoredRegistryRow {
   cost: number;
+  externalId: string | null;
   isActive: boolean;
   isDefault: boolean;
   isDiscovered: boolean;
@@ -138,6 +142,7 @@ interface StoredRegistryRow {
 function toRegistryRow(row: StoredRegistryRow): AgentChatRegistryRow {
   return {
     cost: row.cost,
+    externalId: row.externalId,
     isActive: row.isActive,
     isDefault: row.isDefault,
     isDiscovered: row.isDiscovered,
@@ -257,6 +262,17 @@ export class AgentChatModelRegistryService
     }
     this.orgCache.set(orgId, { loadedAt: Date.now(), rows: next });
     return next;
+  }
+
+  /**
+   * The text model attached to this organization under `key`, never a
+   * platform row and never another organization's.
+   */
+  async findOrganizationModel(
+    key: string,
+    organizationId?: string | null,
+  ): Promise<AgentChatRegistryRow | undefined> {
+    return (await this.orgRowsFor(organizationId)).get(key.trim());
   }
 
   /** The row for a key as one organization sees it: its own, else the platform's. */

@@ -4,6 +4,7 @@ export const CUSTOMER_INSTANCE_ROLES = [
   'images',
   'voices',
   'videos',
+  'llm',
   'full',
 ] as const;
 

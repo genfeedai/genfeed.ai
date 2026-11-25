@@ -1,5 +1,6 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
+import { DedicatedTextRouteService } from '@api/services/integrations/llm/dedicated-text-route.service';
 import type { ILlmCompletionRoute } from '@api/services/integrations/llm/dto/llm-completion-route.dto';
 import type { LlmStructuredCompletionParams } from '@api/services/integrations/llm/dto/llm-structured-output.dto';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
@@ -25,7 +26,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-type LlmProvider = 'anthropic' | 'openai' | 'openrouter';
+type LlmProvider = 'anthropic' | 'dedicated' | 'openai' | 'openrouter';
 
 @Traced()
 @Injectable()
@@ -41,6 +42,7 @@ export class LlmDispatcherService {
     private readonly openRouterService: OpenRouterService,
     private readonly byokService: ByokService,
     private readonly llmCompletionTelemetryService: LlmCompletionTelemetryService,
+    private readonly dedicatedTextRouteService: DedicatedTextRouteService,
   ) {}
 
   /**
@@ -153,6 +155,17 @@ export class LlmDispatcherService {
   }
 
   private async resolveGuardedRoute(modelKey: string, organizationId: string) {
+    // A quote names a hosted provider route. A model served by an
+    // organization's own instance has none, so it is refused rather than
+    // quoted on a route that would not run it.
+    if (
+      await this.dedicatedTextRouteService.isDedicatedModel(
+        organizationId,
+        modelKey,
+      )
+    ) {
+      throw new Error('route_unavailable');
+    }
     const preferred = this.preferredProviderForModel(modelKey);
     let provider = preferred;
     let key = await this.byokService.lookupApiKey(
@@ -229,6 +242,22 @@ export class LlmDispatcherService {
     organizationId?: string,
     callContext?: ILlmCompletionCallContext,
   ): Promise<OpenRouterChatCompletionResponse> {
+    const dedicatedRoute = await this.dedicatedTextRouteService.resolve(
+      organizationId,
+      params.model,
+    );
+    if (dedicatedRoute) {
+      return this.dispatchWithTelemetry(
+        () =>
+          this.dedicatedTextRouteService.chatCompletion(dedicatedRoute, params),
+        params,
+        organizationId,
+        'dedicated',
+        false,
+        callContext,
+      );
+    }
+
     const { apiKeyOverride, provider } = await this.resolveRoute(
       params.model,
       organizationId,
@@ -343,6 +372,28 @@ export class LlmDispatcherService {
     onToken?: OpenRouterStreamTokenHandler,
     callContext?: ILlmCompletionCallContext,
   ): Promise<OpenRouterChatCompletionResponse> {
+    const dedicatedRoute = await this.dedicatedTextRouteService.resolve(
+      organizationId,
+      params.model,
+    );
+    if (dedicatedRoute) {
+      // The instance answers in one piece; the whole text is one token event.
+      const response = await this.dispatchWithTelemetry(
+        () =>
+          this.dedicatedTextRouteService.chatCompletion(dedicatedRoute, params),
+        params,
+        organizationId,
+        'dedicated',
+        false,
+        callContext,
+      );
+      const content = response.choices[0]?.message?.content;
+      if (onToken && content) {
+        await onToken(content);
+      }
+      return response;
+    }
+
     const { apiKeyOverride, provider } = await this.resolveRoute(
       params.model,
       organizationId,

@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import {
   AGENT_CHAT_CAPABILITY,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
@@ -112,7 +116,7 @@ describe.skipIf(!connectionString)(
           lifecycle: fields.lifecycle ?? ModelLifecycle.AVAILABLE,
           organizationId: fields.organizationId ?? orgA,
           outputCostPerMillionTokens: 2,
-          provider: 'genfeedai',
+          provider: ModelProvider.GENFEED_AI,
         },
       });
 

@@ -85,7 +85,8 @@ export class CustomerInstancesService extends BaseService<
             .find(
               (instance) =>
                 instance.tier === 'dedicated' &&
-                (instance.role === role || instance.role === 'full'),
+                (instance.role === role ||
+                  (role !== 'llm' && instance.role === 'full')),
             ) ?? null,
       );
   }
