@@ -7,8 +7,9 @@ import type { WinnerPromotionCandidate } from '@api/services/harness/harness-win
 import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable, Optional } from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 /** Daily-cadence dedupe window — generous enough to absorb a slow sweep. */
@@ -20,6 +21,7 @@ type WinnerPromotionAction = typeof AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS;
 
 export interface WinnerPromotionWorkflowResult {
   action: WinnerPromotionAction;
+  brandsDenied: number;
   brandsEligible: number;
   brandsFailed: number;
   brandsPromoted: number;
@@ -43,6 +45,7 @@ export class WinnerPromotionWorkflowService {
     @Optional()
     private readonly harnessWinnerPromotionService?: HarnessWinnerPromotionService,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional() private readonly logger?: LoggerService,
   ) {}
 
   async beginOrganizationWinnerPromotion(
@@ -112,15 +115,29 @@ export class WinnerPromotionWorkflowService {
     const service = this.resolveHarnessWinnerPromotionService();
     if (!service)
       throw new Error('HarnessWinnerPromotionService is unavailable');
-    return service.promoteTopPerformer(
-      organizationId,
-      this.requiredString(input.contextBaseId, 'contextBaseId'),
-      this.readRecord(input.item) as unknown as WinnerPromotionCandidate,
-      {
-        origin: 'CODE_OWNED_WORKFLOW',
-        provenance: { ...hiddenExecutionRef(context), nodeId, actionId },
-      },
-    );
+    try {
+      return await service.promoteTopPerformer(
+        organizationId,
+        this.requiredString(input.contextBaseId, 'contextBaseId'),
+        this.readRecord(input.item) as unknown as WinnerPromotionCandidate,
+        {
+          origin: 'CODE_OWNED_WORKFLOW',
+          provenance: { ...hiddenExecutionRef(context), nodeId, actionId },
+        },
+      );
+    } catch (error: unknown) {
+      // A refused promotion is an access decision about this one item. It
+      // writes nothing, so the brand's existing winners stay as they were, and
+      // it must not fail the fan-out: the finalizers read the batch of
+      // per-item results, and a failed node leaves them without one.
+      if (!(error instanceof ForbiddenException)) throw error;
+      this.logger?.warn('Winner promotion denied for one item', {
+        executionId: context.executionId,
+        organizationId,
+        reason: error.message,
+      });
+      return { denied: 1, promoted: 0, skipped: 0 };
+    }
   }
 
   finalizeBrandWinners(
@@ -130,8 +147,14 @@ export class WinnerPromotionWorkflowService {
     const results = this.readBatchResults(input.batch).map((entry) =>
       this.readRecord(entry.result),
     );
+    const denied = results.reduce(
+      (total, result) =>
+        total + (typeof result.denied === 'number' ? result.denied : 0),
+      0,
+    );
     return {
       brandId: state.brandId,
+      denied,
       promoted: results.reduce(
         (total, result) =>
           total + (typeof result.promoted === 'number' ? result.promoted : 0),
@@ -144,7 +167,7 @@ export class WinnerPromotionWorkflowService {
             total + (typeof result.skipped === 'number' ? result.skipped : 0),
           0,
         ),
-      status: 'promoted',
+      status: denied > 0 ? 'denied' : 'promoted',
     };
   }
 
@@ -173,6 +196,8 @@ export class WinnerPromotionWorkflowService {
       );
     return {
       action: AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS,
+      brandsDenied: results.filter((result) => result.status === 'denied')
+        .length,
       brandsEligible: results.length,
       brandsFailed: results.filter((result) => result.status === 'failed')
         .length,
@@ -273,6 +298,7 @@ export class WinnerPromotionWorkflowService {
   ): WinnerPromotionWorkflowResult {
     return {
       action,
+      brandsDenied: 0,
       brandsEligible: 0,
       brandsFailed: 0,
       brandsPromoted: 0,
