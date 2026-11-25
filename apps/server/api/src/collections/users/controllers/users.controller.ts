@@ -22,6 +22,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -39,7 +40,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { SubscriptionStatus } from '@genfeedai/contracts';
+import { ApiKeyScope, SubscriptionStatus } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -230,6 +231,7 @@ export class UsersController {
   }
 
   @Post('me/avatar')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAvatarUploadUrl(
     @CurrentUser() user: User,
@@ -248,6 +250,7 @@ export class UsersController {
   }
 
   @Patch('me')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMe(
     @Req() request: Request,
