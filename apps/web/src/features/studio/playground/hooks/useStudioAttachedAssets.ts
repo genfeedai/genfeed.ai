@@ -5,6 +5,7 @@ import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import type { MutableRefObject } from 'react';
 import { useCallback, useMemo } from 'react';
+import type { UseStudioBrandDefaultReferencesReturn } from '@/features/studio/playground/hooks/useStudioBrandDefaultReferences';
 import { resolveStudioReferencePreviewUrl } from '@/features/studio/playground/utils/studio-reference-preview';
 import {
   getStudioReferenceKind,
@@ -25,12 +26,18 @@ export interface UseStudioAttachedAssetsParams
     | 'settings'
     | 'type'
   > {
+  /** The brand's default references, shown as chips until the user removes them. */
+  brandDefaults: Pick<
+    UseStudioBrandDefaultReferencesReturn,
+    'assets' | 'dismiss'
+  >;
   referencePreviewUrlRef: MutableRefObject<string | undefined>;
 }
 
 /** The attachment chips shown in the composer and the preview they imply. */
 export function useStudioAttachedAssets({
   attachments,
+  brandDefaults,
   clearCrunRestore,
   contentReferences,
   getAttachmentRole,
@@ -73,11 +80,13 @@ export function useStudioAttachedAssets({
           role: reference.role,
           source: 'library' as const,
         })),
+        ...brandDefaults.assets,
       ].toSorted(
         (left, right) => Number(right.isPrimary) - Number(left.isPrimary),
       ),
     [
       attachments,
+      brandDefaults.assets,
       contentReferences,
       resolveAttachmentRole,
       settings.editPrimaryId,
@@ -89,11 +98,13 @@ export function useStudioAttachedAssets({
     type,
   });
 
+  const dismissBrandDefault = brandDefaults.dismiss;
   const handleRemoveAttachedAsset = useCallback<
     StudioPlaygroundComposerProps['onRemoveAttachedAsset']
   >(
     (assetId) => {
       clearCrunRestore();
+      if (dismissBrandDefault(assetId)) return;
       if (
         attachments.some(
           (attachment: AttachmentItem) => attachment.id === assetId,
@@ -106,7 +117,13 @@ export function useStudioAttachedAssets({
         current.filter((reference) => reference.item.id !== assetId),
       );
     },
-    [attachments, removeAttachment, clearCrunRestore, setContentReferences],
+    [
+      attachments,
+      dismissBrandDefault,
+      removeAttachment,
+      clearCrunRestore,
+      setContentReferences,
+    ],
   );
   return { attachedAssets, handleRemoveAttachedAsset, resolveAttachmentRole };
 }

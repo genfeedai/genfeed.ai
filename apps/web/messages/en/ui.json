@@ -332,6 +332,11 @@
       "title": "Palette check"
     },
     "promptEnhanced": "Prompt enhanced",
+    "references": {
+      "added": "{count, plural, one {# brand reference was added because none were attached.} other {# brand references were added because none were attached.}}",
+      "skipped": "None were added: this model does not accept reference images.",
+      "title": "Brand references"
+    },
     "refresh": "Refresh settings",
     "requestOverride": "This generation’s override",
     "sourcePreference": "{source} preference",

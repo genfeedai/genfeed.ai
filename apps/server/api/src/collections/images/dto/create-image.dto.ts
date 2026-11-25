@@ -69,6 +69,15 @@ export class CreateImageDto extends CreateMediaGenerationDto {
   })
   readonly references?: string[];
 
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    description:
+      'Set when the caller removed the brand reference defaults it was shown, so none are added on the server.',
+    required: false,
+  })
+  readonly skipBrandReferences?: boolean;
+
   @IsString()
   @IsOptional()
   @ApiProperty({
