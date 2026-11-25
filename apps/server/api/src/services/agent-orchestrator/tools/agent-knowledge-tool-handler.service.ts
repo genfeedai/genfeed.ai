@@ -615,7 +615,9 @@ export class AgentKnowledgeToolHandler {
       // A retry after a lost response finds the source already archived. Say so
       // for the caller's own source; any other miss stays the not-found it is.
       if (!isNotFound(error)) throw error;
-      const archived = await this.records.findArchivedSource(actor, sourceId);
+      const archived = await this.records
+        .getSource(actor, sourceId, true)
+        .catch(() => null);
       if (!archived) throw error;
       return {
         creditsUsed: 0,

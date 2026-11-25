@@ -44,7 +44,6 @@ const version = {
 function buildHandler() {
   const records = {
     deleteSource: vi.fn().mockResolvedValue({ ...source, isVisible: false }),
-    findArchivedSource: vi.fn().mockResolvedValue(null),
     getCurrentVersion: vi.fn().mockResolvedValue(version),
     getSource: vi.fn().mockResolvedValue(source),
     listSourceSpaces: vi
@@ -521,7 +520,7 @@ describe('AgentKnowledgeToolHandler', () => {
     it('reports the durable archive state when a retry finds the source already archived', async () => {
       const { handler, records } = buildHandler();
       records.deleteSource.mockRejectedValueOnce(missing);
-      records.findArchivedSource.mockResolvedValueOnce({
+      records.getSource.mockResolvedValueOnce({
         ...source,
         isVisible: false,
       });
@@ -544,6 +543,7 @@ describe('AgentKnowledgeToolHandler', () => {
     it('keeps the not-found for a source the caller does not own', async () => {
       const { handler, records } = buildHandler();
       records.deleteSource.mockRejectedValueOnce(missing);
+      records.getSource.mockRejectedValueOnce(missing);
 
       await expect(
         handler.archiveKnowledgeSource({ sourceId: 'source-9' }, ctx),

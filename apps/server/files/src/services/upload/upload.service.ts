@@ -397,12 +397,11 @@ export class UploadService {
       // Release the upstream socket on every failed exit, including setup
       // failures before the body was piped anywhere.
       abort.abort();
-      const logFailure =
-        error instanceof HttpException &&
-        error.getStatus() === HttpStatus.NOT_FOUND
-          ? this.loggerService.warn.bind(this.loggerService)
-          : this.loggerService.error.bind(this.loggerService);
-      logFailure('Failed to download file directly from URL', error);
+      this.logFailure(
+        'Failed to download file directly from URL',
+        error,
+        error,
+      );
 
       if (error instanceof HttpException) {
         throw error;
@@ -611,6 +610,15 @@ export class UploadService {
     );
   }
 
+  /** A source that is gone (404) is the caller's answer to act on, so it logs at warn. */
+  private logFailure(message: string, error: unknown, context: unknown): void {
+    const isMissingSource =
+      error instanceof HttpException &&
+      error.getStatus() === HttpStatus.NOT_FOUND;
+    if (isMissingSource) this.loggerService.warn(message, context);
+    else this.loggerService.error(message, context);
+  }
+
   async uploadToS3(
     key: string,
     type: string,
@@ -737,13 +745,7 @@ export class UploadService {
         stack?: string;
         message?: string;
       };
-      const isMissingSource =
-        error instanceof HttpException &&
-        error.getStatus() === HttpStatus.NOT_FOUND;
-      const logUploadFailure = isMissingSource
-        ? this.loggerService.warn.bind(this.loggerService)
-        : this.loggerService.error.bind(this.loggerService);
-      logUploadFailure(`${url} upload failed`, {
+      this.logFailure(`${url} upload failed`, error, {
         duration: `${totalDuration}ms`,
         error: (error as Error)?.message,
         key,

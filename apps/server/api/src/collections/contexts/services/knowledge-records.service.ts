@@ -344,29 +344,17 @@ export class KnowledgeRecordsService {
     }
   }
 
-  async getSource(actor: KnowledgeActor, id: string) {
+  async getSource(actor: KnowledgeActor, id: string, isArchived = false) {
     const source = await this.prisma.knowledgeSource.findFirst({
       where: {
         ...(await this.ownership(actor)),
         organizationId: actor.organizationId,
-        isDeleted: false,
+        isDeleted: isArchived,
         id,
       },
     });
     if (!source) ErrorResponse.notFound('Knowledge source', id);
     return source;
-  }
-
-  /** A source the actor owns that is already archived; null when it is not theirs or not archived. */
-  async findArchivedSource(actor: KnowledgeActor, id: string) {
-    return this.prisma.knowledgeSource.findFirst({
-      where: {
-        ...(await this.ownership(actor)),
-        organizationId: actor.organizationId,
-        isDeleted: true,
-        id,
-      },
-    });
   }
 
   async getSpace(actor: KnowledgeActor, id: string) {
