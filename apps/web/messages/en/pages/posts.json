@@ -122,6 +122,20 @@
           "prompt": "When should this {platform} post go out? Suggest the best time slots for my audience and explain why."
         }
       }
+    },
+    "unavailable": {
+      "description": "It may have been deleted, or you may not have access to it.",
+      "errorDescription": "Something went wrong while loading it. Your post is not affected.",
+      "errorTitle": "Couldn't load this post",
+      "title": "This post isn't available",
+      "tryAgain": "Try again"
+    },
+    "tiktokDelivery": {
+      "directAction": "Publish",
+      "directDescription": "Post it to your profile now.",
+      "inboxAction": "Deliver",
+      "inboxDescription": "Send it to your TikTok Inbox and finish it in the app.",
+      "title": "How should this reach TikTok?"
     }
   },
   "list": {

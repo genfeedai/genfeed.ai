@@ -1,6 +1,7 @@
 import type {
   GenerationBrandMode,
   GenerationBrandPaletteReceipt,
+  GenerationBrandReferencesReceipt,
   GenerationHarnessReceipt,
   GenerationHarnessSettings,
   UpdateGenerationHarnessSettings,
@@ -28,6 +29,10 @@ export interface GenerationHarnessReceiptProps {
 
 export interface GenerationBrandPaletteProofProps {
   palette: GenerationBrandPaletteReceipt;
+}
+
+export interface GenerationBrandReferencesNoteProps {
+  references: GenerationBrandReferencesReceipt;
 }
 
 export interface BrandModeBadgeProps {

@@ -206,17 +206,15 @@ export function buildPostsTableColumns({
         // Use static Badge for non-editable statuses (PENDING, PROCESSING, FAILED)
         const displayStatus =
           post.status === PostStatus.UNLISTED ? 'UNLISTED' : post.status;
-        return (
-          <div className="max-w-48">
-            <Badge status={post.status}>{displayStatus}</Badge>
-            {post.status === PostStatus.FAILED && post.targetError?.message && (
-              <SimpleTooltip label={post.targetError.message}>
-                <p className="mt-1 truncate text-xs text-destructive">
-                  {post.targetError.message}
-                </p>
-              </SimpleTooltip>
-            )}
-          </div>
+        const badge = <Badge status={post.status}>{displayStatus}</Badge>;
+        // The reason a post failed is the badge's tooltip, like any status.
+        return post.status === PostStatus.FAILED &&
+          post.targetError?.message ? (
+          <SimpleTooltip label={post.targetError.message}>
+            <span className="inline-flex">{badge}</span>
+          </SimpleTooltip>
+        ) : (
+          badge
         );
       },
     },

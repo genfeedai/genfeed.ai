@@ -3,7 +3,10 @@ import {
   toBrandGenerationReferences,
 } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
-import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrandDefaultReferences,
+  IBrandKitResolvedAssets,
+} from '@genfeedai/contracts/interfaces';
 
 export interface BrandDefaultReferenceReceipt {
   /** Brand reference assets attached because the caller attached none. */
@@ -51,5 +54,44 @@ export function resolveBrandDefaultReferences(params: {
   return {
     attachedAssetIds: references.map((reference) => reference.assetId),
     references,
+  };
+}
+
+/**
+ * What Studio shows before a generation: the references the rule above would
+ * attach for this model, with the preview each one needs.
+ */
+export function previewBrandDefaultReferences(params: {
+  brandKit: IBrandKitResolvedAssets;
+  modelKey: string;
+}): IBrandDefaultReferences {
+  const defaults = resolveBrandDefaultReferences({
+    brandKit: params.brandKit,
+    brandingMode: 'brand',
+    explicitReferenceIds: [],
+    modelKey: params.modelKey,
+  });
+  const assetById = new Map(
+    params.brandKit.references.map((asset) => [asset.id, asset]),
+  );
+  return {
+    references: defaults.references.flatMap((reference) => {
+      const asset = assetById.get(reference.assetId);
+      return asset
+        ? [
+            {
+              assetId: reference.assetId,
+              ...(reference.description
+                ? { label: reference.description }
+                : {}),
+              role: reference.role,
+              url: asset.url,
+            },
+          ]
+        : [];
+    }),
+    ...(defaults.skippedReason
+      ? { skippedReason: defaults.skippedReason }
+      : {}),
   };
 }
