@@ -83,27 +83,34 @@ export default function BrandDetailOverview({
         </BrandAvatar>
       </div>
 
-      <div className="min-w-0 self-start pt-1">
-        <EditableText
-          ariaLabel={t('editBrandName')}
-          className="mb-1"
-          displayClassName="text-2xl font-semibold sm:text-3xl"
-          isRequired
-          onSave={(value) => onUpdateBrand('label', value)}
-          value={brand.label}
-        />
-        {brand.slug && onUpdateHandle ? (
-          // The leading `@` is display only; the save normalizes it away.
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-3 self-start pt-1">
+        <div className="min-w-0 flex-1 basis-48">
           <EditableText
-            ariaLabel={t('editBrandHandle')}
-            displayClassName="text-sm text-muted-foreground"
+            ariaLabel={t('editBrandName')}
+            className="mb-1"
+            displayClassName="text-2xl font-semibold sm:text-3xl"
             isRequired
-            maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
-            onSave={onUpdateHandle}
-            value={`@${brand.slug}`}
+            onSave={(value) => onUpdateBrand('label', value)}
+            value={brand.label}
           />
-        ) : brand.slug ? (
-          <p className="text-sm text-muted-foreground">@{brand.slug}</p>
+          {brand.slug && onUpdateHandle ? (
+            // The leading `@` is display only; the save normalizes it away.
+            <EditableText
+              ariaLabel={t('editBrandHandle')}
+              displayClassName="text-sm text-muted-foreground"
+              isRequired
+              maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
+              onSave={onUpdateHandle}
+              value={`@${brand.slug}`}
+            />
+          ) : brand.slug ? (
+            <p className="text-sm text-muted-foreground">@{brand.slug}</p>
+          ) : null}
+        </div>
+        {visibility ? (
+          // The control sits on the header's right edge, beside the name; in a
+          // narrow column it wraps under it and takes the full width.
+          <div className="w-full min-w-0 sm:w-96 sm:max-w-full">{visibility}</div>
         ) : null}
       </div>
 
@@ -117,14 +124,6 @@ export default function BrandDetailOverview({
           value={brand.description}
         />
       </div>
-
-      {visibility ? (
-        // Full width, under the picture and text, so the control starts on
-        // the picture's left edge and has the whole row in a narrow panel.
-        <div className="col-span-2 min-w-0">
-          {visibility}
-        </div>
-      ) : null}
 
       {footer ? <div className="col-span-2 pt-1">{footer}</div> : null}
     </header>
