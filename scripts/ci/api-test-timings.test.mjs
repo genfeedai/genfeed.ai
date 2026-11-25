@@ -220,10 +220,18 @@ test('real Vitest sharding preserves the selected union, skips, retries and fail
       assert.equal(record.runtime.maxWorkers, 2);
       assert.deepEqual(record.shard, { index: shard, count: 2 });
       assert.equal(record.runtime.vitestVersion, INSTALLED_VITEST_VERSION);
-      assert.deepEqual(record.candidateFiles, Object.keys(sources).sort());
+      // Vitest 5.1 hands the reporter this shard's files; the union is the plan.
+      assert.deepEqual(
+        record.candidateFiles,
+        record.files.map((f) => f.file).sort(),
+      );
       records.push(record);
     }
     assert.deepEqual(exits.sort(), [0, 1]);
+    assert.deepEqual(
+      [...new Set(records.flatMap((r) => r.candidateFiles))].sort(),
+      Object.keys(sources).sort(),
+    );
     const files = records.flatMap((r) => r.files);
     assert.deepEqual(
       files.map((f) => f.file).sort(),
