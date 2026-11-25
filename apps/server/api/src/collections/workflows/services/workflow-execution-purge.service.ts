@@ -1,3 +1,4 @@
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -96,12 +97,13 @@ export class WorkflowExecutionPurgeService {
     );
     const purgeAt = new Date(now.getTime() + BACKGROUND_FAILURE_PURGE_MS);
 
-    const failed = await this.prisma.$transaction(async (transaction) => {
-      // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
-      await transaction.$executeRaw`SET LOCAL statement_timeout = '60s'`;
-      // tenant-scope-ignore: platform sweep closes abandoned runs across tenants; every row is selected by its own status and last write, never by caller input
-      // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk update bound to non-terminal status, updatedAt and a batch limit; no caller-supplied identifiers
-      return transaction.$executeRaw`
+    const failed = await retryTransactionStart(() =>
+      this.prisma.$transaction(async (transaction) => {
+        // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
+        await transaction.$executeRaw`SET LOCAL statement_timeout = '60s'`;
+        // tenant-scope-ignore: platform sweep closes abandoned runs across tenants; every row is selected by its own status and last write, never by caller input
+        // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk update bound to non-terminal status, updatedAt and a batch limit; no caller-supplied identifiers
+        return transaction.$executeRaw`
         WITH stale AS (
           SELECT execution."id"
           FROM "workflow_executions" AS execution
@@ -127,7 +129,8 @@ export class WorkflowExecutionPurgeService {
         FROM stale
         WHERE execution."id" = stale."id"
       `;
-    });
+      }),
+    );
 
     this.logger.log('Failed stale workflow executions', {
       context: this.context,
@@ -137,15 +140,16 @@ export class WorkflowExecutionPurgeService {
   }
 
   private async purgeBatch(now: Date, batchSize: number): Promise<number> {
-    return this.prisma.$transaction(
-      async (transaction) => {
-        // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
-        await transaction.$executeRaw`SET LOCAL lock_timeout = '10s'`;
-        // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
-        await transaction.$executeRaw`SET LOCAL statement_timeout = '120s'`;
-        // tenant-scope-ignore: platform purge sweeps expired runs across tenants; every row is selected by its own purgeAt, never by caller input
-        // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk delete bound to purgeAt, terminal status and the dependency guards below; no caller-supplied identifiers
-        return transaction.$executeRaw`
+    return retryTransactionStart(() =>
+      this.prisma.$transaction(
+        async (transaction) => {
+          // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
+          await transaction.$executeRaw`SET LOCAL lock_timeout = '10s'`;
+          // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
+          await transaction.$executeRaw`SET LOCAL statement_timeout = '120s'`;
+          // tenant-scope-ignore: platform purge sweeps expired runs across tenants; every row is selected by its own purgeAt, never by caller input
+          // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk delete bound to purgeAt, terminal status and the dependency guards below; no caller-supplied identifiers
+          return transaction.$executeRaw`
         WITH due AS (
           SELECT execution."id"
           FROM "workflow_executions" AS execution
@@ -182,11 +186,12 @@ export class WorkflowExecutionPurgeService {
         USING due
         WHERE execution."id" = due."id"
       `;
-      },
-      {
-        maxWait: PURGE_TRANSACTION_MAX_WAIT_MS,
-        timeout: PURGE_TRANSACTION_TIMEOUT_MS,
-      },
+        },
+        {
+          maxWait: PURGE_TRANSACTION_MAX_WAIT_MS,
+          timeout: PURGE_TRANSACTION_TIMEOUT_MS,
+        },
+      ),
     );
   }
 }
