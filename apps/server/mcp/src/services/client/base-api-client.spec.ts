@@ -217,6 +217,6 @@ describe('BaseApiClient failure report', () => {
       (error: unknown) => error,
     )) as McpUpstreamError;
 
-    expect(failure.report.causeCode).toBeUndefined();
+    expect(failure.report?.causeCode).toBeUndefined();
   });
 });
