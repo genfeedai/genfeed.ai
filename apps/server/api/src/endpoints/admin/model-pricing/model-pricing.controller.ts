@@ -2,8 +2,10 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AdminModelPricingService } from '@api/endpoints/admin/model-pricing/model-pricing.service';
 import { ProviderPriceSyncService } from '@api/endpoints/admin/model-pricing/provider-price-sync.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   PROVIDER_PRICE_SYNC_TASKS,
   type ProviderPriceSyncProvider,
@@ -107,6 +109,7 @@ export class AdminModelPricingController {
    * refreshed report.
    */
   @Post(':modelId/approve-rates')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async approveRates(
     @Req() request: Request,

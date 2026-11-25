@@ -1,4 +1,5 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 /**
  * Organizations Members Controller
  * Handles organization membership management:
@@ -35,7 +36,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import {
   MemberInvitationSerializer,
@@ -123,6 +124,7 @@ export class OrganizationsMembersController {
   }
 
   @Post(':organizationId/members')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(MemberCreditsGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async inviteMember(
@@ -170,6 +172,7 @@ export class OrganizationsMembersController {
   }
 
   @Patch(':organizationId/members/:memberId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMember(

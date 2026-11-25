@@ -5,7 +5,9 @@ import {
   adminCustomerInstanceInputSchema,
   adminCustomerInstanceReferenceSchema,
 } from '@api/endpoints/admin/customer-instances/admin-customer-instances.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
@@ -65,6 +67,7 @@ export class AdminCustomerInstancesController {
   }
 
   @Put(':reference')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 60, scope: 'user', windowMs: 60_000 })
   async upsert(
     @Param('organizationId') organizationId: string,
@@ -86,6 +89,7 @@ export class AdminCustomerInstancesController {
   }
 
   @Delete(':reference')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @RateLimit({ limit: 60, scope: 'user', windowMs: 60_000 })
   async remove(

@@ -11,10 +11,11 @@ import { UpdateMcpEnterpriseAuthDto } from '@api/collections/organizations/dto/u
 import { McpEnterpriseAuthConfigService } from '@api/collections/organizations/services/mcp-enterprise-auth-config.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { IMcpEnterpriseAuthSettings } from '@genfeedai/contracts/interfaces';
 import {
   Body,
@@ -71,6 +72,7 @@ export class OrganizationsMcpEnterpriseAuthController {
   }
 
   @Put(':organizationId/settings/mcp-enterprise-auth')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER])
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -87,6 +89,7 @@ export class OrganizationsMcpEnterpriseAuthController {
   }
 
   @Delete(':organizationId/settings/mcp-enterprise-auth')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER])
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })

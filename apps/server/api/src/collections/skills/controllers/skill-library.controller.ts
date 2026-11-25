@@ -11,6 +11,7 @@ import {
   SkillVersionListQueryDto,
 } from '@api/collections/skills/dto/skill-version-query.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -18,6 +19,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   SkillSerializer,
   SkillVersionMetadataSerializer,
@@ -103,6 +105,7 @@ export class SkillLibraryController {
   }
 
   @Post(':id/grants')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   grantSkill(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -112,6 +115,7 @@ export class SkillLibraryController {
   }
 
   @Post(':id/grants/:grantId/revoke')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   revokeGrant(
     @CurrentUser() user: User,
     @Param('id') id: string,

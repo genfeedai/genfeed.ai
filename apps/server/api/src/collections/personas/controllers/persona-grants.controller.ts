@@ -1,10 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GrantCharacterDto } from '@api/collections/personas/dto/grant-character.dto';
 import { PersonaGrantsService } from '@api/collections/personas/services/persona-grants.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   Body,
   Controller,
@@ -63,6 +65,7 @@ export class PersonaGrantsController {
   }
 
   @Post(':id/grants')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async grant(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -83,6 +86,7 @@ export class PersonaGrantsController {
   }
 
   @Delete(':id/grants/:grantId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async revokeGrant(
     @CurrentUser() user: User,
     @Param('id') id: string,

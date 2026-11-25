@@ -1,7 +1,9 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AdminCommunityService } from '@api/endpoints/admin/community/community.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { IAdminCommunityOverviewResponse } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
@@ -56,6 +58,7 @@ export class AdminCommunityController {
   }
 
   @Put('creators/:brandId/featured')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Feature a creator on community' })
   async featureCreator(
     @Param('organizationId') organizationId: string,
@@ -72,6 +75,7 @@ export class AdminCommunityController {
   }
 
   @Delete('creators/:brandId/featured')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Stop featuring a creator on community' })
   async unfeatureCreator(
     @Param('organizationId') organizationId: string,
@@ -88,6 +92,7 @@ export class AdminCommunityController {
   }
 
   @Delete('creators/:brandId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: "Take a creator's public profile off genfeed.ai" })
   async unpublishCreator(
     @Param('organizationId') organizationId: string,
@@ -103,6 +108,7 @@ export class AdminCommunityController {
   }
 
   @Put('media/:ingredientId/featured')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Feature a public image or video on community' })
   async featureMedia(
     @Param('organizationId') organizationId: string,
@@ -119,6 +125,7 @@ export class AdminCommunityController {
   }
 
   @Delete('media/:ingredientId/featured')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Stop featuring an image or video on community' })
   async unfeatureMedia(
     @Param('organizationId') organizationId: string,
@@ -135,6 +142,7 @@ export class AdminCommunityController {
   }
 
   @Delete('media/:ingredientId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Take an image or video off community' })
   async unpublishMedia(
     @Param('organizationId') organizationId: string,
