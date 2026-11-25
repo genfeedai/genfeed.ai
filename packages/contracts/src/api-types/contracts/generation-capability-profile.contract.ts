@@ -494,7 +494,7 @@ export type Seedream4CapabilityProfile = z.infer<
   typeof seedream4CapabilityProfileSchema
 >;
 
-export const SEEDREAM_4_CAPABILITY_PROFILE_VERSION = 1;
+export const SEEDREAM_4_CAPABILITY_PROFILE_VERSION = 2;
 export const SEEDREAM_ASPECT_RATIOS = [
   '1:1',
   '16:9',
@@ -527,7 +527,7 @@ export const SEEDREAM_4_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: imageReferences(10, ['image_input']),
+    references: imageReferences(10, ['image_input'], true),
     resolution: { supported: false },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -548,7 +548,7 @@ export type Seedream45CapabilityProfile = z.infer<
   typeof seedream45CapabilityProfileSchema
 >;
 
-export const SEEDREAM_4_5_CAPABILITY_PROFILE_VERSION = 1;
+export const SEEDREAM_4_5_CAPABILITY_PROFILE_VERSION = 2;
 
 function buildSeedream45CapabilityProfile(
   id: string,
@@ -573,7 +573,7 @@ function buildSeedream45CapabilityProfile(
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: imageReferences(14, ['image_input']),
+    references: imageReferences(14, ['image_input'], true),
     resolution: { supported: false },
     seed: { supported: false },
     textRendering: 'prompt_only',
@@ -614,7 +614,7 @@ export type Seedream5ProCapabilityProfile = z.infer<
   typeof seedream5ProCapabilityProfileSchema
 >;
 
-export const SEEDREAM_5_PRO_CAPABILITY_PROFILE_VERSION = 1;
+export const SEEDREAM_5_PRO_CAPABILITY_PROFILE_VERSION = 2;
 export const SEEDREAM_5_PRO_CAPABILITY_PROFILE_ID = 'seedream-5-pro-capability';
 export const SEEDREAM_5_PRO_MODEL_KEY = 'bytedance/seedream-5-pro';
 export const SEEDREAM_5_PRO_CAPABILITY_PROFILE =
@@ -637,7 +637,7 @@ export const SEEDREAM_5_PRO_CAPABILITY_PROFILE =
       format: 'natural_language',
       maxCharacters: 10_000,
     },
-    references: imageReferences(10, ['image_input']),
+    references: imageReferences(10, ['image_input'], true),
     resolution: { supported: true },
     seed: { supported: false },
     textRendering: 'prompt_only',
