@@ -8,6 +8,7 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PostLifecycleService } from '@api/index';
 import { BrandedPublishHoldException } from '@api/services/branded-text-generation/branded-publish-hold.service';
@@ -25,7 +26,7 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/contracts';
-import type { ConfigService } from '@libs/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -129,6 +130,8 @@ type MockPostTarget = {
 
 describe('PostGroupsService', () => {
   let service: PostGroupsService;
+  let paidAccess: { isSubscriptionGatedFresh: ReturnType<typeof vi.fn> };
+  let credits: { checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn> };
   let postLifecycleService: { transition: ReturnType<typeof vi.fn> };
   let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let publishApprovalsService: {
@@ -216,6 +219,10 @@ describe('PostGroupsService', () => {
         update: vi.fn().mockResolvedValue(undefined),
       },
     };
+    paidAccess = { isSubscriptionGatedFresh: vi.fn().mockResolvedValue(false) };
+    credits = {
+      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+    };
     postPublishQueueService = {
       enqueue: vi.fn().mockResolvedValue('target-1'),
     };
@@ -251,6 +258,22 @@ describe('PostGroupsService', () => {
         {
           provide: PublishingProviderSetupService,
           useValue: buildFullyConfiguredSetupService(),
+        },
+        {
+          provide: XPostingBillingGate,
+          useValue: new XPostingBillingGate(
+            paidAccess as never,
+            credits as never,
+          ),
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) =>
+              key === 'GENFEEDAI_APP_URL'
+                ? 'https://app.genfeed.ai'
+                : undefined,
+          },
         },
         {
           provide: PrismaService,
@@ -1384,6 +1407,111 @@ describe('PostGroupsService', () => {
       versionPinId: 'pin-1',
     });
     expect(result.targets?.[0]?.id).toBe('target-1');
+  });
+
+  describe('posting to X without paying for it', () => {
+    function stageDraftXRelease(baseContent = 'Launch note for X'): void {
+      prisma.postGroup.findFirst.mockResolvedValue(
+        makeGroup({
+          baseContent,
+          id: 'group-1',
+          status: ReleaseStatus.DRAFT,
+        }),
+      );
+      prisma.post.findMany.mockResolvedValue([
+        makeTarget({
+          groupId: 'group-1',
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+      ]);
+    }
+
+    it('refuses publish-now on the free plan with the code and the plans link, and queues nothing', async () => {
+      stageDraftXRelease();
+      paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
+
+      await expect(
+        service.publishNow('org-1', 'user-1', 'group-1'),
+      ).rejects.toMatchObject({
+        status: 402,
+        response: expect.objectContaining({
+          code: 'x_posting_requires_paid_plan',
+          detail:
+            'Posting to X needs a paid plan. Choose a plan to publish to X: https://app.genfeed.ai/settings/subscription',
+          meta: { upgradeUrl: 'https://app.genfeed.ai/settings/subscription' },
+        }),
+      });
+
+      expect(postLifecycleService.transition).not.toHaveBeenCalled();
+      expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('refuses publish-now when the wallet cannot cover the post, priced at the link cost', async () => {
+      stageDraftXRelease('New drop https://genfeed.ai/drop');
+      credits.checkOrganizationCreditsAvailable.mockResolvedValue(false);
+
+      await expect(
+        service.publishNow('org-1', 'user-1', 'group-1'),
+      ).rejects.toMatchObject({
+        status: 402,
+        response: expect.objectContaining({
+          code: 'x_posting_insufficient_credits',
+          meta: {
+            requiredCredits: 30,
+            upgradeUrl: 'https://app.genfeed.ai/settings/credits',
+          },
+        }),
+      });
+
+      expect(credits.checkOrganizationCreditsAvailable).toHaveBeenCalledWith(
+        'org-1',
+        30,
+      );
+      expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('refuses to schedule an X release on the free plan before anything is written', async () => {
+      paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
+
+      await expect(
+        service.create('org-1', 'user-1', {
+          baseContent: 'Launch note for X',
+          brandId: 'brand-1',
+          scheduledDate: '2026-07-09T12:00:00.000Z',
+          targets: [
+            { credentialId: 'cred-x', platform: CredentialPlatform.TWITTER },
+          ],
+          timezone: 'UTC',
+          title: 'Launch note',
+        }),
+      ).rejects.toMatchObject({
+        status: 402,
+        response: expect.objectContaining({
+          code: 'x_posting_requires_paid_plan',
+        }),
+      });
+
+      expect(prisma.postGroup.create).not.toHaveBeenCalled();
+      expect(prisma.post.create).not.toHaveBeenCalled();
+    });
+
+    it('schedules an X release for later without reading the wallet', async () => {
+      await service.create('org-1', 'user-1', {
+        baseContent: 'Launch note for X',
+        brandId: 'brand-1',
+        scheduledDate: '2026-07-09T12:00:00.000Z',
+        targets: [
+          { credentialId: 'cred-x', platform: CredentialPlatform.TWITTER },
+        ],
+        timezone: 'UTC',
+        title: 'Launch note',
+      });
+
+      expect(paidAccess.isSubscriptionGatedFresh).toHaveBeenCalledWith('org-1');
+      expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
+      expect(prisma.postGroup.create).toHaveBeenCalled();
+    });
   });
 
   it('rejects a publish-now release whose channel credential cannot publish', async () => {

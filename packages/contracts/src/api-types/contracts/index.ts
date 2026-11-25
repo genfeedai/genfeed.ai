@@ -108,5 +108,6 @@ export * from './webhook-events.contract';
 export * from './webhook-events.shared';
 export * from './workflow-generation.contract';
 export * from './workflow-webhook-events.contract';
+export * from './x-posting-billing.contract';
 export * from './x-quote-post.contract';
 export * from './youtube-authorized-signals.contract';

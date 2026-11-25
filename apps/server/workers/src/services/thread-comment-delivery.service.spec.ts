@@ -1,3 +1,4 @@
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -55,9 +56,13 @@ function createService(mocks: Mocks): ThreadCommentDeliveryService {
     mocks.sweepLock as never,
     new ScheduledPostXBilling(
       mocks.logger as never,
-      mocks.paidAccess as never,
+      new XPostingBillingGate(
+        mocks.paidAccess as never,
+        mocks.credits as never,
+      ),
       mocks.credits as never,
       mocks.prisma as never,
+      { get: () => 'https://app.genfeed.ai' } as never,
     ),
   );
 }

@@ -337,6 +337,14 @@
     "schedule": "Schedule",
     "targets": "Targets",
     "untitledPost": "Post detail",
+    "xPostingBilling": {
+      "creditsAction": "Buy credits",
+      "creditsDescription": "Your credits cannot cover this post. X charges for every post, so each one costs credits, and a post with a link costs more. Buy credits and publish it again.",
+      "creditsTitle": "Not enough credits to post to X",
+      "planAction": "Choose a plan",
+      "planDescription": "X charges for every post, so posting to X is on paid plans. Choose a plan to publish this post, then publish it again.",
+      "planTitle": "Posting to X needs a paid plan"
+    },
     "channelCount": "{count, plural, one {# channel} other {# channels}}",
     "details": {
       "failed": "Failed",

@@ -402,6 +402,7 @@ describe('schedulePostGroupTarget legacy group ids', () => {
       } as unknown as PublishApprovalsService,
       readinessService: {
         assertSchedulable: vi.fn(),
+        assertXPostingAllowed: vi.fn().mockResolvedValue(undefined),
         resolveForCredentials: vi.fn().mockResolvedValue(new Map()),
       } as unknown as PostGroupReadinessService,
       scheduledPostWorkflowQueue: {} as ScheduledPostWorkflowQueueService,

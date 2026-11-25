@@ -1,7 +1,13 @@
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { SchedulerTx } from '@api/collections/post-groups/services/post-group.types';
+import {
+  isXPlatform,
+  XPostingBillingGate,
+} from '@api/common/subscriptions/x-posting-billing-gate.service';
+import { XPostingBillingException } from '@api/exceptions/business-logic.exception';
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -10,12 +16,46 @@ export type SchedulerReadinessTarget = {
   platform: string;
 };
 
+const DEFAULT_APP_URL = 'https://app.genfeed.ai';
+
 @Traced()
 @Injectable()
 export class PostGroupReadinessService {
   constructor(
     private readonly readinessService: CredentialPublishingReadinessService,
+    private readonly xPostingGate: XPostingBillingGate,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Refuses an X target the organization cannot pay for, while the caller is
+   * still on the request: the free plan cannot post to X, and a post sent now
+   * needs the credits it costs. Without this the request answers 200 and the
+   * worker fails the post later, where a script never looks.
+   *
+   * `includeCredits` is for a post sent now; a scheduled one is checked for the
+   * plan only, because the wallet is read again when it is sent.
+   */
+  async assertXPostingAllowed(
+    organizationId: string,
+    targets: ReadonlyArray<{ platform: unknown }>,
+    options: { includeCredits: boolean; text: string | null | undefined },
+  ): Promise<void> {
+    const xTarget = targets.find((target) => isXPlatform(target.platform));
+    if (!xTarget) {
+      return;
+    }
+    const refusal = await this.xPostingGate.check({
+      appUrl: this.configService.get('GENFEEDAI_APP_URL') ?? DEFAULT_APP_URL,
+      includeCredits: options.includeCredits,
+      organizationId,
+      platform: xTarget.platform,
+      text: options.text,
+    });
+    if (refusal) {
+      throw new XPostingBillingException(refusal);
+    }
+  }
 
   /**
    * Readiness for every credential backing a channel target, resolved inside

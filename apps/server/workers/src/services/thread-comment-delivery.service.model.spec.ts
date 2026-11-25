@@ -1,3 +1,4 @@
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   explore,
@@ -283,12 +284,16 @@ function realService(sim: Simulation, world: World): Sweep {
     lock,
     new ScheduledPostXBilling(
       logger,
-      { isSubscriptionGatedFresh: async () => false } as never,
+      new XPostingBillingGate(
+        { isSubscriptionGatedFresh: async () => false } as never,
+        { checkOrganizationCreditsAvailable: async () => true } as never,
+      ),
       {
         checkOrganizationCreditsAvailable: async () => true,
         deductCreditsFromOrganization: async () => undefined,
       } as never,
       prismaDouble(sim, world) as never,
+      { get: () => 'https://app.genfeed.ai' } as never,
     ),
   );
   return () => service.publishDueThreadComments();

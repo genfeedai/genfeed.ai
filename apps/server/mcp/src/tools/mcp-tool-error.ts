@@ -4,6 +4,10 @@ import {
   McpToolInputError,
 } from '@genfeedai/actions';
 import {
+  X_POSTING_INSUFFICIENT_CREDITS_CODE,
+  X_POSTING_REQUIRES_PAID_PLAN_CODE,
+} from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
+import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
@@ -609,8 +613,20 @@ export function classifyMcpToolFailure(
     });
   }
 
+  // Posting to X is refused on the request, so an agent learns it before it
+  // reports a post as sent. The API's message already names the link; the
+  // next step URL is the same page.
+  if (domainCode === X_POSTING_REQUIRES_PAID_PLAN_CODE) {
+    return compactToolError({
+      code: 'plan_required',
+      message: message || 'Posting to X needs a paid plan.',
+      nextStepUrl: nextStepUrl('plan_required'),
+    });
+  }
+
   if (
     domainCode === 'INSUFFICIENT_CREDITS' ||
+    domainCode === X_POSTING_INSUFFICIENT_CREDITS_CODE ||
     status === 402 ||
     CREDIT_MESSAGE.test(text)
   ) {

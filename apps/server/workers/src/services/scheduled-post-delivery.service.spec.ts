@@ -3,6 +3,7 @@ import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowSource,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   type IPublisher,
@@ -215,9 +216,10 @@ function createDeliveryService(mocks: DeliveryMocks) {
   );
   const xBilling = new ScheduledPostXBilling(
     mocks.logger as never,
-    mocks.paidAccess as never,
+    new XPostingBillingGate(mocks.paidAccess as never, mocks.credits as never),
     mocks.credits as never,
     mocks.prisma as never,
+    { get: () => 'https://app.genfeed.ai' } as never,
   );
   const followUps = new ScheduledPostPublishFollowUps(
     mocks.logger as never,
@@ -542,6 +544,9 @@ describe('ScheduledPostDeliveryService', () => {
       expect(publish).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
       expect(result.error).toContain('paid plan');
+      expect(result.error).toContain(
+        'https://app.genfeed.ai/settings/subscription',
+      );
       expect(
         mocks.credits.deductCreditsFromOrganization,
       ).not.toHaveBeenCalled();
@@ -560,6 +565,7 @@ describe('ScheduledPostDeliveryService', () => {
       expect(publish).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
       expect(result.error).toContain('Not enough credits');
+      expect(result.error).toContain('https://app.genfeed.ai/settings/credits');
       expect(
         mocks.credits.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith('org-1', 3);

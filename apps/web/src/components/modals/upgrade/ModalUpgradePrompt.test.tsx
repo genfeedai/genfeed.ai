@@ -17,6 +17,13 @@ vi.mock('next-intl', async () => {
           seePlans: 'See plans',
           title: 'Not enough credits',
         },
+        xPostingBillingPrompt: {
+          body: 'Posting to X is on paid plans, and each post costs credits. Your post is saved.',
+          buyCredits: 'Buy credits',
+          heading: 'X charges for every post, so we cannot send this one yet',
+          seePlans: 'See plans',
+          title: 'Posting to X needs a plan and credits',
+        },
         upgradePrompt: {
           notNow: 'Not now',
           perMonth: '/mo',
@@ -97,6 +104,28 @@ describe('ModalUpgradePrompt', () => {
     fireEvent.click(screen.getByRole('button', { name: 'See plans' }));
     expect(window.location.href).toBe(
       'https://app.test/acme/~/settings/subscription',
+    );
+  });
+
+  it('explains an X post refusal and offers the plans and credits pages', () => {
+    render(<ModalUpgradePrompt reason="x-posting" />);
+
+    const prompt = screen.getByTestId(ModalEnum.X_POSTING_BILLING);
+    expect(prompt).toHaveTextContent('Posting to X needs a plan and credits');
+    expect(prompt).toHaveTextContent('Your post is saved');
+
+    fireEvent.click(screen.getByRole('button', { name: /See plans/ }));
+    expect(window.location.href).toBe(
+      'https://app.test/acme/~/settings/subscription',
+    );
+  });
+
+  it('sends the X posting prompt to the credits page from its second button', () => {
+    render(<ModalUpgradePrompt reason="x-posting" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buy credits' }));
+    expect(window.location.href).toBe(
+      'https://app.test/acme/~/settings/credits',
     );
   });
 

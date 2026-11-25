@@ -227,6 +227,13 @@ export class PostGroupPersistenceService {
       }
       return validation;
     });
+    if (!isDraft) {
+      await this.readinessService.assertXPostingAllowed(
+        params.organizationId,
+        params.input.targets,
+        { includeCredits: false, text: params.input.baseContent },
+      );
+    }
     const transition = this.contractService.buildTransition(
       null,
       params.status,
