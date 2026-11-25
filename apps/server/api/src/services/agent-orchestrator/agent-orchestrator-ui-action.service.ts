@@ -393,7 +393,11 @@ export class AgentOrchestratorUiActionService {
     // lock is enforced here for the same reason.
     return this.agentModelAccess.enforceModel(
       organizationId,
-      await this.agentChatModelRegistry.resolveModelKey(binding?.model),
+      await this.agentChatModelRegistry.resolveModelKey(
+        binding?.model,
+        undefined,
+        organizationId,
+      ),
     );
   }
 }

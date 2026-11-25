@@ -721,7 +721,10 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT,
     );
 
-    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(null);
+    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(
+      null,
+      'organization-1',
+    );
     expect(registry.resolveModelKey).not.toHaveBeenCalled();
     expect(result.model).toBe('resolved-model');
   });
@@ -734,7 +737,10 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT,
     );
 
-    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(null);
+    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(
+      null,
+      'organization-1',
+    );
     expect(registry.resolveModelKey).not.toHaveBeenCalled();
   });
 
@@ -754,6 +760,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
     // unknown key against the provider (#5228).
     expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(
       'thinking-model',
+      'organization-1',
     );
     expect(registry.resolveModelKey).not.toHaveBeenCalled();
   });
@@ -769,7 +776,11 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       { ...CONTEXT, strategyId: testId('strategy') },
     );
 
-    expect(registry.resolveModelKey).toHaveBeenCalledWith('strategy-model');
+    expect(registry.resolveModelKey).toHaveBeenCalledWith(
+      'strategy-model',
+      undefined,
+      'organization-1',
+    );
     expect(registry.resolveOverrideModelKey).not.toHaveBeenCalled();
   });
 });

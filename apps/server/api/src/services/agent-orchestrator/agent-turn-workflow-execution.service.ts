@@ -492,7 +492,10 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     const turnCost =
       request.agentType === AgentType.BRAND_INTERVIEW
         ? 0
-        : await this.agentChatModelRegistry.getRoundCredits(model);
+        : await this.agentChatModelRegistry.getRoundCredits(
+            model,
+            state.organizationId,
+          );
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         state.organizationId,

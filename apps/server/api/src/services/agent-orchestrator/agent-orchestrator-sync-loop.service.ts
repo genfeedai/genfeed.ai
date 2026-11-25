@@ -398,7 +398,10 @@ export class AgentOrchestratorSyncLoopService {
     const maximumRoundCredits =
       terminalContent || turnCost === 0
         ? 0
-        : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+        : await this.agentChatModelRegistry.getMaximumRoundCredits(
+            model,
+            context.organizationId,
+          );
     if (!terminalContent)
       assertAgentCreditBudget(
         context,

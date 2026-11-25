@@ -9,6 +9,7 @@
 import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_CAPABILITY,
@@ -50,6 +51,8 @@ const CACHE_TTL_MS = 30_000;
 
 export interface AgentRoundPricingInput extends AgentTokenUsage {
   requestedModel: string;
+  /** Organization whose own text models may price this round. */
+  organizationId?: string | null;
   /** Model that answered, normalized to its registry key when known. */
   responseModel?: string;
 }
@@ -91,6 +94,67 @@ function toDomainLifecycle(value: string): ModelLifecycle {
   }
 }
 
+const MAX_ORG_MODELS = 100;
+const MAX_CACHED_ORGS = 500;
+const EMPTY_ROWS: ReadonlyMap<string, AgentChatRegistryRow> = new Map();
+
+const AGENT_CHAT_ROW_FILTER = [
+  { capabilities: { has: AGENT_CHAT_CAPABILITY } },
+  { recommendedFor: { has: AGENT_CHAT_CAPABILITY } },
+];
+
+const REGISTRY_ROW_SELECT = {
+  cost: true,
+  isActive: true,
+  isDefault: true,
+  isDiscovered: true,
+  inputCostPerMillionTokens: true,
+  isFree: true,
+  key: true,
+  label: true,
+  outputCostPerMillionTokens: true,
+  provider: true,
+  lifecycle: true,
+  reviewStatus: true,
+  supportsFeatures: true,
+} as const;
+
+interface StoredRegistryRow {
+  cost: number;
+  isActive: boolean;
+  isDefault: boolean;
+  isDiscovered: boolean;
+  inputCostPerMillionTokens: number | null;
+  isFree: boolean;
+  key: string;
+  label: string;
+  outputCostPerMillionTokens: number | null;
+  provider: string;
+  lifecycle: string;
+  reviewStatus: string | null;
+  supportsFeatures: string[];
+}
+
+function toRegistryRow(row: StoredRegistryRow): AgentChatRegistryRow {
+  return {
+    cost: row.cost,
+    isActive: row.isActive,
+    isDefault: row.isDefault,
+    isDiscovered: row.isDiscovered,
+    isFree: row.isFree,
+    isReasoning: row.supportsFeatures.includes(REASONING_FEATURE),
+    key: row.key,
+    label: row.label,
+    pricing: toRowPricing(
+      row.inputCostPerMillionTokens,
+      row.outputCostPerMillionTokens,
+    ),
+    provider: row.provider,
+    lifecycle: toDomainLifecycle(row.lifecycle),
+    reviewStatus: row.reviewStatus,
+  };
+}
+
 @Traced()
 @Injectable()
 export class AgentChatModelRegistryService
@@ -100,6 +164,10 @@ export class AgentChatModelRegistryService
   private byKey = new Map<string, AgentChatRegistryRow>();
   private loadedAt = 0;
   private loadPromise: Promise<void> | null = null;
+  private readonly orgCache = new Map<
+    string,
+    { loadedAt: number; rows: ReadonlyMap<string, AgentChatRegistryRow> }
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -118,52 +186,19 @@ export class AgentChatModelRegistryService
       async () =>
         // tenant-scope-ignore: platform-wide model registry (organizationId null)
         await this.prisma.model.findMany({
-          select: {
-            cost: true,
-            isActive: true,
-            isDefault: true,
-            isDiscovered: true,
-            inputCostPerMillionTokens: true,
-            isFree: true,
-            key: true,
-            label: true,
-            outputCostPerMillionTokens: true,
-            provider: true,
-            lifecycle: true,
-            reviewStatus: true,
-            supportsFeatures: true,
-          },
+          select: REGISTRY_ROW_SELECT,
           where: {
             category: ModelCategory.TEXT,
             isDeleted: false,
             organizationId: null,
-            OR: [
-              { capabilities: { has: AGENT_CHAT_CAPABILITY } },
-              { recommendedFor: { has: AGENT_CHAT_CAPABILITY } },
-            ],
+            OR: AGENT_CHAT_ROW_FILTER,
           },
         }),
     );
 
     const next = new Map<string, AgentChatRegistryRow>();
     for (const row of rows) {
-      next.set(row.key, {
-        cost: row.cost,
-        isActive: row.isActive,
-        isDefault: row.isDefault,
-        isDiscovered: row.isDiscovered,
-        isFree: row.isFree,
-        isReasoning: row.supportsFeatures.includes(REASONING_FEATURE),
-        key: row.key,
-        label: row.label,
-        pricing: toRowPricing(
-          row.inputCostPerMillionTokens,
-          row.outputCostPerMillionTokens,
-        ),
-        provider: row.provider,
-        lifecycle: toDomainLifecycle(row.lifecycle),
-        reviewStatus: row.reviewStatus,
-      });
+      next.set(row.key, toRegistryRow(row));
     }
 
     this.byKey = next;
@@ -175,6 +210,63 @@ export class AgentChatModelRegistryService
         this.context,
       );
     }
+  }
+
+  /**
+   * The text models attached to one organization. They are read for that
+   * organization only (`scopedWhere`), cached for a short while per
+   * organization, and never merged into the platform map, so one tenant's row
+   * can never be seen, resolved or priced for another.
+   *
+   * Model keys are globally unique, so an organization row can never shadow a
+   * platform row.
+   */
+  private async orgRowsFor(
+    organizationId?: string | null,
+  ): Promise<ReadonlyMap<string, AgentChatRegistryRow>> {
+    const orgId = organizationId?.trim();
+    if (!orgId) {
+      return EMPTY_ROWS;
+    }
+
+    const cached = this.orgCache.get(orgId);
+    if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) {
+      return cached.rows;
+    }
+
+    const rows = await this.prisma.model.findMany({
+      orderBy: { key: 'asc' },
+      select: REGISTRY_ROW_SELECT,
+      take: MAX_ORG_MODELS,
+      where: scopedWhere(orgId, {
+        category: ModelCategory.TEXT,
+        OR: AGENT_CHAT_ROW_FILTER,
+      }),
+    });
+
+    const next = new Map<string, AgentChatRegistryRow>();
+    for (const row of rows) {
+      next.set(row.key, toRegistryRow(row));
+    }
+
+    if (this.orgCache.size >= MAX_CACHED_ORGS) {
+      const oldest = this.orgCache.keys().next().value;
+      if (oldest !== undefined) {
+        this.orgCache.delete(oldest);
+      }
+    }
+    this.orgCache.set(orgId, { loadedAt: Date.now(), rows: next });
+    return next;
+  }
+
+  /** The row for a key as one organization sees it: its own, else the platform's. */
+  private async rowFor(
+    key: string,
+    organizationId?: string | null,
+  ): Promise<AgentChatRegistryRow | undefined> {
+    return (
+      this.byKey.get(key) ?? (await this.orgRowsFor(organizationId)).get(key)
+    );
   }
 
   private async ensureFresh(): Promise<void> {
@@ -202,10 +294,16 @@ export class AgentChatModelRegistryService
     return row.isActive && row.lifecycle !== ModelLifecycle.RETIRED;
   }
 
-  /** Explicit picker rows: Recommended, Available, and Legacy. */
-  async listSelectable(): Promise<AgentChatRegistryRow[]> {
+  /**
+   * Explicit picker rows: Recommended, Available, and Legacy. With an
+   * organization, its own text models are listed beside the platform's.
+   */
+  async listSelectable(
+    organizationId?: string | null,
+  ): Promise<AgentChatRegistryRow[]> {
     await this.ensureFresh();
-    return [...this.byKey.values()]
+    const orgRows = await this.orgRowsFor(organizationId);
+    return [...this.byKey.values(), ...orgRows.values()]
       .filter((row) => this.isSelectableRow(row))
       .sort((left, right) => {
         if (left.cost !== right.cost) {
@@ -291,6 +389,7 @@ export class AgentChatModelRegistryService
   async resolveModelKey(
     key?: string | null,
     fallbackKey?: string,
+    organizationId?: string | null,
   ): Promise<string> {
     await this.ensureFresh();
     const trimmed = key?.trim();
@@ -298,12 +397,15 @@ export class AgentChatModelRegistryService
       return this.getDefaultModelKey(fallbackKey);
     }
 
-    this.assertNotRetired(trimmed);
+    await this.assertNotRetired(trimmed, organizationId);
     return trimmed;
   }
 
-  private assertNotRetired(key: string): void {
-    const row = this.byKey.get(key);
+  private async assertNotRetired(
+    key: string,
+    organizationId?: string | null,
+  ): Promise<void> {
+    const row = await this.rowFor(key, organizationId);
     if (row?.lifecycle === ModelLifecycle.RETIRED) {
       throw new RetiredModelException(key, row.label);
     }
@@ -323,15 +425,18 @@ export class AgentChatModelRegistryService
    * model is an explicit choice that can no longer run, so it throws
    * {@link RetiredModelException} instead of falling back.
    */
-  async resolveOverrideModelKey(overrideKey?: string | null): Promise<string> {
+  async resolveOverrideModelKey(
+    overrideKey?: string | null,
+    organizationId?: string | null,
+  ): Promise<string> {
     await this.ensureFresh();
     const trimmed = overrideKey?.trim();
     if (!trimmed) {
       return this.getDefaultModelKey();
     }
 
-    this.assertNotRetired(trimmed);
-    const row = this.byKey.get(trimmed);
+    await this.assertNotRetired(trimmed, organizationId);
+    const row = await this.rowFor(trimmed, organizationId);
     if (row && this.isSelectableRow(row)) {
       return trimmed;
     }
@@ -347,10 +452,13 @@ export class AgentChatModelRegistryService
    * Credits for one LLM round on `key`. A key the registry does not know bills
    * at {@link getFallbackRoundCredits} — never below a catalogued model.
    */
-  async getRoundCredits(key?: string | null): Promise<number> {
+  async getRoundCredits(
+    key?: string | null,
+    organizationId?: string | null,
+  ): Promise<number> {
     await this.ensureFresh();
-    const resolved = await this.resolveModelKey(key);
-    const row = this.byKey.get(resolved);
+    const resolved = await this.resolveModelKey(key, undefined, organizationId);
+    const row = await this.rowFor(resolved, organizationId);
     if (row) {
       return Math.max(0, Math.round(row.cost));
     }
@@ -375,8 +483,8 @@ export class AgentChatModelRegistryService
       input.responseModel,
     );
     const pricing =
-      (await this.resolvePricing(responseModel)) ??
-      (await this.resolvePricing(input.requestedModel)) ??
+      (await this.resolvePricing(responseModel, input.organizationId)) ??
+      (await this.resolvePricing(input.requestedModel, input.organizationId)) ??
       this.getFallbackPricing();
     return calculateAgentProviderCostUsd(pricing, input);
   }
@@ -393,8 +501,10 @@ export class AgentChatModelRegistryService
    * "≈ credits per message" for every selectable model, from the average
    * message token footprint at the live agent-chat margin. Display only.
    */
-  async getMessageCostEstimatesMap(): Promise<Record<string, number>> {
-    const selectable = await this.listSelectable();
+  async getMessageCostEstimatesMap(
+    organizationId?: string | null,
+  ): Promise<Record<string, number>> {
+    const selectable = await this.listSelectable(organizationId);
     const marginMultiplier = getRuntimeAgentChatMarginMultiplier();
     return Object.fromEntries(
       selectable.map((row) => {
@@ -415,12 +525,13 @@ export class AgentChatModelRegistryService
 
   private async resolvePricing(
     key?: string | null,
+    organizationId?: string | null,
   ): Promise<AgentChatModelPricing | null> {
     if (!key?.trim()) {
       return null;
     }
     const trimmed = key.trim();
-    const row = this.byKey.get(trimmed);
+    const row = await this.rowFor(trimmed, organizationId);
     if (row) {
       return this.pricingForRow(row);
     }
@@ -468,9 +579,12 @@ export class AgentChatModelRegistryService
   }
 
   /** Maximum hold before a round. Dynamic routes reserve their paid fallback. */
-  async getMaximumRoundCredits(key?: string | null): Promise<number> {
+  async getMaximumRoundCredits(
+    key?: string | null,
+    organizationId?: string | null,
+  ): Promise<number> {
     await this.ensureFresh();
-    const resolved = await this.resolveModelKey(key);
+    const resolved = await this.resolveModelKey(key, undefined, organizationId);
     if (resolved === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO) {
       const autoRow = this.byKey.get(resolved);
       const candidates = [...this.byKey.values()].filter((row) =>
@@ -485,7 +599,7 @@ export class AgentChatModelRegistryService
     if (resolved === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
       return this.getRoundCredits(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH);
     }
-    return this.getRoundCredits(resolved);
+    return this.getRoundCredits(resolved, organizationId);
   }
 
   async getAutoAllowedModelKeys(): Promise<string[]> {
