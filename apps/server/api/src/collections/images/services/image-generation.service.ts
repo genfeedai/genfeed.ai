@@ -22,6 +22,7 @@ import {
 } from '@api/collections/images/services/image-generation-persistence.util';
 import { buildImageQuoteProviderInput } from '@api/collections/images/services/image-generation-prompt-settings.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { resolveImageReferenceInputs } from '@api/collections/images/services/image-generation-reference-inputs.util';
 import {
   type ImageGenerationSettingsParams,
   type ImageGenerationSettingsResult,
@@ -286,6 +287,7 @@ export class ImageGenerationService {
     );
     if (accepted) return accepted;
     const {
+      brandReferences,
       referenceIds,
       referenceImageUrls,
       generationHarness,
@@ -327,7 +329,7 @@ export class ImageGenerationService {
           grantedAvatarOwners,
           organizationId: user.organizationId,
           referenceIds,
-          runReferences,
+          runReferences: runReferences ?? brandReferences,
           style,
           width,
         });
@@ -883,20 +885,6 @@ export class ImageGenerationService {
       : (admission?.personaId ?? null);
     const grantedAvatarOwners = admission?.grantedAvatarOwners ?? new Map();
 
-    const referenceImageUrls =
-      editing?.sourceUrls ??
-      (isFlux3ImageModel(model)
-        ? await this.admissionService.resolveFlux3References(
-            user.organizationId,
-            brandId,
-            referenceIds,
-          )
-        : await this.admissionService.resolveReferenceImageUrls(
-            user.organizationId,
-            referenceIds,
-            grantedAvatarOwners,
-          ));
-
     const generationHarness: GenerationHarnessReceipt = editing
       ? {
           originalPrompt: promptOriginalText,
@@ -916,9 +904,19 @@ export class ImageGenerationService {
         );
 
     return {
-      referenceIds,
-      referenceImageUrls,
-      generationHarness,
+      ...(await resolveImageReferenceInputs({
+        admissionService: this.admissionService,
+        brandId,
+        brandsService: this.brandsService,
+        createImageDto,
+        editingSourceUrls: editing?.sourceUrls,
+        generationHarness,
+        grantedAvatarOwners,
+        isEditing: Boolean(editing),
+        model,
+        organizationId: user.organizationId,
+        referenceIds,
+      })),
       grantedAvatarOwners,
       personaId,
     };

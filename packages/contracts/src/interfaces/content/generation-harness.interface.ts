@@ -68,6 +68,17 @@ export interface GenerationHarnessReceipt {
   appliedPacks: Array<{ id: string; version: string }>;
   /** Exact Knowledge source versions folded into the enhanced prompt. */
   knowledgeReceipts?: KnowledgeReceipt[];
+  /**
+   * Brand references attached because the caller attached none. Absent when
+   * the caller chose the references, branding was off, or the brand has none.
+   */
+  brandReferences?: GenerationBrandReferencesReceipt;
+}
+
+export interface GenerationBrandReferencesReceipt {
+  attachedAssetIds: string[];
+  /** The brand had references but the model accepts none. */
+  skippedReason?: 'model_accepts_no_references';
 }
 
 /** Safe projection from persisted receipt JSON, including historical receipts. */
