@@ -55,7 +55,7 @@ function evergreenSeriesQueryKey(groupId: string) {
 
 export default function EvergreenSeriesControls({
   groupId,
-}: EvergreenSeriesControlsProps): React.JSX.Element {
+}: EvergreenSeriesControlsProps): React.JSX.Element | null {
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
   const getReleaseGroupsService = useAuthedService((token: string) =>
