@@ -31,6 +31,7 @@ import type { CalendarEventDrop } from '@/props/components/calendar.props';
 import type { PendingCalendarDrop } from '@/props/publisher/release-calendar.props';
 
 export function useCalendarReleaseActions({
+  campaignId,
   releases,
   setReleases,
   getReleaseGroupsService,
@@ -72,6 +73,11 @@ export function useCalendarReleaseActions({
         notificationsService,
         onSuccess: (updated) => {
           setReleases((current) => {
+            // A campaign calendar lists only its own campaign: a release moved
+            // to another campaign leaves it.
+            if (campaignId && updated.campaignId !== campaignId) {
+              return current.filter((release) => release.id !== updated.id);
+            }
             const exists = current.some((release) => release.id === updated.id);
             if (exists) {
               return current.map((release) =>
@@ -85,6 +91,7 @@ export function useCalendarReleaseActions({
         setPendingAction,
       }),
     [
+      campaignId,
       getReleaseGroupsService,
       inFlightReleaseIds,
       notificationsService,

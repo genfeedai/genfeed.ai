@@ -64,6 +64,8 @@ export interface ContentCalendarData {
   slots: ICalendarSlot[];
 }
 export interface CalendarReleaseActionsOptions {
+  /** Set on a campaign calendar, which lists only that campaign's releases. */
+  campaignId?: string;
   releases: IReleaseGroup[];
   setReleases: Dispatch<SetStateAction<IReleaseGroup[]>>;
   getReleaseGroupsService: () => Promise<ReleaseGroupsService>;

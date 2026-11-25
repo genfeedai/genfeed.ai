@@ -136,6 +136,7 @@ export default function ContentCalendarPage({
     handleResumeRelease,
     handleAddChannel,
   } = useCalendarReleaseActions({
+    campaignId,
     releases,
     setReleases,
     getReleaseGroupsService,
