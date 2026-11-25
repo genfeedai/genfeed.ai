@@ -1,7 +1,9 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AdminOrganizationApiKeysService } from '@api/endpoints/admin/organization-api-keys/organization-api-keys.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   API_KEY_ALLOWED_BRANDS_MAX,
   isApiKeyPermissionLevelOffered,
@@ -58,6 +60,7 @@ export class AdminOrganizationApiKeysController {
   constructor(private readonly apiKeys: AdminOrganizationApiKeysService) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async mintPartnerKey(
     @Req() request: Request,

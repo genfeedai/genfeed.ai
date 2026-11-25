@@ -6,11 +6,13 @@ import {
 } from '@api/collections/newsletter-subscribers/dto/brand-subscribers.dto';
 import { BrandSubscribersService } from '@api/collections/newsletter-subscribers/services/brand-subscribers.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   IBrandSubscriberImportSummary,
   IBrandSubscriberStats,
@@ -82,6 +84,7 @@ export class BrandSubscribersController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   async add(
     @CurrentUser() user: AuthenticatedUser,
@@ -92,6 +95,7 @@ export class BrandSubscribersController {
   }
 
   @Post('imports')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   async importCsv(
     @CurrentUser() user: AuthenticatedUser,
@@ -102,6 +106,7 @@ export class BrandSubscribersController {
   }
 
   @Post(':subscriberId/confirmation')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   async resendConfirmation(
     @CurrentUser() user: AuthenticatedUser,
@@ -112,6 +117,7 @@ export class BrandSubscribersController {
   }
 
   @Delete(':subscriberId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @CurrentUser() user: AuthenticatedUser,
