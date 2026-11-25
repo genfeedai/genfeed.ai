@@ -825,6 +825,27 @@ describe('TwitterPublisherService', () => {
           expect(result.errorCode).toBe('x_quote_refused');
         });
 
+        it('keeps a duplicate-content 403 on a quote as duplicate content, not a quote refusal', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Request failed with code 403'), {
+              code: 403,
+              data: {
+                detail:
+                  'You are not allowed to create a Tweet with duplicate content.',
+                title: 'Forbidden',
+              },
+            }),
+          );
+          mockSingleTweet.mockResolvedValue({ data: { id: quotedId } });
+
+          await expect(
+            service.publish(createPublishContext(quotePost)),
+          ).rejects.toMatchObject({
+            kind: 'content_rejected',
+            providerCode: 'duplicate_content',
+          });
+        });
+
         it('leaves a rate limit on a quote to the normal retry path', async () => {
           mockTweet.mockRejectedValue(
             Object.assign(new Error('Too Many Requests'), { code: 429 }),

@@ -47,6 +47,7 @@ import {
   X_QUOTE_REFUSED_CODE,
   X_QUOTED_POST_UNAVAILABLE_CODE,
 } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
+import { DUPLICATE_CONTENT_PROVIDER_CODE } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -247,7 +248,7 @@ export class TwitterPublisherService extends BasePublisherService {
    * extra X read. A quoted post that X answers resource-not-found for is named
    * as gone and not retried. A 403 on a quote is reported as X refusing the
    * quote, with X's own wording kept, because X documents quote posts as an
-   * Enterprise-plan feature. Rate limits and depleted credits are left to the
+   * Enterprise-plan feature. Rate limits, depleted credits and a duplicate-content refusal are left to the
    * normal retry path.
    */
   private async explainQuoteFailure(
@@ -258,7 +259,9 @@ export class TwitterPublisherService extends BasePublisherService {
     if (
       !quotedId ||
       isTwitterRateLimitResponse(error) ||
-      isTwitterCreditsDepletedError(error)
+      isTwitterCreditsDepletedError(error) ||
+      toPublishError(error, mapXFailure)?.providerCode ===
+        DUPLICATE_CONTENT_PROVIDER_CODE
     ) {
       return null;
     }
