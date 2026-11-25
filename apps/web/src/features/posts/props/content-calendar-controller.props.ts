@@ -36,6 +36,8 @@ export interface ContentCalendarItemsOptions {
   slots: ICalendarSlot[];
   globalFilterQuery: string;
   calendarView: CalendarViewKey;
+  /** Cancelled posts are hidden unless the person filters for them. */
+  includeCancelled?: boolean;
   translate: ContentCalendarTranslate;
 }
 export interface ContentCalendarLoadOptions {

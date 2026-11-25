@@ -280,6 +280,8 @@
       "title": "Campaign",
       "unavailable": "Another campaign"
     },
+    "editPost": "Edit caption and media",
+    "editPostHint": "Opens the full editor. Schedule, campaign and channels are below.",
     "openEditor": "Open editor",
     "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
     "resume": "Resume post",
@@ -347,7 +349,9 @@
     "preview": {
       "channel": "Preview channel",
       "emptyCaption": "No caption",
-      "global": "Global"
+      "global": "All channels",
+      "globalHint": "The post as written, with every channel it goes to.",
+      "targetHint": "How the post looks on {platform}."
     },
     "summary": {
       "failed": "Failed",
@@ -357,7 +361,7 @@
     "views": {
       "analytics": "Analytics",
       "copyLink": "Copy link",
-      "details": "Details",
+      "details": "Settings",
       "history": "History",
       "label": "Post view",
       "linkCopied": "Link copied",

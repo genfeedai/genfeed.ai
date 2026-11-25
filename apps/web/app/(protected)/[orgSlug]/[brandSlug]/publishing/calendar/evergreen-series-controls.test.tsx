@@ -211,10 +211,12 @@ describe('EvergreenSeriesControls', () => {
 
   it('renders empty, exhausted, and error states explicitly', async () => {
     mocks.getOne.mockResolvedValueOnce({ ...release, recurrence: null });
-    const { rerender, unmount } = render(
+    const { container, rerender, unmount } = render(
       <EvergreenSeriesControls groupId="one-off" />,
     );
-    expect(await screen.findByText('One-off post')).toBeInTheDocument();
+    await waitFor(() => expect(mocks.getOne).toHaveBeenCalled());
+    // A one-off post has no series to control, so nothing is drawn for it.
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
 
     mocks.getOne.mockResolvedValueOnce({
       ...release,

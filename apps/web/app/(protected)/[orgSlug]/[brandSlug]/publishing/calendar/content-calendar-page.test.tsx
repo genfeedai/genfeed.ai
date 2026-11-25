@@ -356,6 +356,7 @@ vi.mock(
         pendingAction,
         reconnectHref,
         release,
+        seriesControls,
       }: {
         error: string | null;
         onRescheduleRelease: (scheduledDate: string) => void;
@@ -364,11 +365,13 @@ vi.mock(
         pendingAction: string | null;
         reconnectHref: string;
         release: { id: string } | null;
+        seriesControls?: ReactNode;
       }) => (
         <div data-testid="release-drawer">
           <span data-testid="reconnect-href">{reconnectHref}</span>
           <span data-testid="drawer-release">{release?.id ?? 'closed'}</span>
           <span data-testid="drawer-pending">{pendingAction ?? 'idle'}</span>
+          {seriesControls}
           {error ? <span data-testid="drawer-error">{error}</span> : null}
           <button
             type="button"
@@ -602,10 +605,26 @@ describe('ContentCalendarPage', () => {
     expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
       '/acme-org/acme-creator/settings/profile',
     );
+    // A one-off post has no series, so the drawer gets no series controls.
+    expect(
+      screen.queryByTestId('evergreen-series-controls'),
+    ).not.toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('gives a recurring post its series controls inside the drawer', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        recurrence: { frequency: 'weekly', interval: 1, weekdays: [] },
+      } as unknown as Partial<IReleaseGroup>),
+    ]);
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: 'open:release-1' }));
+
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',
     );
-    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it('mounts the standalone calendar article modal and preserves creation navigation', async () => {
@@ -832,7 +851,7 @@ describe('ContentCalendarPage', () => {
     ).toEqual([]);
   });
 
-  it('refuses to drag a cancelled release and lets a published card be moved', async () => {
+  it('hides a cancelled release from the calendar and lets a published card be moved', async () => {
     findReleasesMock.mockResolvedValue([
       release(),
       release({
@@ -871,11 +890,7 @@ describe('ContentCalendarPage', () => {
         items.find((item) => item.id === 'release-2') as CalendarItemShape,
       ),
     ).toBe(true);
-    expect(
-      isItemDraggable(
-        items.find((item) => item.id === 'release-3') as CalendarItemShape,
-      ),
-    ).toBe(false);
+    expect(items.find((item) => item.id === 'release-3')).toBeUndefined();
   });
 
   it('persists a drag as a release-level reschedule', async () => {

@@ -455,6 +455,20 @@ export default function ContentCalendarView<T extends CalendarItem>({
     }) => {
       const item = info.event.extendedProps.item;
       const actions = item && getEventActions ? getEventActions(item) : [];
+
+      // A chip in a crowded week cuts its title short, so the full title, the
+      // status and the channels are one hover away.
+      if (item) {
+        const badge = getEventBadge ? getEventBadge(item) : null;
+        const channels = getEventChannels ? getEventChannels(item) : [];
+        info.el.title = [
+          item.title,
+          badge?.label,
+          channels.map((channel) => channel.label).join(', '),
+        ]
+          .filter(Boolean)
+          .join(' · ');
+      }
       if (actions.length > 0) {
         info.el.tabIndex = 0;
         info.el.setAttribute('data-calendar-slot', 'focusable');
@@ -486,7 +500,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
       root.render(<CalendarEventActions actions={actions} />);
       actionRootsRef.current.set(info.el, root);
     },
-    [getEventActions, onEventClick],
+    [getEventActions, getEventBadge, getEventChannels, onEventClick],
   );
 
   const handleEventWillUnmount = useCallback((info: { el: HTMLElement }) => {

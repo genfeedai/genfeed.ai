@@ -184,6 +184,11 @@
   opacity: 0.72;
 }
 
+.gen-calendar-event-host--cancelled {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .gen-calendar-event-host--generating {
   opacity: 0.9;
 }

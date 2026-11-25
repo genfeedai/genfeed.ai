@@ -46,6 +46,9 @@ function actionErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The series action failed.';
 }
 
+/** The series controls sit inside the post panel, under its settings. */
+const SERIES_PANEL_CLASS = 'border-t border-border p-4';
+
 function evergreenSeriesQueryKey(groupId: string) {
   return ['evergreen-series', groupId] as const;
 }
@@ -177,7 +180,7 @@ export default function EvergreenSeriesControls({
     return (
       <aside
         aria-label="Evergreen series controls"
-        className="fixed right-4 bottom-4 z-50 w-80 border border-border bg-background p-4 shadow-xl"
+        className={SERIES_PANEL_CLASS}
       >
         <p className="text-sm text-muted-foreground">Loading series…</p>
       </aside>
@@ -188,7 +191,7 @@ export default function EvergreenSeriesControls({
     return (
       <aside
         aria-label="Evergreen series controls"
-        className="fixed right-4 bottom-4 z-50 w-80 border border-destructive/40 bg-background p-4 shadow-xl"
+        className={SERIES_PANEL_CLASS}
       >
         <p className="font-medium">Series controls unavailable</p>
         <p className="mt-1 text-sm text-muted-foreground">{error}</p>
@@ -201,18 +204,9 @@ export default function EvergreenSeriesControls({
     );
   }
 
+  // A one-off post has no series to control, so it shows nothing.
   if (!release?.recurrence) {
-    return (
-      <aside
-        aria-label="Evergreen series controls"
-        className="fixed right-4 bottom-4 z-50 w-80 border border-border bg-background p-4 shadow-xl"
-      >
-        <p className="font-medium">One-off post</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This post has no evergreen recurrence rule.
-        </p>
-      </aside>
-    );
+    return null;
   }
 
   const rule = release.recurrence;
@@ -225,7 +219,7 @@ export default function EvergreenSeriesControls({
   return (
     <aside
       aria-label="Evergreen series controls"
-      className="fixed right-4 bottom-4 z-50 w-80 space-y-4 border border-border bg-background p-4 shadow-xl"
+      className={`${SERIES_PANEL_CLASS} space-y-4`}
     >
       <div>
         <p className="font-medium">Evergreen series</p>

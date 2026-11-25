@@ -23,7 +23,7 @@ import {
   DefinitionRow,
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
-import { Repeat2 } from 'lucide-react';
+import { PencilLine, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { resolveTargetCaption } from '@/components/previews/preview.helpers';
@@ -66,6 +66,7 @@ const LIVE_STATUSES = new Set<ReleaseStatus>([
  */
 export default function ReleaseDetailsView({
   accountHealth,
+  editorHref,
   onAddChannel,
   onChangeCampaign,
   onCompleteManualPost,
@@ -76,6 +77,7 @@ export default function ReleaseDetailsView({
   pendingAction,
   reconnectHref,
   release,
+  seriesControls,
 }: ReleaseDetailsViewProps): React.JSX.Element {
   const translate = useTranslations('pages.publishing.release');
   const targets = releaseTargets(release);
@@ -87,6 +89,25 @@ export default function ReleaseDetailsView({
 
   return (
     <div className="space-y-6 p-4" data-testid="release-details-view">
+      {editorHref ? (
+        <section className="space-y-2">
+          <Button
+            asChild
+            className="w-full"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={editorHref}>
+              <PencilLine className="size-4" />
+              {translate('editPost')}
+            </Link>
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {translate('editPostHint')}
+          </p>
+        </section>
+      ) : null}
+
       <DefinitionList variant="properties">
         <DefinitionRow>
           <DefinitionTerm variant="muted">
@@ -349,6 +370,8 @@ export default function ReleaseDetailsView({
           })
         )}
       </section>
+
+      {seriesControls}
     </div>
   );
 }
