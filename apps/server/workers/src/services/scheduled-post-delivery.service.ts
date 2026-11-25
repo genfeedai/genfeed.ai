@@ -36,7 +36,7 @@ import {
   getPublishErrorMessage,
   isAmbiguousPublishError,
   isAmbiguousPublishResult,
-  isClassifiedPublishFailure,
+  logPublishFailure,
   toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
@@ -987,7 +987,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const currentRetryCount = post.retryCount || 0;
     const recovery = await this.channelRecovery.recover(post, error);
     const { canRetry, errorMessage, isRetryable, plan } = decideRetry(
       post,
@@ -996,21 +995,18 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       recovery.plan,
     );
 
-    // A classified provider outcome is reported once, when it ends the post
-    // (`notifyTerminalFailure`); logging it as an error here too would be a
-    // second report of the same delivery.
-    const failureContext = {
-      canRetry,
-      error: errorMessage,
-      isRetryable,
-      postId: post.id,
-      retryCount: currentRetryCount,
-    };
-    if (isClassifiedPublishFailure(recovery.cause)) {
-      this.logger.warn(`${url} failed to publish post`, failureContext);
-    } else {
-      this.logger.error(`${url} failed to publish post`, failureContext);
-    }
+    logPublishFailure(
+      this.logger,
+      `${url} failed to publish post`,
+      {
+        canRetry,
+        error: errorMessage,
+        isRetryable,
+        postId: post.id,
+        retryCount: post.retryCount || 0,
+      },
+      recovery.cause,
+    );
 
     const scheduledForRetry = await this.attemptRetry(
       post,
@@ -1026,11 +1022,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return createRetryScheduledResult('');
     }
 
-    if (scheduledForRetry === undefined) {
-      return createFailedPublishResult('', errorMessage);
+    if (scheduledForRetry !== undefined) {
+      this.followUps.emitPublishFailedWebhook(post, errorMessage);
     }
-
-    this.followUps.emitPublishFailedWebhook(post, errorMessage);
     return createFailedPublishResult('', errorMessage);
   }
 }

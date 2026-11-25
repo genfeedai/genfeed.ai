@@ -20,6 +20,7 @@ import {
   readPublishErrorKind,
 } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
@@ -271,12 +272,21 @@ export function createPublishUnverifiedActivity(
 }
 
 /**
- * Whether a failure is a classified provider outcome: the publisher read the
- * provider's answer and said what it means. Such a failure is reported once, in
- * its terminal state, so the layers it passes through log it as a warning.
+ * Logs a failed publish attempt. A classified provider outcome (the publisher
+ * read the provider's answer and said what it means) is reported once, when it
+ * ends the post, so it is a warning here. Any other failure is a fault.
  */
-export function isClassifiedPublishFailure(error: unknown): boolean {
-  return readPublishErrorKind(error) !== null;
+export function logPublishFailure(
+  logger: Pick<LoggerService, 'error' | 'warn'>,
+  message: string,
+  context: Record<string, unknown>,
+  cause: unknown,
+): void {
+  if (readPublishErrorKind(cause) === null) {
+    logger.error(message, context);
+    return;
+  }
+  logger.warn(message, context);
 }
 
 /**
