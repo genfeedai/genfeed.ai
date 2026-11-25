@@ -1,6 +1,15 @@
+import type { BootRecord } from '@/props/layout/boot-record.props';
+
 export interface WorkspaceFrameSkeletonProps {
   /** Announced to assistive technology while the workspace loads. */
   label: string;
+}
+
+export interface WorkspaceFrameProps extends WorkspaceFrameSkeletonProps {
+  /** The stored rail to draw, or null for placeholders. */
+  bootRecord: BootRecord | null;
+  /** Whether the menu column placeholder is drawn. */
+  hasSidebar: boolean;
 }
 
 export interface WorkspacePagePendingProps {
