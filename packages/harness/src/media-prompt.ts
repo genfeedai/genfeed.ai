@@ -147,7 +147,11 @@ function buildVisualHarnessSuffix(
   subjectLock: string | undefined,
 ): string {
   const parts: string[] = [];
-  const cues = selectVisualCues(brief);
+  const palette = selectPaletteWords(brief);
+  if (palette.length > 0) {
+    parts.push(`Brand palette: ${joinWords(palette)}.`);
+  }
+  const cues = withoutPaletteAndFont(selectVisualCues(brief));
   if (cues.length > 0) {
     parts.push(`Brand look: ${cues.join(' ')}`);
   }
@@ -226,23 +230,47 @@ export function describeHexColor(hex: string): string | undefined {
   return name;
 }
 
-function selectMotionPalette(brief: ContentHarnessBrief): string[] {
+const MAX_PALETTE_WORDS = 5;
+
+/** `black`, `black and white`, `black, white and red`. */
+function joinWords(words: string[]): string {
+  return words.length < 3
+    ? words.join(' and ')
+    : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+}
+
+/**
+ * The brand colours as plain words, typed palette first (primary, then the
+ * named colours), then any colour line a pack wrote as text. A model gets
+ * `black`, never `#000000`, which it draws or prints.
+ */
+function selectPaletteWords(brief: ContentHarnessBrief): string[] {
   const names: string[] = [];
-  for (const line of [...brief.styleDirectives, ...brief.systemDirectives]) {
-    const value = PALETTE_LINE.exec(line.trim())?.[1];
-    const name = value
-      ? describeHexColor(value.replace(TRAILING_PERIOD_PATTERN, ''))
-      : undefined;
+  const add = (hex: string | undefined) => {
+    const name = hex ? describeHexColor(hex) : undefined;
     if (name && !names.includes(name)) {
       names.push(name);
     }
+  };
+  for (const color of brief.palette ?? []) {
+    add(color.hex);
   }
-  return names;
+  for (const line of [...brief.styleDirectives, ...brief.systemDirectives]) {
+    const value = PALETTE_LINE.exec(line.trim())?.[1];
+    add(value?.replace(TRAILING_PERIOD_PATTERN, ''));
+  }
+  return names.slice(0, MAX_PALETTE_WORDS);
+}
+
+function withoutPaletteAndFont(cues: string[]): string[] {
+  return cues.filter(
+    (line) => !PALETTE_LINE.test(line) && !FONT_LINE.test(line),
+  );
 }
 
 function selectMotionCues(brief: ContentHarnessBrief): string[] {
-  return selectVisualCues(brief, { shouldKeepPolicy: false }).filter(
-    (line) => !PALETTE_LINE.test(line) && !FONT_LINE.test(line),
+  return withoutPaletteAndFont(
+    selectVisualCues(brief, { shouldKeepPolicy: false }),
   );
 }
 
@@ -253,9 +281,9 @@ function selectMotionCues(brief: ContentHarnessBrief): string[] {
  */
 function buildMotionHarnessSuffix(brief: ContentHarnessBrief): string {
   const parts: string[] = [];
-  const palette = selectMotionPalette(brief);
+  const palette = selectPaletteWords(brief);
   if (palette.length > 0) {
-    parts.push(`Brand palette: ${palette.join(' and ')}.`);
+    parts.push(`Brand palette: ${joinWords(palette)}.`);
   }
   const cues = selectMotionCues(brief);
   if (cues.length > 0) {
@@ -444,7 +472,7 @@ export function buildMediaEnhancerBrief(
   video?: MediaEnhancerVideoRules,
 ): string {
   if (!brief || brief.metadata.contentType === 'music') return '';
-  const palette = selectMotionPalette(brief);
+  const palette = selectPaletteWords(brief);
   const isLookLine = (line: string) =>
     !PALETTE_LINE.test(line) && !FONT_LINE.test(line);
   const look = [
@@ -461,7 +489,7 @@ export function buildMediaEnhancerBrief(
     .filter((line) => isLookLine(line) && !look.includes(line))
     .slice(0, MAX_ENHANCER_AVOID_CUES);
   const sections = [
-    palette.length > 0 ? `Palette: ${palette.join(' and ')}.` : '',
+    palette.length > 0 ? `Palette: ${joinWords(palette)}.` : '',
     look.length > 0
       ? `Look:\n${look.map((line) => `- ${line}`).join('\n')}`
       : '',
