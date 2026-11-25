@@ -113,6 +113,8 @@ export interface IBrand extends IBaseEntity {
   isVerified: boolean;
   isDefault: boolean;
   isFleetEnabled: boolean;
+  /** Show reach and post metrics on the public profile; on unless the owner turns it off. */
+  isPublicAnalyticsEnabled?: boolean;
   scope: AssetScope;
   isActive: boolean;
   isHighlighted?: boolean;

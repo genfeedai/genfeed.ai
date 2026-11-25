@@ -8,6 +8,7 @@ import {
   findCrossPostIds,
   listCrossPosts,
 } from '@api/endpoints/public/utils/public-cross-posts.util';
+import { withPublicPostMetricsApplied } from '@api/endpoints/public/utils/public-post-metrics.util';
 import { PUBLIC_POSTS_ORDER_BY } from '@api/endpoints/public/utils/public-posts-order.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -50,7 +51,14 @@ import type { Request } from 'express';
 
 /** A public post renders with its media in order and links to its creator. */
 const PUBLIC_POST_INCLUDE = {
-  brand: { select: { id: true, label: true, slug: true } },
+  brand: {
+    select: {
+      id: true,
+      isPublicAnalyticsEnabled: true,
+      label: true,
+      slug: true,
+    },
+  },
   ingredientLinks: orderedPostIngredientLinks({
     select: {
       category: true,
@@ -89,14 +97,16 @@ function withPublicMediaDimensions<D extends object>(
     ...data,
     docs: data.docs.map((post) => {
       const { ingredients } = post as { ingredients?: unknown };
-      return Array.isArray(ingredients)
-        ? {
-            ...post,
-            ingredients: (ingredients as PublicPostMedia[]).map(
-              withMediaDimensions,
-            ),
-          }
-        : post;
+      return withPublicPostMetricsApplied(
+        Array.isArray(ingredients)
+          ? {
+              ...post,
+              ingredients: (ingredients as PublicPostMedia[]).map(
+                withMediaDimensions,
+              ),
+            }
+          : post,
+      );
     }),
   };
 }
@@ -339,10 +349,11 @@ export class PublicPostsController {
         ? await this.findCrossPosts(post)
         : [];
 
-    return serializeSingle(request, PublicPostSerializer, {
-      ...post,
-      crossPosts,
-    });
+    return serializeSingle(
+      request,
+      PublicPostSerializer,
+      withPublicPostMetricsApplied({ ...post, crossPosts }),
+    );
   }
 
   /**

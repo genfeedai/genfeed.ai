@@ -58,12 +58,13 @@ function toPublicBrandReach(
 }
 
 /**
- * The totals a public profile shows. Only sums leave the analytics rows: no
- * post, platform or account is named.
+ * The totals a profile shows, public or private. Only sums leave the analytics
+ * rows: no post, platform or account is named. Whether a viewer may see them is
+ * the caller's decision.
  */
 @Traced()
 @Injectable()
-export class PublicBrandReachService {
+export class BrandReachService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findForBrand(
