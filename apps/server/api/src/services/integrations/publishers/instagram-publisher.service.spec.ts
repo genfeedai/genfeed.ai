@@ -426,6 +426,34 @@ describe('InstagramPublisherService', () => {
         );
       });
 
+      it('passes the issued cover image URL to the Reel', async () => {
+        const context = {
+          ...createPublishContext(mockVideoPost, {
+            coverImageId: 'cover-1',
+          }),
+          coverImageUrl: 'https://signed.test/cover.jpg',
+        };
+
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'reel-123',
+          shortcode: 'REEL123',
+        });
+
+        await service.publish(context);
+
+        expect(instagramService.uploadReel).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          'https://signed.test/cover.jpg',
+          undefined,
+          true,
+          mockCredential.id,
+          false,
+        );
+      });
+
       it('should keep the feed copy for the default feed placement', async () => {
         const context = createPublishContext(mockVideoPost, {
           placement: 'feed',

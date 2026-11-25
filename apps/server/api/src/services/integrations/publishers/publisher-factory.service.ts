@@ -35,6 +35,8 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { INSTAGRAM_COVER_IMAGE_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit, type Type } from '@nestjs/common';
@@ -168,7 +170,16 @@ export class PublisherFactoryService
       ...(context.post.ingredients || []),
       ...children.flatMap((child) => child.ingredients || []),
     ];
-    const ids = [...new Set(allIngredients.map(getId))];
+    const coverImageId = readChannelSettingString(
+      context.settings,
+      INSTAGRAM_COVER_IMAGE_SETTING_KEY,
+    )?.trim();
+    const ids = [
+      ...new Set([
+        ...allIngredients.map(getId),
+        ...(coverImageId ? [coverImageId] : []),
+      ]),
+    ];
     const urls = ids.length
       ? await this.authorizedMediaUrlService.issueServerPublish(
           context.organizationId,
@@ -200,6 +211,7 @@ export class PublisherFactoryService
     return {
       hydratedContext: {
         ...context,
+        ...(coverImageId ? { coverImageUrl: urls.get(coverImageId) } : {}),
         post: {
           ...context.post,
           ingredients: hydrateIngredients(context.post.ingredients || []),

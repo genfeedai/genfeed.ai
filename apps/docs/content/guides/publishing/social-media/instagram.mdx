@@ -74,6 +74,12 @@ characters). In a carousel each slide carries its own alt text. Genfeed does not
 write alt text for you. If Instagram refuses a post because of the alt text,
 Genfeed publishes it again without it.
 
+A Reel can use a Library image as its **cover**. Set the post's `coverImageId`
+setting to the id of an image in your organization's Library (from the MCP
+`get_assets` tool or the agent). Only Reels use it; Feed and Story posts ignore
+it. An image from another organization is refused. If Instagram refuses the
+cover, Genfeed publishes the Reel again without it, keeping the AI label.
+
 Instagram's own media rules (image format, file size, Reel length, aspect
 ratio) are in Meta's
 [content publishing reference](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media).

@@ -24,7 +24,7 @@ interface GraphPost {
  */
 function createGraphDouble(
   refuseLabel?: { status: number; code?: number },
-  refuseField: 'alt_text' | 'is_ai_generated' = 'is_ai_generated',
+  refuseField: 'alt_text' | 'cover_url' | 'is_ai_generated' = 'is_ai_generated',
 ) {
   const posts: GraphPost[] = [];
   const http = {
@@ -385,6 +385,43 @@ describe('InstagramPublishingService alt text', () => {
     expect(creates[1].params.is_ai_generated).toBe(true);
     expect(creates[1].params).not.toHaveProperty('alt_text');
     expect(graph.publishCalls()).toHaveLength(1);
+  });
+
+  it('sends a Reel cover, and keeps the label when only the cover is refused', async () => {
+    const accepted = createGraphDouble();
+    await accepted.service.uploadReel(
+      'org',
+      'brand',
+      'https://cdn.test/a.mp4',
+      'caption',
+      'https://cdn.test/cover.jpg',
+      undefined,
+      true,
+      undefined,
+      true,
+    );
+    expect(accepted.createCalls()).toHaveLength(1);
+    expect(accepted.createCalls()[0].params.cover_url).toBe(
+      'https://cdn.test/cover.jpg',
+    );
+
+    const refused = createGraphDouble({ status: 400 }, 'cover_url');
+    await refused.service.uploadReel(
+      'org',
+      'brand',
+      'https://cdn.test/a.mp4',
+      'caption',
+      'https://cdn.test/cover.jpg',
+      undefined,
+      true,
+      undefined,
+      true,
+    );
+    const creates = refused.createCalls();
+    expect(creates).toHaveLength(2);
+    expect(creates[1].params.is_ai_generated).toBe(true);
+    expect(creates[1].params).not.toHaveProperty('cover_url');
+    expect(refused.publishCalls()).toHaveLength(1);
   });
 
   it('drops both optional fields when Instagram refuses the label too', async () => {

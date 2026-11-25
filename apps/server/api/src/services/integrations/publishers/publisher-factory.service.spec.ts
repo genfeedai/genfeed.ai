@@ -343,6 +343,53 @@ describe('PublisherFactoryService', () => {
       );
     });
 
+    it("issues a post's cover image inside the organization and hands the publisher its URL", async () => {
+      issueServerPublish.mockResolvedValue(
+        new Map([
+          ['ingredient-1', 'https://signed.test/video?grant=1'],
+          ['cover-1', 'https://signed.test/cover?grant=2'],
+        ]),
+      );
+      const withCover = {
+        ...context(['ingredient-1']),
+        settings: { coverImageId: 'cover-1' },
+      } as PublishContext;
+      await service.getPublisher('TWITTER')?.publish(withCover);
+      expect(issueServerPublish).toHaveBeenCalledWith('org-1', [
+        'ingredient-1',
+        'cover-1',
+      ]);
+      expect(twitter.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          coverImageUrl: 'https://signed.test/cover?grant=2',
+        }),
+      );
+      expect(twitter.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          post: expect.objectContaining({
+            ingredients: [
+              {
+                id: 'ingredient-1',
+                mediaUrl: 'https://signed.test/video?grant=1',
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it("fails the publish when the cover image is not the organization's", async () => {
+      issueServerPublish.mockRejectedValue(new Error('Media not found'));
+      const withForeignCover = {
+        ...context(['ingredient-1']),
+        settings: { coverImageId: 'foreign-cover' },
+      } as PublishContext;
+      await expect(
+        service.getPublisher('TWITTER')?.publish(withForeignCover),
+      ).rejects.toThrow('Media not found');
+      expect(twitter.publish).not.toHaveBeenCalled();
+    });
+
     it('rejects cross-organization ingredient resolution before any provider execution', async () => {
       issueServerPublish.mockRejectedValue(new Error('Media not found'));
       await expect(

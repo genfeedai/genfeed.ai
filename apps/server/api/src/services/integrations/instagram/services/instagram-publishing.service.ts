@@ -49,17 +49,18 @@ type ContainerParams = Record<string, string | boolean>;
 /**
  * The optional fields of a container as attempts, most decorated first: all of
  * them, then the AI label alone, then none. The label is kept when only the
- * alt text is refused; the post goes out plain only as the last resort.
+ * other field (alt text, or a Reel's cover) is refused; the post goes out plain
+ * only as the last resort.
  */
 function decorationAttempts(
   label: Record<string, boolean>,
-  altText: Record<string, string>,
+  extra: Record<string, string>,
 ): ContainerParams[] {
-  const attempts: ContainerParams[] = [{ ...label, ...altText }];
-  if (Object.keys(label).length > 0 && Object.keys(altText).length > 0) {
+  const attempts: ContainerParams[] = [{ ...label, ...extra }];
+  if (Object.keys(label).length > 0 && Object.keys(extra).length > 0) {
     attempts.push(label);
   }
-  if (Object.keys(label).length + Object.keys(altText).length > 0) {
+  if (Object.keys(label).length + Object.keys(extra).length > 0) {
     attempts.push({});
   }
   return attempts;
@@ -301,14 +302,14 @@ export class InstagramPublishingService {
         share_to_feed: isShareToFeedSelected,
         video_url: videoUrl,
       };
-      if (coverImageUrl) {
-        params.cover_url = coverImageUrl;
-      }
 
       const createRes = await this.createMediaContainer(
         externalId,
         params,
-        decorationAttempts(aiLabelParams(isAiGenerated), {}),
+        decorationAttempts(
+          aiLabelParams(isAiGenerated),
+          coverImageUrl ? { cover_url: coverImageUrl } : {},
+        ),
       );
       const containerId = createRes.data.id;
       await this.waitForMediaProcessing(containerId, accessToken);

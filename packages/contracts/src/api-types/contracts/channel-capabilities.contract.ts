@@ -34,7 +34,7 @@ import {
 } from './channel-setting-validation.contract';
 import { communityChannelCapabilities } from './community-channel-capabilities.contract';
 import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
-import { INSTAGRAM_AI_GENERATED_SETTING } from './instagram-publishing.contract';
+import { INSTAGRAM_PUBLISHING_SETTINGS } from './instagram-publishing.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
@@ -504,7 +504,7 @@ const channelCapabilities = [
         required: true,
         type: 'select',
       },
-      INSTAGRAM_AI_GENERATED_SETTING,
+      ...INSTAGRAM_PUBLISHING_SETTINGS,
     ],
     status: 'supported',
   },
