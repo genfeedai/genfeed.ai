@@ -5,10 +5,12 @@ import {
   SaveImportedSourceDto,
 } from '@api/collections/imported-sources/dto/imported-source.dto';
 import { ImportedSourcesService } from '@api/collections/imported-sources/services/imported-sources.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_BRAND_EDIT_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -32,6 +34,7 @@ import type { Request } from 'express';
 export class ImportedSourcesController {
   constructor(private readonly sources: ImportedSourcesService) {}
   @Post()
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.CREATED)
   async save(
     @Req() request: Request,
@@ -73,6 +76,7 @@ export class ImportedSourcesController {
     );
   }
   @Post(':id/recaptures')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.CREATED)
   async recapture(
     @Req() request: Request,

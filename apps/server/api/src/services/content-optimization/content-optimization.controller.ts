@@ -1,7 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
 import {
   type AnalyzePerformanceOptions,
@@ -84,6 +86,7 @@ export class ContentOptimizationController {
    */
   @OrganizationModule('playground')
   @Post('optimize-prompt')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async optimizePrompt(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
@@ -142,6 +145,7 @@ export class ContentOptimizationController {
    */
   @OrganizationModule('publishing')
   @Post('suggestions/auto-apply')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async autoApplySuggestion(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
@@ -162,6 +166,7 @@ export class ContentOptimizationController {
    */
   @OrganizationModule('publishing')
   @Post('ab-tests')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async executeAbTest(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
@@ -187,6 +192,7 @@ export class ContentOptimizationController {
    * Scores published A/B arms and persists resolved outcomes only.
    */
   @Post('ab-tests/resolve')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async resolveAbTests(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,

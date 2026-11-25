@@ -1,8 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_BRAND_EDIT_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import {
   BrandMemoryInsightSerializer,
@@ -65,6 +67,7 @@ export class BrandMemoryController {
   }
 
   @Post('distill')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async distillMemory(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
