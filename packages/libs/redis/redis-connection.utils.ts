@@ -93,8 +93,6 @@ export interface BullMQWorkerEnvironment {
 const BULLMQ_WORKER_MIN_RETRY_DELAY_MS = 1_000;
 const BULLMQ_WORKER_MAX_RETRY_DELAY_MS = 20_000;
 
-const bullMQProducerRetryStrategy: IoRedisRetryStrategy = () => null;
-
 /** Match BullMQ's production recommendation: retry forever, with capped backoff. */
 const bullMQWorkerRetryStrategy: IoRedisRetryStrategy = (retries: number) => {
   return Math.max(
@@ -267,10 +265,11 @@ export function buildIoRedisClientOptions(
  * Build BullMQ/ioredis connection options (for queues).
  * BullMQ uses ioredis under the hood — TLS is `tls: {}`.
  *
- * The producer profile deliberately fails fast: HTTP/API callers can retry and
- * must not wait indefinitely for Redis. It is also the development default so a
- * missing local Redis instance fails visibly instead of starting a reconnect
- * loop.
+ * The producer profile fails fast on commands: HTTP/API callers can retry and
+ * must not wait indefinitely for Redis, so there is no offline queue and no
+ * per-command retry. The connection itself still reconnects with a capped
+ * backoff: a producer that stops retrying stays closed until the process
+ * restarts, and every enqueue fails long after Redis is back.
  *
  * The worker profile follows BullMQ's production guidance. Worker blocking
  * connections require `maxRetriesPerRequest: null`; their reconnect strategy
@@ -295,9 +294,7 @@ export function buildBullMQConnection(
     enableReadyCheck: false,
     lazyConnect: true,
     maxRetriesPerRequest: isWorker ? null : 0,
-    retryStrategy: isWorker
-      ? bullMQWorkerRetryStrategy
-      : bullMQProducerRetryStrategy,
+    retryStrategy: isWorker ? bullMQWorkerRetryStrategy : redisReconnectBackoff,
     skipVersionCheck: true,
     ...(config.tls && { tls: {} }),
   };
