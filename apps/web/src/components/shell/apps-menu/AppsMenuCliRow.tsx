@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { CopyButton } from '@ui/buttons/CopyButton';
+import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Terminal } from 'lucide-react';
@@ -50,12 +51,15 @@ export default function AppsMenuCliRow() {
             ]}
             value={manager}
           />
-          <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-2.5 py-1.5">
+          <InsetSurface
+            className="flex items-center gap-2 py-1.5 pr-1.5"
+            density="compact"
+          >
             <code className="min-w-0 flex-1 select-all break-all font-mono text-xs">
               {command}
             </code>
             <CopyButton label={translate('cli.copy')} value={command} />
-          </div>
+          </InsetSurface>
           <p className="text-xs text-muted-foreground">
             {translate('cli.next')}
           </p>
