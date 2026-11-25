@@ -200,6 +200,29 @@ describe('strict saved approved identity projection', () => {
     expect(JSON.stringify(result)).not.toContain('WRONG');
     expect(result.identity).not.toHaveProperty('positioning');
   });
+  it('carries the visual direction beside the voice, never inside it', () => {
+    const result = projectApprovedBrandIdentitySnapshot(
+      revision({
+        promptGuidelines: { currentValue: 'Write in short lines.' },
+        visualDirection: { currentValue: 'Oil painting, monochrome.' },
+      }),
+      time,
+    );
+
+    expect(result.visualDirection).toBe('Oil painting, monochrome.');
+    expect(result.voice.guidelines).toBe('Write in short lines.');
+    expect(JSON.stringify(result.voice)).not.toContain('Oil painting');
+  });
+  it('binds the visual direction into the snapshot hash and leaves a snapshot without one unchanged', () => {
+    const without = projectApprovedBrandIdentitySnapshot(revision(), time);
+    const withDirection = projectApprovedBrandIdentitySnapshot(
+      revision({ visualDirection: { currentValue: 'Oil painting.' } }),
+      time,
+    );
+
+    expect(without).not.toHaveProperty('visualDirection');
+    expect(withDirection.contentHash).not.toBe(without.contentHash);
+  });
   it('carries the approved video rules into the snapshot generators read', () => {
     const video: NonNullable<BrandGenerationRulesV1['video']> = {
       captions: {

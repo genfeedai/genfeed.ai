@@ -49,6 +49,7 @@ const BRAND_KIT_SCALAR_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
   primaryColor: 'primaryColor',
   promptGuidelines: 'text',
   secondaryColor: 'secondaryColor',
+  visualDirection: 'visualDirection',
 };
 const BRAND_KIT_VOICE_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
   voiceAudience: 'audience',

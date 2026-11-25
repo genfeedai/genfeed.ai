@@ -47,6 +47,8 @@ function mergeContribution(
     (aggregate.sources ?? []).map((source) => source.id),
   );
 
+  const visualSeen = new Set(aggregate.visualDirections ?? []);
+
   const next: ContentHarnessContribution = {
     evaluationCriteria: [...(aggregate.evaluationCriteria ?? [])],
     guardrails: [...(aggregate.guardrails ?? [])],
@@ -54,6 +56,7 @@ function mergeContribution(
     sources: [...(aggregate.sources ?? [])],
     styleDirectives: [...(aggregate.styleDirectives ?? [])],
     systemDirectives: [...(aggregate.systemDirectives ?? [])],
+    visualDirections: [...(aggregate.visualDirections ?? [])],
   };
 
   mergeUnique(
@@ -65,6 +68,11 @@ function mergeContribution(
     next.styleDirectives ?? [],
     contribution.styleDirectives,
     styleSeen,
+  );
+  mergeUnique(
+    next.visualDirections ?? [],
+    contribution.visualDirections,
+    visualSeen,
   );
   mergeUnique(next.guardrails ?? [], contribution.guardrails, guardrailSeen);
   mergeUnique(
@@ -90,6 +98,7 @@ function hasContribution(contribution: ContentHarnessContribution): boolean {
     [
       contribution.systemDirectives,
       contribution.styleDirectives,
+      contribution.visualDirections,
       contribution.guardrails,
       contribution.evaluationCriteria,
       contribution.providerHints,
@@ -171,5 +180,8 @@ export async function composeContentHarnessBrief(
     sources: aggregate.sources ?? [],
     styleDirectives: aggregate.styleDirectives ?? [],
     systemDirectives: aggregate.systemDirectives ?? [],
+    ...(aggregate.visualDirections?.length
+      ? { visualDirections: aggregate.visualDirections }
+      : {}),
   };
 }

@@ -393,3 +393,71 @@ describe('buildMediaEnhancerBrief', () => {
     ).toBe('');
   });
 });
+
+describe('visual direction', () => {
+  const direction = [
+    'Reinterpret classic paintings in oil.',
+    'Write the mark into the scene, never beside it.',
+    'Monochrome, grain, no gloss',
+  ];
+
+  it('leads the image look and survives a copy word in one sentence', () => {
+    const result = buildMediaPromptFromHarness(
+      'a quiet harbour',
+      brief({
+        metadata: { contentType: 'image', objective: 'awareness' },
+        styleDirectives: ['Primary color: #0A0A0A'],
+        visualDirections: direction,
+      }),
+    );
+
+    expect(result).toBe(
+      [
+        'a quiet harbour',
+        '',
+        'Brand look: Reinterpret classic paintings in oil. Write the mark into the scene, never beside it. Monochrome, grain, no gloss. Primary color: #0A0A0A.',
+      ].join('\n'),
+    );
+  });
+
+  it('reaches a video prompt in plain words', () => {
+    const result = buildMediaPromptFromHarness(
+      'slow pan over a harbour',
+      brief({
+        metadata: { contentType: 'video', objective: 'awareness' },
+        styleDirectives: ['Primary color: #000000'],
+        visualDirections: ['Monochrome, grain, no gloss'],
+      }),
+    );
+
+    expect(result).toBe(
+      'slow pan over a harbour\n\nBrand palette: black. Brand look: Monochrome, grain, no gloss.',
+    );
+  });
+
+  it('is part of the enhancer look, before generic style lines', () => {
+    const result = buildMediaEnhancerBrief(
+      brief({
+        metadata: { contentType: 'image', objective: 'awareness' },
+        styleDirectives: ['Prefer soft shadows'],
+        visualDirections: ['Oil painting, monochrome'],
+      }),
+    );
+
+    expect(result).toContain(
+      'Look:\n- Oil painting, monochrome.\n- Prefer soft shadows.',
+    );
+  });
+
+  it('is never folded into the generic suffix of a copy brief', () => {
+    const result = buildMediaPromptFromHarness(
+      'write a post',
+      brief({
+        metadata: { contentType: 'post', objective: 'awareness' },
+        visualDirections: ['Oil painting, monochrome'],
+      }),
+    );
+
+    expect(result).not.toContain('Oil painting');
+  });
+});

@@ -28,6 +28,7 @@ export const brandAttributes = createEntityAttributes([
   'backgroundColor',
   'colorPalette',
   'fontRoles',
+  'visualDirection',
   'defaultVideoModel',
   'defaultImageModel',
   'defaultImageToVideoModel',

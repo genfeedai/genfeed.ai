@@ -168,7 +168,7 @@ describe('brand kit contract helpers', () => {
     const draft = buildBrandKitDraftFromBrand(createCompleteBrand());
     const fields = Object.values(draft.fields);
 
-    expect(fields).toHaveLength(24);
+    expect(fields).toHaveLength(25);
     expect(
       fields.every((field) => field.applyActionDefault === 'preserve'),
     ).toBe(true);
@@ -177,6 +177,9 @@ describe('brand kit contract helpers', () => {
       'brand.agentConfig.voice.tone',
     );
     expect(draft.fields.references?.ownerPath).toBe('brand.references');
+    expect(draft.fields.visualDirection?.ownerPath).toBe(
+      'brand.visualDirection',
+    );
   });
 
   it('reports partial readiness and field diagnostics for missing kit data', () => {

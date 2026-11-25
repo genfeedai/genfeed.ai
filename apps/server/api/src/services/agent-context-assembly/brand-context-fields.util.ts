@@ -174,6 +174,7 @@ export function toBrandKitSourceBrand(
     referenceImages: mergeReferenceImages(brand.referenceImages, assets),
     secondaryColor: readTextField(brand.secondaryColor),
     text: readTextField(brand.text),
+    visualDirection: readTextField(brand.visualDirection),
   };
 
   return source;
