@@ -57,6 +57,7 @@ function mergeContribution(
     styleDirectives: [...(aggregate.styleDirectives ?? [])],
     systemDirectives: [...(aggregate.systemDirectives ?? [])],
     visualDirections: [...(aggregate.visualDirections ?? [])],
+    palette: [...(aggregate.palette ?? [])],
   };
 
   mergeUnique(
@@ -74,6 +75,16 @@ function mergeContribution(
     contribution.visualDirections,
     visualSeen,
   );
+  const paletteSeen = new Set(
+    (next.palette ?? []).map((color) => color.hex.toUpperCase()),
+  );
+  for (const color of contribution.palette ?? []) {
+    const key = color.hex.toUpperCase();
+    if (!paletteSeen.has(key)) {
+      paletteSeen.add(key);
+      next.palette?.push(color);
+    }
+  }
   mergeUnique(next.guardrails ?? [], contribution.guardrails, guardrailSeen);
   mergeUnique(
     next.evaluationCriteria ?? [],
@@ -103,7 +114,8 @@ function hasContribution(contribution: ContentHarnessContribution): boolean {
       contribution.evaluationCriteria,
       contribution.providerHints,
     ].some((values) => values?.some((value) => value.trim().length > 0)) ||
-    (contribution.sources?.length ?? 0) > 0
+    (contribution.sources?.length ?? 0) > 0 ||
+    (contribution.palette?.length ?? 0) > 0
   );
 }
 
@@ -183,5 +195,6 @@ export async function composeContentHarnessBrief(
     ...(aggregate.visualDirections?.length
       ? { visualDirections: aggregate.visualDirections }
       : {}),
+    ...(aggregate.palette?.length ? { palette: aggregate.palette } : {}),
   };
 }

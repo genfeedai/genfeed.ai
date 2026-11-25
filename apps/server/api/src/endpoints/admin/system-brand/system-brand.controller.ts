@@ -10,9 +10,11 @@ import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { ApproveSystemBrandDto } from '@api/endpoints/admin/system-brand/dto/approve-system-brand.dto';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { BrandOsRevisionSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -53,6 +55,7 @@ export class SystemBrandController {
   }
 
   @Patch('revisions/:revisionId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Edit the system brand kit draft' })
   async update(
     @Req() request: Request,
@@ -75,6 +78,7 @@ export class SystemBrandController {
   }
 
   @Post('revisions/:revisionId/approve')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     summary:

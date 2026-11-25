@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -7,7 +8,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-export.service';
 import { PublishBrandOsDto } from '@api/services/brand-os-export/publish-brand-os.dto';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type {
   IBrandOsDesignArtifact,
   JsonApiSingleResponse,
@@ -92,6 +93,7 @@ export class BrandOsExportController {
     sendArtifact(response, await this.service.download(id, user), 'attachment');
   }
   @Post('publication')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @Header('Cache-Control', 'no-store')
@@ -108,6 +110,7 @@ export class BrandOsExportController {
     );
   }
   @Delete('publication')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @Header('Cache-Control', 'no-store')
