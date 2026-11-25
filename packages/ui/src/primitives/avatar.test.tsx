@@ -99,4 +99,29 @@ describe('Avatar', () => {
     expect(screen.getByText('on X')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Upload' })).toBeTruthy();
   });
+  it('gives the badge frame the avatar corners so a ring passed in follows the picture', () => {
+    const { container, rerender } = render(
+      <Avatar
+        badge={<span>on X</span>}
+        className="ring-2 ring-background"
+        name="Genfeed"
+      />,
+    );
+    const frame = container.firstElementChild;
+
+    expect(frame).toHaveClass('ring-2', 'rounded-full');
+
+    rerender(
+      <Avatar
+        badge={<span>on X</span>}
+        className="ring-2 ring-background"
+        name="Genfeed"
+        shape="square"
+        size="md"
+      />,
+    );
+
+    expect(container.firstElementChild).toHaveClass('ring-2', 'rounded-md');
+    expect(container.firstElementChild).not.toHaveClass('rounded-full');
+  });
 });
