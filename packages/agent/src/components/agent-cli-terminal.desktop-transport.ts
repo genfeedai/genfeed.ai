@@ -97,6 +97,7 @@ export function createDesktopTerminalTransport(params: {
           cols: payload.cols,
           ...(payload.cwd ? { cwd: payload.cwd } : {}),
           kind: payload.kind,
+          ...(payload.prompt ? { prompt: payload.prompt } : {}),
           rows: payload.rows,
         })
         .then((session) => {

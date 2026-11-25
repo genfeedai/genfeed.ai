@@ -13,23 +13,27 @@ import type {
 } from '@/features/settings/props/skills.props';
 import type {
   ModalityFilterValue,
+  RunsOnFilterValue,
   SourceFilterValue,
   StageFilterValue,
 } from '@/props/settings/skill-filters.props';
 
 import {
   MODALITY_FILTERS,
+  RUNS_ON_FILTERS,
   SOURCE_FILTERS,
   STAGE_FILTERS,
 } from './skill-filter-options';
 
-/** The skills search, with the Source / Modality / Stage Filters menu inside it. */
+/** The skills search, with the Runs on / Source / Modality / Stage Filters menu inside it. */
 export function SkillSearch({
   modalityFilter,
   onModalityFilterChange,
+  onRunsOnFilterChange,
   onSearchQueryChange,
   onSourceFilterChange,
   onStageFilterChange,
+  runsOnFilter,
   searchQuery,
   sourceFilter,
   stageFilter,
@@ -37,6 +41,18 @@ export function SkillSearch({
   const translate = useTranslations('common.settings.skills');
 
   const facets: FilterMenuFacet[] = [
+    {
+      defaultValue: 'all',
+      key: 'runsOn',
+      label: translate('filters.runsOn.menuLabel'),
+      onChange: (value) => onRunsOnFilterChange(value as RunsOnFilterValue),
+      options: RUNS_ON_FILTERS.map((filter) => ({
+        label: translate(`filters.runsOn.${filter.labelKey}`),
+        value: filter.value,
+      })),
+      selection: 'single',
+      value: runsOnFilter,
+    },
     {
       defaultValue: 'all',
       key: 'source',
@@ -92,6 +108,7 @@ export function SkillSearch({
         isAttached
         label={translate('filters.menu')}
         onClear={() => {
+          onRunsOnFilterChange('all');
           onSourceFilterChange('all');
           onModalityFilterChange('all');
           onStageFilterChange('all');

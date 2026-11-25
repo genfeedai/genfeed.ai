@@ -14,6 +14,8 @@ import {
   TERMINAL_PRESETS,
   TERMINAL_ROWS,
   type TerminalCreatePayload,
+  type TerminalLaunchRequest,
+  type TerminalStartOptions,
 } from '@genfeedai/agent/components/agent-cli-terminal.helpers';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
@@ -67,6 +69,7 @@ export type { AgentCliTerminalController } from '@genfeedai/agent/components/age
 export function useAgentCliTerminal(
   apiService: AgentApiService,
   authReady = true,
+  initialLaunch?: TerminalLaunchRequest,
 ): AgentCliTerminalController {
   const hostedCloud = !isAgentCliTerminalAvailable();
   // Genfeed Desktop runs PTYs in Electron main; it needs no API session.
@@ -109,6 +112,7 @@ export function useAgentCliTerminal(
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const initialLaunchRef = useRef(initialLaunch ?? null);
   const sessionIdRef = useRef<string | null>(null);
   const transportRef = useRef<AgentTerminalTransport | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -168,7 +172,7 @@ export function useAgentCliTerminal(
 
   // Spawn a brand-new session for the current thread + kind
   const startSession = useCallback(
-    (kind: TerminalSessionKind) => {
+    (kind: TerminalSessionKind, options?: TerminalStartOptions) => {
       if (!isTerminalReady) {
         setStatus('waiting for authenticated session...');
         return;
@@ -193,6 +197,7 @@ export function useAgentCliTerminal(
         cols: terminal?.cols ?? TERMINAL_COLS,
         cwd: cwdRef.current.trim() || undefined,
         kind,
+        ...(options?.prompt ? { prompt: options.prompt } : {}),
         rows: terminal?.rows ?? TERMINAL_ROWS,
         threadId: activeThreadIdRef.current ?? undefined,
       } satisfies TerminalCreatePayload);
@@ -444,6 +449,12 @@ export function useAgentCliTerminal(
         terminal.writeln(
           'Terminal on this computer. Pick Shell, Genfeed CLI, Claude CLI, or Codex CLI from New.',
         );
+
+        const launch = initialLaunchRef.current;
+        if (launch) {
+          initialLaunchRef.current = null;
+          startSession(launch.kind, { prompt: launch.prompt });
+        }
         return;
       }
 
