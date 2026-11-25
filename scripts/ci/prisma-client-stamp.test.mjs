@@ -258,7 +258,11 @@ function writeGeneratedClassFixture(file) {
       [{ name: 2, scalarMask: 0, flags: 32, childNodeId: 2 }],
       [{ name: 2, scalarMask: 1, flags: 1 }],
       [{ name: 2, scalarMask: 0, flags: 32, childNodeId: 3 }],
-      [{ name: 2, scalarMask: 1, flags: 1 }],
+      // A related model's where-input has relations of its own below it.
+      [
+        { name: 2, scalarMask: 1, flags: 1 },
+        { name: 2, scalarMask: 0, flags: 32, childNodeId: 1 },
+      ],
     ],
     outputNodes: [],
     roots: [
@@ -306,7 +310,7 @@ echo generated >> generated/prisma/client/client.ts
 cp "$CLASS_FIXTURE" generated/prisma/client/internal/class.ts
 `;
 const SLIMMED =
-  'Slimmed the query parameterization graph: 4 to 3 input edges.\n';
+  'Slimmed the query parameterization graph: 5 to 3 input edges.\n';
 const PRISMA_THAT_FAILS = '#!/bin/sh\nexit 3\n';
 
 test('the postinstall command generates once and then skips', (t) => {
@@ -511,7 +515,10 @@ function sampleGraph() {
       ],
       [{ name: 5, scalarMask: 1, flags: 1 }],
       [{ name: 7, scalarMask: 1, flags: 5 }],
-      [{ name: 5, scalarMask: 1, flags: 1 }],
+      [
+        { name: 5, scalarMask: 1, flags: 1 },
+        { name: 6, scalarMask: 0, flags: 32, childNodeId: 5 },
+      ],
       [{ name: 5, scalarMask: 1, flags: 1 }],
     ],
     outputNodes: [[{ name: 8, argsNodeId: 5, outputNodeId: undefined }]],
@@ -582,6 +589,43 @@ test("the cut follows scalar filters and leaves a related model's where-input li
   assert.equal(fields.brand.flags, 32);
 });
 
+test('the cut keeps the filter of a Json field, which takes no bare value', () => {
+  // Thing.updateMany -> where -> { payload: JsonFilter, owner: related where }.
+  // A Json field has an empty scalar mask, like a relation, but its filter has
+  // only value edges below it. Cut, `{ payload: { equals: {...} } }` matched no
+  // row, so an optimistic write on a Json column never applied.
+  const graph = {
+    inputNodes: [
+      [{ name: 1, scalarMask: 0, flags: 32, childNodeId: 1 }],
+      [
+        { name: 2, scalarMask: 0, flags: 32, childNodeId: 2 },
+        { name: 3, scalarMask: 0, flags: 32, childNodeId: 3 },
+      ],
+      [{ name: 4, scalarMask: 128, flags: 1 }],
+      [{ name: 2, scalarMask: 1, flags: 33, childNodeId: 4 }],
+      [{ name: 4, scalarMask: 1, flags: 1 }],
+    ],
+    outputNodes: [],
+    roots: [{ name: 0, argsNodeId: 0 }],
+    strings: ['Thing.updateMany', 'where', 'payload', 'owner', 'equals'],
+  };
+
+  const slim = pruneGraph(graph, keptDepth);
+
+  const where =
+    slim.inputNodes[slim.inputNodes[slim.roots[0].argsNodeId][0].childNodeId];
+  const fields = Object.fromEntries(
+    where.map((edge) => [slim.strings[edge.name], edge]),
+  );
+  assert.notEqual(fields.payload.childNodeId, undefined);
+  assert.equal(
+    slim.strings[slim.inputNodes[fields.payload.childNodeId][0].name],
+    'equals',
+  );
+  // A relation's where-input has a child below it, so it is still cut.
+  assert.equal(fields.owner.childNodeId, undefined);
+});
+
 test('cutting a cut graph changes nothing', () => {
   const once = pruneGraph(sampleGraph(), keptDepth);
 
@@ -622,6 +666,22 @@ test('the generated client carries the cut graph, not the one Prisma writes', (t
     roots.filter((root) => keptDepth(root) === undefined),
     [],
     'the generated client has a root the cut does not know: run `bun run db:generate` in packages/prisma, not a bare `prisma generate`',
+  );
+  const roots2 = new Map(
+    graph.roots.map((root) => [graph.strings[root.name], root]),
+  );
+  const updateMany = roots2.get('VisualRevision.updateMany');
+  const rootArgs = graph.inputNodes[updateMany.argsNodeId];
+  const whereEdge = rootArgs.find(
+    (edge) => graph.strings[edge.name] === 'where',
+  );
+  const receipts = graph.inputNodes[whereEdge.childNodeId].find(
+    (edge) => graph.strings[edge.name] === 'receipts',
+  );
+  assert.notEqual(
+    receipts.childNodeId,
+    undefined,
+    'a Json field keeps its filter: `receipts: { equals }` is the visual-code optimistic write',
   );
   const edges = graph.inputNodes.reduce((sum, node) => sum + node.length, 0);
   assert.ok(
