@@ -48,7 +48,9 @@ export class LlmDispatcherService {
   /**
    * Preferred provider from model id prefix only (no key availability).
    */
-  private preferredProviderForModel(model: string): LlmProvider {
+  private preferredProviderForModel(
+    model: string,
+  ): ILlmCompletionRoute['provider'] {
     if (model.startsWith('anthropic/')) {
       return 'anthropic';
     }
