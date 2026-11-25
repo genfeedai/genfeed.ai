@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import {
   MCP_ORGANIZATION_HEADER,
@@ -19,6 +20,28 @@ const DIGITS_ONLY_PATTERN = /^\d+$/;
 
 function isHeaderRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+const CAUSE_CODE_PATTERN = /^[A-Za-z][A-Za-z0-9_.:-]{0,63}$/;
+
+/**
+ * The API's own error code for a failure (`INSUFFICIENT_CREDITS`,
+ * `VALIDATION_FAILED`), kept as evidence. Only a short code-shaped token
+ * passes, so no message, id or user text travels with it.
+ */
+function readCauseCode(error: ApiError): string | undefined {
+  const data: unknown = error.response?.data;
+  if (!isHeaderRecord(data)) return undefined;
+  const first = Array.isArray(data.errors) ? data.errors[0] : undefined;
+  const candidate =
+    typeof data.code === 'string'
+      ? data.code
+      : isHeaderRecord(first) && typeof first.code === 'string'
+        ? first.code
+        : undefined;
+  return candidate && CAUSE_CODE_PATTERN.test(candidate)
+    ? candidate
+    : undefined;
 }
 
 function readRetryAfterSeconds(error: ApiError): number | undefined {
@@ -135,6 +158,10 @@ export class BaseApiClient {
     } catch (error: unknown) {
       const upstream = error as ApiError;
       const status = upstream.response?.status;
+      const report = {
+        causeCode: readCauseCode(upstream),
+        invocationId: randomUUID(),
+      };
       this.logError(
         operation,
         hasSensitiveErrorDetails
@@ -145,8 +172,17 @@ export class BaseApiClient {
               response: { status },
             }
           : upstream,
+        report,
       );
-      return onError(upstream);
+      try {
+        return onError(upstream);
+      } catch (failure: unknown) {
+        // The tool layer sees this error next. Marking it reported lets that
+        // layer log the same failure as a follow-up with the same id instead of
+        // a second, independent fault.
+        if (failure instanceof McpUpstreamError) failure.report = report;
+        throw failure;
+      }
     }
   }
 
@@ -198,7 +234,11 @@ export class BaseApiClient {
     return error.response?.data?.errors?.[0]?.detail || defaultMessage;
   }
 
-  logError(operation: string, error: ApiError): void {
+  logError(
+    operation: string,
+    error: ApiError,
+    report?: { causeCode?: string; invocationId: string },
+  ): void {
     const status = error.response?.status;
     // A 4xx is the API refusing the call (a held post, a conflict). The caller
     // gets the refusal, so only server faults and transport failures are errors.
@@ -208,6 +248,7 @@ export class BaseApiClient {
         : this.logger.error.bind(this.logger);
     log(`Error ${operation}`, error.message, {
       data: error.response?.data,
+      ...(report ?? {}),
     });
   }
 
