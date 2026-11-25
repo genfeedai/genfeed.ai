@@ -844,6 +844,21 @@ describe('HTTPBaseService (InterceptorService)', () => {
       });
     });
 
+    it('opens the credits prompt when an X post is refused for credits', async () => {
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const { ModalEnum } = await import('@genfeedai/contracts');
+
+      await withBrowserWindow(async () => {
+        const error = creditsError('x_posting_insufficient_credits');
+        await expect(service.handleError(error as AxiosError)).rejects.toEqual(
+          error.response?.data,
+        );
+        expect(openModal).toHaveBeenCalledWith(ModalEnum.CREDITS_REQUIRED);
+      });
+    });
+
     it('leaves other business errors to their surface', async () => {
       const { openModal } = await import(
         '@genfeedai/helpers/ui/modal/modal.helper'

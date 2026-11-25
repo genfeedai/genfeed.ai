@@ -1,3 +1,4 @@
+import type { X_POSTING_INSUFFICIENT_CREDITS_CODE } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import { formatTierLabel } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
@@ -135,6 +136,38 @@ export class PlanLimitExceededException extends HttpException {
       HttpStatus.FORBIDDEN,
     );
     this.name = 'PlanLimitExceededException';
+  }
+}
+
+/**
+ * Publishing or scheduling to X was refused because the organization cannot pay
+ * for it: it never paid, or its wallet cannot cover the post. Answers
+ * 402 so a script sees the refusal when it asks, not a 200 followed by a failed
+ * post. `code` names the reason and `meta.upgradeUrl` is the page that fixes it.
+ */
+export class XPostingBillingException extends HttpException {
+  constructor(refusal: {
+    code: typeof X_POSTING_INSUFFICIENT_CREDITS_CODE;
+    cost?: number;
+    message: string;
+    upgradeUrl: string;
+  }) {
+    super(
+      {
+        code: refusal.code,
+        detail: refusal.message,
+        meta: {
+          ...(refusal.cost !== undefined && { requiredCredits: refusal.cost }),
+          upgradeUrl: refusal.upgradeUrl,
+        },
+        status: HttpStatus.PAYMENT_REQUIRED,
+        timestamp: new Date().toISOString(),
+        title: 'Posting to X needs credits',
+      },
+      HttpStatus.PAYMENT_REQUIRED,
+    );
+    this.name = 'XPostingBillingException';
+    this.message = refusal.message;
   }
 }
 

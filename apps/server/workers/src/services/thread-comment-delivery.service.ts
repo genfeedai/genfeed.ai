@@ -5,6 +5,7 @@ import {
   flattenPostIngredients,
   orderedPostIngredientLinks,
 } from '@api/collections/posts/services/post-ingredient-links.util';
+import { isXPlatform } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import {
   type CredentialDocument,
   type PublisherPostInput,
@@ -37,10 +38,7 @@ import {
   ScheduledPostSweepLockService,
   THREAD_COMMENT_SWEEP_LOCK_KEY,
 } from '@workers/services/scheduled-post-sweep-lock.service';
-import {
-  isXPlatform,
-  ScheduledPostXBilling,
-} from '@workers/services/scheduled-post-x-billing';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 
 type ThreadCommentParent = Post & {
   ingredients?: Array<{ id: string }>;

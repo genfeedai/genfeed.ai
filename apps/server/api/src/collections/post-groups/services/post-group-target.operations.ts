@@ -277,6 +277,13 @@ async function scheduleTargetInTransaction(
     );
   const readiness = readinessByCredential.get(targetInput.credentialId);
   dependencies.readinessService.assertSchedulable(targetInput, readiness);
+  if (isDueNow) {
+    await dependencies.readinessService.assertXPostingAllowed(
+      params.organizationId,
+      [targetInput],
+      group.baseContent,
+    );
+  }
 
   const isExactReplay =
     target.targetExecutionState === TargetExecutionState.SCHEDULED &&
