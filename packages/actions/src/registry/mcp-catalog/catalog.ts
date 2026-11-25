@@ -420,7 +420,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'setup_brand',
     description:
-      'Set a brand up. onboard creates a brand from a URL or details; interview_start, interview_answer and interview_skip run the brand interview; connect_account and connect_oauth link a social account; brand_kit manages the kit (input.action picks what); voice_draft and voice_save draft and save the brand voice; generation_settings sets the brand defaults for generation.',
+      'Set a brand up. onboard creates a brand from a URL or details; interview_start, interview_answer and interview_skip run the brand interview; connect_account and connect_oauth link a social account; brand_kit manages the kit: the brand name, visual identity, writing voice and strategy sections, and approving the draft (input.action picks what); voice_draft and voice_save draft and save the brand voice; generation_settings sets the brand defaults for generation.',
     claudeActions: [
       'onboard',
       'interview_start',
