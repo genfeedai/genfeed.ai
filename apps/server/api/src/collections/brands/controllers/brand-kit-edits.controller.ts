@@ -18,6 +18,7 @@ import {
   RolesGuard,
   type RolesGuardRequest,
 } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope, BrandOsRevisionStatus } from '@genfeedai/contracts';
@@ -111,6 +112,7 @@ export class BrandKitEditsController {
 
   /** The draft an owner or admin is about to approve, for the confirm step. */
   @Get('approval')
+  @TenantReadPolicy('mutating')
   @RequiredScopes(ApiKeyScope.BRANDS_WRITE, ApiKeyScope.BRAND_KIT_WRITE)
   async approvalDraft(
     @Req() request: Request & RolesGuardRequest,
