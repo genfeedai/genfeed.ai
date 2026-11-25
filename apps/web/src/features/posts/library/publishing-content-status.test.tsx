@@ -14,10 +14,10 @@ vi.mock(
 );
 
 describe('PublishingContentStatus', () => {
-  it('shows Delivered to TikTok Inbox instead of the stored status', () => {
+  it('shows Delivered instead of the stored status', () => {
     render(<PublishingContentStatus isInboxDelivery status="published" />);
 
-    expect(screen.getByText('Delivered to TikTok Inbox')).toBeInTheDocument();
+    expect(screen.getByText('Delivered')).toBeInTheDocument();
     expect(screen.queryByText('Published')).not.toBeInTheDocument();
   });
 
