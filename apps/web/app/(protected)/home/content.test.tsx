@@ -90,21 +90,6 @@ const mocks = vi.hoisted(() => ({
       slug?: string;
     } | null;
   },
-  connectionOrganizationId: '',
-  connectionRefresh: vi.fn(async () => undefined),
-  connectionState: {
-    error: null,
-    key: null,
-    refresh: vi.fn(async () => undefined),
-    status: 'unconfigured',
-    verifiedAt: null,
-  } as {
-    error: Error | null;
-    key: { label?: string } | null;
-    refresh: () => Promise<void>;
-    status: 'configured' | 'error' | 'loading' | 'unconfigured';
-    verifiedAt: string | null;
-  },
   overviewRefresh: vi.fn(async () => undefined),
   overviewIsError: false,
   overviewIsLoading: false,
@@ -255,17 +240,7 @@ vi.mock('./use-home-publications', () => ({
   }),
 }));
 
-vi.mock('./use-connect-genfeed-status', () => ({
-  useConnectGenfeedStatus: (organizationId: string) => {
-    mocks.connectionOrganizationId = organizationId;
-    return mocks.connectionState;
-  },
-}));
-
 const { default: OperationalHomeContent } = await import('./content');
-const { CONNECT_CARD_DISMISS_TTL_MS } = await import(
-  './use-connect-card-dismissal'
-);
 
 /** Each render gets its own cache unless a spec passes a shared wrapper. */
 function render(ui: ReactElement) {
@@ -325,150 +300,31 @@ describe('OperationalHomeContent', () => {
       organizationId: 'org_1',
       slug: 'moonrise',
     };
-    mocks.connectionState = {
-      error: null,
-      key: null,
-      refresh: mocks.connectionRefresh,
-      status: 'unconfigured',
-      verifiedAt: null,
-    };
-    mocks.connectionOrganizationId = '';
     mocks.overviewIsError = false;
     mocks.overviewIsLoading = false;
     mocks.reviewInboxRecentItems = [];
     mocks.upcomingReleases = null;
   });
 
-  it('renders the canonical Connect Genfeed state when unconfigured', async () => {
+  it('renders the operational home without a connection card', async () => {
     render(<OperationalHomeContent />);
 
     expect(screen.queryByRole('main')).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: 'Operational home' }),
     ).toHaveClass('sr-only');
-    const connectionState = await screen.findByTestId(
-      'operational-home-unconfigured',
-    );
     expect(
-      within(connectionState).getByText(
-        'Connect Claude Code, Codex, or another AI client',
-      ),
+      await screen.findByTestId('operational-home-sections'),
     ).toBeInTheDocument();
-    expect(
-      within(connectionState).getByRole('link', { name: /Connect Genfeed/ }),
-    ).toHaveAttribute('href', '/acme/~/connectors/agents');
-    expect(
-      screen.queryByRole('link', { name: /Manage API keys/ }),
-    ).not.toBeInTheDocument();
-    const operationalSections = screen.getByTestId('operational-home-sections');
-
-    expect(
-      connectionState.compareDocumentPosition(operationalSections) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('hides the Connect Genfeed card once dismissed and keeps it hidden', async () => {
-    const { unmount } = render(<OperationalHomeContent />);
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Dismiss connect card' }),
-    );
-
     expect(
       screen.queryByTestId('operational-home-unconfigured'),
     ).not.toBeInTheDocument();
-
-    unmount();
-    render(<OperationalHomeContent />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('operational-home-sections')).toBeVisible();
-    });
     expect(
-      screen.queryByTestId('operational-home-unconfigured'),
+      screen.queryByTestId('operational-home-connected'),
     ).not.toBeInTheDocument();
-  });
-
-  it('shows the Connect Genfeed card again after the dismissal expires', async () => {
-    window.localStorage.setItem(
-      'genfeed:connect-card-dismissed:v1:org_1',
-      String(Date.now() - CONNECT_CARD_DISMISS_TTL_MS - 1),
-    );
-
-    render(<OperationalHomeContent />);
-
     expect(
-      await screen.findByTestId('operational-home-unconfigured'),
-    ).toBeInTheDocument();
-  });
-
-  it('paints the remembered verified line while the connection read is loading', () => {
-    window.localStorage.setItem(
-      'genfeed:connect-line:v1:org_1',
-      JSON.stringify({
-        status: 'configured',
-        verifiedAt: '2026-11-20T10:00:00.000Z',
-      }),
-    );
-    mocks.connectionState = {
-      error: null,
-      key: null,
-      refresh: mocks.connectionRefresh,
-      status: 'loading',
-      verifiedAt: null,
-    };
-
-    render(<OperationalHomeContent />);
-
-    expect(screen.getByTestId('operational-home-connected')).toBeVisible();
-    expect(
-      screen.getByTestId('operational-home-connected').parentElement
-        ?.parentElement,
-    ).not.toHaveClass('starting:grid-rows-[0fr]');
-  });
-
-  it('remembers what the connection read settled on for the next visit', async () => {
-    mocks.connectionState = {
-      error: null,
-      key: { label: 'key_1' },
-      refresh: mocks.connectionRefresh,
-      status: 'configured',
-      verifiedAt: '2026-11-21T09:30:00.000Z',
-    };
-
-    render(<OperationalHomeContent />);
-
-    await waitFor(() =>
-      expect(
-        JSON.parse(
-          window.localStorage.getItem('genfeed:connect-line:v1:org_1') ?? '{}',
-        ),
-      ).toEqual({
-        status: 'configured',
-        verifiedAt: '2026-11-21T09:30:00.000Z',
-      }),
-    );
-    expect(
-      window.localStorage.getItem('genfeed:connect-line:v1:org_1'),
-    ).not.toContain('key_1');
-  });
-
-  it('grows the line in when nothing was remembered', () => {
-    mocks.connectionState = {
-      error: null,
-      key: { label: 'key_1' },
-      refresh: mocks.connectionRefresh,
-      status: 'configured',
-      verifiedAt: '2026-11-21T09:30:00.000Z',
-    };
-
-    render(<OperationalHomeContent />);
-
-    expect(
-      screen.getByTestId('operational-home-connected').parentElement
-        ?.parentElement,
-    ).toHaveClass('starting:grid-rows-[0fr]');
+      screen.queryByRole('link', { name: /Connect Genfeed/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders missing-organization recovery inside the existing shell landmark', () => {
@@ -488,20 +344,10 @@ describe('OperationalHomeContent', () => {
   });
 
   it('renders all operational control-plane sections when configured', async () => {
-    mocks.connectionState = {
-      error: null,
-      key: { label: 'Verified MCP' },
-      refresh: mocks.connectionRefresh,
-      status: 'configured',
-      verifiedAt: '2026-07-26T11:00:00.000Z',
-    };
     mocks.upcomingReleases = [];
 
     render(<OperationalHomeContent />);
 
-    expect(
-      screen.getByTestId('operational-home-connected'),
-    ).toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-needs-you'),
     ).toBeInTheDocument();
@@ -565,37 +411,6 @@ describe('OperationalHomeContent', () => {
     expect(mocks.activityOptions?.scope).toBe(PageScope.ORGANIZATION);
   });
 
-  it('uses the access-state organization fallback for connection status', () => {
-    mocks.brandState.organizationId = '';
-
-    render(<OperationalHomeContent />);
-
-    expect(mocks.connectionOrganizationId).toBe('org_1');
-    expect(
-      screen.getByRole('link', { name: /Connect Genfeed/ }),
-    ).toHaveAttribute('href', '/acme/~/connectors/agents');
-  });
-
-  it('keeps operational summaries available when status resolution fails', () => {
-    mocks.connectionState = {
-      error: new Error('network unavailable'),
-      key: null,
-      refresh: mocks.connectionRefresh,
-      status: 'error',
-      verifiedAt: null,
-    };
-
-    render(<OperationalHomeContent />);
-
-    expect(
-      screen.getByText(/Connection status unavailable/),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Open Connect Genfeed' }),
-    ).toHaveAttribute('href', '/acme/~/connectors/agents');
-  });
-
   it('uses organization-level brand setup actions when no brand is available', () => {
     mocks.executionsIsLoading = true;
     mocks.brandState.brands = [
@@ -605,13 +420,6 @@ describe('OperationalHomeContent', () => {
       },
     ];
     mocks.brandState.selectedBrand = mocks.brandState.brands[0] ?? null;
-    mocks.connectionState = {
-      error: null,
-      key: { label: 'Verified MCP' },
-      refresh: mocks.connectionRefresh,
-      status: 'configured',
-      verifiedAt: '2026-07-26T11:00:00.000Z',
-    };
 
     render(<OperationalHomeContent />);
 
@@ -638,41 +446,25 @@ describe('OperationalHomeContent', () => {
     }
   });
 
-  it('wires connection and surface retry actions to their refresh handlers', () => {
+  it('wires the surface retry actions to their refresh handlers', () => {
     mocks.activityIsError = true;
     mocks.overviewIsError = true;
     mocks.brandState.credentialsError = new Error('credentials unavailable');
-    mocks.connectionState = {
-      error: new Error('network unavailable'),
-      key: null,
-      refresh: mocks.connectionRefresh,
-      status: 'error',
-      verifiedAt: null,
-    };
 
     render(<OperationalHomeContent />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
     for (const button of screen.getAllByRole('button', {
       name: 'Retry',
     })) {
       fireEvent.click(button);
     }
 
-    expect(mocks.connectionRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.overviewRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.activityRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.brandRefresh).toHaveBeenCalledTimes(1);
   });
 
   it('isolates overview failure from credential and activity summaries', () => {
-    mocks.connectionState = {
-      error: null,
-      key: { label: 'Verified MCP' },
-      refresh: mocks.connectionRefresh,
-      status: 'configured',
-      verifiedAt: '2026-07-26T11:00:00.000Z',
-    };
     mocks.overviewIsError = true;
 
     render(<OperationalHomeContent />);
@@ -848,13 +640,6 @@ describe('OperationalHomeContent', () => {
   });
 
   it('isolates activity failure from the other operational summaries', () => {
-    mocks.connectionState = {
-      error: null,
-      key: { label: 'Verified MCP' },
-      refresh: mocks.connectionRefresh,
-      status: 'configured',
-      verifiedAt: '2026-07-26T11:00:00.000Z',
-    };
     mocks.activityIsError = true;
 
     render(<OperationalHomeContent />);
@@ -903,33 +688,6 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.queryByText('No accounts are connected yet.'),
     ).not.toBeInTheDocument();
-  });
-
-  it('announces connection-state loading while keeping operations visible', () => {
-    mocks.connectionState = {
-      error: null,
-      key: null,
-      refresh: mocks.connectionRefresh,
-      status: 'loading',
-      verifiedAt: null,
-    };
-
-    render(<OperationalHomeContent />);
-
-    const statusAnnouncements = screen.getAllByRole('status');
-    expect(
-      statusAnnouncements.some((announcement) =>
-        announcement.textContent?.includes('Checking MCP connection state'),
-      ),
-    ).toBe(true);
-    // Nothing visible is reserved while the state is unknown.
-    expect(screen.getByText('Checking MCP connection state...')).toHaveClass(
-      'sr-only',
-    );
-    expect(
-      screen.queryByTestId('operational-home-unconfigured'),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 
   it('shows the needs-you skeleton while overview data is loading', () => {

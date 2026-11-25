@@ -13,6 +13,9 @@ vi.mock('@/components/shell/NotificationInboxToggle', () => ({
 vi.mock('@/components/shell/GenerationToasts', () => ({
   default: () => null,
 }));
+vi.mock('@/components/shell/TopbarAppsMenu', () => ({
+  default: () => <button data-testid="topbar-apps-menu" type="button" />,
+}));
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
@@ -436,31 +439,17 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('links Apps to the app catalog, before the panel toggles', () => {
+  it('puts the Apps menu before the panel toggles', () => {
     mountShellPanel();
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
-    const apps = screen.getByRole('link', { name: 'Apps' });
+    const apps = screen.getByTestId('topbar-apps-menu');
     const activityMenu = screen.getByTestId('topbar-notifications-toggle');
 
-    expect(apps).toHaveAttribute('href', '/acme/~/apps');
-    expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
-    expect(apps).not.toHaveAttribute('aria-current');
     expect(
       apps.compareDocumentPosition(activityMenu) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-  });
-
-  it('marks the Apps link as current on its page', () => {
-    mockPathname.value = '/acme/~/apps';
-
-    render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
-
-    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
   });
 
   it('shows a single Apps breadcrumb with organization selection and no brand selector', () => {
@@ -504,7 +493,7 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.queryByTestId('topbar-credits-status'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('topbar-apps-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-apps-menu')).not.toBeInTheDocument();
   });
 
   it('keeps the wallet synced and puts the credits status before the panel toggles', () => {

@@ -6,12 +6,7 @@ import type {
 } from '@genfeedai/contracts/desktop';
 import { useSyncExternalStore } from 'react';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
-
-const MAC_PLATFORM_PATTERN = /mac/i;
-
-type UserAgentDataCapable = Navigator & {
-  userAgentData?: { platform?: string };
-};
+import { isMacPlatform } from '@/hooks/ui/use-is-mac-browser/use-is-mac-browser';
 
 type WindowChromeBridge = Pick<
   IGenfeedDesktopBridge['app'],
@@ -25,19 +20,6 @@ export interface DesktopWindowChrome {
   isMacDesktop: boolean;
   /** macOS traffic lights are visible (hidden while fullscreen). */
   hasInlineTrafficLights: boolean;
-}
-
-function isMacPlatform(): boolean {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-
-  const platform =
-    (navigator as UserAgentDataCapable).userAgentData?.platform ??
-    navigator.platform ??
-    '';
-
-  return MAC_PLATFORM_PATTERN.test(platform);
 }
 
 function readBridge(): WindowChromeBridge | null {

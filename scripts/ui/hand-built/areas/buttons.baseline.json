@@ -170,9 +170,6 @@
     "apps/web/src/components/shell/NotificationInboxPanel.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/shell/TopbarAppsLink.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/tags/library-tag-picker/TagColorPicker.tsx": {
       "unstyled-look": 1
     },
