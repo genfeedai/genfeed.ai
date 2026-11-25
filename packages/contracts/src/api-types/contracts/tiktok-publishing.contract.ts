@@ -36,6 +36,29 @@ export const TIKTOK_AI_GENERATED_SETTING: ChannelSettingDefinition = {
   type: 'boolean',
 };
 
+/** TikTok target setting that records where the creator sent the post. */
+export const TIKTOK_DELIVERY_MODE_SETTING_KEY = 'deliveryMode';
+
+/** The creator finishes the video in the TikTok app, so nothing posts publicly. */
+export const TIKTOK_DELIVERY_MODE_APP = 'tiktok_app';
+
+/**
+ * The delivery the creator chose with the publish action, kept on the target
+ * so a retry and a scheduled sweep send the post the same way. Absent means a
+ * direct post. The publish actions set and clear it; it is not a form field.
+ */
+export const TIKTOK_DELIVERY_MODE_SETTING: ChannelSettingDefinition = {
+  description:
+    "Set by the publish action. TikTok app delivery sends the video to the creator's TikTok Inbox instead of posting it.",
+  key: TIKTOK_DELIVERY_MODE_SETTING_KEY,
+  label: 'Delivery',
+  options: [
+    { label: 'Direct post', value: 'direct' },
+    { label: 'TikTok app Inbox', value: TIKTOK_DELIVERY_MODE_APP },
+  ],
+  type: 'select',
+};
+
 /**
  * The audience a TikTok post's Privacy setting limits it to: private for
  * Followers, Friends and Only me, nothing for Everyone or an unset value, so
