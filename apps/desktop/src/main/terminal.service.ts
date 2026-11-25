@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/desktop';
 import type { IDisposable, IPty } from 'node-pty';
 import { spawn } from 'node-pty';
+import { resolveGenfeedCliLaunch } from './genfeed-cli-launch.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
 interface DesktopTerminalProcess {
@@ -227,7 +228,7 @@ export class DesktopTerminalService {
     }
 
     if (kind === 'genfeed') {
-      return { args: [], command: 'gf' };
+      return resolveGenfeedCliLaunch(process.platform);
     }
 
     if (process.platform === 'win32') {
