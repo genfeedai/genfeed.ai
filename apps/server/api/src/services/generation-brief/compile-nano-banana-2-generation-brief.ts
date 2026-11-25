@@ -7,10 +7,12 @@
  * None of the three has a dispatch-side aspect-ratio field — the resolved
  * aspect ratio still feeds evidence via
  * {@link resolveImageGenerationBriefAspectRatio}, it is simply never spread
- * into the dispatch object. The capability profile's `resolution` flag only
- * toggles provider support; there is no brief-carried resolution-tier value
- * to map onto it, so the dispatch never sets `resolution` (a documented
- * simplification, not a fidelity loss — nothing in the brief is discarded).
+ * into the dispatch object. The capability profile's `resolution` flag toggles
+ * provider support; there is no brief-carried resolution-tier value to map
+ * onto it, so a model that supports it dispatches Replicate's default tier
+ * (`NANO_BANANA_DEFAULT_RESOLUTION`). The tier is explicit because the reviewed
+ * rate sheet prices these models per tier and a quote of this dispatch is
+ * refused without one (API-GENFEED-AI-BE). Nothing in the brief is discarded.
  * Up to 14 references map onto the native `image_input` array; anything
  * beyond that is recorded as an omitted signal.
  */
@@ -42,6 +44,7 @@ import {
   NANO_BANANA_2_LITE_CAPABILITY_PROFILE,
   NANO_BANANA_PRO_CAPABILITY_PROFILE,
 } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
+import { NANO_BANANA_DEFAULT_RESOLUTION } from '@genfeedai/contracts/constants';
 
 const NANO_BANANA_2_MODEL_LABEL = 'Nano Banana 2';
 
@@ -122,10 +125,15 @@ export function compileNanoBanana2GenerationBrief(
 
   const imageInput = included.map((reference) => reference.assetId);
 
+  const resolution = profile.resolution.supported
+    ? NANO_BANANA_DEFAULT_RESOLUTION[modelKey]
+    : undefined;
+
   const dispatch = nanoBanana2DispatchSchema.parse({
     ...(imageInput.length > 0 ? { image_input: imageInput } : {}),
     output_format: profile.defaults.outputFormat,
     prompt,
+    ...(resolution ? { resolution } : {}),
     ...(profile.defaults.safetyFilterLevel
       ? { safety_filter_level: profile.defaults.safetyFilterLevel }
       : {}),

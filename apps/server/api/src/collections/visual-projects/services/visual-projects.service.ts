@@ -38,6 +38,17 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+/**
+ * The catalog was called with no brand anywhere. This is the caller's missing
+ * argument, so it is an answer that names the way out, not a workflow fault.
+ */
+const BRAND_SCOPE_REQUIRED = {
+  creditsUsed: 0,
+  data: { code: 'brand_context_required', recoveryAction: 'select_brand' },
+  error:
+    'Select a brand first. Pass brandId from get_brands to read the visual-code catalog.',
+  success: false,
+} as const;
 const terminal: string[] = [...VISUAL_CODE_TERMINAL_STATUSES];
 @Traced()
 @Injectable()
@@ -58,11 +69,17 @@ export class VisualProjectsService implements OnModuleInit {
         this.workflows.registerAction(
           actionId,
           async ({ input, context, provenance }) => {
+            const brandId = this.scopeBrandId(
+              operation,
+              context.brandId,
+              input,
+            );
+            if (!brandId && actionId === alias) return BRAND_SCOPE_REQUIRED;
             const user: AuthenticatedUser = {
               id: context.userId,
               userId: context.userId,
               organizationId: context.organizationId,
-              brandId: this.requireBrandContext(context.brandId),
+              brandId: this.requireBrandContext(brandId),
             };
             const execution =
               await this.prisma.workflowExecution.findFirstOrThrow({
@@ -108,6 +125,26 @@ export class VisualProjectsService implements OnModuleInit {
       }
     }
   }
+  /**
+   * The brand a call runs under. The catalog names its brand in its own input,
+   * and `authorizeBrand` checks that brand, so an organization-wide caller with
+   * no active brand can still read it. Every other operation needs the caller's
+   * brand scope.
+   */
+  private scopeBrandId(
+    operation: string,
+    contextBrandId: unknown,
+    input: Record<string, unknown>,
+  ): string | undefined {
+    const candidates =
+      operation === 'catalog'
+        ? [contextBrandId, input.brandId]
+        : [contextBrandId];
+    return candidates.find(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+  }
   private requireBrandContext(value: unknown): string {
     if (value === undefined || value === null)
       throw new BadRequestException('brand_context_required');
@@ -135,16 +172,18 @@ export class VisualProjectsService implements OnModuleInit {
       VISUAL_CODE_ACTION_ALIASES[
         name as keyof typeof VISUAL_CODE_ACTION_ALIASES
       ];
+    const brandId = this.scopeBrandId(operation, context.brandId, parameters);
+    if (!brandId && operation === 'catalog') return BRAND_SCOPE_REQUIRED;
     const user: AuthenticatedUser = {
       id: context.userId,
       userId: context.userId,
       organizationId: context.organizationId,
-      brandId: this.requireBrandContext(context.brandId),
+      brandId: this.requireBrandContext(brandId),
     };
     const data = await this.action(
       operation,
       user,
-      parameters,
+      operation === 'catalog' ? { brandId, ...parameters } : parameters,
       context.sourceActionId ?? context.runId,
       context.isProactive
         ? SystemWorkflowDispatchClass.BACKGROUND

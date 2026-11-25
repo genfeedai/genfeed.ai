@@ -15,6 +15,7 @@ import {
   mapConnectedResearchItem,
   normalizeAdsResearchPlatform,
 } from '@api/endpoints/ads-research/ads-research-presentation.util';
+import { reconnectOnAuthorizationFailure } from '@api/endpoints/ads-research/ads-research-reconnect.util';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
@@ -500,9 +501,13 @@ export class AdsResearchService {
               return items.slice(0, limit);
             }
           }
-        } catch {
-          // Best effort: one failing connected account must not blank the
-          // research feed, so skip it and keep loading the remaining ones.
+        } catch (error: unknown) {
+          // Best effort: a failing account must not blank the research feed.
+          await reconnectOnAuthorizationFailure(
+            this.credentialsService,
+            credential.id,
+            error,
+          );
         }
       }
     }

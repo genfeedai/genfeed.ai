@@ -17,6 +17,8 @@ const ALLOWED_FILES = new Set([
   'agent-cadence-execution.service.ts',
   'agent-llm-round-reservation.util.ts',
   'agent-turn-round-runner.service.ts',
+  // Holds, settles and releases the catalog price of an orchestrator-billed agent tool for the turn runner; the runner is the caller and its spec verifies that concurrent calls cannot spend past the balance.
+  'agent-tool-credit-hold.util.ts',
   'turbo-project-credits.service.ts',
   // Holds, settles and releases the credits of one text call for the reply, first-system, brand profile, master prompt and calendar copy paths; not an agent tool, and its spec verifies that concurrent calls cannot spend past the balance.
   'text-credit-hold.util.ts',
