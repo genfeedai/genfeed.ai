@@ -1716,12 +1716,6 @@
       "approvePost": "Approve post",
       "workflowFailed": "Workflow execution failed."
     },
-    "connect": {
-      "action": "Connect Genfeed",
-      "dismiss": "Dismiss connect card",
-      "title": "Connect Claude Code, Codex, or another AI client",
-      "verificationTimeUnavailable": "Verification time unavailable"
-    },
     "credentials": {
       "addBrand": "Add a brand",
       "empty": "No accounts are connected yet.",
@@ -3050,9 +3044,40 @@
     "viewPlans": "View plans",
     "unavailable": "Unavailable right now."
   },
+  "appsMenu": {
+    "trigger": "Apps",
+    "desktop": {
+      "title": "Desktop app",
+      "subtitle": "Mac · Apple Silicon",
+      "download": "Download"
+    },
+    "mcp": {
+      "title": "MCP connector",
+      "subtitle": "Use Genfeed from Claude Code or Codex",
+      "connect": "Connect",
+      "manage": "Manage",
+      "connected": "Connected",
+      "verified": "Verified",
+      "unknownAgent": "Agent"
+    },
+    "cli": {
+      "title": "CLI",
+      "subtitle": "Run Genfeed from your terminal",
+      "install": "Install",
+      "hide": "Hide",
+      "packageManager": "Package manager",
+      "bun": "bun",
+      "npm": "npm",
+      "copy": "Copy install command",
+      "next": "Then run genfeed login and approve access in your browser."
+    },
+    "more": {
+      "label": "More apps in your workspace",
+      "action": "Open Apps"
+    }
+  },
   "appRail": {
     "apps": "Apps",
-    "launcher": "Apps",
     "search": "Search apps",
     "noApps": "No apps installed yet.",
     "noMatches": "No matching apps.",

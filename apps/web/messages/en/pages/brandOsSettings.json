@@ -268,5 +268,9 @@
   "changed": "Changed from the approved version",
   "revertField": "Revert {label}",
   "suggested": "Found in scan: {value}",
-  "useSuggestion": "Use"
+  "useSuggestion": "Use",
+  "visualDirectionHint": "How your images and video should look: light, mood, setting, what to avoid. Not used for text posts.",
+  "visualDirectionPlaceholder": "Soft daylight, muted earth tones, real people in real places. No stock-photo smiles, no neon.",
+  "visualDirectionCount": "{count} / {max}",
+  "promptGuidelinesHint": "Rules for how posts are written. How images and video should look goes in Visual direction."
 }
