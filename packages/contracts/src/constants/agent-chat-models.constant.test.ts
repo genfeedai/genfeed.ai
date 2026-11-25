@@ -78,9 +78,8 @@ describe('AGENT_CHAT_MODELS', () => {
   it('charges every paid hosted model at least one credit per round', () => {
     for (const model of AGENT_CHAT_MODELS.filter(
       (candidate) =>
-        !candidate.isSelfHosted &&
-        (candidate.pricing.promptPerMillion > 0 ||
-          candidate.pricing.completionPerMillion > 0),
+        candidate.pricing.promptPerMillion > 0 ||
+        candidate.pricing.completionPerMillion > 0,
     )) {
       expect(model.creditCostPerRound).toBeGreaterThanOrEqual(1);
     }
