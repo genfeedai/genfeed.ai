@@ -1,25 +1,24 @@
 'use client';
 
-import { CardGap, CardPadding } from '@genfeedai/contracts';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@services/core/environment.service';
-import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { CircleCheck, KeyRound } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
 import type {
   ClaimDetails,
   ClaimResponse,
   ClaimState,
 } from '@/features/auth/props/agent-auth-claim-content.props';
+import AgentAuthClaimFallback from './claim-fallback';
+import AgentAuthClaimFrame from './claim-frame';
 
 const SIX_DIGIT_CODE_PATTERN = /^\d{6}$/;
 const NON_DIGITS_PATTERN = /\D/g;
@@ -175,137 +174,114 @@ export default function AgentAuthClaimContent() {
   }
 
   if (!isLoaded) {
-    return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
+    return <AgentAuthClaimFallback />;
   }
 
   return (
-    <AuthFormLayout>
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-tertiary">
-            <KeyRound
-              className="size-5 text-muted-foreground"
-              aria-hidden="true"
-            />
-          </div>
-          <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-balance">
-            {translate('title')}
-          </h1>
+    <AgentAuthClaimFrame>
+      {!hasValidRequest ? (
+        <div className="space-y-2 text-center">
+          <h2 className="font-semibold">{translate('invalid.title')}</h2>
           <p className="text-sm text-muted-foreground">
-            {translate('description')}
+            {translate('invalid.description')}
           </p>
         </div>
-
-        <Card padding={CardPadding.XL} gap={CardGap.LG}>
-          {!hasValidRequest ? (
-            <div className="space-y-2 text-center">
-              <h2 className="font-semibold">{translate('invalid.title')}</h2>
-              <p className="text-sm text-muted-foreground">
-                {translate('invalid.description')}
-              </p>
-            </div>
-          ) : !isSignedIn ? (
-            <div className="space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="font-semibold">{translate('signIn.title')}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {translate('signIn.description')}
-                </p>
-              </div>
-              <Button asChild className="w-full" withWrapper={false}>
-                <Link href={loginHref}>{translate('signIn.action')}</Link>
-              </Button>
-            </div>
-          ) : claimState.isComplete || claimDetails?.status === 'claimed' ? (
-            <div className="space-y-3 text-center">
-              <CircleCheck
-                className="mx-auto size-8 text-success"
-                aria-hidden="true"
-              />
-              <h2 className="font-semibold">{translate('success.title')}</h2>
-              <p className="text-sm text-muted-foreground">
-                {translate('success.description')}
-              </p>
-            </div>
-          ) : claimDetailsError ? (
-            <div className="space-y-2 text-center">
-              <h2 className="font-semibold">{translate('unavailableTitle')}</h2>
-              <p className="text-sm text-destructive" role="alert">
-                {claimDetailsError}
-              </p>
-            </div>
-          ) : !claimDetails ? (
-            <p className="text-center text-sm text-muted-foreground">
-              {translate('loading')}
+      ) : !isSignedIn ? (
+        <div className="space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="font-semibold">{translate('signIn.title')}</h2>
+            <p className="text-sm text-muted-foreground">
+              {translate('signIn.description')}
             </p>
-          ) : (
-            <>
-              <div className="space-y-3 border-b border-border pb-5">
-                <p className="text-sm font-medium">
-                  {translate('permissionsTitle')}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {claimDetails.requested_scopes.map((scope) => (
-                    <Badge
-                      isMono
-                      key={scope}
-                      shape="pill"
-                      size="lg"
-                      variant="outline"
-                    >
-                      {scope}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="agent-auth-user-code">
-                  {translate('code.label')}
-                </Label>
-                <Input
-                  autoComplete="one-time-code"
-                  id="agent-auth-user-code"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder={translate('code.placeholder')}
-                  value={userCode}
-                  onChange={(event) =>
-                    setUserCode(
-                      event.target.value
-                        .replace(NON_DIGITS_PATTERN, '')
-                        .slice(0, 6),
-                    )
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  {translate('code.help')}
-                </p>
-              </div>
-
-              {claimState.error ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {claimState.error}
-                </p>
-              ) : null}
-
-              <Button
-                className="w-full"
-                disabled={claimState.isSubmitting || userCode.length !== 6}
-                onClick={() => void completeClaim()}
-              >
-                {claimState.isSubmitting
-                  ? translate('actions.authorizing')
-                  : translate('actions.authorize')}
-              </Button>
-            </>
-          )}
-        </Card>
-
-        <p className="mt-5 text-center text-2xs leading-relaxed text-muted-foreground/50">
-          {translate('footer')}
+          </div>
+          <Button asChild className="w-full" withWrapper={false}>
+            <Link href={loginHref}>{translate('signIn.action')}</Link>
+          </Button>
+        </div>
+      ) : claimState.isComplete || claimDetails?.status === 'claimed' ? (
+        <div className="space-y-3 text-center">
+          <CircleCheck
+            className="mx-auto size-8 text-success"
+            aria-hidden="true"
+          />
+          <h2 className="font-semibold">{translate('success.title')}</h2>
+          <p className="text-sm text-muted-foreground">
+            {translate('success.description')}
+          </p>
+        </div>
+      ) : claimDetailsError ? (
+        <div className="space-y-2 text-center">
+          <h2 className="font-semibold">{translate('unavailableTitle')}</h2>
+          <p className="text-sm text-destructive" role="alert">
+            {claimDetailsError}
+          </p>
+        </div>
+      ) : !claimDetails ? (
+        <p className="text-center text-sm text-muted-foreground">
+          {translate('loading')}
         </p>
-      </div>
-    </AuthFormLayout>
+      ) : (
+        <>
+          <div className="space-y-3 border-b border-border pb-5">
+            <p className="text-sm font-medium">
+              {translate('permissionsTitle')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {claimDetails.requested_scopes.map((scope) => (
+                <Badge
+                  isMono
+                  key={scope}
+                  shape="pill"
+                  size="lg"
+                  variant="outline"
+                >
+                  {scope}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="agent-auth-user-code">
+              {translate('code.label')}
+            </Label>
+            <Input
+              autoComplete="one-time-code"
+              id="agent-auth-user-code"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder={translate('code.placeholder')}
+              value={userCode}
+              onChange={(event) =>
+                setUserCode(
+                  event.target.value
+                    .replace(NON_DIGITS_PATTERN, '')
+                    .slice(0, 6),
+                )
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {translate('code.help')}
+            </p>
+          </div>
+
+          {claimState.error ? (
+            <p className="text-sm text-destructive" role="alert">
+              {claimState.error}
+            </p>
+          ) : null}
+
+          <Button
+            className="w-full"
+            disabled={claimState.isSubmitting || userCode.length !== 6}
+            onClick={() => void completeClaim()}
+          >
+            {claimState.isSubmitting
+              ? translate('actions.authorizing')
+              : translate('actions.authorize')}
+          </Button>
+        </>
+      )}
+    </AgentAuthClaimFrame>
   );
 }
