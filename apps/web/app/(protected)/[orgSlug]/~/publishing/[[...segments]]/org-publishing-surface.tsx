@@ -12,14 +12,12 @@ import {
 } from '@genfeedai/contracts/constants';
 import { notFound, redirect } from 'next/navigation';
 import { type ComponentType, Suspense } from 'react';
-import {
-  CampaignDetailAds,
-  CampaignDetailOverview,
-  CampaignDetailPerformance,
-  CampaignDetailShell,
-  CampaignFormPage,
-  CampaignsListPage,
-} from '@/features/campaigns';
+import CampaignDetailAds from '@/features/campaigns/detail/CampaignDetailAds';
+import CampaignDetailOverview from '@/features/campaigns/detail/CampaignDetailOverview';
+import CampaignDetailPerformance from '@/features/campaigns/detail/CampaignDetailPerformance';
+import CampaignDetailShell from '@/features/campaigns/detail/CampaignDetailShell';
+import CampaignFormPage from '@/features/campaigns/form/CampaignFormPage';
+import CampaignsListPage from '@/features/campaigns/list/CampaignsListPage';
 import NewsletterSettingsPage from '@/features/newsletter/settings/NewsletterSettingsPage';
 import NewsletterSubscribersPage from '@/features/newsletter/subscribers/NewsletterSubscribersPage';
 import type { OrgRootAppEntryPageProps } from '@/props/layout/org-root-app-page.props';

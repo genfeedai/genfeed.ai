@@ -5,7 +5,7 @@ import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import type { CampaignDetailShell } from '@/features/campaigns';
+import type CampaignDetailShell from '@/features/campaigns/detail/CampaignDetailShell';
 import Page from './page';
 
 assertSourceHasExport(
@@ -21,8 +21,8 @@ vi.mock('../../../publishing-list-page', () => ({
     return <div data-testid="posts-list" />;
   },
 }));
-vi.mock('@/features/campaigns', () => ({
-  CampaignDetailShell: ({
+vi.mock('@/features/campaigns/detail/CampaignDetailShell', () => ({
+  default: ({
     campaignId,
     section,
     children,
