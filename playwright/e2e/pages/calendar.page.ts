@@ -109,7 +109,7 @@ export class CalendarPage {
     // that is the desktop rail, not a dialog; below it the same content is a
     // drawer. The panel unmounts on close, so it is the visibility signal.
     // It has no "View Details" control. Its view switcher is icon-only in the
-    // sidebar header (Preview, Details, Analytics, then a "..." menu), and the
+    // sidebar header (Preview, Settings, Analytics, then a "..." menu), and the
     // one navigation affordance is the menu's "Open editor" link
     // (`pages.publishing.release.openEditor`). See #5381.
     this.postModal = page.locator('[data-testid="release-detail-panel"]');
@@ -128,7 +128,7 @@ export class CalendarPage {
       name: 'More actions',
     });
     this.postDetailsViewButton = postHeaderActions.getByRole('button', {
-      name: 'Details',
+      name: 'Settings',
     });
     this.viewDetailsButton = page.getByRole('menuitem', {
       name: 'Open editor',

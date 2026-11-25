@@ -44,7 +44,7 @@ function deferred<T>(): Deferred<T> {
   return { promise, reject, resolve };
 }
 
-function setup(initial: IReleaseGroup[]) {
+function setup(initial: IReleaseGroup[], campaignId?: string) {
   const service = {
     moveCalendarPlacement: vi.fn(),
     republishAt: vi.fn(),
@@ -55,6 +55,7 @@ function setup(initial: IReleaseGroup[]) {
   const hook = renderHook(() => {
     const [releases, setReleases] = useState(initial);
     const actions = useCalendarReleaseActions({
+      campaignId,
       getPostsService: vi.fn(),
       getReleaseGroupsService: async () =>
         service as unknown as ReleaseGroupsService,
@@ -215,5 +216,34 @@ describe('useCalendarReleaseActions rollback', () => {
       MOVED,
       FUTURE,
     ]);
+  });
+});
+
+describe('useCalendarReleaseActions campaign change', () => {
+  it('drops a release moved to another campaign from a campaign calendar', async () => {
+    const a = { ...buildRelease('a', FUTURE), campaignId: 'campaign-a' };
+    const b = { ...buildRelease('b', FUTURE), campaignId: 'campaign-a' };
+    const { hook, service } = setup([a, b], 'campaign-a');
+    service.update.mockResolvedValue({ ...a, campaignId: 'campaign-b' });
+
+    act(() => hook.result.current.setSelectedReleaseId('a'));
+    act(() => hook.result.current.handleChangeCampaign('campaign-b'));
+    await flush();
+
+    expect(hook.result.current.releases.map((release) => release.id)).toEqual([
+      'b',
+    ]);
+  });
+
+  it('keeps a release moved to another campaign on the all-campaigns calendar', async () => {
+    const a = { ...buildRelease('a', FUTURE), campaignId: 'campaign-a' };
+    const { hook, service } = setup([a]);
+    service.update.mockResolvedValue({ ...a, campaignId: 'campaign-b' });
+
+    act(() => hook.result.current.setSelectedReleaseId('a'));
+    act(() => hook.result.current.handleChangeCampaign('campaign-b'));
+    await flush();
+
+    expect(hook.result.current.releases[0]?.campaignId).toBe('campaign-b');
   });
 });

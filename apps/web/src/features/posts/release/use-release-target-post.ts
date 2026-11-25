@@ -48,19 +48,39 @@ export function useReleaseTargetPost(
 }
 
 /**
- * The release with its media filled in from the post when the release has
- * none: a backfilled or imported post never went through a release group, so
- * its slides live only on the post.
+ * The release with its media drawn from the post. A release row stores media
+ * as references (asset id, kind, order) and never a URL, so its slides would
+ * paint as empty "Image" tiles. Each reference takes its URL from the post's
+ * hydrated ingredient with the same asset id, and a release with no references
+ * at all (a backfilled or imported post that never went through a release
+ * group) takes the post's slides whole.
  */
 export function useReleaseWithPostMedia(
   release: IReleaseGroup,
   post: IPost | null,
 ): IReleaseGroup {
-  return useMemo(
-    () =>
-      post && (release.media ?? []).length === 0
-        ? { ...release, media: buildPostMedia(post) }
-        : release,
-    [post, release],
-  );
+  return useMemo(() => {
+    if (!post) {
+      return release;
+    }
+    const postMedia = buildPostMedia(post);
+    if ((release.media ?? []).length === 0) {
+      return { ...release, media: postMedia };
+    }
+    const postMediaByAssetId = new Map(
+      postMedia.map((item) => [item.assetId, item]),
+    );
+    return {
+      ...release,
+      media: release.media.map((item) => {
+        if (item.url) {
+          return item;
+        }
+        const fromPost = postMediaByAssetId.get(item.assetId);
+        return fromPost?.url
+          ? { ...item, kind: item.kind ?? fromPost.kind, url: fromPost.url }
+          : item;
+      }),
+    };
+  }, [post, release]);
 }

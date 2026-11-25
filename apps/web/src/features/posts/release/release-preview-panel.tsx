@@ -146,6 +146,18 @@ export default function ReleasePreviewPanel({
         }}
         value={activeTarget ? activeTarget.id : GLOBAL_VIEW}
       />
+      <p
+        className="text-xs text-muted-foreground"
+        data-testid="release-preview-scope"
+      >
+        {activeTarget
+          ? translate('preview.targetHint', {
+              platform:
+                formatPlatformLabel(activeTarget.platform) ??
+                activeTarget.platform,
+            })
+          : translate('preview.globalHint')}
+      </p>
       {activeTarget ? (
         <ReleaseTargetPreview
           key={activeTarget.id}

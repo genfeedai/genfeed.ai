@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
+import ConnectedAccountStack from '@ui/display/connected-account/ConnectedAccountStack';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
@@ -333,6 +334,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
   onDatesChange,
   getEventColor,
   getEventBadge,
+  getEventAccounts,
   getEventChannels,
   getEventIndicators,
   getEventActions,
@@ -370,6 +372,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
   const viewIdRef = useRef<string>(toViewId(initialView));
   const iconSpriteRef = useRef<HTMLDivElement | null>(null);
   const actionRootsRef = useRef(new WeakMap<HTMLElement, Root>());
+  const accountRootsRef = useRef(new WeakMap<HTMLElement, Root>());
 
   const isDragEnabled = Boolean(isItemDraggable && onEventDrop);
 
@@ -407,12 +410,17 @@ export default function ContentCalendarView<T extends CalendarItem>({
             : '';
           acc.push({
             className: [
+              'gen-calendar-event-host',
               item.isDisabled ? 'event-disabled' : '',
               isDraggable ? 'gen-calendar-event-draggable' : '',
               statusClass,
             ]
               .filter(Boolean)
               .join(' '),
+            // A soft tint of the platform colour, a solid edge, and normal text,
+            // so the account and the time read before the colour does.
+            backgroundColor: `color-mix(in srgb, ${color} 22%, transparent)`,
+            borderColor: color,
             color,
             durationEditable: false,
             editable: isDraggable,
@@ -422,6 +430,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
             },
             id: item.id,
             start: item.scheduledDate,
+            textColor: 'hsl(var(--foreground))',
             title: item.title,
           });
         }
@@ -452,9 +461,50 @@ export default function ContentCalendarView<T extends CalendarItem>({
     (info: {
       el: HTMLElement;
       event: { extendedProps: { isDisabled?: boolean; item?: T } };
+      view: { type: string };
     }) => {
       const item = info.event.extendedProps.item;
       const actions = item && getEventActions ? getEventActions(item) : [];
+
+      // The accounts an event goes to sit at its start as profile pictures
+      // with their platform badge, drawn by the shared avatar stack. List rows
+      // keep their own cells.
+      accountRootsRef.current.get(info.el)?.unmount();
+      info.el.querySelector('.gen-calendar-event-accounts-root')?.remove();
+      accountRootsRef.current.delete(info.el);
+      const accounts =
+        item && getEventAccounts && !info.view.type.startsWith('list')
+          ? getEventAccounts(item)
+          : [];
+      if (accounts.length > 0) {
+        const accountsMount = document.createElement('span');
+        accountsMount.className = 'gen-calendar-event-accounts-root';
+        info.el.appendChild(accountsMount);
+        const accountsRoot = createRoot(accountsMount);
+        accountsRoot.render(
+          <ConnectedAccountStack
+            isInteractive={false}
+            items={accounts}
+            max={2}
+            size="xs"
+          />,
+        );
+        accountRootsRef.current.set(info.el, accountsRoot);
+      }
+
+      // A chip in a crowded week cuts its title short, so the full title, the
+      // status and the channels are one hover away.
+      if (item) {
+        const badge = getEventBadge ? getEventBadge(item) : null;
+        const channels = getEventChannels ? getEventChannels(item) : [];
+        info.el.title = [
+          item.title,
+          badge?.label,
+          channels.map((channel) => channel.label).join(', '),
+        ]
+          .filter(Boolean)
+          .join(' · ');
+      }
       if (actions.length > 0) {
         info.el.tabIndex = 0;
         info.el.setAttribute('data-calendar-slot', 'focusable');
@@ -486,13 +536,21 @@ export default function ContentCalendarView<T extends CalendarItem>({
       root.render(<CalendarEventActions actions={actions} />);
       actionRootsRef.current.set(info.el, root);
     },
-    [getEventActions, onEventClick],
+    [
+      getEventAccounts,
+      getEventActions,
+      getEventBadge,
+      getEventChannels,
+      onEventClick,
+    ],
   );
 
   const handleEventWillUnmount = useCallback((info: { el: HTMLElement }) => {
     const root = actionRootsRef.current.get(info.el);
     root?.unmount();
     actionRootsRef.current.delete(info.el);
+    accountRootsRef.current.get(info.el)?.unmount();
+    accountRootsRef.current.delete(info.el);
   }, []);
 
   const handleDateClick = useCallback(
@@ -524,16 +582,30 @@ export default function ContentCalendarView<T extends CalendarItem>({
     (info: EventDisplayInfo): true | { domNodes: HTMLElement[] } => {
       const item = info.event.extendedProps.item as T | undefined;
       const badge = item && getEventBadge ? getEventBadge(item) : null;
-      const channels = item && getEventChannels ? getEventChannels(item) : [];
+      const hasAccounts =
+        item && getEventAccounts && !info.view.type.startsWith('list')
+          ? getEventAccounts(item).length > 0
+          : false;
+      // The avatar's platform badge already names the platform, so the icon
+      // group would say it twice.
+      const channels =
+        item && getEventChannels && !hasAccounts ? getEventChannels(item) : [];
       const indicators =
         item && getEventIndicators ? getEventIndicators(item) : [];
 
-      if (!badge && channels.length === 0 && indicators.length === 0) {
+      if (
+        !badge &&
+        !hasAccounts &&
+        channels.length === 0 &&
+        indicators.length === 0
+      ) {
         return true;
       }
 
       const container = document.createElement('div');
-      container.className = 'gen-calendar-event';
+      container.className = hasAccounts
+        ? 'gen-calendar-event gen-calendar-event--with-accounts'
+        : 'gen-calendar-event';
 
       // List views render the time in their own cell, so repeating it here would
       // duplicate it on every row.
@@ -610,7 +682,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
 
       return { domNodes: [container] };
     },
-    [getEventBadge, getEventChannels, getEventIndicators],
+    [getEventAccounts, getEventBadge, getEventChannels, getEventIndicators],
   );
 
   const handleDatesSet = useCallback(

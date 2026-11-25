@@ -173,4 +173,24 @@ describe('calendar item projection', () => {
     });
     expect(new Date(items[0].scheduledDate ?? '').getHours()).toBe(12);
   });
+
+  it('leaves cancelled posts off the calendar unless the status filter asks for them', () => {
+    const cancelled = {
+      ...release,
+      id: 'release-cancelled',
+      status: ReleaseStatus.CANCELLED,
+    };
+    const ids = (overrides: Partial<ContentCalendarItemsOptions>) =>
+      buildContentCalendarItems(
+        options({ releases: [release, cancelled], ...overrides }),
+      )
+        .filter((item) => item.itemType === 'release')
+        .map((item) => item.id);
+
+    expect(ids({})).toEqual(['release-1']);
+    expect(ids({ includeCancelled: true })).toEqual([
+      'release-1',
+      'release-cancelled',
+    ]);
+  });
 });

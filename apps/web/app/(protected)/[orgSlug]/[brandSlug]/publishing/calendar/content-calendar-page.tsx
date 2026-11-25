@@ -6,7 +6,12 @@ import {
   useConfirmModal,
   usePostRepurposeModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ModalEnum,
+  ReleaseStatus,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
@@ -124,12 +129,14 @@ export default function ContentCalendarPage({
     handleCancelPendingDrop,
     handleCardOnlyDrop,
     handleRepublishDrop,
+    handleChangeCampaign,
     handleRescheduleRelease,
     handleRescheduleTarget,
     handleRetryTarget,
     handleResumeRelease,
     handleAddChannel,
   } = useCalendarReleaseActions({
+    campaignId,
     releases,
     setReleases,
     getReleaseGroupsService,
@@ -188,11 +195,13 @@ export default function ContentCalendarPage({
         slots,
         globalFilterQuery,
         calendarView,
+        includeCancelled: filters.status.includes(ReleaseStatus.CANCELLED),
         translate,
       }),
     [
       articles,
       newsletters,
+      filters.status,
       globalFilterQuery,
       calendarView,
       releases,
@@ -205,9 +214,14 @@ export default function ContentCalendarPage({
     getEventColor,
     getEventBadge,
     getEventActions,
+    getEventAccounts,
     getEventChannels,
     isItemDraggable,
-  } = useCalendarEventPresentation({ translate, generateSlotByIdentity });
+  } = useCalendarEventPresentation({
+    credentials,
+    generateSlotByIdentity,
+    translate,
+  });
   const { credentialOptions, platformOptions, preferredTimes } =
     useCalendarChannelOptions({
       credentials,
@@ -429,6 +443,7 @@ export default function ContentCalendarPage({
         brandId={brandId}
         error={drawerError}
         onAddChannel={handleAddChannel}
+        onChangeCampaign={handleChangeCampaign}
         onClose={() => setSelectedReleaseId(null)}
         onRescheduleRelease={handleRescheduleRelease}
         onRescheduleTarget={handleRescheduleTarget}
@@ -437,10 +452,12 @@ export default function ContentCalendarPage({
         pendingAction={pendingAction}
         reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
         release={selectedRelease}
+        seriesControls={
+          selectedRelease?.recurrence ? (
+            <EvergreenSeriesControls groupId={selectedRelease.id} />
+          ) : null
+        }
       />
-      {selectedRelease ? (
-        <EvergreenSeriesControls groupId={selectedRelease.id} />
-      ) : null}
       <CalendarSlotPanel
         isPending={isSlotPending}
         onCancel={handleCancelSlot}
@@ -479,6 +496,7 @@ export default function ContentCalendarPage({
       getEventBadge={getEventBadge}
       preferredTimes={preferredTimes}
       timezone={timezone}
+      getEventAccounts={getEventAccounts}
       getEventChannels={getEventChannels}
       getEventActions={getEventActions}
       isItemDraggable={isItemDraggable}

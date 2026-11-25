@@ -9,6 +9,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { CalendarReleaseActionsOptions } from '@/features/posts/props/content-calendar-controller.props';
 import type { ContentCalendarItem } from '@/features/posts/props/content-calendar-page.props';
 import {
+  RELEASE_CAMPAIGN_ACTION,
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
   targetRetryAction,
@@ -30,6 +31,7 @@ import type { CalendarEventDrop } from '@/props/components/calendar.props';
 import type { PendingCalendarDrop } from '@/props/publisher/release-calendar.props';
 
 export function useCalendarReleaseActions({
+  campaignId,
   releases,
   setReleases,
   getReleaseGroupsService,
@@ -71,6 +73,11 @@ export function useCalendarReleaseActions({
         notificationsService,
         onSuccess: (updated) => {
           setReleases((current) => {
+            // A campaign calendar lists only its own campaign: a release moved
+            // to another campaign leaves it.
+            if (campaignId && updated.campaignId !== campaignId) {
+              return current.filter((release) => release.id !== updated.id);
+            }
             const exists = current.some((release) => release.id === updated.id);
             if (exists) {
               return current.map((release) =>
@@ -84,6 +91,7 @@ export function useCalendarReleaseActions({
         setPendingAction,
       }),
     [
+      campaignId,
       getReleaseGroupsService,
       inFlightReleaseIds,
       notificationsService,
@@ -228,6 +236,19 @@ export function useCalendarReleaseActions({
     [runMutation, selectedReleaseId],
   );
 
+  const handleChangeCampaign = useCallback(
+    (campaignId: string | null) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+
+      void runMutation(RELEASE_CAMPAIGN_ACTION, selectedReleaseId, (service) =>
+        service.update(selectedReleaseId, { campaignId }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
   const handleRescheduleTarget = useCallback(
     (targetId: string, scheduledDate: string) => {
       if (!selectedReleaseId) {
@@ -367,6 +388,7 @@ export function useCalendarReleaseActions({
     handleCancelPendingDrop,
     handleCardOnlyDrop,
     handleRepublishDrop,
+    handleChangeCampaign,
     handleRescheduleRelease,
     handleRescheduleTarget,
     handleRetryTarget,

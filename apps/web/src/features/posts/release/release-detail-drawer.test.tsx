@@ -150,13 +150,13 @@ function SidebarFrame({ children }: { children: ReactElement }) {
 }
 
 /** Opens one of the drawer's views from its header icon, like a person would. */
-function openView(name: 'Analytics' | 'Details' | 'Preview') {
+function openView(name: 'Analytics' | 'Settings' | 'Preview') {
   fireEvent.click(screen.getByRole('button', { name }));
 }
 
 /**
  * The drawer opens on the post preview. Most of what these tests cover lives
- * in Details, so they start there; pass `view: 'preview'` to stay on the
+ * in Settings, so they start there; pass `view: 'preview'` to stay on the
  * preview.
  */
 function renderInSidebar(
@@ -164,8 +164,11 @@ function renderInSidebar(
   { view = 'details' }: { view?: 'details' | 'preview' } = {},
 ) {
   const utils = render(<SidebarFrame>{ui}</SidebarFrame>);
-  if (view === 'details' && screen.queryByRole('button', { name: 'Details' })) {
-    openView('Details');
+  if (
+    view === 'details' &&
+    screen.queryByRole('button', { name: 'Settings' })
+  ) {
+    openView('Settings');
   }
   return utils;
 }
@@ -540,7 +543,7 @@ describe('ReleaseDetailDrawer', () => {
 
     const global = await screen.findByTestId('release-global-preview');
     expect(global).toHaveTextContent('Shipped it.');
-    expect(screen.getByRole('radio', { name: 'Global' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'All channels' })).toBeChecked();
     expect(
       screen.getByRole('radio', { name: 'Instagram' }),
     ).toBeInTheDocument();
@@ -594,11 +597,33 @@ describe('ReleaseDetailDrawer', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
 
-    openView('Details');
+    openView('Settings');
     expect(screen.getByTestId('release-details-view')).toBeInTheDocument();
 
     openView('Preview');
     expect(screen.getByTestId('release-preview-panel')).toBeInTheDocument();
+  });
+
+  it('offers the full editor and a series slot from the Settings view', () => {
+    renderInSidebar(
+      <ReleaseDetailDrawer
+        brandId="brand-1"
+        error={null}
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onRetryTarget={vi.fn()}
+        pendingAction={null}
+        reconnectHref="/acme-org/~/settings/profile"
+        release={release()}
+        seriesControls={<p>Series slot</p>}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Edit caption and media' }),
+    ).toHaveAttribute('href', expect.stringContaining('/publishing/posts/'));
+    expect(screen.getByText('Series slot')).toBeInTheDocument();
   });
 
   it('keeps History behind the more-actions menu', async () => {
@@ -662,7 +687,7 @@ describe('ReleaseDetailDrawer', () => {
       'Scheduled',
     );
 
-    openView('Details');
+    openView('Settings');
 
     expect(screen.queryByText('Schedule')).not.toBeInTheDocument();
     expect(screen.queryByText('Scheduled')).not.toBeInTheDocument();

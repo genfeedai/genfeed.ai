@@ -136,5 +136,7 @@ export interface ReleaseDetailDrawerProps {
   pendingAction: string | null;
   /** Brand-scoped Social settings route where blocked credentials reconnect. */
   reconnectHref: string;
+  /** Extra controls for a recurring post, drawn at the end of its Settings view. */
+  seriesControls?: React.ReactNode;
   release: IReleaseGroup | null;
 }

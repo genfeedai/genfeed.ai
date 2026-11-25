@@ -1,4 +1,5 @@
 import type { IClockTime } from '@genfeedai/contracts/interfaces';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import type { ReactNode } from 'react';
 
 export interface CalendarItem {
@@ -48,6 +49,11 @@ export interface CalendarEventBadge {
  * canonical lowercase platform id keying the shared platform-icon lookup;
  * `label` is the human name carried into the icon group's tooltip/aria-label.
  */
+/** One account an event posts to, with the data the shared avatar draws. */
+export interface CalendarEventAccount extends ConnectedAccountData {
+  id: string;
+}
+
 export interface CalendarEventChannel {
   id: string;
   label: string;
@@ -103,6 +109,11 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    * empty list to render that event without icons.
    */
   getEventChannels?: (item: T) => CalendarEventChannel[];
+  /**
+   * The accounts an event goes to, drawn as profile pictures with their
+   * platform badge at the start of the event. Empty or absent draws none.
+   */
+  getEventAccounts?: (item: T) => CalendarEventAccount[];
   /**
    * Channel or destination metadata rendered before the status badge. The
    * calendar keeps one token visible and summarizes the remainder so release
