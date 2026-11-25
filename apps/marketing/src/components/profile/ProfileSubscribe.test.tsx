@@ -74,17 +74,63 @@ describe('ProfileSubscribe', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('sends a signed-out reader through sign-up carrying the creator', async () => {
+  it('explains a signed-out subscribe in a modal before any redirect', async () => {
     getSignedInBetterAuthToken.mockResolvedValue(null);
     render(<ProfileSubscribe handle="acme" source="profile" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }));
 
-    await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    const modal = await screen.findByRole('dialog');
+    expect(modal).toHaveTextContent('Subscribe to @acme');
+    expect(modal).toHaveTextContent('A free Genfeed account');
+    expect(modal).toHaveTextContent('we subscribe you to the @acme newsletter');
+    expect(assign).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { hidden: true, name: 'Subscribe' }),
+    ).toBeEnabled();
+  });
+
+  it('closes the modal on Cancel and goes nowhere', async () => {
+    getSignedInBetterAuthToken.mockResolvedValue(null);
+    render(<ProfileSubscribe handle="acme" source="profile" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }));
+    await screen.findByRole('dialog');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('sends a signed-out reader through sign-up carrying the creator on Continue', async () => {
+    getSignedInBetterAuthToken.mockResolvedValue(null);
+    const tracked: CustomEvent[] = [];
+    const listen = (event: Event) => tracked.push(event as CustomEvent);
+    window.addEventListener('genfeed:marketing:button-click', listen);
+    render(<ProfileSubscribe handle="acme" source="post" sourceRef="post-7" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }));
+    await screen.findByRole('dialog');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    window.removeEventListener('genfeed:marketing:button-click', listen);
+    expect(assign).toHaveBeenCalledTimes(1);
     const url = new URL(String(assign.mock.calls[0]?.[0]));
     expect(url.pathname).toBe('/sign-up');
     expect(url.searchParams.get('follow')).toBe('acme');
     expect(subscribe).not.toHaveBeenCalled();
+    expect(tracked.map((event) => event.detail.trackingName)).toEqual([
+      'creator_subscribe_click',
+      'creator_subscribe_continue_click',
+    ]);
+    expect(tracked[1]?.detail.trackingData).toMatchObject({
+      action: 'profile_subscribe_continue',
+      profile: 'acme',
+      source: 'post',
+    });
   });
 
   it('says so when the subscription did not go through', async () => {

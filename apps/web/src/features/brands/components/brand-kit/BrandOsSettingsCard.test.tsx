@@ -160,6 +160,8 @@ vi.mock('@ui/primitives/select', () => ({
   SelectTrigger: () => null,
   SelectValue: () => null,
   SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+  SelectGroup: ({ children }: { children: ReactNode }) => <>{children}</>,
+  SelectLabel: () => null,
   SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
     <option value={value}>{children}</option>
   ),
@@ -560,6 +562,72 @@ describe('Brand OS revision settings', () => {
     expect(
       screen.queryByRole('button', { name: 'Revert Description' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows Visual direction with its hint and lets a saved value be cleared', async () => {
+    const content = draft();
+    content.fields.visualDirection = {
+      key: 'visualDirection',
+      label: 'Visual direction',
+      group: 'visual',
+      ownerPath: 'brand.visualDirection',
+      applyActionDefault: 'preserve',
+      currentValue: 'Soft daylight. No neon.',
+      diagnostics: [],
+      evidence: [],
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => workspace.renderFields(['visual'])}
+      />,
+    );
+    const field = await screen.findByLabelText('Visual direction');
+    expect(field).toHaveValue('Soft daylight. No neon.');
+    expect(
+      screen.getByText(
+        'How your images and video should look: light, mood, setting, what to avoid. Not used for text posts.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.change(field, { target: { value: '' } });
+    expect(screen.getByLabelText('Visual direction')).toHaveValue('');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Revert Visual direction' }),
+    );
+    expect(screen.getByLabelText('Visual direction')).toHaveValue(
+      'Soft daylight. No neon.',
+    );
+  });
+
+  it('caps Visual direction at the length the API accepts and counts only near the cap', async () => {
+    const content = draft();
+    content.fields.visualDirection = {
+      key: 'visualDirection',
+      label: 'Visual direction',
+      group: 'visual',
+      ownerPath: 'brand.visualDirection',
+      applyActionDefault: 'preserve',
+      currentValue: '',
+      diagnostics: [],
+      evidence: [],
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => workspace.renderFields(['visual'])}
+      />,
+    );
+    const field = await screen.findByLabelText('Visual direction');
+    expect(field).toHaveAttribute('maxlength', '2000');
+    expect(screen.queryByText(/ \/ 2000$/)).not.toBeInTheDocument();
+    fireEvent.change(field, { target: { value: 'x'.repeat(1850) } });
+    expect(screen.getByText('1850 / 2000')).toBeInTheDocument();
   });
 
   it('splits the revision into approval, history, share and policy slots', async () => {
