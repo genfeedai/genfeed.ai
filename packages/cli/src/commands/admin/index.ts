@@ -467,11 +467,6 @@ async function runOrganizationsList(options: {
         organization.memberCount
       } members · created ${organization.createdAt.slice(0, 10)}`
     );
-    print(
-      `  ${organization.appSource} · email ${
-        organization.isOwnerEmailVerified ? 'verified' : 'unverified'
-      } · onboarding ${organization.isOnboardingCompleted ? 'completed' : 'not completed'}`
-    );
   }
 }
 

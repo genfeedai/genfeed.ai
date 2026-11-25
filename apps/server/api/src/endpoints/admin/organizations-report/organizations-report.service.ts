@@ -1,8 +1,8 @@
+import { isOnboardingCompleted } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.util';
 import {
   type PageWindow,
   toPaginationParams,
 } from '@api/helpers/dto/pagination-query.dto';
-import { isOnboardingCompleted } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IOrganizationsReport } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
