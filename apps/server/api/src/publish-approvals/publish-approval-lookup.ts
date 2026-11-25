@@ -11,7 +11,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-export class PublishApprovalNotFoundException extends HttpException {
+class PublishApprovalNotFoundException extends HttpException {
   constructor(resource: string, identifier: string) {
     const detail = `${resource} with identifier '${identifier}' not found`;
     super(
