@@ -56,6 +56,21 @@ describe('PrivacyContent Google user data disclosure', () => {
     ).toBeInTheDocument();
   });
 
+  it('states who receives Google data and how long it is kept', () => {
+    render(<PrivacyContent />);
+
+    expect(
+      screen.getByText(
+        /sent to our AI model provider only to classify them and draft replies/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Genfeed deletes its OAuth access and refresh tokens from our database/,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('links the Google and YouTube policies and the revocation page', () => {
     render(<PrivacyContent />);
 
