@@ -7,6 +7,7 @@ import type {
 import type { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import { tikTokDeliverySettings } from '@api/collections/post-groups/services/post-group-tiktok-delivery.util';
 import {
   categoryAfterMediaRewrite,
   InvalidChannelTargetScheduleException,
@@ -303,12 +304,20 @@ async function scheduleTargetInTransaction(
             target.targetExecutionState as TargetExecutionState,
           ],
         },
-        mutation: buildScheduleMutation(
-          params,
-          readiness ?? validation.readiness,
-          validation,
-          dependencies.contractService,
-        ),
+        mutation: {
+          ...buildScheduleMutation(
+            params,
+            readiness ?? validation.readiness,
+            validation,
+            dependencies.contractService,
+          ),
+          ...(platform === CredentialPlatform.TIKTOK && {
+            targetSettings: tikTokDeliverySettings(
+              dependencies.contractService.asRecord(target.targetSettings),
+              params.workflowSource,
+            ),
+          }),
+        },
         nextState: TargetExecutionState.SCHEDULED,
         organizationId: params.organizationId,
         postId: target.id,
