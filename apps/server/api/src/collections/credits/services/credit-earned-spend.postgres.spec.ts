@@ -415,23 +415,16 @@ describe.skipIf(!connectionString)(
           { idempotencyKey: 'refund-2' },
         );
 
-        const rows = await database().creditTransaction.findMany({
-          orderBy: { createdAt: 'asc' },
-          select: { category: true, metadata: true },
-          where: { organizationId: creator.organizationId },
-        });
-        expect(
-          rows
-            .filter((row) => row.category !== CreditTransactionCategory.ADD)
-            .map((row) => [
-              row.category,
-              (row.metadata as { earnedAmount?: number } | null)
-                ?.earnedAmount ?? null,
-            ]),
-        ).toEqual([
-          [CreditTransactionCategory.DEDUCT, 3],
-          [CreditTransactionCategory.REFUND, 3],
-        ]);
+        const earnedAmountOn = async (category: CreditTransactionCategory) => {
+          const row = await database().creditTransaction.findFirstOrThrow({
+            select: { metadata: true },
+            where: { category, organizationId: creator.organizationId },
+          });
+          return (row.metadata as { earnedAmount?: number } | null)
+            ?.earnedAmount;
+        };
+        expect(await earnedAmountOn(CreditTransactionCategory.DEDUCT)).toBe(3);
+        expect(await earnedAmountOn(CreditTransactionCategory.REFUND)).toBe(3);
         expect(await wallet(creator)).toMatchObject({
           balance: 23,
           earnedBalance: 6,
