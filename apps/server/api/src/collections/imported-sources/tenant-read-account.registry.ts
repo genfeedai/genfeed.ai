@@ -256,6 +256,12 @@ export const TENANT_READ_ACCOUNT_ROUTES = [
     policy: 'selected',
   },
   {
+    controller: CredentialsPublishingController,
+    handler: 'findAllInstagramAudio',
+    route: '/v1/credentials/{credentialId}/instagram/audio',
+    policy: 'mutating',
+  },
+  {
     controller: CredentialsController,
     handler: 'findAllInstagramPages',
     route: '/v1/credentials/{credentialId}/instagram/pages',

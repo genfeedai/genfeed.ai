@@ -6,7 +6,12 @@ import {
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { InstagramMediaType } from '@genfeedai/contracts';
-import { INSTAGRAM_ALT_TEXT_MAX_LENGTH } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
+import {
+  INSTAGRAM_ALT_TEXT_MAX_LENGTH,
+  type InstagramAudioConfiguration,
+  type InstagramAudioTrack,
+  type InstagramAudioType,
+} from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import type {
   InstagramCredentialResponse,
   InstagramMessageRecipient,
@@ -55,15 +60,78 @@ type ContainerParams = Record<string, string | boolean>;
 function decorationAttempts(
   label: Record<string, boolean>,
   extra: Record<string, string>,
+  required: Record<string, string> = {},
 ): ContainerParams[] {
-  const attempts: ContainerParams[] = [{ ...label, ...extra }];
+  const attempts: ContainerParams[] = [{ ...label, ...extra, ...required }];
   if (Object.keys(label).length > 0 && Object.keys(extra).length > 0) {
-    attempts.push(label);
+    attempts.push({ ...label, ...required });
   }
   if (Object.keys(label).length + Object.keys(extra).length > 0) {
-    attempts.push({});
+    attempts.push({ ...required });
   }
   return attempts;
+}
+
+/**
+ * A Reel's music as the `audio_configuration` container field, a JSON string.
+ * Unlike the label and cover it is never dropped on a retry: Genfeed's Reels
+ * are often muted on purpose, so a Reel that lost its track would go out
+ * silent. If Instagram refuses the track the publish fails and says so.
+ */
+function audioParams(
+  audio?: InstagramAudioConfiguration,
+): Record<string, string> {
+  const audioId = audio?.audio_id?.trim();
+  if (!audio || !audioId) {
+    return {};
+  }
+  return {
+    audio_configuration: JSON.stringify({ ...audio, audio_id: audioId }),
+  };
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+/** One `ig_audio` entry as a track, or `undefined` when it has no id. */
+function toAudioTrack(
+  entry: unknown,
+  fallbackType: InstagramAudioType,
+): InstagramAudioTrack | undefined {
+  if (!entry || typeof entry !== 'object') return undefined;
+  const raw = entry as Record<string, unknown>;
+  const id = readString(raw.audio_id);
+  if (!id) return undefined;
+  const audioType =
+    raw.audio_type === 'original_sound'
+      ? 'original_sound'
+      : raw.audio_type === 'music'
+        ? 'music'
+        : fallbackType;
+  return {
+    audioType,
+    id,
+    title: readString(raw.title) ?? id,
+    ...(readString(raw.display_artist)
+      ? { artist: readString(raw.display_artist) }
+      : {}),
+    ...(typeof raw.duration_in_ms === 'number'
+      ? { durationMs: raw.duration_in_ms }
+      : {}),
+    ...(readString(raw.cover_artwork_thumbnail_uri)
+      ? { coverArtworkUrl: readString(raw.cover_artwork_thumbnail_uri) }
+      : {}),
+    ...(readString(raw.on_platform_audio_preview_link)
+      ? { previewUrl: readString(raw.on_platform_audio_preview_link) }
+      : {}),
+    ...(readString(raw.ig_username)
+      ? { igUsername: readString(raw.ig_username) }
+      : {}),
+    ...(typeof raw.is_ads_eligible === 'boolean'
+      ? { isAdsEligible: raw.is_ads_eligible }
+      : {}),
+  };
 }
 
 /**
@@ -284,6 +352,7 @@ export class InstagramPublishingService {
     isShareToFeedSelected = true,
     credentialId?: string,
     isAiGenerated = false,
+    audio?: InstagramAudioConfiguration,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
@@ -309,6 +378,7 @@ export class InstagramPublishingService {
         decorationAttempts(
           aiLabelParams(isAiGenerated),
           coverImageUrl ? { cover_url: coverImageUrl } : {},
+          audioParams(audio),
         ),
       );
       const containerId = createRes.data.id;
@@ -329,6 +399,49 @@ export class InstagramPublishingService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Lists tracks from Instagram's Audio API catalogue: trending when there is
+   * no query, otherwise a search. Instagram only returns audio cleared for
+   * third-party use. The token is the connected account's own, so a Unified
+   * Login credential asks as the account it publishes from.
+   */
+  @Traced()
+  async listAudio(
+    organizationId: string,
+    brandId: string,
+    audioType: InstagramAudioType,
+    searchQuery?: string,
+    credentialId?: string,
+  ): Promise<InstagramAudioTrack[]> {
+    const credential = await this.resolveCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const query = searchQuery?.trim();
+
+    const response = await firstValueFrom(
+      this.httpService.get(`${this.graphUrl}/${this.apiVersion}/ig_audio`, {
+        params: {
+          access_token: accessToken,
+          audio_type: audioType,
+          ...(query ? { search_query: query } : {}),
+          user_id: externalId,
+        },
+      }),
+    );
+
+    const entries: unknown[] = Array.isArray(response.data?.audio)
+      ? response.data.audio
+      : [];
+    return entries.flatMap((entry) => {
+      const track = toAudioTrack(entry, audioType);
+      return track ? [track] : [];
+    });
   }
 
   /**
@@ -516,8 +629,9 @@ export class InstagramPublishingService {
 
   /**
    * Creates one media container. `attempts` are the optional fields that
-   * decorate the post without being needed to publish it (the AI label and an
-   * image's alt text), most decorated first, ending in none. If Instagram
+   * decorate the post without being needed to publish it (the AI label, an
+   * image's alt text and a Reel's cover), most decorated first, ending in none
+   * (a Reel's music rides along in every attempt). If Instagram
    * refuses a request with a client error, the same container is created
    * again with the next attempt, because a missed label or alt text costs less
    * than a missed post. Nothing is published at this step, so a retry cannot
@@ -549,7 +663,7 @@ export class InstagramPublishingService {
           throw error;
         }
         this.loggerService.warn(
-          'Instagram refused the container with the AI label or alt text; creating it again with fewer optional fields',
+          'Instagram refused the container with its optional fields (AI label, alt text or cover); creating it again with fewer',
           {
             error: getInstagramGraphError(error)?.message,
             fields: Object.keys(extra),

@@ -191,6 +191,7 @@ const observedTemplates = [
   '/v1/credentials/brand/{brandId}/account-health',
   '/v1/credentials/brand/{brandId}/publishing-readiness',
   '/v1/credentials/mentions',
+  '/v1/credentials/{credentialId}/instagram/audio',
   '/v1/credentials/{credentialId}/instagram/pages',
   '/v1/credentials/{credentialId}/next-slot',
   '/v1/credentials/{credentialId}/posting-times',
@@ -336,8 +337,8 @@ const observedTemplates = [
 
 describe('combined tenant read policy registry', () => {
   it('conserves exactly247 original canonical routes,73 prefixes and125 distinct owned controllers', () => {
-    expect(routes).toHaveLength(248);
-    expect(new Set(routes.map((entry) => entry.route)).size).toBe(248);
+    expect(routes).toHaveLength(249);
+    expect(new Set(routes.map((entry) => entry.route)).size).toBe(249);
     expect(new Set(routes.map((entry) => entry.route.split('/')[2])).size).toBe(
       73,
     );
@@ -345,7 +346,7 @@ describe('combined tenant read policy registry', () => {
     expect(routes.map((entry) => entry.route).sort()).toEqual(
       [...observedTemplates].sort(),
     );
-    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 62, 132]);
+    expect(cohorts.map((cohort) => cohort.length)).toEqual([55, 62, 132]);
     expect(
       cohorts.map(
         (cohort) => new Set(cohort.map((entry) => entry.controller)).size,

@@ -5,6 +5,7 @@ import {
   NextPostingSlotQueryDto,
   ReplaceCredentialPostingTimesDto,
 } from '@api/collections/credentials/dto/credential-posting-time.dto';
+import { InstagramAudioQueryDto } from '@api/collections/credentials/dto/instagram-audio-query.dto';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
@@ -22,12 +23,15 @@ import {
   API_KEY_CONNECTED_ACCOUNT_READ_SCOPES,
   API_KEY_POSTING_CONFIGURATION_SCOPES,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import type {
   AccountHealthSummary,
   ContentSurface,
   IPublishingProviderReadiness,
+  JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import { CredentialInstagramAudioSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,
@@ -37,9 +41,11 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 function toContentSurface(surface: unknown): ContentSurface {
   const value = typeof surface === 'string' ? surface : '';
@@ -276,5 +282,32 @@ export class CredentialsPublishingController {
       credentialId,
       resolveTenantReadScope(user).organizationId,
     );
+  }
+
+  @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
+  @Get(':credentialId/instagram/audio')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'CredentialsController.findAllInstagramAudio',
+    summary: 'findAllInstagramAudio',
+  })
+  async findAllInstagramAudio(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+    @Query() query: InstagramAudioQueryDto,
+  ): Promise<JsonApiCollectionResponse> {
+    const tracks =
+      await this.credentialPublishingOperationsService.listInstagramAudio(
+        credentialId,
+        user.organizationId,
+        query.audioType,
+        query.searchQuery,
+      );
+
+    return serializeCollection(request, CredentialInstagramAudioSerializer, {
+      docs: tracks,
+    });
   }
 }

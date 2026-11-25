@@ -14,6 +14,11 @@ import { toInstagramTokenGrant } from '@api/services/integrations/instagram/util
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
+  InstagramAudioConfiguration,
+  InstagramAudioTrack,
+  InstagramAudioType,
+} from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
+import type {
   InstagramConversationThread,
   InstagramCredentialResponse,
   InstagramDebugTokenResponse,
@@ -720,6 +725,7 @@ export class InstagramService {
     isShareToFeedSelected: boolean = true,
     credentialId?: string,
     isAiGenerated?: boolean,
+    audio?: InstagramAudioConfiguration,
   ): Promise<{ mediaId: string; shortcode: string }> {
     return this.publishingService.uploadReel(
       organizationId,
@@ -731,6 +737,24 @@ export class InstagramService {
       isShareToFeedSelected,
       credentialId,
       isAiGenerated,
+      audio,
+    );
+  }
+
+  /** Tracks from Instagram's Audio API catalogue (trending, or a search). */
+  public async listAudio(
+    organizationId: string,
+    brandId: string,
+    audioType: InstagramAudioType,
+    searchQuery?: string,
+    credentialId?: string,
+  ): Promise<InstagramAudioTrack[]> {
+    return this.publishingService.listAudio(
+      organizationId,
+      brandId,
+      audioType,
+      searchQuery,
+      credentialId,
     );
   }
 

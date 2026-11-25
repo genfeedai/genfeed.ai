@@ -24,15 +24,22 @@ interface GraphPost {
  */
 function createGraphDouble(
   refuseLabel?: { status: number; code?: number },
-  refuseField: 'alt_text' | 'cover_url' | 'is_ai_generated' = 'is_ai_generated',
+  refuseField:
+    | 'alt_text'
+    | 'audio_configuration'
+    | 'cover_url'
+    | 'is_ai_generated' = 'is_ai_generated',
+  audioCatalogue: unknown = { audio: [] },
 ) {
   const posts: GraphPost[] = [];
   const http = {
-    get: vi.fn((url: string) =>
+    get: vi.fn((url: string, _config?: { params: GraphPost['params'] }) =>
       of({
-        data: url.endsWith('/container-1')
-          ? { status_code: 'FINISHED' }
-          : { shortcode: 'SHORT1' },
+        data: url.endsWith('/ig_audio')
+          ? audioCatalogue
+          : url.endsWith('/container-1')
+            ? { status_code: 'FINISHED' }
+            : { shortcode: 'SHORT1' },
       }),
     ),
     post: vi.fn(
@@ -74,7 +81,7 @@ function createGraphDouble(
     posts.filter((post) => post.path.endsWith('/media'));
   const publishCalls = () =>
     posts.filter((post) => post.path.endsWith('/media_publish'));
-  return { createCalls, publishCalls, service };
+  return { createCalls, http, publishCalls, service };
 }
 
 describe('InstagramPublishingService AI label', () => {
@@ -529,5 +536,124 @@ describe('InstagramPublishingService stories', () => {
     expect(creates[1].params).not.toHaveProperty('is_ai_generated');
     expect(graph.publishCalls()).toHaveLength(1);
     expect(result.mediaId).toBe('container-1');
+  });
+});
+
+describe('InstagramPublishingService Reel music', () => {
+  const reel = (
+    graph: ReturnType<typeof createGraphDouble>,
+    audio?: { audio_id: string; audio_volume?: number; video_volume?: number },
+  ) =>
+    graph.service.uploadReel(
+      'org',
+      'brand',
+      'https://cdn.test/a.mp4',
+      'caption',
+      undefined,
+      undefined,
+      true,
+      undefined,
+      true,
+      audio,
+    );
+
+  it('sends the track as an audio_configuration JSON string', async () => {
+    const graph = createGraphDouble();
+    await reel(graph, {
+      audio_id: ' 1234 ',
+      audio_volume: 80,
+      video_volume: 10,
+    });
+
+    expect(graph.createCalls()[0].params.audio_configuration).toBe(
+      JSON.stringify({ audio_id: '1234', audio_volume: 80, video_volume: 10 }),
+    );
+  });
+
+  it('sends no audio_configuration without a track', async () => {
+    const graph = createGraphDouble();
+    await reel(graph);
+
+    expect(graph.createCalls()[0].params).not.toHaveProperty(
+      'audio_configuration',
+    );
+  });
+
+  it('keeps the track when only another optional field is refused', async () => {
+    const graph = createGraphDouble({ status: 400 }, 'is_ai_generated');
+    await reel(graph, { audio_id: '1234' });
+
+    const creates = graph.createCalls();
+    expect(creates.length).toBeGreaterThan(1);
+    for (const create of creates) {
+      expect(create.params.audio_configuration).toBe(
+        JSON.stringify({ audio_id: '1234' }),
+      );
+    }
+    expect(graph.publishCalls()).toHaveLength(1);
+  });
+
+  it('fails instead of publishing a silent Reel when the track is refused', async () => {
+    const graph = createGraphDouble({ status: 400 }, 'audio_configuration');
+
+    await expect(reel(graph, { audio_id: '1234' })).rejects.toBeDefined();
+    expect(graph.publishCalls()).toHaveLength(0);
+  });
+});
+
+describe('InstagramPublishingService listAudio', () => {
+  it('reads ig_audio with the account id and maps the tracks', async () => {
+    const graph = createGraphDouble(undefined, 'is_ai_generated', {
+      audio: [
+        {
+          audio_id: '1234',
+          audio_type: 'music',
+          cover_artwork_thumbnail_uri: 'https://cdn.test/art.jpg',
+          display_artist: 'Artist',
+          duration_in_ms: 30000,
+          is_ads_eligible: true,
+          on_platform_audio_preview_link: 'https://cdn.test/p.mp3',
+          title: 'Track',
+        },
+        { title: 'no id, skipped' },
+      ],
+    });
+
+    const tracks = await graph.service.listAudio(
+      'org',
+      'brand',
+      'music',
+      ' lofi ',
+    );
+
+    expect(graph.http.get).toHaveBeenCalledWith(
+      'https://graph.test/v1/ig_audio',
+      {
+        params: {
+          access_token: 'token',
+          audio_type: 'music',
+          search_query: 'lofi',
+          user_id: 'ig-1',
+        },
+      },
+    );
+    expect(tracks).toEqual([
+      expect.objectContaining({
+        artist: 'Artist',
+        audioType: 'music',
+        durationMs: 30000,
+        id: '1234',
+        title: 'Track',
+      }),
+    ]);
+  });
+
+  it('lists trending audio when there is no search text', async () => {
+    const graph = createGraphDouble();
+    await graph.service.listAudio('org', 'brand', 'original_sound');
+
+    const params = graph.http.get.mock.calls[0][1]?.params;
+    expect(params).not.toHaveProperty('search_query');
+    expect(params?.audio_type).toBe('original_sound');
   });
 });

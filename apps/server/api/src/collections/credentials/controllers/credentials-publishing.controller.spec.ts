@@ -27,6 +27,14 @@ describe('CredentialsPublishingController', () => {
     }) as unknown as User;
   const user = sessionUser(organizationId);
 
+  const listInstagramAudio = vi.fn();
+  const mockRequest = {
+    get: vi.fn().mockReturnValue('localhost'),
+    headers: {},
+    path: '/credentials',
+    protocol: 'https',
+  } as never;
+
   let postingTimes: Map<string, PostingTime[]>;
   let controller: CredentialsPublishingController;
 
@@ -108,6 +116,7 @@ describe('CredentialsPublishingController', () => {
           type: 'quota-status',
         },
       }),
+      listInstagramAudio: listInstagramAudio,
     };
     const credentialPublishingReadinessService = {
       resolveForBrand: async (organization: string, brand: string) => [
@@ -251,5 +260,38 @@ describe('CredentialsPublishingController', () => {
         type: 'quota-status',
       },
     });
+  });
+
+  it('lists Instagram music for the caller organization and serializes the tracks', async () => {
+    listInstagramAudio.mockResolvedValue([
+      {
+        artist: 'Artist',
+        audioType: 'music',
+        durationMs: 15000,
+        id: '1234',
+        title: 'Track',
+      },
+    ]);
+
+    const response = await controller.findAllInstagramAudio(
+      mockRequest,
+      user,
+      credentialId,
+      { audioType: 'music', searchQuery: 'chill' },
+    );
+
+    expect(listInstagramAudio).toHaveBeenCalledWith(
+      credentialId,
+      organizationId,
+      'music',
+      'chill',
+    );
+    expect(response.data).toEqual([
+      expect.objectContaining({
+        attributes: expect.objectContaining({ title: 'Track' }),
+        id: '1234',
+        type: 'credential-instagram-audio',
+      }),
+    ]);
   });
 });

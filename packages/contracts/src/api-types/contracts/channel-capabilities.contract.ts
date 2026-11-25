@@ -34,7 +34,10 @@ import {
 } from './channel-setting-validation.contract';
 import { communityChannelCapabilities } from './community-channel-capabilities.contract';
 import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
-import { INSTAGRAM_PUBLISHING_SETTINGS } from './instagram-publishing.contract';
+import {
+  INSTAGRAM_PUBLISHING_SETTINGS,
+  validateInstagramAudioSettings,
+} from './instagram-publishing.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
@@ -474,6 +477,12 @@ const channelCapabilities = [
         label: 'Instagram professional account',
         lookupPath: '/credentials/{credentialId}/instagram/pages',
         required: true,
+      },
+      {
+        key: 'instagram.audio_styles',
+        kind: 'audio_style',
+        label: 'Instagram Reel music',
+        lookupPath: '/credentials/{credentialId}/instagram/audio',
       },
     ],
     label: 'Instagram',
@@ -1175,6 +1184,16 @@ export function readChannelSettingString(
     : undefined;
 }
 
+export function readChannelSettingNumber(
+  settings: ChannelTargetSettings,
+  key: string,
+): number | undefined {
+  const value = settings[key];
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
 export function readChannelSettingBoolean(
   settings: ChannelTargetSettings,
   key: string,
@@ -1433,6 +1452,18 @@ function validateProviderConstraints(
   const quotedIssue = validateXQuotedPost(capability.platform, input.settings);
   if (quotedIssue) {
     return [quotedIssue];
+  }
+
+  if (capability.platform === CredentialPlatform.INSTAGRAM) {
+    const audioIssues = validateInstagramAudioSettings(input.settings ?? {});
+    if (audioIssues.length > 0) {
+      return audioIssues.map((message) => ({
+        code: 'channel_target.instagram_invalid_audio',
+        field: 'settings',
+        message,
+        severity: 'error' as const,
+      }));
+    }
   }
 
   if (

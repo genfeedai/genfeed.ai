@@ -1,5 +1,6 @@
 import { buildSerializer } from '@serializers/builders';
 import {
+  credentialInstagramAudioSerializerConfig,
   credentialInstagramPagesSerializerConfig,
   credentialOAuthSerializerConfig,
   credentialSerializerConfig,
@@ -18,4 +19,9 @@ export const { CredentialOAuthSerializer } = buildSerializer(
 export const { CredentialInstagramPagesSerializer } = buildSerializer(
   'server',
   credentialInstagramPagesSerializerConfig,
+);
+
+export const { CredentialInstagramAudioSerializer } = buildSerializer(
+  'server',
+  credentialInstagramAudioSerializerConfig,
 );
