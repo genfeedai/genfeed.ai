@@ -1,4 +1,6 @@
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
 import {
   BadRequestException,
@@ -30,6 +32,7 @@ export class EmailPerformanceController {
   }
 
   @Post('webhooks/resend')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(204)
   async webhook(
     @Req() request: Request,

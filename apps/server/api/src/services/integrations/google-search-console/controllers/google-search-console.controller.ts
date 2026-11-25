@@ -6,6 +6,7 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -15,7 +16,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import type { GoogleSearchConsoleDimension } from '@genfeedai/contracts/interfaces';
 import {
   CredentialOAuthSerializer,
@@ -60,6 +61,7 @@ export class GoogleSearchConsoleController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -97,6 +99,7 @@ export class GoogleSearchConsoleController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -185,6 +185,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-api-key-route-scopes.ts',
+    ],
+    name: 'API-key route scope ratchet (#9129)',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-raw-fetch-org-header.ts',
     ],
     name: 'Raw-fetch routed-organization header (#5393)',

@@ -398,6 +398,13 @@ export const RATCHET_SOURCES: readonly RatchetSource[] = [
       'load the heavy dependency on demand (a dynamic import() at its one call site) instead of raising the boot heap budget',
     name: 'boot heap budget (MB)',
   },
+  {
+    entryKeys: stringListEntryKeys,
+    file: 'scripts/architecture/api-key-route-scopes.baseline.ts',
+    instead:
+      'add @RequiredScopes(...) for the resource the route changes, or @ApiKeyReadAccess() when it changes no tenant data, instead of baselining the route',
+    name: 'API-key routes without a scope',
+  },
 ];
 
 function countKeys(keys: readonly string[]): Map<string, number> {

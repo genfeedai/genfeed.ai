@@ -7,6 +7,7 @@ import type { OutreachCampaignDocument } from '@api/collections/outreach-campaig
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -16,7 +17,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { BaseService } from '@api/shared/services/base/base.service';
-import { CampaignStatus } from '@genfeedai/contracts';
+import { ApiKeyScope, CampaignStatus } from '@genfeedai/contracts';
 import { OutreachCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -63,6 +64,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Create an outreach campaign' })
   async create(
     @Req() request: Request,
@@ -162,6 +164,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
    * `{ status: "active" | "paused" | "completed" }` (mirrors agent-campaigns).
    */
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('messages', 'write', {
     field: 'status',
     values: [CampaignStatus.PAUSED, CampaignStatus.COMPLETED],
@@ -222,6 +225,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a campaign' })
   async remove(
     @Req() request: Request,

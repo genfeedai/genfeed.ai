@@ -4,6 +4,7 @@ import { QueryDistributionDto } from '@api/collections/distributions/dto/query-d
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -13,7 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
-import { DistributionPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, DistributionPlatform } from '@genfeedai/contracts';
 import { DistributionSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -46,6 +47,7 @@ export class DistributionsController {
    * POST /distributions
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(@Body() dto: CreateDistributionDto, @CurrentUser() user: User) {
     const organization = user.organizationId;
@@ -141,6 +143,7 @@ export class DistributionsController {
    * DELETE /distributions/:id
    */
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cancel(
     @Req() req: Request,

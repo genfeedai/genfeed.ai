@@ -12,6 +12,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -22,7 +23,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   ContextBaseSerializer,
   ContextEntrySerializer,
@@ -52,6 +53,7 @@ export class ContextsController {
    * Create a new context base
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() req: Request,
@@ -109,6 +111,7 @@ export class ContextsController {
    * Update context base
    */
   @Patch(':contextId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() req: Request,
@@ -129,6 +132,7 @@ export class ContextsController {
    * Delete context base
    */
   @Delete(':contextId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Param('contextId') contextId: string,
@@ -143,6 +147,7 @@ export class ContextsController {
    * Add entry to context base
    */
   @Post(':contextId/entries')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async addEntry(
     @Req() req: Request,
@@ -162,6 +167,7 @@ export class ContextsController {
   }
 
   @Post(':contextId/embeddings/backfill')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async backfillEmbeddings(
@@ -187,6 +193,7 @@ export class ContextsController {
    * Remove entry from context base
    */
   @Delete(':contextId/entries/:entryId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async removeEntry(
     @Param('contextId') contextId: string,
@@ -202,6 +209,7 @@ export class ContextsController {
    * Auto-create context from social brand
    */
   @Post('autocreate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async autoCreateFromAccount(
     @Req() req: Request,
@@ -224,6 +232,7 @@ export class ContextsController {
    * Retrieve context entries for direct prompt injection.
    */
   @Post('enhance')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(SubscriptionGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async enhancePrompt(
@@ -243,6 +252,7 @@ export class ContextsController {
    * Query context base
    */
   @Post('query')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async queryContext(@Body() dto: QueryContextDto, @CurrentUser() user: User) {
     const organization = user.organizationId;

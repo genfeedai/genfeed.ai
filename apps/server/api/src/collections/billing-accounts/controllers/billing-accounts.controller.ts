@@ -6,10 +6,12 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
@@ -46,6 +48,7 @@ export class BillingAccountsController {
   }
 
   @Post('current/organizations')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async linkOrganization(
     @CurrentUser() user: User,
@@ -78,6 +81,7 @@ export class BillingAccountsController {
   }
 
   @Delete('current/organizations/:organizationId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async detachOrganization(
     @CurrentUser() user: User,
@@ -101,6 +105,7 @@ export class BillingAccountsController {
   }
 
   @Post('current/members')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async grantRole(
     @CurrentUser() user: User,
@@ -124,6 +129,7 @@ export class BillingAccountsController {
   }
 
   @Delete('current/members/:userId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async revokeRole(
     @CurrentUser() user: User,
@@ -146,6 +152,7 @@ export class BillingAccountsController {
   }
 
   @Post('migrate/dry-run')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async dryRunMigration() {
@@ -153,6 +160,7 @@ export class BillingAccountsController {
   }
 
   @Post('migrate/apply')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async applyMigration() {

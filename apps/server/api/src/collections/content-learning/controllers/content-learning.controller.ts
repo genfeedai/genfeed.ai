@@ -10,6 +10,7 @@ import { LearningAccountService } from '@api/collections/content-learning/servic
 import { LearningOperationService } from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningReadService } from '@api/collections/content-learning/services/learning-read.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -17,7 +18,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   ContentLearningAccountSerializer,
   ContentLearningEvidenceSerializer,
@@ -150,6 +151,7 @@ export class ContentLearningController {
     );
   }
   @Post('accounts/:credentialId/control')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async control(
     @Req() request: Request,
@@ -164,6 +166,7 @@ export class ContentLearningController {
     );
   }
   @Patch('accounts/:credentialId/sharing')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async sharing(
     @Req() request: Request,
@@ -178,6 +181,7 @@ export class ContentLearningController {
     );
   }
   @Patch('accounts/:credentialId/shared-release')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async receiving(
     @Req() request: Request,
@@ -192,6 +196,7 @@ export class ContentLearningController {
     );
   }
   @Post('posts/:postId/eligibility')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async eligibility(
     @Req() request: Request,
@@ -206,6 +211,7 @@ export class ContentLearningController {
     );
   }
   @Patch('brands/:brandId/shared-release')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async brandReceiving(
     @Req() request: Request,

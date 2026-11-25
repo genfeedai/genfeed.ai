@@ -9,11 +9,12 @@ import {
   claimOAuthVerifyCredential,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -43,6 +44,7 @@ export class PinterestController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -77,6 +79,7 @@ export class PinterestController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() body: Partial<CreateCredentialVerifyDto>,
@@ -142,6 +145,7 @@ export class PinterestController {
   }
 
   @Post('pins')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createPin(
     @Body()
     body: {

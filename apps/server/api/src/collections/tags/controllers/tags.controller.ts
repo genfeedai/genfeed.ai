@@ -7,6 +7,7 @@ import { UpdateTagDto } from '@api/collections/tags/dto/update-tag.dto';
 import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -23,7 +24,7 @@ import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util'
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
-import { MemberRole, TagScope } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole, TagScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -134,6 +135,7 @@ export class TagsController extends BaseCRUDController<
    * exists in the same scope reuses that tag instead of making a duplicate.
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   override async create(
     @Req() request: Request,
@@ -193,6 +195,7 @@ export class TagsController extends BaseCRUDController<
    * default tags are read-only; organization-wide tags need an owner or admin.
    */
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   override async remove(
     @Req() request: Request,

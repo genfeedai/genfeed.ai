@@ -3,6 +3,7 @@ import { ControlNewsletterSendDto } from '@api/collections/newsletter-sends/dto/
 import { CreateNewsletterSendDto } from '@api/collections/newsletter-sends/dto/create-newsletter-send.dto';
 import { NewsletterSendsService } from '@api/collections/newsletter-sends/services/newsletter-sends.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -11,6 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { INewsletterEmailPreview } from '@genfeedai/contracts/interfaces';
 import { NewsletterSendSerializer } from '@genfeedai/serializers';
 import {
@@ -42,6 +44,7 @@ export class NewsletterSendsController {
   constructor(private readonly sends: NewsletterSendsService) {}
 
   @Post('newsletters/:newsletterId/sends')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Req() request: Request,
@@ -70,6 +73,7 @@ export class NewsletterSendsController {
   }
 
   @Post('newsletters/:newsletterId/test-send')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   async sendTest(
     @CurrentUser() user: AuthenticatedUser,
@@ -107,6 +111,7 @@ export class NewsletterSendsController {
   }
 
   @Patch('newsletter-sends/:sendId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async control(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,

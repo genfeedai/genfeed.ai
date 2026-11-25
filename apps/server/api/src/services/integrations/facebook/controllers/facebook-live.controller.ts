@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -8,7 +9,7 @@ import {
   FacebookLivePostService,
   type FacebookLiveScope,
 } from '@api/services/integrations/facebook/services/facebook-live-post.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { IFacebookLiveVideo } from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 import {
   BadRequestException,
@@ -27,6 +28,7 @@ export class FacebookLiveController {
   constructor(private readonly livePosts: FacebookLivePostService) {}
 
   @Post(':credentialId/live')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   start(
     @CurrentUser() user: User,
@@ -40,6 +42,7 @@ export class FacebookLiveController {
   }
 
   @Post(':credentialId/live/:postId/end')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   end(
     @CurrentUser() user: User,

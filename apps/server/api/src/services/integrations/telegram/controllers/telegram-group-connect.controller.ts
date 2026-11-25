@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -7,6 +8,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { TelegramGroupLinkService } from '@api/services/integrations/telegram/services/telegram-group-link.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { CredentialOAuthSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -28,6 +30,7 @@ export class TelegramGroupConnectController {
    * POST /services/telegram/connect
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,

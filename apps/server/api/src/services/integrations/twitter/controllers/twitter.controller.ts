@@ -14,6 +14,7 @@ import {
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -30,6 +31,7 @@ import {
 } from '@api/services/integrations/twitter/utils/twitter-profile-media.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
+  ApiKeyScope,
   CredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
@@ -72,6 +74,7 @@ export class TwitterController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -156,6 +159,7 @@ export class TwitterController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
@@ -348,6 +352,7 @@ export class TwitterController {
   }
 
   @Post(':credentialId/authorized-signals/refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async refreshAuthorizedSignals(
     @Req() request: Request,
     @CurrentUser() user: User,

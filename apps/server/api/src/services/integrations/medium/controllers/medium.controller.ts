@@ -7,6 +7,7 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { oauthLogFlags } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -16,7 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -43,6 +44,7 @@ export class MediumController {
    * POST /services/medium/connect
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -90,6 +92,7 @@ export class MediumController {
    * POST /services/medium/verify
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,

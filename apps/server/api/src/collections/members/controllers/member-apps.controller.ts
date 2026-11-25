@@ -3,10 +3,12 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   isNativeSecondaryAppId,
   isReleaseItemId,
@@ -59,6 +61,7 @@ export class MemberAppsController {
   }
 
   @Put(':appId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async installApp(
     @CurrentUser() user: User,
@@ -81,6 +84,7 @@ export class MemberAppsController {
 
   /** Uninstalling keeps projects, assets, workflows and history. */
   @Delete(':appId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   uninstallApp(
     @CurrentUser() user: User,

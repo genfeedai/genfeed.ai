@@ -6,6 +6,7 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -20,7 +21,7 @@ import {
   type YoutubeOAuthVerifyProgress,
 } from '@api/services/integrations/youtube/utils/youtube-oauth-verify.util';
 import { completeYoutubeOAuthVerification } from '@api/services/integrations/youtube/utils/youtube-oauth-verify-completion.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -56,6 +57,7 @@ export class YoutubeController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -118,6 +120,7 @@ export class YoutubeController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
@@ -172,6 +175,7 @@ export class YoutubeController {
   }
 
   @Post(':credentialId/authorized-signals/refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async refreshAuthorizedSignals(
     @Req() request: Request,
     @CurrentUser() user: User,
