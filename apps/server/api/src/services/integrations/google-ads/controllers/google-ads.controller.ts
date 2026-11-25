@@ -8,6 +8,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,7 +17,11 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
-import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  CredentialPlatform,
+  MemberRole,
+} from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -54,6 +59,7 @@ export class GoogleAdsController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async connect(
     @Req() request: Request,
@@ -94,6 +100,7 @@ export class GoogleAdsController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async verify(
     @Req() request: Request,

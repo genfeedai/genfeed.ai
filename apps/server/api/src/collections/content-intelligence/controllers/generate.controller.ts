@@ -6,9 +6,11 @@ import { GenerateContentDto } from '@api/collections/content-intelligence/dto/ge
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { GeneratedContentSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -28,6 +30,7 @@ export class GenerateController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60000 })
   async generate(
     @Req() _request: Request,

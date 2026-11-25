@@ -4,9 +4,11 @@ import {
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -21,6 +23,7 @@ export class HookRemixController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(201)
   @ApiOperation({ summary: 'Create a hook remix job' })
   async createHookRemix(
@@ -42,6 +45,7 @@ export class HookRemixController {
   }
 
   @Post('batch')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(201)
   @ApiOperation({ summary: 'Create batch hook remix jobs' })
   async createBatchHookRemix(

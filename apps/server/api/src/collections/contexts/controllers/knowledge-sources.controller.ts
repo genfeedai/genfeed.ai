@@ -14,6 +14,7 @@ import { KnowledgeRecordsService } from '@api/collections/contexts/services/know
 import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -23,7 +24,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   KnowledgeSourceSerializer,
   KnowledgeSourceVersionSerializer,
@@ -62,6 +63,7 @@ export class KnowledgeSourcesController {
    * version 1 and starts the canonical ingestion workflow.
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiHeader({
     name: 'Idempotency-Key',
     required: false,
@@ -96,6 +98,7 @@ export class KnowledgeSourcesController {
 
   /** Queue ingestion for every current version that is not ready yet. */
   @Post('backfill')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async backfill(@CurrentUser() user: AuthenticatedUser) {
@@ -180,6 +183,7 @@ export class KnowledgeSourcesController {
   }
 
   @Patch(':sourceId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -203,6 +207,7 @@ export class KnowledgeSourcesController {
   }
 
   @Delete(':sourceId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -226,6 +231,7 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/versions')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -257,6 +263,7 @@ export class KnowledgeSourcesController {
 
   /** Requeue the current version after a failure without creating duplicates. */
   @Patch(':sourceId/refresh-policy')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -281,6 +288,7 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiHeader({
     name: 'Idempotency-Key',
     required: true,
@@ -315,6 +323,7 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/retry')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -398,6 +407,7 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/versions/:versionId/processing')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -426,6 +436,7 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/versions/:versionId/eligibility')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -454,6 +465,7 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/versions/:versionId/verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,

@@ -11,6 +11,7 @@ import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -22,7 +23,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { BotLivestreamSessionStatus } from '@genfeedai/contracts';
+import { ApiKeyScope, BotLivestreamSessionStatus } from '@genfeedai/contracts';
 import {
   BotSerializer,
   LivestreamBotSessionSerializer,
@@ -198,6 +199,7 @@ export class BotsController extends BaseCRUDController<
   }
 
   @Patch(':id/livestream-session')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async patchLivestreamSession(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -213,6 +215,7 @@ export class BotsController extends BaseCRUDController<
   }
 
   @Post(':id/livestream-session/override')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateLivestreamOverride(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -229,6 +232,7 @@ export class BotsController extends BaseCRUDController<
   }
 
   @Post(':id/livestream-session/transcript')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async ingestLivestreamTranscript(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -250,6 +254,7 @@ export class BotsController extends BaseCRUDController<
    * (no OBS). Host speech still uses /transcript with external STT webhooks.
    */
   @Post(':id/livestream-session/restream-chat')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async ingestRestreamChat(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -273,6 +278,7 @@ export class BotsController extends BaseCRUDController<
   }
 
   @Post(':id/livestream-session/send-now')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async sendLivestreamMessageNow(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -20,11 +20,13 @@ import { LearningRunService } from '@api/collections/content-learning/services/l
 import { resolveSlotOutcomeOrganizations } from '@api/collections/content-learning/utils/learning-prompt-slot-organizations.util';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { LearningPromptSlotOutcomeReport } from '@genfeedai/contracts/interfaces';
 import {
   ContentLearningAccountSerializer,
@@ -129,7 +131,9 @@ export class ContentLearningAdminController {
       ),
     };
   }
-  @Post('datasets') async createDataset(
+  @Post('datasets')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async createDataset(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: LearningDatasetDto,
@@ -146,7 +150,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('datasets/:id/train') async train(
+  @Post('datasets/:id/train')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async train(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -164,7 +170,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('runs/:id/evaluate') async evaluate(
+  @Post('runs/:id/evaluate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async evaluate(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -186,7 +194,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('runs/:id/cancel') async cancel(
+  @Post('runs/:id/cancel')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async cancel(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -203,7 +213,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('runs/:id/retry') async retry(
+  @Post('runs/:id/retry')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async retry(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -220,7 +232,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('releases') async createRelease(
+  @Post('releases')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async createRelease(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: LearningReleaseDto,
@@ -235,7 +249,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('releases/:id/control') async controlRelease(
+  @Post('releases/:id/control')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async controlRelease(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -252,7 +268,9 @@ export class ContentLearningAdminController {
       }),
     );
   }
-  @Post('accounts/:id/pause') async pauseAccount(
+  @Post('accounts/:id/pause')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async pauseAccount(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

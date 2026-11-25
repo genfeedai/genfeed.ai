@@ -7,6 +7,7 @@ import { RetryVisualProjectDto } from '@api/collections/visual-projects/dto/retr
 import { ReviseVisualProjectDto } from '@api/collections/visual-projects/dto/revise-visual-project.dto';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -14,6 +15,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   VisualCodeCatalogSerializer,
   VisualCodeQuoteSerializer,
@@ -57,7 +59,9 @@ export class VisualProjectsController {
       )),
     });
   }
-  @Post('quote') async quote(
+  @Post('quote')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async quote(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: QuoteVisualProjectDto,
@@ -87,7 +91,9 @@ export class VisualProjectsController {
       ),
     );
   }
-  @Post('projects') async create(
+  @Post('projects')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async create(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateVisualProjectDto,
@@ -118,7 +124,9 @@ export class VisualProjectsController {
       ),
     );
   }
-  @Post(':id/revisions') async revise(
+  @Post(':id/revisions')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async revise(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -130,7 +138,9 @@ export class VisualProjectsController {
       await this.projects.revise(user, id, input),
     );
   }
-  @Post(':id/exports') async export(
+  @Post(':id/exports')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async export(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -144,6 +154,7 @@ export class VisualProjectsController {
   }
   @OrganizationModule('motion', 'cancel')
   @Post(':id/cancel')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async cancel(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
@@ -156,7 +167,9 @@ export class VisualProjectsController {
       await this.projects.cancel(user, id, input),
     );
   }
-  @Post(':id/retry') async retry(
+  @Post(':id/retry')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async retry(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

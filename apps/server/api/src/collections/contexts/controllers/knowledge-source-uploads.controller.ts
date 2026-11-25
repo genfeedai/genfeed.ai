@@ -9,11 +9,12 @@ import {
   KNOWLEDGE_UPLOAD_MIME_TYPES,
 } from '@api/collections/contexts/utils/extract-uploaded-document-text.util';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { KnowledgeSourceKind } from '@genfeedai/contracts';
+import { ApiKeyScope, KnowledgeSourceKind } from '@genfeedai/contracts';
 import { KnowledgeSourceSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -51,6 +52,7 @@ export class KnowledgeSourceUploadsController {
    * storage and start the same ingestion workflow as pasted text.
    */
   @Post('files')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiConsumes('multipart/form-data')
   @ApiHeader({
     name: 'Idempotency-Key',

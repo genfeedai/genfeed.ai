@@ -5,6 +5,7 @@ import { UpdateClipperResultDto } from '@api/collections/clipper-results/dto/upd
 import { type ClipperResultDocument } from '@api/collections/clipper-results/schemas/clipper-result.schema';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -14,6 +15,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -50,6 +52,7 @@ export class ClipperResultsController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -139,6 +142,7 @@ export class ClipperResultsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,

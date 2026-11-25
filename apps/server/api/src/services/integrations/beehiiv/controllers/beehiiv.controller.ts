@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -20,6 +21,7 @@ import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import {
   ApiKeyConnectErrorCode,
+  ApiKeyScope,
   CredentialPlatform,
 } from '@genfeedai/contracts';
 import {
@@ -49,6 +51,7 @@ export class BeehiivController {
    * with the selected publication's ID and name.
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -220,6 +223,7 @@ export class BeehiivController {
    * Add subscribers to the connected publication with one outcome per address.
    */
   @Post('subscribers')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createSubscribers(
     @Req() request: Request,
     @CurrentUser() user: User,

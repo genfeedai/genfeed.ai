@@ -10,6 +10,7 @@ import {
   throwIfOAuthCallbackError,
 } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -19,7 +20,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
@@ -48,6 +49,7 @@ export class FanvueController {
    * The code_verifier is stored encrypted in the credential's oauthToken field.
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -101,6 +103,7 @@ export class FanvueController {
    * Clears the code_verifier after successful token exchange.
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,

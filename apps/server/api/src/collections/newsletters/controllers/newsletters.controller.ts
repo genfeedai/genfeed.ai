@@ -6,6 +6,7 @@ import { NewslettersQueryDto } from '@api/collections/newsletters/dto/newsletter
 import { UpdateNewsletterDto } from '@api/collections/newsletters/dto/update-newsletter.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,6 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { NewsletterSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -76,6 +78,7 @@ export class NewslettersController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -87,6 +90,7 @@ export class NewslettersController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -110,6 +114,7 @@ export class NewslettersController {
   }
 
   @Post('topic-proposals')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async topicProposals(
     @CurrentUser() user: User,
     @Body() dto: GenerateNewsletterTopicsDto,
@@ -121,6 +126,7 @@ export class NewslettersController {
   }
 
   @Post('generate-draft')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async generateDraft(
     @Req() request: Request,
     @CurrentUser() user: User,

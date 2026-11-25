@@ -9,6 +9,7 @@ import { AgentCampaignsService } from '@api/collections/agent-campaigns/services
 import { UsersService } from '@api/collections/users/services/users.service';
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -16,6 +17,7 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   IAgentCampaignStatusResponse,
   JsonApiSingleResponse,
@@ -61,6 +63,7 @@ export class AgentCampaignsController extends BaseCRUDController<
   }
 
   @Post('from-template')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Create an atomic Program from a team template' })
   async createFromTemplate(
     @Req() request: Request,
@@ -102,6 +105,7 @@ export class AgentCampaignsController extends BaseCRUDController<
    * BaseCRUDController patch behavior.
    */
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('automation', 'write', {
     field: 'status',
     values: ['paused'],

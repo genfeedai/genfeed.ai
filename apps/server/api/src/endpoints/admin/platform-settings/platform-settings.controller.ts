@@ -3,9 +3,11 @@ import { BrandVisionModelCatalogService } from '@api/collections/platform-settin
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { PlatformSetting } from '@genfeedai/prisma';
 import {
   BrandVisionModelOptionsSerializer,
@@ -68,6 +70,7 @@ export class PlatformSettingsController {
   }
 
   @Patch()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     summary: 'Update platform-wide operator settings (singleton)',
   })

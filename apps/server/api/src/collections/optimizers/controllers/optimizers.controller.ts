@@ -13,6 +13,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -24,7 +25,7 @@ import {
   getDefaultTextMinimumCredits,
 } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ApiKeyScope } from '@genfeedai/contracts';
 import { OptimizationSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -55,6 +56,7 @@ export class OptimizersController {
    * Analyze content and get score + suggestions
    */
   @Post('analyze')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     description: 'Optimizer analysis (text model)',
@@ -94,6 +96,7 @@ export class OptimizersController {
    * Optimize content
    */
   @Post('optimize')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     description: 'Optimizer rewrite (text model)',
@@ -133,6 +136,7 @@ export class OptimizersController {
    * Suggest hashtags
    */
   @Post('hashtags')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     description: 'Hashtag suggestions (text model)',
@@ -171,6 +175,7 @@ export class OptimizersController {
    * Generate A/B test variants
    */
   @Post('variants')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     description: 'Variant generation (text model)',
@@ -209,6 +214,7 @@ export class OptimizersController {
    * Generate creative prompts from idea or variations
    */
   @Post('prompts')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     description: 'Prompt generation (text model)',

@@ -18,6 +18,7 @@ import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -30,6 +31,7 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { ReplyTargetDiscoveryService } from '@api/services/reply-bot/reply-target-discovery.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -128,6 +130,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * Ensure a comment_responder bot for author-reply loops on brand X posts.
    */
   @Post('author-reply/ensure')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Enable/upsert X author-reply (comment_responder) for a brand',
@@ -167,6 +170,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   }
 
   @Post('author-reply/draft')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Draft a harness-aware author reply (no post)' })
   draftAuthorReply(
@@ -187,6 +191,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   }
 
   @Post('author-reply/send')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Send author reply and record closed-loop performance',
@@ -212,6 +217,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * Schedule 24h delayed post-watch series (also called from publish hooks).
    */
   @Post('author-reply/schedule-post-watch')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Schedule delayed watches for replies under a post (24h series)',
@@ -233,6 +239,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * Suggest X accounts in the brand's niche worth replying to. Read only.
    */
   @Post('warmup/discover-targets')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Suggest X accounts to reply to for warm-up' })
   discoverReplyTargets(
@@ -252,6 +259,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * for a person to post; it never posts them.
    */
   @Post('warmup/targets')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Monitor an X account for warm-up replies' })
   addReplyTarget(@CurrentUser() user: User, @Body() body: AddReplyTargetDto) {
@@ -283,6 +291,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * Stop monitoring an account for warm-up replies. Queued drafts stay.
    */
   @Delete('warmup/targets/:monitoredAccountId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Stop monitoring an X account for warm-up' })
   async removeReplyTarget(
@@ -301,6 +310,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * Test reply generation without actually posting
    */
   @Post(':id/test')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test reply generation (dry run)' })
   @ApiResponse({
@@ -323,6 +333,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
    * Manually trigger polling for this organization
    */
   @Post('trigger-polling')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually trigger bot polling' })
   @ApiResponse({ description: 'Polling job queued', status: 200 })

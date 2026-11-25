@@ -12,6 +12,7 @@ import { deriveBrandRuleProposals } from '@api/collections/harness-profiles/util
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -22,7 +23,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
-import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { ApiKeyScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { HarnessProfileRevisionSource } from '@genfeedai/prisma';
 import {
   HarnessProfileRevisionSerializer,
@@ -82,6 +83,7 @@ export class HarnessProfilesController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -107,6 +109,7 @@ export class HarnessProfilesController {
    * through `POST /harness-profiles/rules`.
    */
   @Post('rule-proposals')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   proposeRules(@Body() dto: ProposeBrandRulesDto) {
     return {
@@ -121,6 +124,7 @@ export class HarnessProfilesController {
 
   /** Saves the rules the user accepted to the brand's content rules. */
   @Post('rules')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async saveRules(@CurrentUser() user: User, @Body() dto: SaveBrandRulesDto) {
     const { added, profile } =
@@ -141,6 +145,7 @@ export class HarnessProfilesController {
    * immutable `harness.winners.promote.brand` system workflow.
    */
   @Post('promote-winners')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async promoteWinners(
     @CurrentUser() user: User,
@@ -189,6 +194,7 @@ export class HarnessProfilesController {
   }
 
   @Patch(':profileId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -232,6 +238,7 @@ export class HarnessProfilesController {
 
   /** Restores an earlier revision as a new one; the next generation uses it. */
   @Post(':profileId/rollback')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async rollback(
     @Req() request: Request,
@@ -250,6 +257,7 @@ export class HarnessProfilesController {
   }
 
   @Delete(':profileId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @CurrentUser() user: User,

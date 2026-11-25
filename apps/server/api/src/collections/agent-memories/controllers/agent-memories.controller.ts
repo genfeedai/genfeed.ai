@@ -13,6 +13,7 @@ import { buildMemoryListOrderBy } from '@api/collections/agent-memories/utils/me
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   resolvePageWindow,
@@ -26,7 +27,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   AgentMemoryRevisionSerializer,
   AgentMemorySerializer,
@@ -121,6 +122,7 @@ export class AgentMemoriesController {
   }
 
   @Post('personal/:id/archive')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     summary: "Archive one of the requesting user's own personal memories",
   })
@@ -174,6 +176,7 @@ export class AgentMemoriesController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Create a new memory entry' })
   async create(
     @Req() _req: Request,
@@ -217,6 +220,7 @@ export class AgentMemoriesController {
   }
 
   @Post(':id/revisions')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     summary:
       'Correct a memory: append an immutable revision and make it the current one',
@@ -297,6 +301,7 @@ export class AgentMemoriesController {
   }
 
   @Post(':id/archive')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({
@@ -316,6 +321,7 @@ export class AgentMemoriesController {
   }
 
   @Post(':id/promote')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({
@@ -334,6 +340,7 @@ export class AgentMemoriesController {
   }
 
   @Post(':id/reject')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({
@@ -355,6 +362,7 @@ export class AgentMemoriesController {
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Delete a memory entry' })
   async remove(
     @Req() _req: Request,

@@ -5,6 +5,7 @@ import { OnboardingCreditGrantsService } from '@api/collections/credits/services
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -17,7 +18,7 @@ import {
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { TrialCardSetupService } from '@api/services/integrations/stripe/services/trial-card-setup.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { BillingAccountMemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, BillingAccountMemberRole } from '@genfeedai/contracts';
 import type {
   ITrialClaimResponse,
   ITrialClaimStatusResponse,
@@ -80,6 +81,7 @@ export class TrialCardController {
   }
 
   @Post('checkout')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60000 })
   async createCardSetup(
     @CurrentUser() user: User,
@@ -110,6 +112,7 @@ export class TrialCardController {
   }
 
   @Post('claim')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60000 })
   async claim(
     @CurrentUser() user: User,

@@ -5,10 +5,11 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
 import {
@@ -37,6 +38,7 @@ export class AgentRunCancelController {
   ) {}
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Cancel the caller’s own running agent run' })
   @ApiParam({ description: 'Agent run (execution) ID', name: 'id' })

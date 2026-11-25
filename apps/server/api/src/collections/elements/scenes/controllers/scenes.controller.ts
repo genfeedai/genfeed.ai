@@ -7,12 +7,13 @@ import { ElementsScenesService } from '@api/collections/elements/scenes/services
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { SceneSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -72,6 +73,7 @@ export class ElementsScenesController extends ElementsCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Create a new scene' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -84,6 +86,7 @@ export class ElementsScenesController extends ElementsCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a scene' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -97,6 +100,7 @@ export class ElementsScenesController extends ElementsCRUDController<
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a scene' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })

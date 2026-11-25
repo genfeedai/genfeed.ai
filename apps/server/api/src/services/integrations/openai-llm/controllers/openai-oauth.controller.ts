@@ -1,9 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
-import { ByokProvider } from '@genfeedai/contracts';
+import { ApiKeyScope, ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -30,6 +31,7 @@ export class OpenAiOAuthController {
    * Returns an authorization URL to redirect the user to.
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(@CurrentUser() user: User) {
     try {
       await this.byokService.assertByokEntitled(user.organizationId);
@@ -51,6 +53,7 @@ export class OpenAiOAuthController {
    * Exchanges the authorization code for tokens and stores them encrypted.
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   async verify(
     @CurrentUser() user: User,
