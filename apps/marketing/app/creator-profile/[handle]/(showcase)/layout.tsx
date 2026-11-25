@@ -21,13 +21,7 @@ export default async function CreatorShowcaseLayout({
   const referralCode = await getPublicReferralCodeBySlug(handle);
 
   return (
-    <PublicShell
-      overlay={
-        <div className="pointer-events-none fixed inset-0 z-0 bg-dots opacity-40" />
-      }
-      mainClassName="pt-0"
-      topbar={TOPBAR}
-    >
+    <PublicShell mainClassName="pt-0" topbar={TOPBAR}>
       {children}
       <CreatorFooter handle={handle} referralCode={referralCode} />
     </PublicShell>

@@ -9,7 +9,6 @@ export interface PublicShellProps {
   topbar?: ReactNode;
   isTopbarVisible?: boolean;
   mainClassName?: string;
-  overlay?: ReactNode;
 }
 
 export default function PublicShell({
@@ -17,11 +16,9 @@ export default function PublicShell({
   topbar,
   isTopbarVisible = true,
   mainClassName,
-  overlay,
 }: PublicShellProps) {
   return (
     <ErrorBoundary>
-      {overlay}
       {isTopbarVisible ? topbar : null}
       <main
         className={cn(
