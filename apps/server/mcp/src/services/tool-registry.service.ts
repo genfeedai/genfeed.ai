@@ -102,6 +102,7 @@ import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   confirmationRequiredToolResult,
   isMcpToolRefusal,
+  McpUpstreamError,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -492,6 +493,13 @@ export class ToolRegistryService implements OnModuleInit {
       // is told about, not a fault.
       if (isMcpToolRefusal(error)) {
         this.logger.warn(`Tool call ${name} was refused:`, error);
+      } else if (error instanceof McpUpstreamError && error.report) {
+        // The API client already reported this failure as the fault. Log the
+        // tool-level outcome under the same id so the two read as one failure.
+        this.logger.warn(`Tool call ${name} failed upstream:`, {
+          ...error.report,
+          status: error.status,
+        });
       } else {
         this.logger.error(`Error handling tool call ${name}:`, error);
       }

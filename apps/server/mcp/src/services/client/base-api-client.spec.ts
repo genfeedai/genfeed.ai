@@ -3,7 +3,10 @@ import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
-import { isMcpToolRefusal } from '@mcp/tools/mcp-tool-error';
+import {
+  isMcpToolRefusal,
+  type McpUpstreamError,
+} from '@mcp/tools/mcp-tool-error';
 import { BaseApiClient } from './base-api-client';
 
 function createClient() {
@@ -164,5 +167,56 @@ describe('BaseApiClient failWith', () => {
     }
 
     expect(isMcpToolRefusal(thrown)).toBe(false);
+  });
+});
+
+describe('BaseApiClient failure report', () => {
+  function failing(data: unknown, status: number) {
+    const { client, logger } = createClient();
+    const upstream = Object.assign(new Error('Request failed'), {
+      response: { data, status },
+    });
+    const run = () =>
+      client.request(
+        'executing agent tool generate',
+        async () => {
+          throw upstream;
+        },
+        client.failWithDetail('Failed to execute generate'),
+      );
+    return { logger, run };
+  }
+
+  it('logs once and hands the same id and a sanitized cause code to the tool layer', async () => {
+    const { logger, run } = failing(
+      { errors: [{ code: 'PROVIDER_UNAVAILABLE', detail: 'x' }] },
+      502,
+    );
+
+    const failure = (await run().catch(
+      (error: unknown) => error,
+    )) as McpUpstreamError;
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    const logged = logger.error.mock.calls[0][2];
+    expect(logged.causeCode).toBe('PROVIDER_UNAVAILABLE');
+    expect(failure.report).toEqual({
+      causeCode: 'PROVIDER_UNAVAILABLE',
+      invocationId: logged.invocationId,
+    });
+  });
+
+  it.each([
+    ['a sentence', { errors: [{ code: 'Provider said: no key for acme' }] }],
+    ['digits only', { errors: [{ code: '500' }] }],
+    ['no code', { message: 'boom' }],
+  ])('keeps no cause code from %s', async (_label, data) => {
+    const { run } = failing(data, 500);
+
+    const failure = (await run().catch(
+      (error: unknown) => error,
+    )) as McpUpstreamError;
+
+    expect(failure.report?.causeCode).toBeUndefined();
   });
 });

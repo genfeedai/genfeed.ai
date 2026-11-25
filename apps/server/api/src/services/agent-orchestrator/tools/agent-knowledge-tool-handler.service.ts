@@ -25,7 +25,7 @@ import type {
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export type KnowledgeToolName =
   | 'archive_knowledge_source'
@@ -141,6 +141,12 @@ function readStringList(value: unknown): string[] | undefined {
     (item): item is string => typeof item === 'string' && item.trim() !== '',
   );
   return items.length > 0 ? items : undefined;
+}
+
+function isNotFound(error: unknown): boolean {
+  return (
+    error instanceof HttpException && error.getStatus() === HttpStatus.NOT_FOUND
+  );
 }
 
 function summarizeSource(
@@ -597,13 +603,31 @@ export class AgentKnowledgeToolHandler {
       return { creditsUsed: 0, error: 'sourceId is required', success: false };
     }
     const actor = toActor(ctx, params);
-    await this.capture.unscheduleRefresh(actor, sourceId);
-    const source = await this.records.deleteSource(actor, sourceId);
-    return {
-      creditsUsed: 0,
-      data: { ...summarizeSource(source), message: 'Source archived.' },
-      success: true,
-    };
+    try {
+      await this.capture.unscheduleRefresh(actor, sourceId);
+      const source = await this.records.deleteSource(actor, sourceId);
+      return {
+        creditsUsed: 0,
+        data: { ...summarizeSource(source), message: 'Source archived.' },
+        success: true,
+      };
+    } catch (error: unknown) {
+      // A retry after a lost response finds the source already archived. Say so
+      // for the caller's own source; any other miss stays the not-found it is.
+      if (!isNotFound(error)) throw error;
+      const archived = await this.records
+        .getSource(actor, sourceId, true)
+        .catch(() => null);
+      if (!archived) throw error;
+      return {
+        creditsUsed: 0,
+        data: {
+          ...summarizeSource(archived),
+          message: 'Source was already archived.',
+        },
+        success: true,
+      };
+    }
   }
 
   async retryKnowledgeIngestion(

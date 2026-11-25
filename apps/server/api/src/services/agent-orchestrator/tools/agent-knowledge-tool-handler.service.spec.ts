@@ -7,6 +7,7 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
+import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ctx = {
@@ -510,6 +511,43 @@ describe('AgentKnowledgeToolHandler', () => {
     expect(retried.data).toMatchObject({
       jobId: 'job-2',
       message: 'Ingestion requeued.',
+    });
+  });
+
+  describe('archiving twice', () => {
+    const missing = new HttpException('Knowledge source not found', 404);
+
+    it('reports the durable archive state when a retry finds the source already archived', async () => {
+      const { handler, records } = buildHandler();
+      records.deleteSource.mockRejectedValueOnce(missing);
+      records.getSource.mockResolvedValueOnce({
+        ...source,
+        isVisible: false,
+      });
+
+      const retried = await handler.archiveKnowledgeSource(
+        { sourceId: 'source-1' },
+        ctx,
+      );
+
+      expect(retried).toMatchObject({
+        data: {
+          id: 'source-1',
+          isVisible: false,
+          message: 'Source was already archived.',
+        },
+        success: true,
+      });
+    });
+
+    it('keeps the not-found for a source the caller does not own', async () => {
+      const { handler, records } = buildHandler();
+      records.deleteSource.mockRejectedValueOnce(missing);
+      records.getSource.mockRejectedValueOnce(missing);
+
+      await expect(
+        handler.archiveKnowledgeSource({ sourceId: 'source-9' }, ctx),
+      ).rejects.toBe(missing);
     });
   });
 

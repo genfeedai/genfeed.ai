@@ -749,6 +749,48 @@ describe('PresignedUploadService', () => {
     );
 
     it.each([
+      ['a 404', { response: { data: {}, status: 404 } }],
+      [
+        'a 400 that names the missing object',
+        {
+          response: {
+            data: {
+              message:
+                'Failed to download file from URL: Request failed with status code 404',
+            },
+            status: 400,
+          },
+        },
+      ],
+    ])(
+      'reports a missing stored object as not found and fails the upload (%s)',
+      async (_label, upstream) => {
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({ category: IngredientCategory.IMAGE }),
+        );
+        filesClientService.uploadToExistingObject.mockRejectedValue(
+          Object.assign(new Error('Request failed'), upstream),
+        );
+
+        const failure = await service
+          .confirmUpload(mockUser, mockIngredientId)
+          .catch((error: unknown) => error);
+
+        expect(failure).toMatchObject({ status: HttpStatus.NOT_FOUND });
+        expect(
+          JSON.stringify((failure as HttpException).getResponse()),
+        ).toContain('Upload it again');
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          { status: IngredientStatus.FAILED },
+        );
+        expect(filesClientService.deleteStoredObject).not.toHaveBeenCalled();
+        expect(loggerService.error).not.toHaveBeenCalled();
+        expect(metadataService.patch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
       ['empty result', undefined],
       ['zero dimensions', { height: 0, size: 10, width: 0 }],
     ])(
