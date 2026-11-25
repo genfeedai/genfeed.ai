@@ -73,7 +73,7 @@ describe('WorkspaceContextSidebarRail', () => {
     );
   });
 
-  it('shows the selection as plain content when the host owns the topbar', () => {
+  it('holds the title and the panel toggle in one 48px row when the host owns the topbar', () => {
     const contextSidebar = buildContextSidebar();
 
     render(
@@ -83,16 +83,21 @@ describe('WorkspaceContextSidebarRail', () => {
       />,
     );
 
-    expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.queryByTestId('context-sidebar-close')).toBeNull();
     const title = screen.getByTestId('context-sidebar-title');
     expect(title).toHaveTextContent('Launch still');
-    expect(title.closest('.border-b')).toBeNull();
+    const header = screen.getByTestId('context-sidebar-header');
+    expect(header).toHaveClass('h-12', 'border-b');
+    expect(header).toContainElement(title);
+
+    const toggle = screen.getByRole('button', { name: 'Close details' });
+    expect(header).toContainElement(toggle);
+    fireEvent.click(toggle);
+    expect(contextSidebar.close).toHaveBeenCalledTimes(1);
   });
 });
 
-// The right sidebar has exactly one topbar and one close control. Details
-// content never brings its own collapse button or sidebar-toggle icon.
+// The right sidebar has exactly one header row and one close control in it.
+// Details content never brings its own collapse button or sidebar-toggle icon.
 describe('right sidebar single topbar guard', () => {
   const repoRoot = path.resolve(__dirname, '../../../../..');
   const SIDEBAR_ICONS =
@@ -124,7 +129,7 @@ describe('right sidebar single topbar guard', () => {
     listSources(path.join(repoRoot, root)),
   );
 
-  it('has the shell host selected context without a second topbar', () => {
+  it('has the shell host selected context in a header row, not a second topbar', () => {
     const shell = readFileSync(
       path.join(
         repoRoot,
@@ -137,11 +142,11 @@ describe('right sidebar single topbar guard', () => {
 
     render(<WorkspaceAgentContext contextSidebar={buildContextSidebar()} />);
 
-    expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.queryByTestId('context-sidebar-close')).toBeNull();
-    const title = screen.getByTestId('context-sidebar-title');
-    expect(title).toHaveTextContent('Launch still');
-    expect(title.closest('.border-b')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByTestId('context-sidebar-close')).toBeInTheDocument();
+    expect(screen.getByTestId('context-sidebar-title')).toHaveTextContent(
+      'Launch still',
+    );
   });
 
   it('keeps the context-sidebar close control in the rail header only', () => {

@@ -116,8 +116,8 @@ export class CalendarPage {
     this.postSidebarTitle = page.locator(
       '[data-testid="context-sidebar-title"]',
     );
-    // The panel has no close control of its own: the topbar's Context toggle
-    // closes it.
+    // The topbar's Context toggle and the panel header's own toggle both close
+    // it; the topbar one is used here because it is on every page.
     this.modalCloseButton = page.locator(
       '[data-testid="topbar-context-toggle"]',
     );

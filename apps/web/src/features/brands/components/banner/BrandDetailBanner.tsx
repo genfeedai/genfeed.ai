@@ -16,17 +16,23 @@ export default function BrandDetailBanner({
   onUploadBanner,
   onGenerateBanner,
 }: BrandDetailBannerProps) {
+  const hasBanner = Boolean(brand.bannerUrl);
+
   return (
     <BrandBanner
       alt={`${brand.label} banner`}
+      className={cn(!hasBanner && 'bg-linear-to-br from-tertiary to-muted')}
       isPriority
       shape="rounded"
       src={brand.bannerUrl}
     >
       <div
         className={cn(
-          'absolute inset-0 bg-black/50 transition-opacity' /* design-system-allow-content-color */,
-          hoverRevealClassName(),
+          'absolute inset-0 transition-opacity',
+          // The dim layer and hover reveal are for a picture. An empty banner
+          // shows its two actions at rest: they are what fills it.
+          hasBanner && 'bg-black/50' /* design-system-allow-content-color */,
+          hasBanner && hoverRevealClassName(),
         )}
       >
         <div className="absolute top-2 right-2 flex gap-1.5">

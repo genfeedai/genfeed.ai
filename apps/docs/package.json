@@ -3,15 +3,15 @@
     "next": "16.4.6",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "posthog-js": "1.450.0",
+    "posthog-js": "1.454.7",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "swagger-ui-react": "5.35.0"
+    "swagger-ui-react": "5.36.0"
   },
   "description": "Genfeed.ai documentation site built with Nextra",
   "devDependencies": {
     "@types/node": "26.6.6",
-    "@types/react": "19.3.0",
+    "@types/react": "19.3.2",
     "prettier": "3.10.1",
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "6.0.3"

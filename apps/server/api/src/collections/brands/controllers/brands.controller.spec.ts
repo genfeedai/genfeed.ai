@@ -906,6 +906,7 @@ describe('BrandsController', () => {
           isActive: true,
           isDefault: false,
           isFleetEnabled: false,
+          isPublicAnalyticsEnabled: true,
           isEndCardEnabled: false,
           isLutEnabled: false,
           lutFileName: null,

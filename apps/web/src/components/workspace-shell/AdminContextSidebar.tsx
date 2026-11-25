@@ -47,14 +47,12 @@ export default function AdminContextSidebar() {
       '--workspace-inspector-transition-duration',
       `${SIDEBAR_TRANSITION_DURATION_MS}ms`,
     );
-    layoutRoot.dataset.inspectorOpen = String(isOpen);
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
       layoutRoot.style.removeProperty(
         '--workspace-inspector-transition-duration',
       );
-      delete layoutRoot.dataset.inspectorOpen;
     };
   }, [isOpen]);
 
@@ -68,16 +66,16 @@ export default function AdminContextSidebar() {
         aria-hidden={activeSidebar ? undefined : true}
         aria-label={translate('label')}
         className={cn(
-          'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
-          isOpen && 'border border-border',
+          'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+          isOpen && 'border-l border-border',
         )}
         data-motion="layout"
         inert={!isOpen}
         ref={railRef}
         style={{
-          bottom: 'var(--shell-inset, 0px)',
-          right: 'var(--shell-inset, 0px)',
-          top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
+          bottom: 0,
+          right: 0,
+          top: 'var(--desktop-titlebar-height)',
           transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
           width: isOpen ? ADMIN_SIDEBAR_WIDTH : 0,
         }}

@@ -24,6 +24,7 @@ describe('OnboardingFunnelService', () => {
         brands: [],
         contentRuns: [],
         createdAt: new Date('2026-10-20T00:00:00.000Z'),
+        creditTransactions: [],
         credentials: [],
         id: 'org_personal',
         onboardingCompleted: false,
@@ -41,6 +42,7 @@ describe('OnboardingFunnelService', () => {
         ],
         contentRuns: [{ config: { result: { status: 'ready' } } }],
         createdAt: new Date('2026-10-21T00:00:00.000Z'),
+        creditTransactions: [{ id: 'tx_1' }],
         credentials: [{ id: 'cred_1' }],
         id: 'org_company',
         onboardingCompleted: true,
@@ -60,6 +62,7 @@ describe('OnboardingFunnelService', () => {
       scanStatus: 'completed',
       steps: {
         accountConnected: true,
+        activated: true,
         brandScanned: true,
         completed: true,
         draftsReady: true,
@@ -69,8 +72,10 @@ describe('OnboardingFunnelService', () => {
       },
     });
     // The classic wizard only sets the owner's flag, so that counts as completed.
+    // Completed without a single credit spent: finished the wizard, never activated.
     expect(report.organizations[0]?.steps).toMatchObject({
       accountConnected: false,
+      activated: false,
       completed: true,
       published: false,
     });

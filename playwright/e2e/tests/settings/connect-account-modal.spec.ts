@@ -13,7 +13,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  */
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
+const CONNECTED_ACCOUNTS_ROUTE = `${brandPath(APP_ROUTES.SETTINGS.PROFILE)}?tab=settings`;
 
 /** Brand with one live X account, so its tile shows the connected state. */
 async function mockBrandWithXAccount(page: Page): Promise<void> {

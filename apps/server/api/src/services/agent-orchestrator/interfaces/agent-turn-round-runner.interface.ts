@@ -6,6 +6,7 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { AgentArtifactCompletionMetadata } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import type { TurnKnowledgePassages } from '@api/services/agent-orchestrator/utils/agent-knowledge-citation.util';
+import type { TurnToolset } from '@api/services/agent-orchestrator/utils/agent-tool-discovery.util';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
@@ -125,6 +126,8 @@ export type ExecuteToolRoundParams = {
   strategy?: AgentToolRoundStrategy;
   thinkingModel?: string;
   threadId: string;
+  /** Per-turn toolset; lets `find_tools` load tools and a called tool stay loaded. */
+  toolset?: TurnToolset;
   toolCalls: OpenRouterToolCallResponse[];
 };
 

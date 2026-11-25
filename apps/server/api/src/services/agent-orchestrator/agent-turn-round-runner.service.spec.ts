@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import {
   AgentTurnRoundRunnerService,
@@ -955,5 +956,247 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
       terminalContent: 'Review the details and approve to continue.',
       terminalToolName: 'generate_turbo_content',
     });
+  });
+});
+
+describe('AgentTurnRoundRunnerService tool credit holds', () => {
+  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const executeTool = vi.fn();
+  const cacheService = { get: vi.fn().mockResolvedValue(null) };
+  const untrustedContentGateService = {
+    evaluateToolResult: vi.fn(async ({ content }: { content: string }) => ({
+      content,
+      outcome: 'allowed' as const,
+    })),
+  };
+
+  /**
+   * An in-memory ledger with the real wallet rules: a hold needs
+   * `balance - held >= amount`, a settle spends the hold, a release returns it.
+   * The affordability read ignores holds, as the real read-then-act check does.
+   */
+  function createLedger(balance: number) {
+    const ledger = { balance, held: 0, nextId: 0 };
+    const holds = new Map<string, number>();
+    const credits = {
+      checkOrganizationCreditsAvailable: vi.fn(
+        async (_org: string, required: number) => ledger.balance >= required,
+      ),
+      deductCreditsFromOrganization: vi.fn(
+        async (_org: string, _user: string, amount: number) => {
+          ledger.balance -= amount;
+        },
+      ),
+      releaseReservation: vi.fn(
+        async ({ reservationId }: { reservationId: string }) => {
+          const amount = holds.get(reservationId);
+          if (amount === undefined) throw new Error('hold is not open');
+          holds.delete(reservationId);
+          ledger.held -= amount;
+        },
+      ),
+      reserveCredits: vi.fn(async ({ amount }: { amount: number }) => {
+        if (ledger.balance - ledger.held < amount) {
+          throw new BusinessLogicException(
+            'Insufficient organization credits',
+            undefined,
+            'INSUFFICIENT_CREDITS',
+          );
+        }
+        ledger.nextId += 1;
+        const id = `hold-${ledger.nextId}`;
+        holds.set(id, amount);
+        ledger.held += amount;
+        return { amount, id };
+      }),
+      settleReservation: vi.fn(
+        async ({
+          actualAmount,
+          reservationId,
+        }: {
+          actualAmount: number;
+          reservationId: string;
+        }) => {
+          const amount = holds.get(reservationId);
+          if (amount === undefined) throw new Error('hold is not open');
+          holds.delete(reservationId);
+          ledger.held -= amount;
+          ledger.balance -= actualAmount;
+        },
+      ),
+    };
+    return { credits, ledger };
+  }
+
+  function createRunner(credits: unknown): AgentTurnRoundRunnerService {
+    return new AgentTurnRoundRunnerService(
+      loggerService as never,
+      credits as never,
+      { executeTool } as never,
+      new AgentToolConfirmationService(
+        loggerService as never,
+        cacheService as never,
+      ),
+      untrustedContentGateService as never,
+    );
+  }
+
+  function round(
+    runner: AgentTurnRoundRunnerService,
+    toolName: CuratedActionName,
+    state: AgentToolRoundState = createState(),
+  ) {
+    return runner.executeToolRound({
+      allowedToolNames: new Set([toolName]),
+      assistantContent: null,
+      context: { organizationId: 'org-1', userId: 'user-1' },
+      generationPriority: RouterPriority.BALANCED,
+      messages: [{ content: 'Schedule it', role: 'user' }],
+      model: 'test-model',
+      policy: { organizationId: 'org-1' } as never,
+      state,
+      threadId: 'thread-1',
+      toolCalls: [
+        {
+          function: { arguments: '{}', name: toolName },
+          id: 'tool-1',
+          type: 'function',
+        },
+      ],
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('starts only one of two concurrent calls on a balance that pays for one', async () => {
+    const { credits, ledger } = createLedger(1);
+    let startedTools = 0;
+    let releaseTools: () => void = () => undefined;
+    const toolsMayFinish = new Promise<void>((resolve) => {
+      releaseTools = resolve;
+    });
+    executeTool.mockImplementation(async () => {
+      startedTools += 1;
+      await toolsMayFinish;
+      return { creditsUsed: 0, success: true };
+    });
+    const runner = createRunner(credits);
+    const first = createState();
+    const second = createState();
+
+    const turns = Promise.all([
+      round(runner, 'schedule_post', first),
+      round(runner, 'schedule_post', second),
+    ]);
+    await vi.waitFor(() => {
+      expect(
+        startedTools +
+          [first, second].filter((s) => s.toolCalls.length > 0).length,
+      ).toBeGreaterThanOrEqual(2);
+    });
+    releaseTools();
+    await turns;
+
+    expect(startedTools).toBe(1);
+    const refused = [first, second].filter(
+      (state) => state.toolCalls[0]?.status === 'failed',
+    );
+    expect(refused).toHaveLength(1);
+    expect(refused[0]?.toolCalls[0]?.error).toBe(
+      'Insufficient credits (need 1)',
+    );
+    expect(refused[0]?.totalCreditsUsed).toBe(0);
+    expect(ledger).toMatchObject({ balance: 0, held: 0 });
+  });
+
+  it('refuses a tool on a balance below its price before the tool runs', async () => {
+    const { credits, ledger } = createLedger(0.5);
+    executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    const state = createState();
+
+    await round(createRunner(credits), 'schedule_post', state);
+
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(state.toolCalls[0]).toMatchObject({
+      creditsUsed: 0,
+      status: 'failed',
+    });
+    expect(ledger).toMatchObject({ balance: 0.5, held: 0 });
+  });
+
+  it('charges a successful tool once and leaves no hold behind', async () => {
+    const { credits, ledger } = createLedger(3);
+    executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    const state = createState();
+
+    await round(createRunner(credits), 'schedule_post', state);
+
+    expect(ledger).toMatchObject({ balance: 2, held: 0 });
+    expect(state.totalCreditsUsed).toBe(1);
+    expect(state.toolCalls[0]).toMatchObject({
+      creditsUsed: 1,
+      status: 'completed',
+    });
+  });
+
+  it('leaves no hold behind and charges nothing when the tool fails', async () => {
+    const { credits, ledger } = createLedger(3);
+    executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      error: 'nope',
+      success: false,
+    });
+    const state = createState();
+
+    await round(createRunner(credits), 'schedule_post', state);
+
+    expect(ledger).toMatchObject({ balance: 3, held: 0 });
+    expect(state.totalCreditsUsed).toBe(0);
+  });
+
+  it('leaves no hold behind when the tool throws', async () => {
+    const { credits, ledger } = createLedger(3);
+    executeTool.mockRejectedValue(new Error('provider down'));
+
+    await expect(round(createRunner(credits), 'schedule_post')).rejects.toThrow(
+      'provider down',
+    );
+
+    expect(ledger).toMatchObject({ balance: 3, held: 0 });
+  });
+
+  it('leaves no hold behind and charges nothing for a pending approval', async () => {
+    const { credits, ledger } = createLedger(3);
+    executeTool.mockResolvedValue({
+      approvalId: 'approval-1',
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      requiresConfirmation: true,
+      success: true,
+    });
+    const state = createState();
+
+    await round(createRunner(credits), 'schedule_post', state);
+
+    expect(ledger).toMatchObject({ balance: 3, held: 0 });
+    expect(state.totalCreditsUsed).toBe(0);
+  });
+
+  it('holds nothing for a tool that bills itself, so its own hold is not doubled', async () => {
+    const { credits, ledger } = createLedger(10);
+    let heldWhileRunning = -1;
+    executeTool.mockImplementation(async () => {
+      heldWhileRunning = ledger.held;
+      return { creditsUsed: 2, isBillingDelegated: true, success: true };
+    });
+    const state = createState();
+
+    await round(createRunner(credits), 'generate_content', state);
+
+    expect(heldWhileRunning).toBe(0);
+    expect(state.totalCreditsUsed).toBe(2);
+    expect(ledger).toMatchObject({ balance: 10, held: 0 });
   });
 });

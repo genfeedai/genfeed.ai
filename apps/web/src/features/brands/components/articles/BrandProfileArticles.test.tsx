@@ -24,16 +24,9 @@ function article(id: string, label: string): Article {
   } as Article;
 }
 
-const articles = [
-  article('a-1', 'First'),
-  article('a-2', 'Second'),
-  article('a-3', 'Third'),
-  article('a-4', 'Fourth'),
-];
-
 describe('BrandProfileArticles', () => {
   it('lists each published article as a link to its editor with date and reading time', () => {
-    render(<BrandProfileArticles articles={articles.slice(0, 1)} />);
+    render(<BrandProfileArticles articles={[article('a-1', 'First')]} />);
 
     const link = screen.getByRole('link', { name: 'Open First' });
     expect(link).toHaveAttribute(
@@ -44,25 +37,8 @@ describe('BrandProfileArticles', () => {
     expect(link).toHaveTextContent('4 min read');
   });
 
-  it('shows only the newest few on Overview and links to the full list', () => {
-    render(
-      <BrandProfileArticles
-        articles={articles}
-        limit={3}
-        seeAllHref="?tab=articles"
-      />,
-    );
-
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
-    expect(screen.queryByText('Fourth')).toBeNull();
-    expect(screen.getByRole('link', { name: 'See all' })).toHaveAttribute(
-      'href',
-      '?tab=articles',
-    );
-  });
-
   it('tells the owner what an empty list means', () => {
-    render(<BrandProfileArticles articles={[]} seeAllHref="?tab=articles" />);
+    render(<BrandProfileArticles articles={[]} />);
 
     expect(
       screen.getByRole('heading', { name: 'No published articles yet.' }),
@@ -72,7 +48,6 @@ describe('BrandProfileArticles', () => {
         'Published articles appear here and on your public profile.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'See all' })).toBeNull();
   });
 
   it('says so when the articles could not be loaded', () => {

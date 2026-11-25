@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { selectLearningBaseline } from '@api/collections/content-learning/services/learning-baseline-selection';
+import { linkLearningPublicationSource } from '@api/collections/content-learning/services/learning-publication-link.helper';
 import {
-  learningPublicationDependencyRefsV1,
   parseLearningPublicationSourceV1,
   resolveLearningPublicationSourceV1,
   validLearningCheckpointPublicationV1,
@@ -441,21 +441,21 @@ export class LearningCheckpointService {
       organizationId: input.organizationId,
       version: String(checkpoint.revision),
     };
-    for (const source of learningPublicationDependencyRefsV1(currentSource)) {
-      const edge = await this.dependencies.link(tx, source, derived);
+    const edges = await linkLearningPublicationSource(
+      this.dependencies,
+      tx,
+      currentSource,
+      derived,
+    );
+    for (const edge of edges)
       if (
         edge.isDeleted ||
         !edge.valid ||
-        edge.sourceKind !== source.kind ||
-        edge.sourceId !== source.id ||
-        edge.sourceOrganizationId !== source.organizationId ||
-        edge.sourceVersion !== source.version ||
         edge.derivedKind !== derived.kind ||
         edge.derivedId !== derived.id ||
         edge.derivedOrganizationId !== derived.organizationId
       )
         throw new ConflictException('Learning publication dependency conflict');
-    }
     await this.supersedeCapture(tx, input, original, currentAccount);
     return checkpoint;
   }
