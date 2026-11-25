@@ -48,6 +48,7 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly backgroundColor: BrandDocument['backgroundColor'];
   declare readonly colorPalette: BrandDocument['colorPalette'];
   declare readonly fontRoles: BrandDocument['fontRoles'];
+  declare readonly visualDirection: BrandDocument['visualDirection'];
 
   declare readonly defaultVideoModel: BrandDocument['defaultVideoModel'];
   declare readonly defaultImageModel: BrandDocument['defaultImageModel'];
