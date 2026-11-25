@@ -71,7 +71,7 @@ describe('buildMediaPromptFromHarness', () => {
       [
         'product on marble table',
         '',
-        'Brand look: Primary color: #000000. Font family: Montserrat Regular. Prefer distinctive brand-native visuals over generic stock or template looks. Never show competitor logos. This brand is software. Depict the person.',
+        'Brand palette: black. Brand look: Prefer distinctive brand-native visuals over generic stock or template looks. Never show competitor logos. This brand is software. Depict the person.',
       ].join('\n'),
     );
     expect(result).not.toMatch(/BAM|Write as|harness|Voice tone|wrapper/);
@@ -415,9 +415,61 @@ describe('visual direction', () => {
       [
         'a quiet harbour',
         '',
-        'Brand look: Reinterpret classic paintings in oil. Write the mark into the scene, never beside it. Monochrome, grain, no gloss. Primary color: #0A0A0A.',
+        'Brand palette: black. Brand look: Reinterpret classic paintings in oil. Write the mark into the scene, never beside it. Monochrome, grain, no gloss.',
       ].join('\n'),
     );
+  });
+
+  it('words the typed palette, primary first, and never prints a hex code or a font', () => {
+    const result = buildMediaPromptFromHarness(
+      'a quiet harbour',
+      brief({
+        metadata: { contentType: 'image', objective: 'awareness' },
+        palette: [
+          { hex: '#0A0A0A', usage: 'Primary' },
+          { hex: '#FFFFFF', usage: 'Background' },
+          { hex: '#1D4ED8', usage: 'Sea blue: water and sky' },
+          { hex: '#000000', usage: 'Ink' },
+        ],
+        styleDirectives: [
+          'Primary color: #0A0A0A',
+          'Font family: MONTSERRAT_BLACK',
+        ],
+        visualDirections: ['Monochrome, grain, no gloss'],
+      }),
+    );
+
+    expect(result).toBe(
+      [
+        'a quiet harbour',
+        '',
+        'Brand palette: black, white and blue. Brand look: Monochrome, grain, no gloss.',
+      ].join('\n'),
+    );
+    expect(result).not.toMatch(/#[0-9a-f]{6}|Montserrat/i);
+  });
+
+  it('caps the palette at five colour words', () => {
+    const result = buildMediaPromptFromHarness(
+      'a quiet harbour',
+      brief({
+        metadata: { contentType: 'video', objective: 'awareness' },
+        palette: [
+          '#FF0000',
+          '#FFA500',
+          '#FFFF00',
+          '#00FF00',
+          '#0000FF',
+          '#800080',
+          '#FFC0CB',
+        ].map((hex) => ({ hex })),
+      }),
+    );
+
+    expect(result).toContain(
+      'Brand palette: red, orange, yellow, green and blue.',
+    );
+    expect(result).not.toMatch(/purple|pink/);
   });
 
   it('reaches a video prompt in plain words', () => {
