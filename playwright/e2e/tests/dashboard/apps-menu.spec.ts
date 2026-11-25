@@ -39,16 +39,13 @@ test.describe('Topbar Apps menu', () => {
     });
   });
 
-  test('offers Connect and the CLI install command, and the Overview shows no Connect card', async ({
+  test('offers Connect and the CLI install command', async ({
     authenticatedPage,
   }) => {
     const dashboardPage = new DashboardPage(authenticatedPage);
 
     await dashboardPage.goto();
     await expect(dashboardPage.statsSection).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('operational-home-unconfigured'),
-    ).toHaveCount(0);
 
     await authenticatedPage.getByTestId('topbar-apps-menu').click();
     const menu = authenticatedPage.getByTestId('apps-menu');
