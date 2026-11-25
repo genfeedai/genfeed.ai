@@ -322,6 +322,37 @@ describe('BrandedTextActionsService', () => {
     },
   );
 
+  it('tells the person which Brand Kit fields to shorten when the required text exceeds the budget', async () => {
+    ctx.branded.generate.mockResolvedValue({
+      hasNewDispatch: false,
+      kind: 'stopped',
+      postId: null,
+      reasonCode: 'context_budget_exceeded',
+      receipt: receipt({
+        diagnostics: [
+          {
+            code: 'context_budget_exceeded',
+            message:
+              'The Brand Kit text a generation must carry is 7,584 characters and the limit is 6,000, so it is 1,584 too long. Shorten the longest fields: promptGuidelines (6,202 characters).',
+            severity: 'error',
+          },
+        ],
+        id: 'receipt-5',
+        state: 'blocked',
+      }),
+    });
+
+    expect(await ctx.service.run(request)).toEqual({
+      code: 'blocked',
+      hasNewDispatch: false,
+      kind: 'failed',
+      message:
+        'Your brand voice could not be applied. The Brand Kit text a generation must carry is 7,584 characters and the limit is 6,000, so it is 1,584 too long. Shorten the longest fields: promptGuidelines (6,202 characters). Open Settings → Brand Kit, shorten them, and have a workspace owner or admin approve the revision before trying again. Nothing was written.',
+      reasonCode: 'context_budget_exceeded',
+      receiptId: 'receipt-5',
+    });
+  });
+
   it('does not call the seam when the mode cannot be resolved', async () => {
     ctx.modeResolver.resolve.mockRejectedValue(
       new Error('Brand access denied'),

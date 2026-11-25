@@ -10,6 +10,7 @@ import type {
   YoutubeInboxPostFailure,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import {
+  isYoutubeCommentsDisabledError,
   isYoutubeVideoMissingError,
   readYoutubeFailureReasons,
   readYoutubeFailureStatus,
@@ -256,6 +257,15 @@ export async function ingestOwnedYoutubeComments(
           // whose only owned post was deleted fail the whole job every hour.
           postsScanned--;
           ports.warn('YouTube owned post video no longer exists; skipped', {
+            errorName: error instanceof Error ? error.name : 'Error',
+            postFailureCount: postFailures.length,
+          });
+          continue;
+        }
+        if (isYoutubeCommentsDisabledError(error)) {
+          // The owner switched comments off for this video. It is an expected
+          // per-video setting, not a fault, and it is still a scanned post.
+          ports.warn('YouTube owned post has comments disabled; skipped', {
             errorName: error instanceof Error ? error.name : 'Error',
             postFailureCount: postFailures.length,
           });

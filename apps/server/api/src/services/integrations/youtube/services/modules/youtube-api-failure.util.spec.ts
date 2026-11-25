@@ -1,5 +1,6 @@
 import {
   isYoutubeCommentsDisabledError,
+  isYoutubePermissionDeniedError,
   isYoutubeVideoMissingError,
 } from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
 import { describe, expect, it } from 'vitest';
@@ -54,5 +55,30 @@ describe('isYoutubeCommentsDisabledError', () => {
     ['null', null, false],
   ])('classifies %s', (_label, error, expected) => {
     expect(isYoutubeCommentsDisabledError(error)).toBe(expected);
+  });
+});
+
+describe('isYoutubePermissionDeniedError', () => {
+  it.each([
+    [
+      'a forbidden 403',
+      { errors: [{ reason: 'forbidden' }], status: 403 },
+      true,
+    ],
+    ['a bare 403 response', { response: { status: 403 } }, true],
+    [
+      'a quota 403',
+      { errors: [{ reason: 'quotaExceeded' }], status: 403 },
+      false,
+    ],
+    [
+      'a comments-disabled 403',
+      { errors: [{ reason: 'commentsDisabled' }], status: 403 },
+      false,
+    ],
+    ['a 500 response', { response: { status: 500 } }, false],
+    ['a string', 'boom', false],
+  ])('classifies %s', (_label, error, expected) => {
+    expect(isYoutubePermissionDeniedError(error)).toBe(expected);
   });
 });

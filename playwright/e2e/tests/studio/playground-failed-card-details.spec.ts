@@ -1,6 +1,6 @@
 import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { showOutputPane } from '../../utils/agent-output-layout';
@@ -41,6 +41,19 @@ function failedVideo(id: string) {
       },
     },
   };
+}
+
+// The colour the active theme gives `--destructive`, resolved the way the
+// browser does: a probe next to the control inherits the same theme scope.
+async function resolveDestructiveColor(control: Locator): Promise<string> {
+  return control.evaluate((element) => {
+    const probe = document.createElement('span');
+    probe.style.color = 'hsl(var(--destructive))';
+    (element.parentElement ?? document.body).appendChild(probe);
+    const { color } = getComputedStyle(probe);
+    probe.remove();
+    return color;
+  });
 }
 
 async function mountFailedPlayground(page: Page): Promise<void> {
@@ -92,8 +105,12 @@ for (const viewport of [
     const reprompt = card.getByRole('button', { name: /^Reprompt/ });
     await expect(reprompt).toHaveClass(/bg-transparent/);
     await expect(reprompt).not.toHaveClass(/border/);
-    await expect(card.getByRole('button', { name: /^Remove/ })).toHaveClass(
-      /text-destructive/,
+    // The class can stay on the button while another rule wins the cascade, so
+    // compare the rendered colour with the theme's destructive token itself.
+    const remove = card.getByRole('button', { name: /^Remove/ });
+    await expect(remove).toHaveCSS(
+      'color',
+      await resolveDestructiveColor(remove),
     );
 
     await card.getByRole('button', { name: 'Show details' }).click();
