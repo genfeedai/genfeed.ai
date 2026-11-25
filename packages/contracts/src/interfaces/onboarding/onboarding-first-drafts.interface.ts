@@ -38,7 +38,11 @@ export interface IOnboardingFirstDraft {
 
 /**
  * `ready`: every channel and the generated media came back.
- * `partial`: at least one channel or media asset is unavailable.
+ * `partial`: not finished yet, or finished with at least one channel or media
+ * asset unavailable. A run saves `partial` as soon as the first draft exists
+ * and keeps it until every campaign image is `ready`, so a run that stops at
+ * `partial` has an image that failed or needs credits; read
+ * `campaignImages[].status` to tell which.
  * `unavailable`: nothing could be generated (for example no provider key on a
  * self-hosted install).
  */

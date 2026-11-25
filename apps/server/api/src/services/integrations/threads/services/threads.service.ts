@@ -1,4 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -16,6 +17,7 @@ import {
   captureLearningMetrics,
   type LearningMetrics,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import {
   THREADS_API_VERSION,
   THREADS_GRAPH_URL,
@@ -93,6 +95,51 @@ export class ThreadsService {
       `${this.constructorName} ${CallerUtil.getCallerName()}`,
       accessToken,
     );
+  }
+
+  /**
+   * The permissions the account granted to this token, read from Threads'
+   * `debug_token` endpoint, because neither token exchange returns them.
+   * Answers `undefined` when the grant cannot be read or Threads lists none:
+   * that is Threads saying nothing, not "no permissions", so the reply
+   * calls keep relying on Threads' own refusal.
+   */
+  public async getGrantedScopes(
+    accessToken: string,
+  ): Promise<string[] | undefined> {
+    const clientId = this.configService.get('THREADS_CLIENT_ID')?.trim();
+    const clientSecret = this.configService
+      .get('THREADS_CLIENT_SECRET')
+      ?.trim();
+    if (!clientId || !clientSecret) {
+      return undefined;
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<{ data?: { scopes?: unknown } }>(
+          `${this.graphUrl}/${this.apiVersion}/debug_token`,
+          {
+            params: {
+              access_token: `TH|${clientId}|${clientSecret}`,
+              input_token: accessToken,
+            },
+            timeout: DEFAULT_HTTP_TIMEOUT_MS,
+          },
+        ),
+      );
+      const scopes = parseGrantedOAuthScopes(response.data?.data?.scopes);
+      return scopes.length > 0 ? scopes : undefined;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} could not read the Threads grant`,
+        {
+          httpCode: (error as { response?: { status?: number } })?.response
+            ?.status,
+        },
+      );
+      return undefined;
+    }
   }
 
   /**

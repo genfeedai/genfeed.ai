@@ -244,6 +244,15 @@ const MUTATION_KNOWLEDGE_DATA_SCHEMA = closedObjectSchema(
   ['id', 'isVisible', 'kind', 'purpose', 'scope', 'title'],
 );
 
+const ARCHIVE_KNOWLEDGE_DATA_SCHEMA = closedObjectSchema(
+  {
+    ...KNOWLEDGE_SOURCE_SUMMARY_PROPERTIES,
+    message: STRING_SCHEMA,
+    workflowProvenance: KNOWLEDGE_WORKFLOW_PROVENANCE_SCHEMA,
+  },
+  ['id', 'isVisible', 'kind', 'purpose', 'scope', 'title'],
+);
+
 const GET_CONTEXT_COVERAGE_DATA_SCHEMA = closedObjectSchema(
   {
     ...CONTEXT_COVERAGE_PROPERTIES,
@@ -258,7 +267,7 @@ const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
       { brandId: STRING_SCHEMA, sourceId: STRING_SCHEMA },
       ['sourceId'],
     ),
-    outputSchema: toolActionOutputSchema(MUTATION_KNOWLEDGE_DATA_SCHEMA),
+    outputSchema: toolActionOutputSchema(ARCHIVE_KNOWLEDGE_DATA_SCHEMA),
   },
   assign_knowledge_purpose: {
     inputSchema: closedObjectSchema(

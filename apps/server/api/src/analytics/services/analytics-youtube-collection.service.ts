@@ -26,6 +26,10 @@ import {
   type ServerPostAnalytics,
   type ServerYouTubeAnalytics,
 } from '@api/server.dependencies';
+import {
+  getYoutubeErrorCode,
+  readSafeYoutubeProviderReason,
+} from '@api/services/integrations/youtube/utils/youtube-error.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
@@ -202,12 +206,31 @@ export class AnalyticsYouTubeCollectionService {
       if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       await admitAnalyticsCollection(authorization);
       await this.markUnsettled(data, settledPostIds, error);
-      this.logger.error(
-        `Failed to process YouTube analytics batch for ${posts.length} posts`,
-        error,
-      );
+      this.logYouTubeBatchFailure(posts.length, error);
       throw error;
     }
+  }
+
+  /**
+   * A provider rejection is logged by its sanitized category only: the raw
+   * error carries the request, including the account's authorization header.
+   * Any other failure keeps its full error so a defect stays diagnosable.
+   */
+  private logYouTubeBatchFailure(postCount: number, error: unknown): void {
+    const message = `Failed to process YouTube analytics batch for ${postCount} posts`;
+    const httpStatus = getYoutubeErrorCode(error);
+    const providerReason = readSafeYoutubeProviderReason(error);
+    if (httpStatus === undefined && providerReason === undefined) {
+      this.logger.error(message, error);
+      return;
+    }
+    const failure = classifyAnalyticsCollectionError(error, 'YouTube');
+    this.logger.error(message, undefined, {
+      failureCode: failure.code,
+      ...(httpStatus !== undefined ? { httpStatus } : {}),
+      isRetryable: failure.isRetryable,
+      ...(providerReason ? { providerReason } : {}),
+    });
   }
 
   private async markUnsettled(

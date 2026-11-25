@@ -1,10 +1,11 @@
 import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import type { CacheService } from '@api/services/cache/cache.service';
 
-/** Brand fields whose change can take a brand out of the public view. */
+/** Brand fields whose change can take a brand, or its metrics, out of the public view. */
 const PUBLIC_VISIBILITY_FIELDS = [
   'isActive',
   'isDeleted',
+  'isPublicAnalyticsEnabled',
   'organizationId',
   'scope',
 ] as const;

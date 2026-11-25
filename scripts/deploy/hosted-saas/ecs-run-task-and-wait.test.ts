@@ -398,6 +398,32 @@ describe('parseCliArgs', () => {
     ]);
   });
 
+  test('takes option-like command values only in equals form', () => {
+    const equalsForm = parseCliArgs([
+      ...fullArgs,
+      '--container-name',
+      'articles-seed',
+      '--command-arg=node',
+      '--command-arg=--expose-gc',
+      '--command-arg=--env=production',
+    ]);
+    expect(equalsForm.command).toEqual([
+      'node',
+      '--expose-gc',
+      '--env=production',
+    ]);
+
+    expect(() =>
+      parseCliArgs([
+        ...fullArgs,
+        '--container-name',
+        'articles-seed',
+        '--command-arg',
+        '--live',
+      ]),
+    ).toThrow();
+  });
+
   test('rejects an incomplete container command override', () => {
     expect(() =>
       parseCliArgs([...fullArgs, '--container-name', 'articles-seed']),
