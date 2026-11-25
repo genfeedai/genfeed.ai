@@ -672,8 +672,8 @@
         "@tiptap/react": "3.35.0",
         "@tiptap/starter-kit": "3.35.0",
         "@tiptap/suggestion": "3.35.0",
-        "@ui-sdk/core": "0.1.0-beta.17",
-        "@ui-sdk/react": "0.1.0-beta.17",
+        "@ui-sdk/core": "0.1.0-beta.10",
+        "@ui-sdk/react": "0.1.0-beta.10",
         "@xyflow/react": "12.12.1",
         "axios": "1.21.1",
         "date-fns": "4.4.0",
@@ -8193,10 +8193,6 @@
     "@fast-csv/parse/@types/node": ["@types/node@14.18.63", "", {}, "sha512-fAtCfv4jJg+ExtXhvCkCqUKZ+4ok/JQk01qDKhL5BDDoS3AxKXhV5/MAVUZyQnSEd2GT92fkgZl0pz0Q0AzcIQ=="],
 
     "@genfeedai/cli/@types/node": ["@types/node@22.20.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q=="],
-
-    "@genfeedai/web/@ui-sdk/core": ["@ui-sdk/core@0.1.0-beta.17", "", {}, "sha512-wBWNqT0Qf1sE6fqD1XuBnSGBFcY6+cek1z7rKl/r4j2bsv2or9i7z44PLy0J9hmflm3IJ5MLW0P4ur2H9BCIvg=="],
-
-    "@genfeedai/web/@ui-sdk/react": ["@ui-sdk/react@0.1.0-beta.17", "", { "peerDependencies": { "@types/react": ">=19.2.10", "@ui-sdk/core": "^0.1.0-beta.17", "react": ">=19", "react-dom": ">=19" }, "optionalPeers": ["@types/react"] }, "sha512-oAJu+/e8woA5gboO28nm3aiO2qZbjccGc8hukCijSz3biX71AYBw8mo14HkMAZUuPlbSnzVAuNYQMaW0z8vsrw=="],
 
     "@google/design.md/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 

@@ -212,6 +212,8 @@ describe('GitHub Action version updater', () => {
       '@nestjs/*',
       // stripe 23.2 moves the pinned API version type; change both together.
       'stripe',
+      // @ui-sdk/* beta.17 changes the page-controls registration the MCP approval cards read.
+      '@ui-sdk/*',
     ]);
     expect(command).toContain('--cooldown 3h');
     expect(command.split(' && ').slice(1)).toEqual([
