@@ -255,7 +255,7 @@ export const nanoBananaDispatchSchema = z
   .strict();
 export type NanoBananaDispatch = z.infer<typeof nanoBananaDispatchSchema>;
 export const NANO_BANANA_IMAGE_COMPILER_ID = 'nano-banana-image-compiler';
-export const NANO_BANANA_IMAGE_COMPILER_VERSION = 1;
+export const NANO_BANANA_IMAGE_COMPILER_VERSION = 2;
 
 export const nanoBanana2DispatchSchema = z
   .object({
@@ -271,7 +271,7 @@ export const nanoBanana2DispatchSchema = z
   .strict();
 export type NanoBanana2Dispatch = z.infer<typeof nanoBanana2DispatchSchema>;
 export const NANO_BANANA_2_IMAGE_COMPILER_ID = 'nano-banana-2-image-compiler';
-export const NANO_BANANA_2_IMAGE_COMPILER_VERSION = 1;
+export const NANO_BANANA_2_IMAGE_COMPILER_VERSION = 2;
 
 export const seedream4DispatchSchema = z
   .object({
