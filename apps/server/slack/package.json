@@ -5,7 +5,7 @@
     "@genfeedai/integrations": "workspace:*",
     "@nestjs/axios": "12.0.2",
     "@nestjs/common": "12.5.0",
-    "@sentry/nestjs": "11.12.0",
+    "@sentry/nestjs": "11.17.0",
     "@slack/bolt": "5.1.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
