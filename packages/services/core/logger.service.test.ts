@@ -229,6 +229,33 @@ describe('logger.service', () => {
       expect(mockCaptureException).not.toHaveBeenCalled();
     });
 
+    it.each([
+      'Failed to fetch',
+      'Load failed',
+      'NetworkError when attempting to fetch resource.',
+    ])('should skip Sentry for a browser fetch failure: %s', (message) => {
+      logger.error(
+        'Failed to fetch organization settings',
+        new TypeError(message),
+      );
+      logger.error('Wrapped fetch failure', { error: new TypeError(message) });
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+    });
+
+    it('should still send other TypeErrors to Sentry', () => {
+      const error = new TypeError(
+        "Cannot read properties of undefined (reading 'id')",
+      );
+
+      logger.error('Real bug', { error });
+
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        error,
+        expect.anything(),
+      );
+    });
+
     it('should include tags in Sentry if provided with a real Error', () => {
       const obj = {
         error: new Error('Tagged error'),
