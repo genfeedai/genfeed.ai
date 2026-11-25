@@ -251,6 +251,23 @@ launch in cloud mode asks for a native confirmation, because the shell origin
 is remote. The browser/self-hosted web build keeps the socket.io terminal
 gateway.
 
+The Genfeed CLI session starts `gf` through a small wrapper
+(`src/main/genfeed-cli-launch.util.ts`). When `gf` is missing it prints
+`npm install -g @genfeedai/cli` and leaves a shell open; otherwise it reports
+whether `gf auth status` is signed in and then starts the CLI. The CLI keeps
+its own login in `~/.gf/config.json`; Desktop does not hand it its session
+(#11287).
+
+## Platform admin
+
+`/admin` is not part of the Desktop app shell. `scripts/build-app-shell.cjs`
+moves `apps/web/app/(protected)/admin` aside for the one `next build` and puts
+it back afterwards (`scripts/exclude-desktop-routes.cjs`). Only platform
+superadmins use it, it was about 20 MiB of the 150 MiB shell budget, and it
+stays reachable in the browser. `verify:bundle-size` fails if it leaks back in,
+and fails any route whose client-reference manifest passes 512 KiB (#11280,
+#11282).
+
 ## API Runtime Boundary
 
 The desktop app embeds the app shell, not the full NestJS API. The full API

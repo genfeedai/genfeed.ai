@@ -3,13 +3,30 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { listTracedSourceFiles } = require('./prune-app-shell.cjs');
+const {
+  findOversizedManifests,
+  listRouteManifests,
+} = require('./route-manifest-size.cjs');
 
 const desktopRoot = path.resolve(__dirname, '..');
 const appShellRoot = path.join(desktopRoot, 'dist', 'app-shell');
+const appServerRoot = path.join(
+  appShellRoot,
+  'apps',
+  'web',
+  '.next',
+  'server',
+  'app',
+);
 const mainBundlePath = path.join(desktopRoot, 'dist', 'main.js');
 const MEBIBYTE = 1024 * 1024;
 const APP_SHELL_BUDGET_MIB = 150;
 const MAIN_BUNDLE_BUDGET_MIB = 50;
+// The largest route manifest measures 480 KiB (org publishing). A page that
+// imports a shared barrel lists every client component behind it, so growth
+// past this limit usually means a new barrel import: import the modules
+// directly instead of raising the limit.
+const ROUTE_MANIFEST_LIMIT_KIB = 512;
 
 function directorySize(root) {
   let total = 0;
@@ -34,6 +51,12 @@ function directorySize(root) {
 
 function assertMissing(target, reason) {
   if (fs.existsSync(target)) {
+    throw new Error(`${reason}: ${target}`);
+  }
+}
+
+function assertPresent(target, reason) {
+  if (!fs.existsSync(target)) {
     throw new Error(`${reason}: ${target}`);
   }
 }
@@ -74,6 +97,36 @@ assertMissing(
   path.join(appShellRoot, 'node_modules', '@img'),
   'Desktop bundle unexpectedly includes sharp native image packages',
 );
+
+assertMissing(
+  path.join(appServerRoot, '(protected)', 'admin'),
+  'Platform admin routes leaked into the packaged app shell',
+);
+
+// `/serwist/sw.js` ends in `//# sourceMappingURL=sw.js.map`, and the route
+// answers each file from its prerendered body. A missing body does not 404:
+// the packaged server falls back to compiling `app/sw.ts`, which it does not
+// ship, and answers 500 (#6302).
+for (const file of ['sw.js.body', 'sw.js.map.body']) {
+  assertPresent(
+    path.join(appServerRoot, 'serwist', file),
+    'Service worker output is missing from the packaged app shell',
+  );
+}
+
+const oversizedManifests = findOversizedManifests(
+  listRouteManifests(appServerRoot),
+  ROUTE_MANIFEST_LIMIT_KIB * 1024,
+);
+if (oversizedManifests.length > 0) {
+  throw new Error(
+    `Client-reference manifests over ${ROUTE_MANIFEST_LIMIT_KIB} KiB:\n${oversizedManifests
+      .map(
+        ({ bytes, route }) => `  ${route} is ${(bytes / 1024).toFixed(0)} KiB`,
+      )
+      .join('\n')}`,
+  );
+}
 
 const tracedSourceFiles = listTracedSourceFiles(
   path.join(appShellRoot, 'apps', 'web'),

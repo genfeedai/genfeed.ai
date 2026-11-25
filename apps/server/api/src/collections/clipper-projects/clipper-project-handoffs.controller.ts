@@ -7,9 +7,12 @@ import {
 import type { ClipperLibraryLinkResult } from '@api/collections/clipper-projects/services/clipper-library-link.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,
@@ -34,6 +37,7 @@ export class ClipperProjectHandoffsController {
   ) {}
 
   @Post(':projectId/results/:clipperResultId/editor-handoff')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     description:
@@ -57,6 +61,7 @@ export class ClipperProjectHandoffsController {
   }
 
   @Post(':projectId/results/:clipperResultId/publish-handoff')
+  @ApiKeyReadAccess()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     description:
@@ -76,6 +81,7 @@ export class ClipperProjectHandoffsController {
   }
 
   @Post(':projectId/results/:clipperResultId/library-link')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     description:

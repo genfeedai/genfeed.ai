@@ -23,11 +23,17 @@ import {
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import {
+  API_KEY_BRAND_EDIT_SCOPES,
+  API_KEY_CONTENT_GENERATION_SCOPES,
+} from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
@@ -35,6 +41,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   AgentCharacterMentionsResponse,
   JsonApiCollectionResponse,
@@ -82,19 +89,13 @@ export class PersonasController extends BaseCRUDController<
     ]);
   }
 
-  /**
-   * Brands an `allBrands` read is limited to, keyed by the validated query.
-   * `undefined` means every brand of the organization.
-   */
+  /** Brands an `allBrands` read is limited to; `undefined` means every brand of the organization. */
   private readonly allowedBrandIdsByQuery = new WeakMap<
     PersonasQueryDto,
     string[] | undefined
   >();
 
-  /**
-   * Binds the concrete query DTO so `?allBrands=true` is parsed, and narrows an
-   * organization-wide read to the brands the caller may access.
-   */
+  /** Binds the concrete query DTO so `?allBrands=true` is parsed, and narrows an organization-wide read to the caller's brands. */
   @Get()
   override async findAll(
     @Req() request: Request,
@@ -150,6 +151,7 @@ export class PersonasController extends BaseCRUDController<
   }
 
   @Post('sheet-prompt')
+  @ApiKeyReadAccess()
   async composeSheetPrompt(
     @CurrentUser() user: User,
     @Body() body: ComposeCharacterSheetDto,
@@ -172,6 +174,7 @@ export class PersonasController extends BaseCRUDController<
   }
 
   @Post('from-sheet')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async createFromSheet(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -200,6 +203,7 @@ export class PersonasController extends BaseCRUDController<
   }
 
   @Patch(':id/availability')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async updateAvailability(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -225,6 +229,7 @@ export class PersonasController extends BaseCRUDController<
   }
 
   @Patch(':id/owner')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async moveOwnership(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -351,6 +356,7 @@ export class PersonasController extends BaseCRUDController<
    * identity edit: owners/admins only, and not-found outside its availability.
    */
   @Delete(':id')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -441,6 +447,7 @@ export class PersonasController extends BaseCRUDController<
    * update (ownership check, remaining fields) to the base PATCH flow.
    */
   @Patch(':id')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async patch(
     @Req() request: Request,
     @CurrentUser() user: User,

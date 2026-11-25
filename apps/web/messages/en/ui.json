@@ -312,6 +312,25 @@
     "organization": "Organization",
     "organizationHint": "Applies to every brand unless a brand overrides it.",
     "organizationLabel": "Organization prompt enhancement",
+    "palette": {
+      "absent": "Not found",
+      "coverage": "{percent} of the output",
+      "found": "Found",
+      "measuredHint": "Measured on the final output. A miss is information; the generation was never stopped by it.",
+      "notMeasured": "Not measured. {reason}",
+      "reason": {
+        "artifact_undecodable": "The file could not be read.",
+        "palette_color_translucent": "The colour is translucent, which pixels cannot prove.",
+        "unknown": "The pixels could not be checked.",
+        "visual_composite_unproven": "A layer is placed over this output, so its final pixels are not proven.",
+        "visual_part_unavailable": "The output file was not available to measure.",
+        "visual_too_small": "The output has too few pixels to measure."
+      },
+      "required": "required",
+      "requiredMissHint": "A required colour is missing, so the receipt records a failed check. The generation itself was not stopped.",
+      "summary": "{found} of {total} colours found",
+      "title": "Palette check"
+    },
     "promptEnhanced": "Prompt enhanced",
     "refresh": "Refresh settings",
     "requestOverride": "This generation’s override",
@@ -684,6 +703,10 @@
     "cancel": "Cancel",
     "upload": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
     "cloneVoice": "Clone voice"
+  },
+  "aiGeneratedLabel": {
+    "label": "Label as AI-generated",
+    "hint": "On by default because what Genfeed publishes is generated in Genfeed. Turn it off for a real video or photo you uploaded."
   },
   "tiktokPublishing": {
     "connectAccount": "Connect a TikTok account before posting.",

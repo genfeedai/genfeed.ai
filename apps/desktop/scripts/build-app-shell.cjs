@@ -2,6 +2,7 @@
 
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const { excludeRoutesFromBuild } = require('./exclude-desktop-routes.cjs');
 
 const desktopRoot = path.resolve(__dirname, '..');
 // Electron embeds the canonical product app; no desktop-local Next app remains.
@@ -19,6 +20,17 @@ const wsEndpoint =
   process.env.GENFEED_DESKTOP_WS_URL ||
   process.env.NEXT_PUBLIC_WS_ENDPOINT ||
   'https://notifications.genfeed.ai';
+
+// Leave the superadmin routes out of this build only; they are put back when
+// the build ends, however it ends.
+const restoreExcludedRoutes = excludeRoutesFromBuild(appRoot);
+process.on('exit', restoreExcludedRoutes);
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    restoreExcludedRoutes();
+    process.exit(1);
+  });
+}
 
 const child = spawn('bunx', ['next', 'build'], {
   cwd: appRoot,
@@ -38,10 +50,12 @@ const child = spawn('bunx', ['next', 'build'], {
 });
 
 child.on('close', (code) => {
+  restoreExcludedRoutes();
   process.exit(code ?? 1);
 });
 
 child.on('error', (error) => {
+  restoreExcludedRoutes();
   process.stderr.write(`Failed to start app-shell build: ${error.message}\n`);
   process.exit(1);
 });

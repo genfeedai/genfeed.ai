@@ -7,6 +7,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { displayedYouTubeAudience } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { YOUTUBE_AI_GENERATED_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/youtube-publishing.contract';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { saveDownloadBlob } from '@genfeedai/helpers/media/download/download.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -21,6 +22,7 @@ import { SelectField } from '@ui/primitives/select';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import AiGeneratedLabelField from '@/features/posts/components/posts/ai-generated-label/AiGeneratedLabelField';
 import type { YouTubePublishingSettingsProps } from '@/features/posts/props/youtube-publishing.props';
 
 const COVER_WIDTH = 1080;
@@ -45,6 +47,9 @@ export default function YouTubePublishingSettings({
       post.targetSettings?.privacyStatus,
     ) ?? '';
   const savedMadeForKids = post.targetSettings?.madeForKids === true;
+  // On unless turned off: a post saved before this setting existed has none.
+  const savedAiGenerated =
+    post.targetSettings?.[YOUTUBE_AI_GENERATED_SETTING_KEY] !== false;
   const savedCoverText = readSetting(post.targetSettings, 'thumbnailText');
   const savedCoverFrame = readSetting(
     post.targetSettings,
@@ -52,9 +57,11 @@ export default function YouTubePublishingSettings({
   );
   const [privacy, setPrivacy] = useState(savedPrivacy);
   const [madeForKids, setMadeForKids] = useState(savedMadeForKids);
+  const [isAiGenerated, setIsAiGenerated] = useState(savedAiGenerated);
   const [coverText, setCoverText] = useState(savedCoverText);
   const [coverFrame, setCoverFrame] = useState(savedCoverFrame);
   const [syncedSettings, setSyncedSettings] = useState({
+    aiGenerated: savedAiGenerated,
     coverFrame: savedCoverFrame,
     coverText: savedCoverText,
     madeForKids: savedMadeForKids,
@@ -64,16 +71,20 @@ export default function YouTubePublishingSettings({
   if (
     syncedSettings.privacy !== savedPrivacy ||
     syncedSettings.madeForKids !== savedMadeForKids ||
+    syncedSettings.aiGenerated !== savedAiGenerated ||
     syncedSettings.coverText !== savedCoverText ||
     syncedSettings.coverFrame !== savedCoverFrame
   ) {
     if (privacy === syncedSettings.privacy) setPrivacy(savedPrivacy);
     if (madeForKids === syncedSettings.madeForKids)
       setMadeForKids(savedMadeForKids);
+    if (isAiGenerated === syncedSettings.aiGenerated)
+      setIsAiGenerated(savedAiGenerated);
     if (coverText === syncedSettings.coverText) setCoverText(savedCoverText);
     if (coverFrame === syncedSettings.coverFrame)
       setCoverFrame(savedCoverFrame);
     setSyncedSettings({
+      aiGenerated: savedAiGenerated,
       coverFrame: savedCoverFrame,
       coverText: savedCoverText,
       madeForKids: savedMadeForKids,
@@ -181,6 +192,7 @@ export default function YouTubePublishingSettings({
           : {}),
         settings: {
           ...post.targetSettings,
+          [YOUTUBE_AI_GENERATED_SETTING_KEY]: isAiGenerated,
           madeForKids,
           privacyStatus: selectedVisibility,
           thumbnailFrameSeconds: coverFrame.trim() || undefined,
@@ -239,6 +251,11 @@ export default function YouTubePublishingSettings({
         isChecked={madeForKids}
         isDisabled={isSaving}
         onChange={(event) => setMadeForKids(event.target.checked)}
+      />
+      <AiGeneratedLabelField
+        isChecked={isAiGenerated}
+        isDisabled={isSaving}
+        onChange={setIsAiGenerated}
       />
       <Input
         label={translate('coverTitle')}

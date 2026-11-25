@@ -749,15 +749,15 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "a443ce7366c25e1e3d337c6a3c0dca2ab327eb1dd9cf4d3a0d9adca30fc76a66"
+          "sha256": "fe3aa781b45cc01f9fb97ef0252311b76e605613fed871d7bf63b643a2a67006"
         },
         {
           "path": "metadata.json",
           "sha256": "084bc15ca6eef55ea838e3f224168526df21588c53b3f081a6a148824355aab3"
         }
       ],
-      "packageHash": "cdb1d8a6216cc5b1e612c5e87e8e5a8cb75818196d811f141aaa1ab9907b7069",
-      "instructionsHash": "d456d6deebb83c7056f8735fbc268a3e67aea9c28d7bcb1c88afc7ebb85ab898",
+      "packageHash": "4dea233dc98d143a28ff6f9c22cc26caa6a1d42b92a37b56e7e61134670fee4d",
+      "instructionsHash": "8335bcd03ea69fbb545655ff9d8032c9e52c16c102de2629e38460ac19c7aeec",
       "excludedReferences": []
     },
     {

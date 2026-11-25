@@ -149,6 +149,20 @@ describe('DesktopTerminalService', () => {
     expect(ptyState.subscriptionsDisposed).toBe(2);
   });
 
+  it('starts the Genfeed CLI through a wrapper that explains a missing gf', async () => {
+    const service = new DesktopTerminalService(() => null);
+
+    await service.createSession(
+      { kind: 'genfeed' },
+      () => {},
+      () => {},
+    );
+
+    const call = ptyState.spawnCalls[0];
+    expect(call?.command).not.toBe('gf');
+    expect(call?.args.join(' ')).toContain('npm install -g @genfeedai/cli');
+  });
+
   it('removes exited sessions before later writes', async () => {
     const workspaceService = {
       getWorkspace: async () => ({ path: '/tmp/genfeed-workspace' }),

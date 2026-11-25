@@ -3,9 +3,11 @@ import { ClipperProjectsService } from '@api/collections/clipper-projects/clippe
 import { SelectClipperReferenceFrameDto } from '@api/collections/clipper-projects/dto/select-clipper-reference-frame.dto';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ClipperProjectSerializer } from '@genfeedai/serializers';
@@ -36,6 +38,7 @@ export class ClipperProjectReferenceFramesController {
   ) {}
 
   @Put(':projectId/reference-frame')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     description:
