@@ -15,7 +15,9 @@ import type {
   MediaGenerationReceiptOpenInputV1,
   MediaGenerationTerminalSignalV1,
 } from '@api/services/media-generation-receipts/media-generation-receipts.types';
+import { projectMediaPaletteReceipt } from '@api/services/media-generation-receipts/media-palette-receipt.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   CreditReservationStatus,
   IngredientCategory,
@@ -31,6 +33,8 @@ import type {
   BrandedGenerationResolutionV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { GenerationBrandPaletteReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { ConflictException, HttpException, Injectable } from '@nestjs/common';
@@ -383,16 +387,24 @@ export class MediaGenerationReceiptsService {
     }
     if (current?.state === 'dispatched')
       current = await this.bind(located, current, ingredientId);
-    if (current?.state === 'checking')
+    if (current?.state === 'checking') {
+      const report = await this.provePalette(located.actor, current);
+      const { snapshot } = current;
       current = (
         await this.receipts.recordValidation(
           located.actor,
           current.id,
           this.mutation(current, 'validate'),
           'validate',
-          await this.provePalette(located.actor, current),
+          report,
         )
       ).receipt;
+      const palette =
+        report && snapshot
+          ? projectMediaPaletteReceipt(report, snapshot)
+          : null;
+      if (palette) await this.showPalette(located, ingredientId, palette);
+    }
     const isDelivered =
       current?.state === 'ready' ||
       current?.state === 'needs_review' ||
@@ -451,6 +463,43 @@ export class MediaGenerationReceiptsService {
       return null;
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Copies the palette result onto the output's generation receipt, which is
+   * what the generation details read. Best effort: the validation report on the
+   * branded receipt is the record, so a failed copy only logs.
+   */
+  private async showPalette(
+    located: LocatedMediaReceipt,
+    ingredientId: string,
+    palette: GenerationBrandPaletteReceipt,
+  ): Promise<void> {
+    const { organizationId } = located.actor;
+    try {
+      const row = await this.prisma.ingredient.findFirst({
+        where: scopedWhere(organizationId, { id: ingredientId }),
+        select: { generationHarness: true },
+      });
+      const harness = row?.generationHarness;
+      if (!harness || typeof harness !== 'object' || Array.isArray(harness))
+        return;
+      await this.prisma.ingredient.updateMany({
+        where: scopedWhere(organizationId, { id: ingredientId }),
+        data: {
+          generationHarness: toPrismaJson({
+            ...harness,
+            brandPalette: palette,
+          }),
+        },
+      });
+    } catch (error: unknown) {
+      this.logger.warn('Media palette result was not shown', {
+        error: receiptErrorCode(error),
+        ingredientId,
+        organizationId,
+      });
     }
   }
 
