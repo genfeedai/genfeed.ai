@@ -1,5 +1,6 @@
 import type { AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { TikTokAdsAuthorizationError } from '@api/services/integrations/tiktok-ads/utils/tiktok-ads-authorization.error';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -57,6 +58,7 @@ describe('AdsResearchService', () => {
     findConnectedAccounts: vi.fn(),
     findOne: vi.fn(),
     findOneSelect: delegateFindOneSelect(),
+    patch: vi.fn(),
   };
   const adsGatewayService = {
     getAdapter: vi.fn(),
@@ -631,6 +633,67 @@ describe('AdsResearchService', () => {
       id: 'connected:google:ad-yt',
       previewUrl: 'https://img.youtube.com/vi/vid-1/hqdefault.jpg',
       videoUrls: ['https://www.youtube.com/watch?v=vid-1'],
+    });
+  });
+
+  it('keeps other accounts and flags a revoked TikTok Ads credential for reconnect', async () => {
+    const googleCredentialId = testId('credential');
+    const tiktokCredentialId = testId('credential');
+    credentialsService.findConnectedAccounts.mockImplementation(
+      (_organizationId: string, _brandId: string, platform: string) => {
+        const name = String(platform).toLowerCase();
+        if (name.includes('google')) {
+          return Promise.resolve([
+            { externalId: '123', id: googleCredentialId },
+          ]);
+        }
+        if (name.includes('tiktok')) {
+          return Promise.resolve([
+            { externalId: '456', id: tiktokCredentialId },
+          ]);
+        }
+        return Promise.resolve([]);
+      },
+    );
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: 'sealed-token',
+    });
+    credentialsService.patch.mockResolvedValue({});
+    const googleAdapter = {
+      getAdAccounts: vi
+        .fn()
+        .mockResolvedValue([{ id: 'cust-1', status: 'ACTIVE' }]),
+      getTopPerformers: vi.fn().mockResolvedValue([]),
+      listAds: vi
+        .fn()
+        .mockResolvedValue([{ id: 'ad-google', name: 'Google ad' }]),
+    };
+    const tiktokAdapter = {
+      getAdAccounts: vi
+        .fn()
+        .mockRejectedValue(
+          new TikTokAdsAuthorizationError(
+            40105,
+            'Access token is incorrect or has been revoked.',
+            'req-1',
+          ),
+        ),
+    };
+    adsGatewayService.getAdapter.mockImplementation((platform: string) =>
+      platform === AdsPlatform.TIKTOK ? tiktokAdapter : googleAdapter,
+    );
+
+    const result = await service.listAds('org-1', {
+      brandId: 'brand-1',
+      source: 'my_accounts',
+    });
+
+    expect(result.connectedAds.map((ad) => ad.id)).toEqual([
+      'connected:google:ad-google',
+    ]);
+    expect(credentialsService.patch).toHaveBeenCalledTimes(1);
+    expect(credentialsService.patch).toHaveBeenCalledWith(tiktokCredentialId, {
+      isConnected: false,
     });
   });
 

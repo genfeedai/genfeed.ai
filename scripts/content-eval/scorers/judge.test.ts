@@ -1,3 +1,4 @@
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import type { FixtureRow } from '../contracts';
 import { fixtureRowSchema } from '../contracts';
@@ -18,7 +19,7 @@ import {
   toRubricRecord,
 } from './rubrics';
 
-const JUDGE = 'anthropic/claude-sonnet-5';
+const JUDGE: string = AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5;
 
 const ROW: FixtureRow = fixtureRowSchema.parse({
   brandFixtureId: 'synthetic-kelder',

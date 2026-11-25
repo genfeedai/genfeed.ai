@@ -344,12 +344,12 @@ export class KnowledgeRecordsService {
     }
   }
 
-  async getSource(actor: KnowledgeActor, id: string) {
+  async getSource(actor: KnowledgeActor, id: string, isArchived = false) {
     const source = await this.prisma.knowledgeSource.findFirst({
       where: {
         ...(await this.ownership(actor)),
         organizationId: actor.organizationId,
-        isDeleted: false,
+        isDeleted: isArchived,
         id,
       },
     });

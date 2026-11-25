@@ -221,14 +221,43 @@ describe('AnalyticsTwitterCollectionService', () => {
     expect(harness.collectionState.markFailedBatch).toHaveBeenCalled();
   });
 
-  it('records delayed state and fails when provider data is unavailable', async () => {
+  it('records a retryable delayed outcome without failing when X returns no metrics for the post', async () => {
     const harness = createHarness();
 
     await expect(
       harness.service.collect(input(), analyticsCollectionAuthorizationFixture),
-    ).rejects.toThrow('analytics are not available');
+    ).resolves.toEqual({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+    });
 
-    expect(harness.collectionState.markFailedBatch).toHaveBeenCalled();
+    expect(harness.collectionState.markFailedBatch).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'post-1' })],
+      expect.objectContaining({
+        code: 'analytics.metrics_delayed',
+        isRetryable: true,
+      }),
+    );
+    expect(harness.accountSnapshots.upsertDailySnapshot).not.toHaveBeenCalled();
+  });
+
+  it('still fails and records a retryable outcome when the provider request fails transiently', async () => {
+    const harness = createHarness();
+    const unavailable = Object.assign(new Error('X is down'), { status: 503 });
+    harness.twitter.getMediaAnalyticsBatch.mockRejectedValue(unavailable);
+
+    await expect(
+      harness.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toBe(unavailable);
+
+    expect(harness.collectionState.markFailedBatch).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'post-1' })],
+      expect.objectContaining({
+        code: 'analytics.provider_unavailable',
+        isRetryable: true,
+      }),
+    );
   });
 
   it('rejects batch-shaped inputs at the action boundary', async () => {

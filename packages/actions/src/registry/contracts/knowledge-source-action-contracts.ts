@@ -9,13 +9,33 @@ import {
   STRING_SCHEMA,
 } from './schema-builders';
 
+/**
+ * The authenticated identity the work runs as. The server captures it when it
+ * queues the run and carries it on every request, so the contract must name it:
+ * a closed request rejects it before the first node runs.
+ */
+const INITIATING_ACTOR = closedObjectSchema(
+  {
+    apiKeyId: STRING_SCHEMA,
+    isApiKey: BOOLEAN_SCHEMA,
+    organizationId: STRING_SCHEMA,
+    scopes: arraySchema(STRING_SCHEMA),
+    userId: STRING_SCHEMA,
+  },
+  ['isApiKey', 'organizationId', 'scopes', 'userId'],
+);
 const INGEST_REQUEST = closedObjectSchema(
   {
+    initiatingActor: INITIATING_ACTOR,
     organizationId: STRING_SCHEMA,
     sourceId: STRING_SCHEMA,
     versionId: STRING_SCHEMA,
   },
   ['organizationId', 'sourceId', 'versionId'],
+);
+const BACKFILL_REQUEST = closedObjectSchema(
+  { initiatingActor: INITIATING_ACTOR, organizationId: STRING_SCHEMA },
+  ['organizationId'],
 );
 const SOURCE = closedObjectSchema(
   {
@@ -49,6 +69,14 @@ const VERSION = closedObjectSchema(
 );
 const STATE_PROPERTIES = {
   chunks: arraySchema(STRING_SCHEMA),
+  embeddingManifestId: STRING_SCHEMA,
+  extractedCues: arraySchema(
+    closedObjectSchema(
+      { endMs: NUMBER_SCHEMA, startMs: NUMBER_SCHEMA, text: STRING_SCHEMA },
+      ['endMs', 'startMs', 'text'],
+    ),
+  ),
+  initiatingActor: INITIATING_ACTOR,
   extracted: closedObjectSchema(
     {
       endMs: NUMBER_SCHEMA,
@@ -107,9 +135,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'knowledge.source.discover-backfill': {
     inputSchema: closedObjectSchema(
       {
-        request: closedObjectSchema({ organizationId: STRING_SCHEMA }, [
-          'organizationId',
-        ]),
+        request: BACKFILL_REQUEST,
       },
       ['request'],
     ),

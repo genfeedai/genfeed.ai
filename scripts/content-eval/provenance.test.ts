@@ -1,3 +1,4 @@
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { EvalDispatcher, EvalStructuredRequest } from './contracts';
@@ -16,7 +17,7 @@ import {
   usdToCredits,
 } from './spend';
 
-const MODEL = 'google/gemini-2.5-flash-lite';
+const MODEL: string = AGENT_CHAT_MODEL_KEYS.GEMINI_3_5_FLASH_LITE;
 
 const REQUEST: EvalStructuredRequest<{ text: string }> = {
   maxTokens: 100,
