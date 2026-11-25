@@ -25,3 +25,19 @@ export const API_KEY_BRAND_EDIT_SCOPES = [
   ApiKeyScope.BRAND_KIT_WRITE,
   ApiKeyScope.ADMIN,
 ] as const;
+
+/**
+ * Scopes for a route that creates, changes or removes a Library asset. An
+ * MCP grant carries `images:create` and `videos:create` but no update or delete
+ * scope, and its `delete_asset` tool calls `DELETE /ingredients/:id`, so every
+ * media write scope opens every media route.
+ */
+export const API_KEY_MEDIA_WRITE_SCOPES = [
+  ApiKeyScope.IMAGES_CREATE,
+  ApiKeyScope.IMAGES_UPDATE,
+  ApiKeyScope.IMAGES_DELETE,
+  ApiKeyScope.VIDEOS_CREATE,
+  ApiKeyScope.VIDEOS_UPDATE,
+  ApiKeyScope.VIDEOS_DELETE,
+  ApiKeyScope.ADMIN,
+] as const;

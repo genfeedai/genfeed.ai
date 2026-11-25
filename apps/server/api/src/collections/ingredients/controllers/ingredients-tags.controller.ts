@@ -5,9 +5,11 @@ import { IngredientTagsService } from '@api/collections/ingredients/services/ing
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -53,6 +55,7 @@ export class IngredientsTagsController {
   ) {}
 
   @Patch(':ingredientId/tags')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @UseGuards(AssetAccessGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateTags(
@@ -95,6 +98,7 @@ export class IngredientsTagsController {
    * reports `changed`, `skipped` and `failed` counts.
    */
   @Post('tags/bulk')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async bulkTag(

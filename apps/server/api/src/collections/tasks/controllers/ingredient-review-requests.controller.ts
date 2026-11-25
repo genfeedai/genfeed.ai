@@ -11,7 +11,9 @@ import { CreateTaskReviewRequestDto } from '@api/collections/tasks/dto/create-ta
 import { TaskReviewRequestsService } from '@api/collections/tasks/services/task-review-requests.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { TaskSerializer } from '@genfeedai/serializers';
@@ -73,6 +75,7 @@ export class IngredientReviewRequestsController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Ask teammates to review an asset' })
   async create(
