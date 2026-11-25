@@ -286,7 +286,7 @@ export const seedream4DispatchSchema = z
   .strict();
 export type Seedream4Dispatch = z.infer<typeof seedream4DispatchSchema>;
 export const SEEDREAM_4_IMAGE_COMPILER_ID = 'seedream-4-image-compiler';
-export const SEEDREAM_4_IMAGE_COMPILER_VERSION = 1;
+export const SEEDREAM_4_IMAGE_COMPILER_VERSION = 2;
 
 export const seedream45DispatchSchema = z
   .object({
@@ -300,7 +300,7 @@ export const seedream45DispatchSchema = z
   .strict();
 export type Seedream45Dispatch = z.infer<typeof seedream45DispatchSchema>;
 export const SEEDREAM_4_5_IMAGE_COMPILER_ID = 'seedream-4-5-image-compiler';
-export const SEEDREAM_4_5_IMAGE_COMPILER_VERSION = 1;
+export const SEEDREAM_4_5_IMAGE_COMPILER_VERSION = 2;
 
 export const seedream5ProDispatchSchema = z
   .object({
@@ -315,7 +315,7 @@ export const seedream5ProDispatchSchema = z
   .strict();
 export type Seedream5ProDispatch = z.infer<typeof seedream5ProDispatchSchema>;
 export const SEEDREAM_5_PRO_IMAGE_COMPILER_ID = 'seedream-5-pro-image-compiler';
-export const SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION = 1;
+export const SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION = 2;
 
 export const ideogramCharacterDispatchSchema = z
   .object({
