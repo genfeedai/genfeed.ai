@@ -1,3 +1,4 @@
+import type { BrandKitApprovalDraft } from '@mcp/services/client/brand-kit.client';
 import { handleBrandKitTool } from '@mcp/tools/brand-kit.tool';
 
 const unusedApproval = {
@@ -83,7 +84,7 @@ describe('Brand Kit section tool', () => {
       version: 3,
     };
 
-    function approvalClient(shown = draft) {
+    function approvalClient(shown: BrandKitApprovalDraft = draft) {
       const approvals: unknown[] = [];
       return {
         approvals,
