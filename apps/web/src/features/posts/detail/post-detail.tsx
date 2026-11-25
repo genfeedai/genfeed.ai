@@ -20,7 +20,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import {
@@ -40,8 +39,13 @@ import PostDetailContent from '@/features/posts/detail/components/PostDetailCont
 import PostDetailHeader from '@/features/posts/detail/components/PostDetailHeader';
 import PostDetailNeedsYou from '@/features/posts/detail/components/PostDetailNeedsYou';
 import PostDetailPublished from '@/features/posts/detail/components/PostDetailPublished';
+import PostDetailUnavailable from '@/features/posts/detail/components/PostDetailUnavailable';
+import TikTokDeliveryDialog, {
+  type TikTokDeliveryChoice,
+} from '@/features/posts/detail/components/TikTokDeliveryDialog';
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@/features/posts/detail/post-detail-preview.helpers';
+import { needsTikTokDeliveryChoice } from '@/features/posts/detail/tiktok-delivery.helper';
 import { usePostAgent } from '@/features/posts/hooks/use-post-agent/use-post-agent';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
 import type { PostReviewSummary } from '@/props/components/post-detail-sidebar.props';
@@ -226,6 +230,34 @@ export default function PostDetail({
   const saveSchedule = useMemo(
     () => guardTikTokPublish(handleScheduleSave),
     [guardTikTokPublish, handleScheduleSave],
+  );
+  const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
+  // A failed TikTok video that has not recorded Inbox delivery asks how it
+  // should go out; every other retry runs as before.
+  const retryPublish = useCallback(() => {
+    if (post && needsTikTokDeliveryChoice(post)) {
+      setIsDeliveryDialogOpen(true);
+      return;
+    }
+    void handleRetryPublish();
+  }, [handleRetryPublish, post]);
+  const chooseDelivery = useCallback(
+    (choice: TikTokDeliveryChoice) => {
+      setIsDeliveryDialogOpen(false);
+      if (choice === 'inbox') {
+        void publishViaTikTokApp();
+        return;
+      }
+      void handleRetryPublish();
+    },
+    [handleRetryPublish, publishViaTikTokApp],
+  );
+  const deliveryDialog = (
+    <TikTokDeliveryDialog
+      isOpen={isDeliveryDialogOpen}
+      onChoose={chooseDelivery}
+      onOpenChange={setIsDeliveryDialogOpen}
+    />
   );
   const contextSidebar = useContextSidebar();
   const isStandalonePage = presentation === 'page' && !renderContextSidebar;
@@ -544,7 +576,7 @@ export default function PostDetail({
             <PostDetailNeedsYou
               isPublished={isPublished}
               onPublishNow={publishNow}
-              onRetryPublish={handleRetryPublish}
+              onRetryPublish={retryPublish}
               onReviewHref={href(APP_ROUTES.PUBLISHING.APPROVALS)}
               post={post}
             />
@@ -567,17 +599,21 @@ export default function PostDetail({
         <div className="flex flex-col" data-testid="post-detail-panel">
           {panelBody}
         </div>
+        {deliveryDialog}
       </ContextSidebarPanel>
     );
   }
 
-  // Error state
+  // A failed load can be retried; a post the API cannot find cannot. Both
+  // leave a way back to the list.
   if (error) {
     return (
       <div className={wrapperClassName}>
-        <Card>
-          <div className="text-destructive mb-4">{error}</div>
-        </Card>
+        <PostDetailUnavailable
+          kind="error"
+          onRetry={() => void refreshPost()}
+          postsListHref={postsListHref}
+        />
       </div>
     );
   }
@@ -587,16 +623,7 @@ export default function PostDetail({
   if (!isLoading && !post) {
     return (
       <div className={wrapperClassName}>
-        <Card>
-          <div className="text-destructive mb-4">{translate('notFound')}</div>
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link href={postsListHref}>{translate('backToPosts')}</Link>
-          </Button>
-        </Card>
+        <PostDetailUnavailable kind="not-found" postsListHref={postsListHref} />
       </div>
     );
   }
@@ -672,7 +699,7 @@ export default function PostDetail({
               className="mb-6"
               isPublished={isPublished}
               onPublishNow={publishNow}
-              onRetryPublish={handleRetryPublish}
+              onRetryPublish={retryPublish}
               onReviewHref={href(APP_ROUTES.PUBLISHING.APPROVALS)}
               post={post}
             />
@@ -789,6 +816,7 @@ export default function PostDetail({
           </div>
         )}
       </div>
+      {deliveryDialog}
     </>
   );
 }

@@ -3,7 +3,13 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
-import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
+import {
+  PageScope,
+  Platform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/contracts';
+import { TIKTOK_DELIVERY_MODE_APP } from '@genfeedai/contracts/api-types/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -66,8 +72,19 @@ vi.mock('@/features/posts/detail/components/PostDetailContent', () => ({
 vi.mock(
   '@/features/posts/components/posts/post-detail-sidebar/PostDetailSidebar',
   () => ({
-    default: ({ preview }: { preview?: ReactNode }) => (
-      <div data-testid="post-sidebar">{preview}</div>
+    default: ({
+      onTikTokReadinessChange,
+      preview,
+    }: {
+      onTikTokReadinessChange?: (isReady: boolean) => void;
+      preview?: ReactNode;
+    }) => (
+      <div data-testid="post-sidebar">
+        {preview}
+        <button onClick={() => onTikTokReadinessChange?.(true)} type="button">
+          Report TikTok ready
+        </button>
+      </div>
     ),
   }),
 );
@@ -226,22 +243,35 @@ describe('PostDetail', () => {
     expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
   });
 
-  it('renders the error message when the hook reports an error', () => {
+  it('offers a retry and a way back when the post fails to load', async () => {
+    const refreshPost = vi.fn();
     mockUsePostDetail.mockReturnValue(
-      buildHookData({ error: 'Boom', post: null }),
+      buildHookData({ error: 'Boom', post: null, refreshPost }),
     );
 
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
-    expect(screen.getByText('Boom')).toBeInTheDocument();
+    expect(screen.getByText("Couldn't load this post")).toBeInTheDocument();
+    expect(screen.queryByText('Boom')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to posts' })).toHaveAttribute(
+      'href',
+      '/publishing/posts',
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(refreshPost).toHaveBeenCalledTimes(1);
   });
 
-  it('renders a not-found message when the post is missing', () => {
+  it('says a missing post is not available, with no retry', () => {
     mockUsePostDetail.mockReturnValue(buildHookData({ post: null }));
 
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
-    expect(screen.getByText('Post not found')).toBeInTheDocument();
+    expect(screen.getByText("This post isn't available")).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
   });
 
   it('links a missing admin post back to the admin content list', () => {
@@ -276,6 +306,69 @@ describe('PostDetail', () => {
     expect(
       screen.getByText('This post failed to publish.'),
     ).toBeInTheDocument();
+  });
+
+  describe('retrying a failed TikTok video', () => {
+    const failedTikTok = (targetSettings: Record<string, unknown> = {}) =>
+      buildPost({
+        category: PostCategory.VIDEO,
+        ingredients: [{ id: 'video-1' }] as never,
+        platform: Platform.TIKTOK,
+        status: PostStatus.FAILED,
+        targetSettings,
+      });
+
+    it('asks how to send it when Inbox delivery is not recorded', async () => {
+      const handleRetryPublish = vi.fn();
+      mockUsePostDetail.mockReturnValue(
+        buildHookData({ handleRetryPublish, post: failedTikTok() }),
+      );
+      render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Retry publish' }),
+      );
+      expect(handleRetryPublish).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: /^Publish/ }));
+
+      expect(handleRetryPublish).toHaveBeenCalledTimes(1);
+    });
+
+    it('delivers to the Inbox when that is chosen', async () => {
+      const handlePublishViaTikTokApp = vi.fn();
+      mockUsePostDetail.mockReturnValue(
+        buildHookData({ handlePublishViaTikTokApp, post: failedTikTok() }),
+      );
+      render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Report TikTok ready' }),
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Retry publish' }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: /^Deliver/ }));
+
+      expect(handlePublishViaTikTokApp).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries without asking when the post recorded Inbox delivery', async () => {
+      const handleRetryPublish = vi.fn();
+      mockUsePostDetail.mockReturnValue(
+        buildHookData({
+          handleRetryPublish,
+          post: failedTikTok({ deliveryMode: TIKTOK_DELIVERY_MODE_APP }),
+        }),
+      );
+      render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Retry publish' }),
+      );
+
+      expect(handleRetryPublish).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 
   it('does not warn for a healthy post', () => {
