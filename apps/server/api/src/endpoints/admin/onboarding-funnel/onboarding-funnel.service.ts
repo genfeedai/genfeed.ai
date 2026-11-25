@@ -1,11 +1,16 @@
 import {
+  isOnboardingCompleted,
   readDraftsStatus,
   readPrefillMarker,
   summarizeOnboardingFunnel,
 } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
-import { LinkCategory, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  CreditTransactionCategory,
+  LinkCategory,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import type {
   IOnboardingFunnelOrganization,
@@ -67,6 +72,16 @@ export class OnboardingFunnelService {
           },
         },
         createdAt: true,
+        // One spend is enough to tell an account that used the product from
+        // one that only finished the wizard.
+        creditTransactions: {
+          select: { id: true },
+          take: 1,
+          where: {
+            category: CreditTransactionCategory.DEDUCT,
+            isDeleted: false,
+          },
+        },
         credentials: {
           select: { id: true },
           take: 1,
@@ -105,13 +120,15 @@ export class OnboardingFunnelService {
           markers.find((marker) => marker.status !== null)?.status ?? null,
         steps: {
           accountConnected: row.credentials.length > 0,
+          activated: row.creditTransactions.length > 0,
           brandScanned: markers.some(
             (marker) =>
               marker.status === 'completed' && marker.hasScrapedWebsite,
           ),
-          // The classic wizard only ever set the owner's flag; the
-          // organization flag is the agent-first path's.
-          completed: row.onboardingCompleted || row.user.isOnboardingCompleted,
+          completed: isOnboardingCompleted({
+            organization: row.onboardingCompleted,
+            owner: row.user.isOnboardingCompleted,
+          }),
           draftsReady: draftsStatus === 'ready' || draftsStatus === 'partial',
           draftsStarted: row.contentRuns.length > 0,
           published: row.posts.length > 0,

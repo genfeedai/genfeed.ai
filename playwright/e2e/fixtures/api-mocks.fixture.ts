@@ -3618,6 +3618,7 @@ export async function mockBrandWithMedia(
       cdnUrl: MOCK_BRAND_LOGO_DATA_URL,
       id: 'asset-logo-1',
     },
+    isPublicAnalyticsEnabled: true,
     scope: 'private',
     slug: 'brand-1',
     updatedAt: new Date().toISOString(),
@@ -3643,13 +3644,23 @@ export async function mockBrandWithMedia(
       status: 200,
     });
   });
+  await routeApiPattern(page, '/brands/brand-1/reach', async (route) => {
+    await route.fulfill({
+      json: { data: { engagements: 12, impressions: null, views: 1200 } },
+      status: 200,
+    });
+  });
   for (const pattern of ['/brands/brand-1', '/brands/slug**']) {
     await routeApiPattern(page, pattern, async (route) => {
       if (route.request().method() === 'PATCH') {
-        const { scope } = extractRequestPayload(route);
+        const { isPublicAnalyticsEnabled, scope } =
+          extractRequestPayload(route);
         if (typeof scope === 'string') {
           await waitForScopeSave?.(scope);
           brand.scope = scope;
+        }
+        if (typeof isPublicAnalyticsEnabled === 'boolean') {
+          brand.isPublicAnalyticsEnabled = isPublicAnalyticsEnabled;
         }
       }
 

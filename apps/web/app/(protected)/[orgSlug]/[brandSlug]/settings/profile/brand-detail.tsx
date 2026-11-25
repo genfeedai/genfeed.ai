@@ -3,6 +3,7 @@
 import {
   AssetCategory,
   AssetScope,
+  ButtonSize,
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/contracts';
@@ -13,12 +14,12 @@ import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { EnvironmentService } from '@services/core/environment.service';
 import CollectionSection from '@ui/collection/CollectionSection';
-import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { UnderlineNav } from '@ui/primitives/underline-nav';
+import { Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -29,24 +30,25 @@ import {
 import BrandProfileArticles from '@/features/brands/components/articles/BrandProfileArticles';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
+import BrandProfileStats from '@/features/brands/components/overview/BrandProfileStats';
 import BrandDetailExternalLinksCard from '@/features/brands/components/sidebar/BrandDetailExternalLinksCard';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
 import BrandProfileVisibility from '@/features/brands/components/visibility/BrandProfileVisibility';
+import BrandPublicAnalyticsSetting from '@/features/brands/components/visibility/BrandPublicAnalyticsSetting';
 import { useBrandProfileArticles } from '@/features/brands/hooks/use-brand-profile-articles';
+import { useBrandReach } from '@/features/brands/hooks/use-brand-reach';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
-/** The Overview shows the newest few articles; the Articles tab lists them all. */
-const OVERVIEW_ARTICLE_LIMIT = 3;
-
-type ProfileTab = 'overview' | 'articles';
+type ProfileTab = 'articles' | 'settings';
 
 /**
  * The brand profile, laid out like the public page at genfeed.ai/@handle: the
  * banner, the header (picture, name, handle, description, one visibility
- * control), then Overview and Articles tabs. Overview carries what only the
- * owner needs on top of the public view: the connected accounts (the Connect
- * account modal, status, reconnect and per-account settings) and website
- * links.
+ * control, the stats line), then Articles and Settings tabs. Settings carries
+ * what only the owner needs on top of the public view: the Public analytics
+ * switch, the connected accounts (the Connect account modal, status, reconnect
+ * and per-account settings) and website links. A `?tab=` that names no tab
+ * (the old `overview`) shows Articles.
  */
 export default function BrandDetail() {
   const translate = useTranslations('pages.brandSocialMedia');
@@ -79,7 +81,7 @@ export default function BrandDetail() {
 
   const searchParams = useSearchParams();
   const activeTab: ProfileTab =
-    searchParams?.get('tab') === 'articles' ? 'articles' : 'overview';
+    searchParams?.get('tab') === 'settings' ? 'settings' : 'articles';
   const currentPage = Number(searchParams?.get('page')) || 1;
   const {
     articles,
@@ -90,6 +92,7 @@ export default function BrandDetail() {
     brandId,
     activeTab === 'articles' ? currentPage : 1,
   );
+  const reach = useBrandReach(brandId);
 
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {
@@ -142,17 +145,7 @@ export default function BrandDetail() {
   }
 
   return (
-    <Container
-      right={
-        brand ? (
-          <Button
-            label={translate('connectAccount')}
-            onClick={() => setIsConnectAccountModalOpen(true)}
-            variant={ButtonVariant.DEFAULT}
-          />
-        ) : undefined
-      }
-    >
+    <Container>
       {isLoading ? (
         <div className="flex flex-col gap-6" data-testid="brand-detail-loading">
           <SkeletonCard showImage />
@@ -174,34 +167,7 @@ export default function BrandDetail() {
             <BrandDetailOverview
               brand={brand}
               footer={
-                <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-                  <p className="text-sm text-foreground/60">
-                    {translateOverview('articleCount', {
-                      count: articlesTotal,
-                    })}
-                  </p>
-                  <ul
-                    aria-label={translateOverview('connectedAccountsPreview')}
-                    className="flex items-center gap-3"
-                  >
-                    {socialConnections
-                      .filter((connection) => connection.isConnected !== false)
-                      .map((connection) => (
-                        <li key={connection.credentialId}>
-                          <ConnectedAccountAvatar
-                            account={{
-                              avatarUrl: connection.avatarUrl,
-                              handle: connection.handle,
-                              name: connection.name,
-                              platform: connection.platform,
-                            }}
-                            isDecorative
-                            size="md"
-                          />
-                        </li>
-                      ))}
-                  </ul>
-                </div>
+                <BrandProfileStats accounts={socialConnections} reach={reach} />
               }
               isAvatarOverlapping
               isGeneratingLogo={isGeneratingLogo}
@@ -232,11 +198,6 @@ export default function BrandDetail() {
               ariaLabel={translateOverview('profileSections')}
               items={[
                 {
-                  href: '?tab=overview',
-                  isActive: activeTab === 'overview',
-                  label: translateOverview('overviewTab'),
-                },
-                {
                   badge: (
                     <span className="text-foreground/40">{articlesTotal}</span>
                   ),
@@ -244,26 +205,40 @@ export default function BrandDetail() {
                   isActive: activeTab === 'articles',
                   label: translateOverview('articlesTab'),
                 },
+                {
+                  href: '?tab=settings',
+                  isActive: activeTab === 'settings',
+                  label: translateOverview('settingsTab'),
+                },
               ]}
             />
 
-            {activeTab === 'articles' ? (
-              <BrandProfileArticles
-                articles={articles}
-                isError={isArticlesError}
-                isPending={isArticlesPending}
-              />
-            ) : (
+            {activeTab === 'settings' ? (
               <div className="flex flex-col gap-12">
-                <BrandProfileArticles
-                  articles={articles}
-                  isError={isArticlesError}
-                  isPending={isArticlesPending}
-                  limit={OVERVIEW_ARTICLE_LIMIT}
-                  seeAllHref="?tab=articles"
+                <BrandPublicAnalyticsSetting
+                  isEnabled={brand.isPublicAnalyticsEnabled !== false}
+                  isUpdating={isUpdating}
+                  onToggle={(isEnabled) => {
+                    // Fire-and-forget: the hook already reverts and toasts on failure.
+                    void handleUpdateAccount(
+                      'isPublicAnalyticsEnabled',
+                      isEnabled,
+                    ).catch(() => undefined);
+                  }}
                 />
 
-                <CollectionSection title={translate('connectedAccounts')}>
+                <CollectionSection
+                  actions={
+                    <Button
+                      icon={<Plus className="size-3.5" />}
+                      label={translate('connectAccount')}
+                      onClick={() => setIsConnectAccountModalOpen(true)}
+                      size={ButtonSize.XS}
+                      variant={ButtonVariant.SECONDARY}
+                    />
+                  }
+                  title={translate('connectedAccounts')}
+                >
                   <BrandDetailSocialMediaCard
                     brandId={brandId}
                     connectedPlatformsCount={connectedPlatformsCount}
@@ -282,6 +257,12 @@ export default function BrandDetail() {
                   onOpenLinkModal={handleOpenLinkModal}
                 />
               </div>
+            ) : (
+              <BrandProfileArticles
+                articles={articles}
+                isError={isArticlesError}
+                isPending={isArticlesPending}
+              />
             )}
           </div>
 

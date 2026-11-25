@@ -218,9 +218,9 @@ The alternatives considered for this audit were:
 | No critical advisory sits in the lockfile | `dependency-review.yml` `audit` job runs `bun audit --audit-level=critical` weekly and on any PR that touches `package.json` or `bun.lock` | Reads the lockfile only, installs nothing; high-severity findings are reported by the weekly Trivy scan rather than gated | Repository code |
 | Fresh releases cannot enter the lockfile | `bunfig.toml` `minimumReleaseAge = 10800`; CI installs use `--frozen-lockfile`; Bun runs no dependency lifecycle scripts unless the package is trusted | A compromised release has to survive three hours on the registry before `bun install` resolves it | Repository code |
 | A compromise has a written response | [Supply-chain compromise runbook](operations/supply-chain-incident.md) | Covers blast radius, containment, secret rotation order, and rebuild | Repository docs |
-| Checkouts do not leave a token on disk | Every `actions/checkout` sets `persist-credentials: false`, except `deps-update.yml`, which pushes its weekly branch | Later steps (including install scripts of a compromised dependency) cannot read the job token from `.git/config` | Repository code |
+| Checkouts do not leave a token on disk | Every `actions/checkout` sets `persist-credentials: false` | Later steps (including install scripts of a compromised dependency) cannot read the job token from `.git/config` | Repository code |
 | External Actions are immutable | Every external `uses:` reference is a full 40-character upstream commit SHA; `check-github-action-versions.ts` rejects mutable refs or inconsistent SHAs | The release tag remains as a review comment; unlabeled manual SHA pins are intentionally not moved | Repository code |
-| Action updates remain routine | `bun run deps:update` calls `deps:update:actions`; the updater resolves the latest release tag to its upstream commit SHA and rewrites workflows plus composite actions | A failed lookup leaves the existing immutable pin unchanged; the weekly PR exposes every SHA change for review | Repository code |
+| Action updates remain routine | `bun run deps:update` calls `deps:update:actions`; the updater resolves the latest release tag to its upstream commit SHA and rewrites workflows plus composite actions | A failed lookup leaves the existing immutable pin unchanged; the dependency PR exposes every SHA change for review | Repository code |
 | Untrusted pull-request code stays outside privileged event context | Code validation runs on `pull_request`; an executable workflow contract limits `pull_request_target` to the metadata-only title leaf in `ci.yml` (plus the existing trusted CLA recovery workflow), and rejects checkout or local-action execution in that leaf | Fork code cannot turn metadata validation into execution with the base repository token | Repository code |
 | Fork code never receives repository secrets | GitHub fork approval policy requires approval for every external contributor; CI uses `pull_request`, and GitHub withholds secrets from fork runs | Maintainers review and apply `run-ci`; secret-consuming publish/deploy paths are not PR-triggered | GitHub setting + repository workflows |
 | Secret regressions fail before merge | Gitleaks and changed-file secretlint inside `Static Checks`, held by the required `Tests Gate`; staged-content secret scan remains mandatory before commits | Findings fail Static Checks and therefore the gate | Repository code + required checks |
@@ -242,13 +242,6 @@ organization or repository policy changes:
 - Repository Actions currently default `GITHUB_TOKEN` to write. Workflows
   override that default, but administrators should change the repository
   default to read-only so a newly added workflow fails safe.
-- Repository Actions allow `GITHUB_TOKEN` to create and approve pull requests
-  so the trusted scheduled `deps-update.yml` workflow can deliver its one
-  weekly update PR. That job explicitly grants only `contents: write` and
-  `pull-requests: write`; every other configurable permission remains `none`.
-  Keep the repository setting enabled while this workflow uses `GITHUB_TOKEN`,
-  and keep its exact owner/head/base deduplication plus failed-creation branch
-  rollback executable contract intact.
 - Repository Actions currently allow all actions and do not require full-SHA
   pins at the settings layer. Repository tests enforce immutable pins after
   checkout; administrators should also enable the full-length SHA policy and,

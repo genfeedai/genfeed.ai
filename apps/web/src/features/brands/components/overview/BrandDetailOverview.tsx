@@ -33,12 +33,19 @@ export default function BrandDetailOverview({
   const t = useTranslations('pages.brandDetailOverview');
 
   return (
-    <header className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 px-1 sm:gap-x-6">
+    <header
+      className={cn(
+        'grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 sm:gap-x-6',
+        isAvatarOverlapping ? 'px-4 sm:px-6' : 'px-1',
+      )}
+    >
       <div
         className={cn(
-          'relative z-10 w-fit sm:row-span-3',
+          'relative z-10 w-fit sm:row-span-2',
+          // The ring is drawn on the picture's own frame, so it follows the
+          // corners exactly and never pokes past the banner's edge.
           isAvatarOverlapping &&
-            '-mt-12 rounded-2xl bg-background p-1.5 sm:-mt-16',
+            '-mt-12 rounded-xl bg-background ring-4 ring-background sm:-mt-16',
         )}
       >
         <BrandAvatar
@@ -76,27 +83,34 @@ export default function BrandDetailOverview({
         </BrandAvatar>
       </div>
 
-      <div className="min-w-0 self-start pt-1">
-        <EditableText
-          ariaLabel={t('editBrandName')}
-          className="mb-1"
-          displayClassName="text-2xl font-semibold sm:text-3xl"
-          isRequired
-          onSave={(value) => onUpdateBrand('label', value)}
-          value={brand.label}
-        />
-        {brand.slug && onUpdateHandle ? (
-          // The leading `@` is display only; the save normalizes it away.
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-3 self-start pt-1">
+        <div className="min-w-0 flex-1 basis-48">
           <EditableText
-            ariaLabel={t('editBrandHandle')}
-            displayClassName="text-sm text-muted-foreground"
+            ariaLabel={t('editBrandName')}
+            className="mb-1"
+            displayClassName="text-2xl font-semibold sm:text-3xl"
             isRequired
-            maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
-            onSave={onUpdateHandle}
-            value={`@${brand.slug}`}
+            onSave={(value) => onUpdateBrand('label', value)}
+            value={brand.label}
           />
-        ) : brand.slug ? (
-          <p className="text-sm text-muted-foreground">@{brand.slug}</p>
+          {brand.slug && onUpdateHandle ? (
+            // The leading `@` is display only; the save normalizes it away.
+            <EditableText
+              ariaLabel={t('editBrandHandle')}
+              displayClassName="text-sm text-muted-foreground"
+              isRequired
+              maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
+              onSave={onUpdateHandle}
+              value={`@${brand.slug}`}
+            />
+          ) : brand.slug ? (
+            <p className="text-sm text-muted-foreground">@{brand.slug}</p>
+          ) : null}
+        </div>
+        {visibility ? (
+          // The control sits on the header's right edge, beside the name; in a
+          // narrow column it wraps under it.
+          <div className="min-w-0 max-w-full">{visibility}</div>
         ) : null}
       </div>
 
@@ -110,12 +124,6 @@ export default function BrandDetailOverview({
           value={brand.description}
         />
       </div>
-
-      {visibility ? (
-        <div className="col-span-2 sm:col-span-1 sm:col-start-2">
-          {visibility}
-        </div>
-      ) : null}
 
       {footer ? <div className="col-span-2 pt-1">{footer}</div> : null}
     </header>
