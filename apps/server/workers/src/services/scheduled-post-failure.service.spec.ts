@@ -3,6 +3,7 @@ import type { ActivityRecorderService } from '@api/services/activity-recording/a
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import * as Sentry from '@sentry/nestjs';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import type { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
@@ -79,7 +80,59 @@ function parent(children: Array<{ groupId?: string; id: string }>): PostEntity {
   } as unknown as PostEntity;
 }
 
+vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+
 describe('ScheduledPostFailureService', () => {
+  describe('notifyTerminalFailure', () => {
+    function post(): PostEntity {
+      return {
+        ...parent([]),
+        organizationId: 'org-1',
+        platform: 'twitter',
+        retryCount: 0,
+      } as unknown as PostEntity;
+    }
+
+    beforeEach(() => {
+      vi.mocked(Sentry.captureException).mockClear();
+    });
+
+    it('tells the owner a duplicate X post failed, without reporting it as a fault', async () => {
+      const { service, state } = createHarness();
+
+      await service.notifyTerminalFailure(
+        post(),
+        'duplicate_content',
+        'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+      );
+
+      expect(state.activities).toHaveLength(1);
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
+
+    it('reports an exhausted provider balance once, under one fingerprint', async () => {
+      const { service, state } = createHarness();
+
+      await service.notifyTerminalFailure(
+        post(),
+        'provider_credits_depleted',
+        'X API credits depleted. Add credits to the X developer account, then retry.',
+      );
+
+      expect(state.activities).toHaveLength(1);
+      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          fingerprint: [
+            'scheduled-post-publish-failed',
+            'provider_credits_depleted',
+          ],
+        }),
+      );
+    });
+  });
+
   describe('notifyPublishFailed', () => {
     it('records the owner-facing failure activity', async () => {
       const { service, state } = createHarness();

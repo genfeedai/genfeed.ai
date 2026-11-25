@@ -705,7 +705,38 @@ describe('TwitterPublisherService', () => {
         });
       });
 
-      it('reports an out-of-credits X account as a refusal to retry later', async () => {
+      it('reports an X duplicate-content refusal once, as a warning with its provider code', async () => {
+        const context = createPublishContext(mockTextPost);
+        const error = Object.assign(new Error('Request failed with code 403'), {
+          code: 403,
+          data: {
+            detail:
+              'You are not allowed to create a Tweet with duplicate content.',
+            title: 'Forbidden',
+          },
+        });
+        credentialsService.findOne.mockResolvedValue({
+          ...mockCredential,
+          accessToken: 'encrypted-token',
+        } as unknown as CredentialDocument);
+        mockTweet.mockRejectedValue(error);
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          kind: 'content_rejected',
+          providerCode: 'duplicate_content',
+        });
+        expect(logger.error).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('failed to publish'),
+          expect.objectContaining({
+            httpStatus: 403,
+            kind: 'content_rejected',
+            providerCode: 'duplicate_content',
+          }),
+        );
+      });
+
+      it('reports an out-of-credits X account as a refusal no retry can fix', async () => {
         const context = createPublishContext(mockTextPost);
         const error = Object.assign(new Error('Request failed with code 402'), {
           code: 402,
@@ -719,7 +750,7 @@ describe('TwitterPublisherService', () => {
         mockTweet.mockRejectedValue(error);
 
         await expect(service.publish(context)).rejects.toMatchObject({
-          kind: 'retry_later',
+          kind: 'provider_credits_depleted',
           message: expect.stringContaining('X API credits depleted'),
         });
       });
@@ -792,6 +823,27 @@ describe('TwitterPublisherService', () => {
           const result = await service.publish(createPublishContext(quotePost));
 
           expect(result.errorCode).toBe('x_quote_refused');
+        });
+
+        it('keeps a duplicate-content 403 on a quote as duplicate content, not a quote refusal', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Request failed with code 403'), {
+              code: 403,
+              data: {
+                detail:
+                  'You are not allowed to create a Tweet with duplicate content.',
+                title: 'Forbidden',
+              },
+            }),
+          );
+          mockSingleTweet.mockResolvedValue({ data: { id: quotedId } });
+
+          await expect(
+            service.publish(createPublishContext(quotePost)),
+          ).rejects.toMatchObject({
+            kind: 'content_rejected',
+            providerCode: 'duplicate_content',
+          });
         });
 
         it('leaves a rate limit on a quote to the normal retry path', async () => {

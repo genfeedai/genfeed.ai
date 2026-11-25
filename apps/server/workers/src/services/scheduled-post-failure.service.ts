@@ -17,6 +17,7 @@ import {
   createChannelTargetError,
   createPublishFailedActivity,
   createPublishUnverifiedActivity,
+  isOwnerActionablePublishCode,
 } from '@workers/crons/posts/post-publish-error.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
@@ -97,9 +98,14 @@ export class ScheduledPostFailureService {
     );
     // A publish that ended FAILED is persisted on the post, so nothing rethrows
     // it to Sentry's global handlers: report it once here. Content the owner
-    // must fix (validation) and a quote X refused (the person posts it by hand)
-    // stay out; provider and credential failures are the signal.
-    if (isManualPost || errorCode === 'publish_validation_failed') {
+    // must fix (validation, a duplicate X post) and a quote X refused (the
+    // person posts it by hand) stay out; provider and credential failures are
+    // the signal, including an exhausted provider balance.
+    if (
+      isManualPost ||
+      errorCode === 'publish_validation_failed' ||
+      isOwnerActionablePublishCode(errorCode)
+    ) {
       return;
     }
     Sentry.captureException(new Error(errorMessage), {
