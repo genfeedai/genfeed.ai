@@ -12,6 +12,7 @@ import type { ISourcePost } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePrefetchOnIntent } from '@hooks/navigation/use-prefetch-on-intent/use-prefetch-on-intent';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -198,29 +199,40 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
     item.raw.kind === 'source_post' &&
     item.platform === SocialSourcePlatform.TWITTER;
 
+  const getIntentProps = usePrefetchOnIntent();
+  // Where the remix opens when no in-page remix surface handles it. Known at
+  // render, so the destination is prepared as soon as the pointer or focus
+  // reaches the control instead of when it is clicked.
+  const remixHref = useMemo(() => {
+    const selector = item.remixSelector;
+    if (!selector || remixSurface) return null;
+    return href(
+      buildSourcePostVariationsHref({
+        platform: item.platform,
+        sourcePostId:
+          selector.kind === 'source_post' ? selector.sourcePostId : undefined,
+        sourceReferenceId:
+          selector.kind === 'trend_reference'
+            ? selector.sourceReferenceId
+            : undefined,
+        trendId:
+          selector.kind === 'trend_reference' ? selector.trendId : undefined,
+      }),
+    );
+  }, [href, item.platform, item.remixSelector, remixSurface]);
+  const agentHref = useMemo(
+    () => (pair ? buildTrendSourceAgentHref(pair.trend, pair.source) : null),
+    [pair],
+  );
+
   const handleRemix = useCallback(() => {
     if (!item.remixSelector) return;
     if (remixSurface) {
       void remixSurface.openRemix(item.remixSelector);
       return;
     }
-    const selector = item.remixSelector;
-    router.push(
-      href(
-        buildSourcePostVariationsHref({
-          platform: item.platform,
-          sourcePostId:
-            selector.kind === 'source_post' ? selector.sourcePostId : undefined,
-          sourceReferenceId:
-            selector.kind === 'trend_reference'
-              ? selector.sourceReferenceId
-              : undefined,
-          trendId:
-            selector.kind === 'trend_reference' ? selector.trendId : undefined,
-        }),
-      ),
-    );
-  }, [href, item, remixSurface, router]);
+    if (remixHref) router.push(remixHref);
+  }, [item.remixSelector, remixHref, remixSurface, router]);
 
   const handleCopyPrompt = useCallback(async () => {
     if (!pair) return;
@@ -241,9 +253,8 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
   }, [safeSourceUrl]);
 
   const handleSendToAgent = useCallback(() => {
-    if (!pair) return;
-    router.push(buildTrendSourceAgentHref(pair.trend, pair.source));
-  }, [pair, router]);
+    if (agentHref) router.push(agentHref);
+  }, [agentHref, router]);
 
   const handleSaveBrief = useCallback(async () => {
     if (item.raw.kind !== 'trend' || !brandId) return;
@@ -311,6 +322,7 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
           ariaLabel={translateCard('actions.remix')}
           icon={<Sparkles className="size-3.5" />}
           onClick={handleRemix}
+          {...getIntentProps(remixHref)}
           size={ButtonSize.ICON}
           tooltip={translateCard('actions.remix')}
           tooltipPosition="left"
@@ -409,7 +421,10 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
             </DropdownMenuItem>
           ) : null}
           {pair ? (
-            <DropdownMenuItem onSelect={handleSendToAgent}>
+            <DropdownMenuItem
+              onSelect={handleSendToAgent}
+              {...getIntentProps(agentHref)}
+            >
               <Zap className="size-4" />
               {translateCard('actions.sendToAgent')}
             </DropdownMenuItem>
