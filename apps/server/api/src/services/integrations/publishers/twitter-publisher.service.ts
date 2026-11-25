@@ -9,7 +9,8 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
-  throwAsPublishError,
+  logProviderPublishFailure,
+  toPublishError,
   withErrorKind,
 } from '@api/services/integrations/publishers/publish-error.util';
 import {
@@ -229,12 +230,13 @@ export class TwitterPublisherService extends BasePublisherService {
           quoteFailure.code,
         );
       }
-      const message = describeTwitterPublishError(error);
-      this.logger.error(`${url} failed to publish`, {
-        error: message,
+      const failure = toPublishError(error, mapXFailure);
+      logProviderPublishFailure(this.logger, `${url} failed to publish`, {
+        error: describeTwitterPublishError(error),
+        failure,
         postId: context.postId,
       });
-      throwAsPublishError(error, mapXFailure);
+      throw failure ?? error;
     }
   }
 

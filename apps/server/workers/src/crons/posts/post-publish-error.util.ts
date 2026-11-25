@@ -14,6 +14,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
+  DUPLICATE_CONTENT_PROVIDER_CODE,
   type IChannelTargetError,
   PublishError,
   readPublishErrorKind,
@@ -72,6 +73,8 @@ function codeForKind(kind: PublishErrorKind): string {
       return 'token_must_refresh';
     case PublishErrorKind.CONTENT_REJECTED:
       return 'content_rejected';
+    case PublishErrorKind.PROVIDER_CREDITS_DEPLETED:
+      return 'provider_credits_depleted';
     case PublishErrorKind.CHANNEL_DISCONNECTED:
       return 'channel_disconnected';
   }
@@ -79,7 +82,13 @@ function codeForKind(kind: PublishErrorKind): string {
 
 export function getPublishErrorCode(error: unknown): string {
   const kind = readPublishErrorKind(error);
-  if (kind) return codeForKind(kind);
+  if (kind) {
+    return kind === PublishErrorKind.CONTENT_REJECTED &&
+      isRecord(error) &&
+      error.providerCode === DUPLICATE_CONTENT_PROVIDER_CODE
+      ? DUPLICATE_CONTENT_PROVIDER_CODE
+      : codeForKind(kind);
+  }
   const rawCode =
     isRecord(error) && 'code' in error
       ? String(error.code ?? '').toLowerCase()
@@ -259,4 +268,21 @@ export function createPublishUnverifiedActivity(
     userId: readPostString(post, ['userId']) ?? null,
     value: summary,
   };
+}
+
+/**
+ * Whether a failure is a classified provider outcome: the publisher read the
+ * provider's answer and said what it means. Such a failure is reported once, in
+ * its terminal state, so the layers it passes through log it as a warning.
+ */
+export function isClassifiedPublishFailure(error: unknown): boolean {
+  return readPublishErrorKind(error) !== null;
+}
+
+/**
+ * Whether a terminal failure is something the owner fixes by editing the post.
+ * It is told by the failure alert and is not an alert for the team.
+ */
+export function isOwnerActionablePublishCode(errorCode: string): boolean {
+  return errorCode === DUPLICATE_CONTENT_PROVIDER_CODE;
 }

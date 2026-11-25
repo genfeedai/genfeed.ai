@@ -36,6 +36,7 @@ import {
   getPublishErrorMessage,
   isAmbiguousPublishError,
   isAmbiguousPublishResult,
+  isClassifiedPublishFailure,
   toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
@@ -995,13 +996,21 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       recovery.plan,
     );
 
-    this.logger.error(`${url} failed to publish post`, {
+    // A classified provider outcome is reported once, when it ends the post
+    // (`notifyTerminalFailure`); logging it as an error here too would be a
+    // second report of the same delivery.
+    const failureContext = {
       canRetry,
       error: errorMessage,
       isRetryable,
       postId: post.id,
       retryCount: currentRetryCount,
-    });
+    };
+    if (isClassifiedPublishFailure(recovery.cause)) {
+      this.logger.warn(`${url} failed to publish post`, failureContext);
+    } else {
+      this.logger.error(`${url} failed to publish post`, failureContext);
+    }
 
     const scheduledForRetry = await this.attemptRetry(
       post,

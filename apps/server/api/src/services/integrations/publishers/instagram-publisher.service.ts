@@ -11,7 +11,8 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
-  throwAsPublishError,
+  logProviderPublishFailure,
+  toPublishError,
   withErrorKind,
 } from '@api/services/integrations/publishers/publish-error.util';
 import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
@@ -274,11 +275,13 @@ export class InstagramPublisherService extends BasePublisherService {
         externalShortcode,
       );
     } catch (error: unknown) {
-      this.logger.error(`${url} failed to publish`, {
-        error: (error as Error)?.message,
+      const failure = toPublishError(error, mapMetaFailure);
+      logProviderPublishFailure(this.logger, `${url} failed to publish`, {
+        error: failure?.message ?? (error as Error)?.message,
+        failure,
         postId: context.postId,
       });
-      throwAsPublishError(error, mapMetaFailure);
+      throw failure ?? error;
     }
   }
 

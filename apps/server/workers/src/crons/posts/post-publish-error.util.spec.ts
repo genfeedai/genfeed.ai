@@ -81,6 +81,12 @@ describe('post publish error policy', () => {
       [PublishErrorKind.TOKEN_MUST_REFRESH, false, false, 'token_must_refresh'],
       [PublishErrorKind.CONTENT_REJECTED, false, false, 'content_rejected'],
       [
+        PublishErrorKind.PROVIDER_CREDITS_DEPLETED,
+        false,
+        false,
+        'provider_credits_depleted',
+      ],
+      [
         PublishErrorKind.CHANNEL_DISCONNECTED,
         false,
         false,
@@ -106,6 +112,27 @@ describe('post publish error policy', () => {
 
       expect(isRetryablePublishError(rejected)).toBe(false);
       expect(isAmbiguousPublishError(rejected)).toBe(false);
+      expect(getPublishErrorCode(rejected)).toBe('content_rejected');
+    });
+
+    it('stores a duplicate-content refusal under its own code and never retries it', () => {
+      const duplicate = new PublishError(
+        PublishErrorKind.CONTENT_REJECTED,
+        'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+        { httpStatus: 403, providerCode: 'duplicate_content' },
+      );
+
+      expect(getPublishErrorCode(duplicate)).toBe('duplicate_content');
+      expect(isRetryablePublishError(duplicate)).toBe(false);
+    });
+
+    it('keeps another content rejection under content_rejected, whatever its provider code', () => {
+      const rejected = new PublishError(
+        PublishErrorKind.CONTENT_REJECTED,
+        'Invalid parameter',
+        { httpStatus: 400, providerCode: '100' },
+      );
+
       expect(getPublishErrorCode(rejected)).toBe('content_rejected');
     });
 
