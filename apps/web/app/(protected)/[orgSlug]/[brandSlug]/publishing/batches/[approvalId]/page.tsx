@@ -1,19 +1,19 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
-import ScheduledReleaseBatchPage from '@/features/scheduled-batches/components/ScheduledReleaseBatchPage';
+import type { ApprovalDetailPageProps } from '@/props/pages/page.props';
+import PublishingApprovalContent from './publishing-approval-content';
 
 export const generateMetadata = createPageMetadata('Scheduled posts');
 
-export default async function PublishingBatchPage({
+// The id is read inside the boundary: awaiting it at the top of the page makes
+// the whole route a request-time hole, so a prepared destination would still
+// wait for the server render on click.
+export default function PublishingBatchPage({
   params,
-}: {
-  params: Promise<{ approvalId: string }>;
-}) {
-  const { approvalId } = await params;
-
+}: ApprovalDetailPageProps) {
   return (
     <Suspense fallback={null}>
-      <ScheduledReleaseBatchPage approvalId={approvalId} />
+      <PublishingApprovalContent params={params} />
     </Suspense>
   );
 }

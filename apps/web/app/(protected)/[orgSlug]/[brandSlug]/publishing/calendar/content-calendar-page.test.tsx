@@ -33,6 +33,10 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {
+  AppRouterContext,
+  type AppRouterInstance,
+} from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
@@ -256,6 +260,7 @@ vi.mock(
       modal,
       onEventClick,
       onEventDrop,
+      onEventIntent,
       onViewChange,
       preferredTimes,
       timezone,
@@ -272,6 +277,7 @@ vi.mock(
       modal: ReactNode;
       onEventClick: (item: CalendarItemShape) => void;
       onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
+      onEventIntent?: (item: CalendarItemShape) => void;
       onViewChange?: (view: CalendarViewKey) => void;
       preferredTimes?: Array<{ hour: number; minute: number }>;
       timezone?: string;
@@ -296,7 +302,11 @@ vi.mock(
         <div>
           {items.map((item) => (
             <div key={item.id}>
-              <button type="button" onClick={() => onEventClick(item)}>
+              <button
+                type="button"
+                onClick={() => onEventClick(item)}
+                onPointerEnter={() => onEventIntent?.(item)}
+              >
                 {`open:${item.id}`}
               </button>
               {(getEventActions?.(item) ?? []).map((action) => (
@@ -494,14 +504,17 @@ function SubbarHost({ children }: { children: ReactNode }) {
 function renderCalendarPage(
   embedded = false,
   client: QueryClient = createTestQueryClient(),
+  router: { prefetch: (href: string) => void } = { prefetch: vi.fn() },
 ) {
   return render(
-    <ContextSidebarProvider>
-      <SubbarHost>
-        <ContentCalendarPage embedded={embedded} />
-      </SubbarHost>
-      <ContextSidebarOutlet />
-    </ContextSidebarProvider>,
+    <AppRouterContext.Provider value={router as unknown as AppRouterInstance}>
+      <ContextSidebarProvider>
+        <SubbarHost>
+          <ContentCalendarPage embedded={embedded} />
+        </SubbarHost>
+        <ContextSidebarOutlet />
+      </ContextSidebarProvider>
+    </AppRouterContext.Provider>,
     { wrapper: queryClientWrapper(client) },
   );
 }
@@ -689,6 +702,32 @@ describe('ContentCalendarPage', () => {
       '/acme-org/acme-creator/publishing/posts/article-9',
     );
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('closed');
+  });
+
+  it('prepares the article editor when the pointer reaches the article', async () => {
+    const router = { prefetch: vi.fn() };
+    findArticlesMock.mockResolvedValue([
+      {
+        createdAt: '2026-03-11T10:00:00.000Z',
+        id: 'article-9',
+        label: 'Launch essay',
+        status: 'draft',
+      },
+    ]);
+    renderCalendarPage(false, createTestQueryClient(), router);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'open:article-9' }),
+      ).toBeVisible();
+    });
+
+    fireEvent.pointerEnter(
+      screen.getByRole('button', { name: 'open:article-9' }),
+    );
+
+    expect(router.prefetch.mock.calls).toEqual([
+      ['/acme-org/acme-creator/publishing/posts/article-9'],
+    ]);
   });
 
   it('badges releases and leaves articles unbadged', async () => {

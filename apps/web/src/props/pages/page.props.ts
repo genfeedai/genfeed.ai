@@ -20,6 +20,10 @@ export interface DetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export interface ApprovalDetailPageProps {
+  params: Promise<{ approvalId: string }>;
+}
+
 export interface StoryboardRunPageProps {
   params: Promise<{ runId: string }>;
 }

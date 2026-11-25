@@ -249,19 +249,15 @@ export default function PostDetail({
     : undefined;
 
   // Published-post variations use the same setup and review path as Discovery.
-  const handleCreateRemix = useCallback(() => {
-    if (!post?.platform) {
-      return;
-    }
-    router.push(
-      href(
-        buildSourcePostVariationsHref({
-          platform: post.platform,
-          postId: post.id,
-        }),
-      ),
-    );
-  }, [href, post, router]);
+  const remixHref =
+    post?.platform && isSourcePostVariationPlatform(post.platform)
+      ? href(
+          buildSourcePostVariationsHref({
+            platform: post.platform,
+            postId: post.id,
+          }),
+        )
+      : undefined;
 
   // Handler for repurposing the post to another channel (#2588)
   const handleRepurpose = useCallback(() => {
@@ -614,15 +610,13 @@ export default function PostDetail({
         isPublishBlocked,
         isSavingSchedule,
         isScheduleDirty: isScheduleDirty && scheduleDraft !== '',
-        onCreateRemix: isSourcePostVariationPlatform(post.platform)
-          ? handleCreateRemix
-          : undefined,
         onDelete: handleDeletePost,
         onAskAgent,
         onDuplicate: handleDuplicate,
         onExpandToThread: handleExpandToThread,
         onPublishNow: publishNow,
         onRepurpose: handleRepurpose,
+        remixHref,
         onScheduleSave: saveSchedule,
         onViewModeChange: setViewMode,
         post,
