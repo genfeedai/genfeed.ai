@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
+import { BrandReachService } from '@api/collections/brands/services/brand-reach.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -13,12 +13,12 @@ vi.unmock('@prisma/adapter-pg');
 const connectionString = process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)(
-  'PublicBrandReachService against PostgreSQL',
+  'BrandReachService against PostgreSQL',
   () => {
     const schema = `public_reach_${randomUUID().replaceAll('-', '')}`;
     let pool: Pool;
     let prisma: PrismaClient;
-    let service: PublicBrandReachService;
+    let service: BrandReachService;
 
     function snapshot(row: {
       date: string;
@@ -80,7 +80,7 @@ describe.skipIf(!connectionString)(
       prisma = new PrismaClient({
         adapter: new PrismaPg({ connectionString: url.toString() }, { schema }),
       });
-      service = new PublicBrandReachService(prisma as unknown as PrismaService);
+      service = new BrandReachService(prisma as unknown as PrismaService);
     });
 
     afterAll(async () => {

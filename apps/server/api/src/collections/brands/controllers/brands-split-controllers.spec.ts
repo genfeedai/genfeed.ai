@@ -6,6 +6,7 @@ import { BrandKitEditsController } from '@api/collections/brands/controllers/bra
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
+import { BrandReachController } from '@api/collections/brands/controllers/brand-reach.controller';
 import { BrandRelocationsController } from '@api/collections/brands/controllers/brand-relocations.controller';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
@@ -67,6 +68,7 @@ describe('Brands split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BrandsModule),
     ).toEqual([
+      BrandReachController,
       BrandRelocationsController,
       BrandOsRevisionsController,
       BrandKitEditsController,
