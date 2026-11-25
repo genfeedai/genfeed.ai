@@ -2620,6 +2620,9 @@ model Ingredient {
   generationCompletedAt DateTime?
   fileSize              Int?
   mimeType              String?
+  /// Text alternative of an image, up to 1,000 characters. Instagram receives it as
+  /// `alt_text` when the image is published.
+  altText               String?
   // Deterministic media probe (#4878): ffprobe-derived dimensions, duration,
   // container, codecs and frame rate, written once by the files service and
   // reused by the pre-publish media readiness gate.

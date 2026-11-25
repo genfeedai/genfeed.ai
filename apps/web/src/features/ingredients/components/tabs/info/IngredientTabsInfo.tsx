@@ -2,6 +2,7 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/contracts';
+import { INSTAGRAM_ALT_TEXT_MAX_LENGTH } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -19,6 +20,7 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
@@ -36,6 +38,7 @@ export default function IngredientTabsInfo({
   onUpdateMetadata,
 }: TabsIngredientInfoProps) {
   const notifications = NotificationsService.getInstance();
+  const translateAltText = useTranslations('ui.ingredientAltText');
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { refresh: refreshSettings } = useOrganization();
   const getIngredientsService = useAuthedService((token: string) =>
@@ -56,11 +59,14 @@ export default function IngredientTabsInfo({
 
   const [labelValue, setLabelValue] = useState(metadataLabel);
   const [descriptionValue, setDescriptionValue] = useState(metadataDescription);
+  const savedAltText = ingredient.altText ?? '';
+  const [altTextValue, setAltTextValue] = useState(savedAltText);
   const [activeAction, setActiveAction] = useState<string | null>(null);
 
-  useResetOnChange([metadataDescription, metadataLabel], () => {
+  useResetOnChange([metadataDescription, metadataLabel, savedAltText], () => {
     setLabelValue(metadataLabel);
     setDescriptionValue(metadataDescription);
+    setAltTextValue(savedAltText);
   });
 
   const commitField = async (
@@ -84,6 +90,28 @@ export default function IngredientTabsInfo({
     }
 
     await onUpdateMetadata(field, normalizedValue);
+  };
+
+  const commitAltText = async () => {
+    const normalizedValue = altTextValue.trim();
+    if (normalizedValue !== altTextValue) {
+      setAltTextValue(normalizedValue);
+    }
+    if (!onUpdate || normalizedValue === savedAltText.trim()) {
+      return;
+    }
+
+    try {
+      const service = await getIngredientsService();
+      const updatedIngredient = await service.patch(ingredient.id, {
+        altText: normalizedValue,
+      });
+      onUpdate(updatedIngredient);
+      notifications.success(translateAltText('saved'));
+    } catch (error) {
+      logger.error('Ingredient alt text update failed', error);
+      notifications.error(translateAltText('saveFailed'));
+    }
   };
 
   const handleLabelKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -220,6 +248,26 @@ export default function IngredientTabsInfo({
             onBlur={() => void commitField('description', descriptionValue)}
           />
         </FormControl>
+
+        {isImageLike && onUpdate ? (
+          <FormControl
+            label={translateAltText('label')}
+            helpText={translateAltText('helper', {
+              max: INSTAGRAM_ALT_TEXT_MAX_LENGTH,
+            })}
+          >
+            <Textarea<{ altText: string }>
+              name="altText"
+              value={altTextValue}
+              placeholder={translateAltText('placeholder')}
+              className="w-full"
+              maxLength={INSTAGRAM_ALT_TEXT_MAX_LENGTH}
+              isDisabled={isUpdating}
+              onChange={(event) => setAltTextValue(event.target.value)}
+              onBlur={() => void commitAltText()}
+            />
+          </FormControl>
+        ) : null}
       </div>
 
       {isImageLike && onUpdate ? (

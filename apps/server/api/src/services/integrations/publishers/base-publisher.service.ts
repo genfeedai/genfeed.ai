@@ -149,13 +149,28 @@ export abstract class BasePublisherService implements IPublisher {
       this.requireAuthorizedMediaUrl(ingredient, !isImagePost),
     );
 
+    const altTexts = ingredients.map((ingredient) =>
+      this.getAltText(ingredient),
+    );
+
     return {
+      altTexts,
       hasIngredients,
       ingredientIds,
       isCarousel,
       isImagePost,
       mediaUrls,
     };
+  }
+
+  private getAltText(ingredient: unknown): string | undefined {
+    if (ingredient === null || typeof ingredient !== 'object') {
+      return undefined;
+    }
+    const altText = (ingredient as { altText?: unknown }).altText;
+    return typeof altText === 'string' && altText.trim()
+      ? altText.trim()
+      : undefined;
   }
 
   protected requireAuthorizedMediaUrl(

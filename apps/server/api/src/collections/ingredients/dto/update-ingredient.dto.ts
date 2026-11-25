@@ -1,4 +1,5 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import { INSTAGRAM_ALT_TEXT_MAX_LENGTH } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import {
   Allow,
@@ -6,6 +7,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 /**
@@ -99,6 +101,17 @@ export class UpdateIngredientDto extends PartialType(
     required: false,
   })
   readonly modelUsed?: string;
+
+  @IsString()
+  @MaxLength(INSTAGRAM_ALT_TEXT_MAX_LENGTH)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Text alternative of an image. Instagram receives it as alt_text. An empty string clears it.',
+    maxLength: INSTAGRAM_ALT_TEXT_MAX_LENGTH,
+    required: false,
+  })
+  readonly altText?: string;
 }
 
 /**

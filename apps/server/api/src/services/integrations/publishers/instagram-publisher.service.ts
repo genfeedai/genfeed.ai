@@ -167,6 +167,7 @@ export class InstagramPublisherService extends BasePublisherService {
           undefined, // hashtags
           credential.id,
           isAiGenerated,
+          mediaInfo.altTexts ?? [],
         );
         externalId = carouselResult.mediaId;
         externalShortcode = carouselResult.shortcode;
@@ -180,6 +181,7 @@ export class InstagramPublisherService extends BasePublisherService {
           undefined, // hashtags
           credential.id,
           isAiGenerated,
+          mediaInfo.altTexts?.[0],
         );
         externalId = imageResult.mediaId;
         externalShortcode = imageResult.shortcode;

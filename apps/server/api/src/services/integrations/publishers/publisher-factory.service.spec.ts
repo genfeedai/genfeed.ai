@@ -315,6 +315,34 @@ describe('PublisherFactoryService', () => {
       ]);
     });
 
+    it("keeps an image's alt text beside its reissued URL", async () => {
+      issueServerPublish.mockResolvedValue(
+        new Map([['ingredient-1', 'https://signed.test/one?grant=1']]),
+      );
+      await service.getPublisher('TWITTER')?.publish(
+        context([
+          {
+            altText: 'A red bicycle',
+            id: 'ingredient-1',
+            mediaUrl: 'http://169.254.169.254/metadata',
+          },
+        ]),
+      );
+      expect(twitter.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          post: expect.objectContaining({
+            ingredients: [
+              {
+                altText: 'A red bicycle',
+                id: 'ingredient-1',
+                mediaUrl: 'https://signed.test/one?grant=1',
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
     it('rejects cross-organization ingredient resolution before any provider execution', async () => {
       issueServerPublish.mockRejectedValue(new Error('Media not found'));
       await expect(

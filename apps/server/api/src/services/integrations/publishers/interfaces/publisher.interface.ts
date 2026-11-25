@@ -16,6 +16,8 @@ export interface ServerPublisherIngredientInput {
   id?: PublisherRecordId;
   category?: string;
   mediaUrl?: string;
+  /** Text alternative of an image, from the Library. */
+  altText?: string | null;
 }
 
 /** API-owned post fields read by the shared publisher contract and base. */
@@ -135,6 +137,8 @@ export interface PublishContext {
 export interface MediaInfo {
   ingredientIds: string[];
   mediaUrls: string[];
+  /** Alt text per media URL, in the same order; `undefined` where there is none. */
+  altTexts?: Array<string | undefined>;
   isImagePost: boolean;
   isCarousel: boolean;
   hasIngredients: boolean;

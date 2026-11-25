@@ -148,6 +148,7 @@ export interface IIngredient extends IBaseEntity {
   modelUsed?: string | null;
   fileSize?: number | null;
   mimeType?: string | null;
+  altText?: string | null;
 }
 
 export interface IVideoCaption {

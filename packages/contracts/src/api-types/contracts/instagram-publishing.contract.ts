@@ -22,3 +22,10 @@ export const INSTAGRAM_AI_GENERATED_SETTING: ChannelSettingDefinition = {
   label: 'Label as AI-generated',
   type: 'boolean',
 };
+
+/**
+ * Longest text alternative Instagram accepts for an image (`alt_text`). The
+ * Library caps an image's alt text at the same length, so what is saved is
+ * what is sent.
+ */
+export const INSTAGRAM_ALT_TEXT_MAX_LENGTH = 1000;

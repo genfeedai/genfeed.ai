@@ -89,6 +89,8 @@ export const ingredientAttributes = createEntityAttributes([
   'modelUsed',
   'fileSize',
   'mimeType',
+  // Text alternative of an image; Instagram receives it as alt_text.
+  'altText',
 ]);
 
 /**

@@ -51,6 +51,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly generationCompletedAt: Ingredient['generationCompletedAt'];
   declare readonly fileSize: Ingredient['fileSize'];
   declare readonly mimeType: Ingredient['mimeType'];
+  declare readonly altText: Ingredient['altText'];
   declare readonly mediaProbe: Ingredient['mediaProbe'];
   declare readonly mediaProbedAt: Ingredient['mediaProbedAt'];
   declare readonly postedTo: Ingredient['postedTo'];

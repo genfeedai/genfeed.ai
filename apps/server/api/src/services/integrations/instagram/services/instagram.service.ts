@@ -691,6 +691,7 @@ export class InstagramService {
     hashtags?: string[],
     credentialId?: string,
     isAiGenerated?: boolean,
+    altText?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
     return this.publishingService.uploadImage(
       organizationId,
@@ -700,6 +701,7 @@ export class InstagramService {
       hashtags,
       credentialId,
       isAiGenerated,
+      altText,
     );
   }
 
@@ -746,6 +748,7 @@ export class InstagramService {
     hashtags?: string[],
     credentialId?: string,
     isAiGenerated?: boolean,
+    altTexts?: ReadonlyArray<string | undefined>,
   ): Promise<{ mediaId: string; shortcode: string }> {
     return this.publishingService.uploadCarousel(
       organizationId,
@@ -755,6 +758,7 @@ export class InstagramService {
       hashtags,
       credentialId,
       isAiGenerated,
+      altTexts,
     );
   }
 

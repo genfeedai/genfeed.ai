@@ -6,6 +6,7 @@ import {
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { InstagramMediaType } from '@genfeedai/contracts';
+import { INSTAGRAM_ALT_TEXT_MAX_LENGTH } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import type {
   InstagramCredentialResponse,
   InstagramMessageRecipient,
@@ -36,6 +37,42 @@ function formatCaption(caption: string, hashtags?: string[]): string {
     return caption;
   }
   return `${caption}\n\n${hashtags.map((tag) => `#${tag}`).join(' ')}`;
+}
+
+/** The AI label as the optional container field the Graph API expects. */
+function aiLabelParams(isAiGenerated: boolean): Record<string, boolean> {
+  return isAiGenerated ? { is_ai_generated: true } : {};
+}
+
+type ContainerParams = Record<string, string | boolean>;
+
+/**
+ * The optional fields of a container as attempts, most decorated first: all of
+ * them, then the AI label alone, then none. The label is kept when only the
+ * alt text is refused; the post goes out plain only as the last resort.
+ */
+function decorationAttempts(
+  label: Record<string, boolean>,
+  altText: Record<string, string>,
+): ContainerParams[] {
+  const attempts: ContainerParams[] = [{ ...label, ...altText }];
+  if (Object.keys(label).length > 0 && Object.keys(altText).length > 0) {
+    attempts.push(label);
+  }
+  if (Object.keys(label).length + Object.keys(altText).length > 0) {
+    attempts.push({});
+  }
+  return attempts;
+}
+
+/**
+ * An image's alt text as the optional container field. Blank text sends
+ * nothing; text over Instagram's limit is cut rather than refused, because
+ * the Library already caps what it saves at the same length.
+ */
+function altTextParams(altText?: string): Record<string, string> {
+  const text = altText?.trim().slice(0, INSTAGRAM_ALT_TEXT_MAX_LENGTH);
+  return text ? { alt_text: text } : {};
 }
 
 /** Owns Instagram write operations while the facade retains credential APIs. */
@@ -190,6 +227,7 @@ export class InstagramPublishingService {
     hashtags?: string[],
     credentialId?: string,
     isAiGenerated = false,
+    altText?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
@@ -208,7 +246,10 @@ export class InstagramPublishingService {
           caption: formatCaption(caption, hashtags),
           image_url: imageUrl,
         },
-        isAiGenerated,
+        decorationAttempts(
+          aiLabelParams(isAiGenerated),
+          altTextParams(altText),
+        ),
       );
       const publishRes = await this.publishContainer(
         externalId,
@@ -264,7 +305,7 @@ export class InstagramPublishingService {
       const createRes = await this.createMediaContainer(
         externalId,
         params,
-        isAiGenerated,
+        decorationAttempts(aiLabelParams(isAiGenerated), {}),
       );
       const containerId = createRes.data.id;
       await this.waitForMediaProcessing(containerId, accessToken);
@@ -295,6 +336,7 @@ export class InstagramPublishingService {
     hashtags?: string[],
     credentialId?: string,
     isAiGenerated = false,
+    altTexts: ReadonlyArray<string | undefined> = [],
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
@@ -307,19 +349,16 @@ export class InstagramPublishingService {
 
     try {
       const containerIds = [];
-      for (const mediaUrl of mediaUrls) {
-        const response = await firstValueFrom(
-          this.httpService.post(
-            `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-            null,
-            {
-              params: {
-                access_token: accessToken,
-                image_url: mediaUrl,
-                is_carousel_item: true,
-              },
-            },
-          ),
+      for (const [index, mediaUrl] of mediaUrls.entries()) {
+        // The alt text rides on each slide's own container.
+        const response = await this.createMediaContainer(
+          externalId,
+          {
+            access_token: accessToken,
+            image_url: mediaUrl,
+            is_carousel_item: true,
+          },
+          decorationAttempts({}, altTextParams(altTexts[index])),
         );
         containerIds.push(response.data.id);
       }
@@ -332,7 +371,7 @@ export class InstagramPublishingService {
           children: containerIds.join(','),
           media_type: InstagramMediaType.CAROUSEL,
         },
-        isAiGenerated,
+        decorationAttempts(aiLabelParams(isAiGenerated), {}),
       );
       const publishRes = await this.publishContainer(
         externalId,
@@ -421,20 +460,21 @@ export class InstagramPublishingService {
   }
 
   /**
-   * Creates the container that is published: the image, the Reel or the
-   * carousel itself, never a carousel child. The AI label rides on it. If
-   * Instagram refuses the request with a client error while the label is set,
-   * the same container is created once more without the label and the post
-   * goes out unlabelled, because a missed label costs less than a missed post.
-   * Nothing is published at this step, so the retry cannot post twice.
+   * Creates one media container. `attempts` are the optional fields that
+   * decorate the post without being needed to publish it (the AI label and an
+   * image's alt text), most decorated first, ending in none. If Instagram
+   * refuses a request with a client error, the same container is created
+   * again with the next attempt, because a missed label or alt text costs less
+   * than a missed post. Nothing is published at this step, so a retry cannot
+   * post twice.
    */
   @Traced()
   private async createMediaContainer(
     externalId: string,
-    params: Record<string, string | boolean>,
-    isAiGenerated: boolean,
+    params: ContainerParams,
+    attempts: ContainerParams[] = [{}],
   ) {
-    const create = (extra: Record<string, boolean>) =>
+    const create = (extra: ContainerParams) =>
       firstValueFrom(
         this.httpService.post(
           `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
@@ -443,22 +483,26 @@ export class InstagramPublishingService {
         ),
       );
 
-    if (!isAiGenerated) {
-      return create({});
-    }
-
-    try {
-      return await create({ is_ai_generated: true });
-    } catch (error: unknown) {
-      if (!isInstagramRejectedRequestError(error)) {
-        throw error;
+    for (const [index, extra] of attempts.entries()) {
+      try {
+        return await create(extra);
+      } catch (error: unknown) {
+        if (
+          index === attempts.length - 1 ||
+          !isInstagramRejectedRequestError(error)
+        ) {
+          throw error;
+        }
+        this.loggerService.warn(
+          'Instagram refused the container with the AI label or alt text; creating it again with fewer optional fields',
+          {
+            error: getInstagramGraphError(error)?.message,
+            fields: Object.keys(extra),
+          },
+        );
       }
-      this.loggerService.warn(
-        'Instagram refused the container with the AI label; creating it again without the label',
-        { error: getInstagramGraphError(error)?.message },
-      );
-      return create({});
     }
+    return create({});
   }
 
   private publishContainer(
