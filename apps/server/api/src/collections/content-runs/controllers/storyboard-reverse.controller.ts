@@ -3,7 +3,9 @@ import { ReverseStoryboardPlanDto } from '@api/collections/content-runs/dto/stor
 import { StoryboardReversePlanService } from '@api/collections/content-runs/services/storyboard-reverse-plan.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { StoryboardRunSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Param, Post, Req } from '@nestjs/common';
@@ -16,6 +18,7 @@ export class StoryboardReverseController {
 
   /** Replaces the shots with the recipe read from a Library video, or adds a reference image. */
   @Post(':runId/plan/reverse')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async reversePlan(
     @Req() request: Request,
     @Param('brandId') brandId: string,

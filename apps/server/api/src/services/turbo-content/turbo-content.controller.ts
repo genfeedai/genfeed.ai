@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { CreateTurboContentDto } from '@api/services/turbo-content/dto/create-turbo-content.dto';
 import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
 import { Body, Controller, Param, Post } from '@nestjs/common';
@@ -13,6 +15,7 @@ export class TurboContentController {
   constructor(private readonly turboContentService: TurboContentService) {}
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({ summary: 'Generate content through a run workflow' })
   async createTurboRun(
     @Param('brandId') brandId: string,

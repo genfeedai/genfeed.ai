@@ -4,9 +4,11 @@ import {
   StartImportedSourceMediaDto,
 } from '@api/collections/imported-sources/dto/imported-source-media.dto';
 import { ImportedSourceMediaService } from '@api/collections/imported-sources/services/imported-source-media.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_BRAND_EDIT_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ImportedSourceMediaSerializer } from '@genfeedai/serializers';
 import {
@@ -25,6 +27,7 @@ import type { Request } from 'express';
 export class ImportedSourceMediaController {
   constructor(private readonly media: ImportedSourceMediaService) {}
   @Post()
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(200)
   async start(
     @Req() request: Request,
@@ -55,6 +58,7 @@ export class ImportedSourceMediaController {
     );
   }
   @Post('retry')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(200)
   async retry(
     @Req() request: Request,
