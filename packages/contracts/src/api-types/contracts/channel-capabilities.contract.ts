@@ -17,6 +17,7 @@ import {
   collectCaptionWarnings,
   validateCaption,
 } from './channel-caption.contract';
+import { validateProviderConstraints } from './channel-provider-constraints.contract';
 import {
   type ChannelSettingDefinition,
   type ChannelSettingFieldType,
@@ -34,19 +35,13 @@ import {
 } from './channel-setting-validation.contract';
 import { communityChannelCapabilities } from './community-channel-capabilities.contract';
 import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
-import {
-  INSTAGRAM_PUBLISHING_SETTINGS,
-  validateInstagramAudioSettings,
-} from './instagram-publishing.contract';
+import { INSTAGRAM_PUBLISHING_SETTINGS } from './instagram-publishing.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
   validateTikTokPublishingSettings,
 } from './tiktok-publishing.contract';
-import {
-  validateXQuotedPost,
-  X_QUOTED_POST_SETTING,
-} from './x-quote-post.contract';
+import { X_QUOTED_POST_SETTING } from './x-quote-post.contract';
 
 export {
   type ChannelSettingDefinition,
@@ -1043,7 +1038,9 @@ export function validateChannelTargetSettings(
   errors.push(...validatePublishMode(parsedInput.data, capability));
   errors.push(...validateSettings(parsedInput.data, capability));
   errors.push(...validateVisibility(parsedInput.data, capability));
-  errors.push(...validateProviderConstraints(parsedInput.data, capability));
+  errors.push(
+    ...validateProviderConstraints(parsedInput.data, capability.platform),
+  );
   if (
     normalizedPlatform === CredentialPlatform.TIKTOK &&
     parsedInput.data.publishMode !== 'draft'
@@ -1443,44 +1440,4 @@ function validateSettings(
   }
 
   return errors;
-}
-
-function validateProviderConstraints(
-  input: ValidateChannelTargetSettingsInput,
-  capability: ChannelCapability,
-): ChannelValidationIssue[] {
-  const quotedIssue = validateXQuotedPost(capability.platform, input.settings);
-  if (quotedIssue) {
-    return [quotedIssue];
-  }
-
-  if (capability.platform === CredentialPlatform.INSTAGRAM) {
-    const audioIssues = validateInstagramAudioSettings(input.settings ?? {});
-    if (audioIssues.length > 0) {
-      return audioIssues.map((message) => ({
-        code: 'channel_target.instagram_invalid_audio',
-        field: 'settings',
-        message,
-        severity: 'error' as const,
-      }));
-    }
-  }
-
-  if (
-    capability.platform === CredentialPlatform.BEEHIIV &&
-    input.publishMode === 'scheduled' &&
-    input.settings?.providerStatus === 'draft'
-  ) {
-    return [
-      {
-        code: 'channel_target.beehiiv_draft_cannot_be_scheduled',
-        field: 'settings.providerStatus',
-        message:
-          'Beehiiv drafts cannot carry a scheduled send time. Choose Send or publish the target immediately as a provider draft.',
-        severity: 'error',
-      },
-    ];
-  }
-
-  return [];
 }

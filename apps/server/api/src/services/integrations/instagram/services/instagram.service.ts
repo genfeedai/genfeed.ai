@@ -14,11 +14,6 @@ import { toInstagramTokenGrant } from '@api/services/integrations/instagram/util
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
-  InstagramAudioConfiguration,
-  InstagramAudioTrack,
-  InstagramAudioType,
-} from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
-import type {
   InstagramConversationThread,
   InstagramCredentialResponse,
   InstagramDebugTokenResponse,
@@ -711,51 +706,22 @@ export class InstagramService {
   }
 
   /**
-   * Upload a video as a reel (VIDEO media type is deprecated).
-   * @param isShareToFeedSelected Whether to share the reel to main feed (default: true)
-   * @param credentialId - which connected Instagram account posts this reel.
+   * Upload a video as a reel (VIDEO media type is deprecated). The arguments
+   * are `InstagramPublishingService.uploadReel`'s: the `credentialId` names
+   * which connected Instagram account posts it, and `isShareToFeedSelected`
+   * defaults to true.
    */
-  public async uploadReel(
-    organizationId: string,
-    brandId: string,
-    videoUrl: string,
-    caption: string,
-    coverImageUrl?: string,
-    hashtags?: string[],
-    isShareToFeedSelected: boolean = true,
-    credentialId?: string,
-    isAiGenerated?: boolean,
-    audio?: InstagramAudioConfiguration,
+  public uploadReel(
+    ...args: Parameters<InstagramPublishingService['uploadReel']>
   ): Promise<{ mediaId: string; shortcode: string }> {
-    return this.publishingService.uploadReel(
-      organizationId,
-      brandId,
-      videoUrl,
-      caption,
-      coverImageUrl,
-      hashtags,
-      isShareToFeedSelected,
-      credentialId,
-      isAiGenerated,
-      audio,
-    );
+    return this.publishingService.uploadReel(...args);
   }
 
   /** Tracks from Instagram's Audio API catalogue (trending, or a search). */
-  public async listAudio(
-    organizationId: string,
-    brandId: string,
-    audioType: InstagramAudioType,
-    searchQuery?: string,
-    credentialId?: string,
-  ): Promise<InstagramAudioTrack[]> {
-    return this.publishingService.listAudio(
-      organizationId,
-      brandId,
-      audioType,
-      searchQuery,
-      credentialId,
-    );
+  public listAudio(
+    ...args: Parameters<InstagramPublishingService['listAudio']>
+  ): ReturnType<InstagramPublishingService['listAudio']> {
+    return this.publishingService.listAudio(...args);
   }
 
   /** Publish one image or video as a Story from the given connected account. */
