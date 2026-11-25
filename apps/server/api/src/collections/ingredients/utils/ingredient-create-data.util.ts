@@ -4,6 +4,7 @@ import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.
 const INGREDIENT_SCALAR_FIELDS = [
   'workflowExecutionId',
   'agentStrategyId',
+  'altText',
   'assetLabel',
   'bookmarkId',
   'brandId',

@@ -286,6 +286,24 @@ describe('InstagramPublishingService alt text', () => {
     expect(String(graph.createCalls()[0].params.alt_text)).toHaveLength(1000);
   });
 
+  it('never splits an emoji when it cuts alt text', async () => {
+    const graph = createGraphDouble();
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      false,
+      `${'a'.repeat(999)}😀😀`,
+    );
+
+    expect(String(graph.createCalls()[0].params.alt_text)).toBe(
+      `${'a'.repeat(999)}😀`,
+    );
+  });
+
   it('gives each carousel slide its own alt text and the carousel none', async () => {
     const graph = createGraphDouble();
     await graph.service.uploadCarousel(

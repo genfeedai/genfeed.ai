@@ -22,7 +22,7 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import type { TabsIngredientInfoProps } from '@/props/content/ingredient.props';
 
@@ -61,13 +61,14 @@ export default function IngredientTabsInfo({
   const [descriptionValue, setDescriptionValue] = useState(metadataDescription);
   const savedAltText = ingredient.altText ?? '';
   const [altTextValue, setAltTextValue] = useState(savedAltText);
+  const altTextSaveQueue = useRef<Promise<void>>(Promise.resolve());
   const [activeAction, setActiveAction] = useState<string | null>(null);
 
-  useResetOnChange([metadataDescription, metadataLabel, savedAltText], () => {
-    setLabelValue(metadataLabel);
-    setDescriptionValue(metadataDescription);
-    setAltTextValue(savedAltText);
-  });
+  useResetOnChange([metadataLabel], () => setLabelValue(metadataLabel));
+  useResetOnChange([metadataDescription], () =>
+    setDescriptionValue(metadataDescription),
+  );
+  useResetOnChange([savedAltText], () => setAltTextValue(savedAltText));
 
   const commitField = async (
     field: 'description' | 'label',
@@ -101,17 +102,25 @@ export default function IngredientTabsInfo({
       return;
     }
 
-    try {
-      const service = await getIngredientsService();
-      const updatedIngredient = await service.patch(ingredient.id, {
-        altText: normalizedValue,
-      });
-      onUpdate(updatedIngredient);
-      notifications.success(translateAltText('saved'));
-    } catch (error) {
-      logger.error('Ingredient alt text update failed', error);
-      notifications.error(translateAltText('saveFailed'));
-    }
+    const save = async () => {
+      try {
+        const service = await getIngredientsService();
+        const updatedIngredient = await service.patch(ingredient.id, {
+          altText: normalizedValue,
+        });
+        onUpdate(updatedIngredient);
+        notifications.success(translateAltText('saved'));
+      } catch (error) {
+        logger.error('Ingredient alt text update failed', error);
+        notifications.error(translateAltText('saveFailed'));
+      }
+    };
+
+    // One save at a time, so a slower earlier request cannot land after a
+    // later edit and put the older text back. `save` never rejects.
+    const queued = altTextSaveQueue.current.then(save);
+    altTextSaveQueue.current = queued;
+    await queued;
   };
 
   const handleLabelKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

@@ -17,3 +17,20 @@ describe('ingredient draft render flag', () => {
     );
   });
 });
+
+describe('ingredient alt text', () => {
+  it('is kept when the row is created', () => {
+    expect(toIngredientCreateData({ altText: 'A red door' })).toMatchObject({
+      altText: 'A red door',
+    });
+  });
+
+  it('is kept by an update, and an empty string clears it', () => {
+    expect(toIngredientUpdateData({ altText: 'A red door' })).toMatchObject({
+      altText: 'A red door',
+    });
+    expect(toIngredientUpdateData({ altText: '' })).toMatchObject({
+      altText: '',
+    });
+  });
+});

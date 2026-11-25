@@ -67,11 +67,14 @@ function decorationAttempts(
 
 /**
  * An image's alt text as the optional container field. Blank text sends
- * nothing; text over Instagram's limit is cut rather than refused, because
+ * nothing; text over Instagram's limit is cut by character (a pair of code units
+ * such as an emoji is never split) rather than refused, because
  * the Library already caps what it saves at the same length.
  */
 function altTextParams(altText?: string): Record<string, string> {
-  const text = altText?.trim().slice(0, INSTAGRAM_ALT_TEXT_MAX_LENGTH);
+  const text = Array.from(altText?.trim() ?? '')
+    .slice(0, INSTAGRAM_ALT_TEXT_MAX_LENGTH)
+    .join('');
   return text ? { alt_text: text } : {};
 }
 
