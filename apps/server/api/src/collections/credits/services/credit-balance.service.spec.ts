@@ -19,7 +19,7 @@ const guardQuery = (model: string, args: unknown) =>
 
 describe('CreditBalanceService', () => {
   const prisma = {
-    $executeRaw: vi.fn(),
+    $queryRaw: vi.fn(),
     billingAccountOrganization: {
       findFirst: vi.fn(),
     },
@@ -428,7 +428,7 @@ describe('CreditBalanceService', () => {
         version: 1,
       };
       prisma.creditBalance.findFirst.mockResolvedValueOnce(balance);
-      prisma.$executeRaw.mockResolvedValue(1);
+      prisma.$queryRaw.mockResolvedValue([{ spentAfter: 0, spentBefore: 0 }]);
       prisma.organization.findFirst.mockResolvedValue({
         billingAccount: {
           creditBalances: [{ ...balance, heldAmount: 4, version: 2 }],
@@ -440,7 +440,7 @@ describe('CreditBalanceService', () => {
         heldDelta: -2,
       });
 
-      const mutation = prisma.$executeRaw.mock.calls[0]?.[0];
+      const mutation = prisma.$queryRaw.mock.calls[0]?.[0];
       expect(mutation.values).toContain(walletOrganizationId);
       expect(mutation.values).not.toContain('org_2');
       expect(snapshot.held).toBe(4);
@@ -560,7 +560,7 @@ describe('CreditBalanceService', () => {
           };
         },
       );
-      prisma.$executeRaw.mockResolvedValue(1);
+      prisma.$queryRaw.mockResolvedValue([{ spentAfter: 0, spentBefore: 0 }]);
 
       await expect(
         runWithTenantContext({ organizationId: 'org_2' }, () =>

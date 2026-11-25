@@ -60,6 +60,7 @@ describe('CreditsUtilsService', () => {
   const accessBootstrapCacheService = { invalidateForOrganization: vi.fn() };
   const freeTrialService = {
     assertTrialActive: vi.fn(),
+    expiredTrialSpendableCredits: vi.fn(),
     isTrialExpired: vi.fn(),
   };
 
@@ -175,6 +176,7 @@ describe('CreditsUtilsService', () => {
           balanceDelta: -40,
           billingAccountId: 'ba_1',
           maxOverdraftCredits: 0,
+          trackEarnedSpend: true,
         },
         txClient,
         undefined,
@@ -919,6 +921,9 @@ describe('CreditsUtilsService', () => {
   describe('refundOrganizationCredits', () => {
     it('threads the transaction client and preserves active holds', async () => {
       const service = buildService();
+      creditBalanceService.applyDelta.mockResolvedValueOnce({
+        earnedRestored: 0,
+      });
       creditBalanceService.getOrCreateBalance.mockResolvedValue({
         balance: 100,
         billingAccountId: 'ba_1',
@@ -936,10 +941,9 @@ describe('CreditsUtilsService', () => {
         new Date('2027-01-01T00:00:00Z'),
       );
 
-      expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
+      expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
         'org_1',
-        110,
-        'ba_1',
+        { balanceDelta: 10, billingAccountId: 'ba_1', restoreEarnedUpTo: 10 },
         txClient,
       );
       expect(
@@ -954,7 +958,7 @@ describe('CreditsUtilsService', () => {
         'refund',
         expect.any(Date),
         txClient,
-        undefined,
+        {},
       );
     });
   });
@@ -1093,7 +1097,10 @@ describe('CreditsUtilsService', () => {
       await expect(
         service.deductCreditsFromOrganization('org_1', 'user_1', 5, 'Image'),
       ).rejects.toMatchObject({ errorCode: 'INSUFFICIENT_CREDITS' });
-      expect(freeTrialService.assertTrialActive).toHaveBeenCalledWith('org_1');
+      expect(freeTrialService.assertTrialActive).toHaveBeenCalledWith(
+        'org_1',
+        5,
+      );
       expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
       expect(
         creditTransactionsService.createTransactionEntry,
@@ -1149,15 +1156,25 @@ describe('CreditsUtilsService', () => {
       expect(creditReservationService.reserve).not.toHaveBeenCalled();
     });
 
-    it('reports credits unavailable for an expired trial even with a balance', async () => {
-      const service = buildService();
-      freeTrialService.isTrialExpired.mockResolvedValueOnce(true);
+    it.each([
+      ['no earned credits', 0, 5, false],
+      ['earned credits that do not cover the amount', 4, 5, false],
+      ['earned credits that cover the amount', 5, 5, true],
+    ])(
+      'reports an expired trial with %s as %s',
+      async (_label, spendable, required, expected) => {
+        const service = buildService();
+        freeTrialService.isTrialExpired.mockResolvedValueOnce(true);
+        freeTrialService.expiredTrialSpendableCredits.mockResolvedValueOnce(
+          spendable,
+        );
 
-      await expect(
-        service.checkOrganizationCreditsAvailable('org_1', 5),
-      ).resolves.toBe(false);
-      expect(creditBalanceService.getOrCreateBalance).not.toHaveBeenCalled();
-    });
+        await expect(
+          service.checkOrganizationCreditsAvailable('org_1', required),
+        ).resolves.toBe(expected);
+        expect(creditBalanceService.getOrCreateBalance).not.toHaveBeenCalled();
+      },
+    );
 
     it('never refuses a zero-cost check', async () => {
       const service = buildService();
