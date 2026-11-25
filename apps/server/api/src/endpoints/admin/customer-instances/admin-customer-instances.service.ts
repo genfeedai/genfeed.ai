@@ -12,6 +12,8 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+const MAX_LISTED_INSTANCES = 200;
+
 const reference = z
   .string()
   .trim()
@@ -67,6 +69,7 @@ export class AdminCustomerInstancesService {
     await this.assertOrganization(organizationId);
     const rows = await this.prisma.customerInstance.findMany({
       orderBy: { createdAt: 'desc' },
+      take: MAX_LISTED_INSTANCES,
       where: scopedWhere(organizationId, {
         config: { equals: 'dedicated', path: ['tier'] },
       }),
