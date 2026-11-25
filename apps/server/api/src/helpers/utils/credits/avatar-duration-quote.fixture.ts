@@ -1,5 +1,8 @@
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
-import { MODEL_KEYS, SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants';
+import {
+  CURATED_MEDIA_MODELS,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type {
   ModelBillablePricingProfile,
   ModelBillableQuoteSnapshot,
@@ -90,7 +93,7 @@ export function avatar6Snapshot(
  * it: no reviewed rate, priced from its configured per-second provider cost.
  */
 export function photoAnimationProfile(): ModelBillablePricingProfile {
-  const row = SELF_HOSTED_MODELS.find(
+  const row = CURATED_MEDIA_MODELS.find(
     (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
   );
   if (!row) throw new Error('The catalog must curate heygen/avatar');

@@ -16,7 +16,7 @@ export const LLM_GENERATION_TELEMETRY_EVENT = '$ai_generation';
 
 /**
  * Compute platform vendor cost in micro-USD from catalogue list prices.
- * BYOK and self-hosted / unknown models are 0 — those are not our COGS.
+ * BYOK and unknown models are 0 — those are not our COGS.
  *
  * `promptPerMillion` is USD per 1M tokens, so
  * `tokens * usdPerMillion` is already micro-USD.
@@ -29,7 +29,7 @@ export function computeLlmVendorCostMicros(
   }
 
   const catalog = getAgentChatModel(input.model);
-  if (!catalog || catalog.isSelfHosted) {
+  if (!catalog) {
     return 0;
   }
 
@@ -52,7 +52,7 @@ export function computeLlmPromptCostUsd(
   }
 
   const catalog = getAgentChatModel(input.model);
-  if (!catalog || catalog.isSelfHosted) {
+  if (!catalog) {
     return 0;
   }
 
@@ -67,7 +67,7 @@ export function computeLlmCompletionCostUsd(
   }
 
   const catalog = getAgentChatModel(input.model);
-  if (!catalog || catalog.isSelfHosted) {
+  if (!catalog) {
     return 0;
   }
 

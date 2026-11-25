@@ -15,9 +15,7 @@ import {
   getAgentChatModelRoundCredits,
   isRetiredAgentChatModel,
   LLM_DEFAULTS,
-  LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
   RETIRED_AGENT_CHAT_MODEL_KEYS,
-  SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant';
 import { MODEL_KEYS } from './model-keys.constant';
@@ -93,7 +91,7 @@ describe('AGENT_CHAT_MODELS', () => {
       isRetiredAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
     ).toBe(true);
     expect(
-      SELECTABLE_AGENT_CHAT_MODELS.some(
+      AGENT_CHAT_MODELS.some(
         (model) => model.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
       ),
     ).toBe(false);
@@ -102,11 +100,11 @@ describe('AGENT_CHAT_MODELS', () => {
   // Zero credits is a claim about the provider, never an accident of a
   // definition that shipped without prices. A hosted model rounds to zero only
   // when it is explicitly marked free.
-  it('grants zero credits only to models declared free or self-hosted', () => {
+  it('grants zero credits only to models declared free', () => {
     for (const model of AGENT_CHAT_MODELS.filter(
       (candidate) => candidate.creditCostPerRound === 0,
     )) {
-      expect(Boolean(model.isFree || model.isSelfHosted)).toBe(true);
+      expect(model.isFree).toBe(true);
     }
   });
 
@@ -120,18 +118,11 @@ describe('AGENT_CHAT_MODELS', () => {
     });
   });
 
-  it('bills self-hosted models to the platform, not the round', () => {
-    for (const model of AGENT_CHAT_MODELS.filter(
-      (candidate) => candidate.isSelfHosted,
-    )) {
-      expect(model.creditCostPerRound).toBe(0);
+  it('retires the self-hosted local/ models instead of offering them', () => {
+    for (const key of ['local/qwen-32b', 'local/mistral-small']) {
+      expect(isRetiredAgentChatModel(key)).toBe(true);
+      expect(getAgentChatModel(key)).toBeUndefined();
     }
-  });
-
-  it('keeps self-hosted models out of the picker', () => {
-    expect(
-      SELECTABLE_AGENT_CHAT_MODELS.some((model) => model.isSelfHosted),
-    ).toBe(false);
   });
 
   it('offers explicit Auto and experimental Free routes with exact-cost metadata', () => {
@@ -143,9 +134,8 @@ describe('AGENT_CHAT_MODELS', () => {
     ).toMatchObject({ isFree: true, usesExactProviderCost: true });
   });
 
-  it('catalogues both defaults so they always have a price', () => {
+  it('catalogues the defaults so they always have a price', () => {
     expect(getAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toBeDefined();
-    expect(getAgentChatModel(LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY)).toBeDefined();
     expect(getAgentChatModel(LOWEST_COST_AGENT_CHAT_MODEL_KEY)).toBeDefined();
   });
 });
@@ -197,14 +187,12 @@ describe('getAgentChatModelRoundCredits', () => {
     expect(isRetiredAgentChatModel('x-ai/grok-4.5')).toBe(true);
     expect(isRetiredAgentChatModel('x-ai/grok-4.6')).toBe(true);
     expect(
-      SELECTABLE_AGENT_CHAT_MODELS.some(
+      AGENT_CHAT_MODELS.some(
         (model) => model.key === AGENT_CHAT_MODEL_KEYS.GROK_4_7,
       ),
     ).toBe(true);
     expect(
-      SELECTABLE_AGENT_CHAT_MODELS.some(
-        (model) => model.key === 'x-ai/grok-4.5',
-      ),
+      AGENT_CHAT_MODELS.some((model) => model.key === 'x-ai/grok-4.5'),
     ).toBe(false);
   });
 });
@@ -221,7 +209,6 @@ describe('LLM_DEFAULTS', () => {
   it('aliases the historical default exports', () => {
     expect(DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(LLM_DEFAULTS.agentChat);
     expect(DEFAULT_GROK_MODEL_KEY).toBe(LLM_DEFAULTS.grok);
-    expect(LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(LLM_DEFAULTS.localFleet);
   });
 
   it('points every picker-facing role at a catalogued model', () => {

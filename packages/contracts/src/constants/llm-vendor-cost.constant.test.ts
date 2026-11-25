@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  AGENT_CHAT_MODEL_KEYS,
-  LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
-} from './agent-chat-models.constant';
+import { AGENT_CHAT_MODEL_KEYS } from './agent-chat-models.constant';
 import {
   computeLlmCompletionCostUsd,
   computeLlmPromptCostUsd,
@@ -36,15 +33,7 @@ describe('computeLlmVendorCostMicros', () => {
     ).toBe(0);
   });
 
-  it('returns 0 for self-hosted and unknown models', () => {
-    expect(
-      computeLlmVendorCostMicros({
-        completionTokens: 500,
-        isByok: false,
-        model: LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
-        promptTokens: 1_000,
-      }),
-    ).toBe(0);
+  it('returns 0 for unknown models', () => {
     expect(
       computeLlmVendorCostMicros({
         completionTokens: 500,

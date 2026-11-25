@@ -8,7 +8,7 @@ Boundary spec version: v1.4.0.
 
 | Mode                          | Runtime                            | Provider billing                      | Data owner                                                    | Cloud account |
 | ----------------------------- | ---------------------------------- | ------------------------------------- | ------------------------------------------------------------- | ------------- |
-| Local setup                   | Self-hosted Core                   | Local keys or local GPU services      | Self-hosted database/storage                                  | Not required  |
+| Local setup                   | Self-hosted Core                   | Local provider keys                   | Self-hosted database/storage                                  | Not required  |
 | Self-hosted BYOK              | Self-hosted Core                   | Organization BYOK keys                | Self-hosted database/storage                                  | Not required  |
 | Self-hosted managed execution | Core plus explicit Cloud API calls | Genfeed Cloud credits                 | Local records stay local; Cloud processes the managed request | Required      |
 | Genfeed Cloud                 | Genfeed-managed infrastructure     | Genfeed Cloud credits or plan billing | Cloud workspace                                               | Required      |

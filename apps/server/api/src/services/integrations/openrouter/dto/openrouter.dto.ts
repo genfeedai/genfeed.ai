@@ -1,7 +1,7 @@
 import { CostTier } from '@genfeedai/contracts';
 import {
+  AGENT_CHAT_MODELS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
-  SELECTABLE_AGENT_CHAT_MODELS,
 } from '@genfeedai/contracts/constants';
 
 interface OpenRouterToolFunction {
@@ -70,9 +70,8 @@ export const OPENROUTER_FIRST_PARTY_PROVIDER_POLICY = {
 
 /**
  * JSON-schema response format shared by every OpenAI-compatible route
- * (OpenRouter, native OpenAI, and the `local/` vLLM server, which uses it to
- * drive guided decoding). Anthropic has no `response_format`; its adapter
- * translates the same spec into a forced tool call.
+ * (OpenRouter and native OpenAI). Anthropic has no `response_format`; its
+ * adapter translates the same spec into a forced tool call.
  */
 export interface OpenRouterJsonSchemaSpec {
   name: string;
@@ -212,9 +211,7 @@ export enum OpenRouterModelTier {
  * cheapest model that clears the tier.
  */
 function modelKeysForCostTier(costTier: CostTier): string[] {
-  return SELECTABLE_AGENT_CHAT_MODELS.filter(
-    (model) => model.costTier === costTier,
-  )
+  return AGENT_CHAT_MODELS.filter((model) => model.costTier === costTier)
     .sort((left, right) => left.creditCostPerRound - right.creditCostPerRound)
     .map((model) => model.key);
 }

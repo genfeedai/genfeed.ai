@@ -16,7 +16,7 @@ import type {
   ChatCompletionTool,
 } from 'openai/resources/chat/completions';
 
-const OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN = /^(?:openai|local)\//;
+const OPENAI_MODEL_PREFIX_PATTERN = /^openai\//;
 
 @Traced()
 @Injectable()
@@ -38,8 +38,8 @@ export class OpenAiLlmService {
     return String(apiKey);
   }
 
-  private createClient(apiKey: string, baseURL?: string): OpenAI {
-    return new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+  private createClient(apiKey: string): OpenAI {
+    return new OpenAI({ apiKey });
   }
 
   private toTextContent(
@@ -126,17 +126,12 @@ export class OpenAiLlmService {
   async chatCompletion(
     params: OpenRouterChatCompletionParams,
     apiKeyOverride?: string,
-    baseURL?: string,
   ): Promise<OpenRouterChatCompletionResponse> {
-    const apiKey = baseURL ? 'not-needed' : this.resolveApiKey(apiKeyOverride);
-    const client = this.createClient(apiKey, baseURL);
+    const client = this.createClient(this.resolveApiKey(apiKeyOverride));
 
     try {
-      // Strip provider prefixes (openai/, local/) from model name
-      const model = params.model.replace(
-        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
-        '',
-      );
+      // Strip the `openai/` provider prefix from the model name
+      const model = params.model.replace(OPENAI_MODEL_PREFIX_PATTERN, '');
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
@@ -148,8 +143,7 @@ export class OpenAiLlmService {
 
       Object.assign(requestParams, buildOpenAiSamplingParams(model, params));
 
-      // Structured outputs on OpenAI, and guided decoding on the `local/`
-      // vLLM server, both read the same OpenAI-shaped `response_format`.
+      // Structured outputs read the OpenAI-shaped `response_format`.
       if (params.response_format) {
         requestParams.response_format = params.response_format;
       }
@@ -238,16 +232,11 @@ export class OpenAiLlmService {
   async streamChatCompletion(
     params: OpenRouterChatCompletionParams,
     apiKeyOverride?: string,
-    baseURL?: string,
   ): Promise<ReadableStream<string>> {
-    const apiKey = baseURL ? 'not-needed' : this.resolveApiKey(apiKeyOverride);
-    const client = this.createClient(apiKey, baseURL);
+    const client = this.createClient(this.resolveApiKey(apiKeyOverride));
 
     try {
-      const model = params.model.replace(
-        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
-        '',
-      );
+      const model = params.model.replace(OPENAI_MODEL_PREFIX_PATTERN, '');
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
@@ -293,24 +282,18 @@ export class OpenAiLlmService {
 
   /**
    * Real incremental streaming that also returns the fully aggregated response
-   * (text + tool calls + usage). Serves OpenAI and OpenAI-compatible local vLLM
-   * (via `baseURL`). Text deltas surface through `onToken`; tool-call fragments
+   * (text + tool calls + usage). Text deltas surface through `onToken`; tool-call fragments
    * and usage are accumulated so the resolved value matches `chatCompletion`.
    */
   async streamChatCompletionAggregated(
     params: OpenRouterChatCompletionParams,
     apiKeyOverride?: string,
     onToken?: OpenRouterStreamTokenHandler,
-    baseURL?: string,
   ): Promise<OpenRouterChatCompletionResponse> {
-    const apiKey = baseURL ? 'not-needed' : this.resolveApiKey(apiKeyOverride);
-    const client = this.createClient(apiKey, baseURL);
+    const client = this.createClient(this.resolveApiKey(apiKeyOverride));
 
     try {
-      const model = params.model.replace(
-        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
-        '',
-      );
+      const model = params.model.replace(OPENAI_MODEL_PREFIX_PATTERN, '');
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 

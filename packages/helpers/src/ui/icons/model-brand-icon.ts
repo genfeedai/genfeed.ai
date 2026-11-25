@@ -1,5 +1,5 @@
 import type { IconType } from '@genfeedai/contracts/interfaces';
-import { DevIcon, FluxIcon, GenfeedIcon } from './brands';
+import { FluxIcon, GenfeedIcon } from './brands';
 import {
   ArgilIcon,
   CrunIcon,
@@ -60,7 +60,6 @@ const MODEL_BRAND_ICONS: Record<string, IconType> = {
   recraft: RecraftIcon,
   stability: StabilityIcon,
   vidu: ViduIcon,
-  local: DevIcon,
   luma: LumaIcon,
   meta: MetaIcon,
   minimax: MinimaxIcon,

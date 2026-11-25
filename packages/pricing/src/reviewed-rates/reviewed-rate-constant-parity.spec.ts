@@ -1,4 +1,4 @@
-import { SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants';
+import { CURATED_MEDIA_MODELS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { findReviewedRateSheetEntry, UNPRICED_MODELS } from './index';
 
@@ -25,7 +25,7 @@ const KNOWN_BELOW_REVIEWED_RATES: Readonly<Record<string, string>> = {
 /** Voice rows are configured per call but the reviewed rate is per character. */
 const PER_CHARACTER_UNIT = 'character';
 
-const rows = (SELF_HOSTED_MODELS as readonly CuratedRateRow[]).filter(
+const rows = (CURATED_MEDIA_MODELS as readonly CuratedRateRow[]).filter(
   (row) => typeof row.providerCostUsd === 'number',
 );
 

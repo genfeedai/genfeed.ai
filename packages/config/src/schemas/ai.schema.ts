@@ -156,19 +156,10 @@ export const newsApiSchema = {
 };
 
 /**
- * Fleet — self-hosted GPU instance (ComfyUI + fleet-api)
- */
-export const fleetSchema = {
-  FLEET_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),
-  FLEET_S3_BUCKET: Joi.string().optional().default('fleet.genfeed.ai'),
-};
-
-/**
- * GPU Fleet — self-hosted GPU instances (images, voices, videos, llm)
+ * GPU Fleet — self-hosted GPU instances (images, voices, videos)
  */
 export const gpuFleetSchema = {
   GPU_IMAGES_URL: Joi.string().uri().optional(),
-  GPU_LLM_URL: Joi.string().uri().optional(),
   GPU_VIDEOS_URL: Joi.string().uri().optional(),
   GPU_VOICES_URL: Joi.string().uri().optional(),
 };

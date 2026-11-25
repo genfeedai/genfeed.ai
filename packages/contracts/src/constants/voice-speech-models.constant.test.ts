@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ModelCategory, VoiceProvider } from '..';
+import { CURATED_MEDIA_MODELS } from './curated-media-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import { MODEL_KEYS } from './model-keys.constant';
-import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 import {
   countSpeechCharacters,
   getVoiceSpeechModel,
@@ -18,7 +18,7 @@ describe('VOICE_SPEECH_MODELS', () => {
         ModelCategory.VOICE,
       );
       expect(
-        SELF_HOSTED_MODELS.find((model) => model.key === key),
+        CURATED_MEDIA_MODELS.find((model) => model.key === key),
       ).toBeDefined();
     }
   });

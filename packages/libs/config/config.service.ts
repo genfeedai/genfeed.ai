@@ -11,7 +11,6 @@ import {
   conditionalRequired,
   elevenlabsSchema,
   falSchema,
-  fleetSchema,
   generalAiSchema,
   // Genfeed
   genfeedaiUrlsSchema,
@@ -193,7 +192,6 @@ const apiSchema = Joi.object({
   ...opusProSchema,
   ...hedraSchema,
   ...newsApiSchema,
-  ...fleetSchema,
   ...allSocialSchema,
   ...apiSpecificSchema,
   ELEVENLABS_API_KEY: conditionalRequired(),

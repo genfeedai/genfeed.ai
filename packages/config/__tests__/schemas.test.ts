@@ -4,7 +4,6 @@ import {
   argilSchema,
   elevenlabsSchema,
   falSchema,
-  fleetSchema,
   generalAiSchema,
   gpuFleetSchema,
   hedraSchema,
@@ -392,28 +391,6 @@ describe('Config Schemas', () => {
 
     it('should validate with defaults when optional', () => {
       const schema = Joi.object(newsApiSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
-  describe('fleetSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof fleetSchema).toBe('object');
-      const keys = Object.keys(fleetSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(
-          Joi.isSchema((fleetSchema as Record<string, unknown>)[key]),
-        ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(fleetSchema);
       const { error } = schema.validate({}, { allowUnknown: true });
       // Some schemas have required fields, so error is acceptable
       if (error) {
