@@ -144,11 +144,6 @@ const UNUSED_RUNTIME_FILES = [
   ),
 ];
 
-// Source map bodies of the service worker; browsers fetch only the worker.
-const UNUSED_BUILD_FILES = [
-  path.join('.next', 'server', 'app', 'serwist', 'sw.js.map.body'),
-];
-
 function removePath(absolutePath) {
   if (!fs.existsSync(absolutePath)) {
     return 0;
@@ -167,16 +162,6 @@ function pruneUnusedNextRuntimeFiles(nodeModulesRoot) {
 
   for (const relativePath of UNUSED_RUNTIME_FILES) {
     removedBytes += removePath(path.join(nodeModulesRoot, relativePath));
-  }
-
-  return removedBytes;
-}
-
-function pruneUnusedBuildFiles(serverRoot) {
-  let removedBytes = 0;
-
-  for (const relativePath of UNUSED_BUILD_FILES) {
-    removedBytes += removePath(path.join(serverRoot, relativePath));
   }
 
   return removedBytes;
@@ -264,6 +249,5 @@ module.exports = {
   pruneBuildTraceFiles,
   pruneFullSegmentPayloads,
   pruneTracedSourceFiles,
-  pruneUnusedBuildFiles,
   pruneUnusedNextRuntimeFiles,
 };

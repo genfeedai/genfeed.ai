@@ -5,11 +5,14 @@ import {
 } from '@api/collections/personas/dto/character-references.dto';
 import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import type { PersonaReferenceScope } from '@api/collections/personas/services/persona-references.types';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_BRAND_EDIT_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type {
@@ -42,6 +45,7 @@ export class PersonaReferencesController {
   constructor(private readonly referencesService: PersonaReferencesService) {}
 
   @Post('reference-usage')
+  @ApiKeyReadAccess()
   @HttpCode(HttpStatus.OK)
   async findReferenceUsage(
     @CurrentUser() user: User,
@@ -72,6 +76,7 @@ export class PersonaReferencesController {
   }
 
   @Post(':id/references')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async add(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -87,6 +92,7 @@ export class PersonaReferencesController {
   }
 
   @Put(':id/references')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async reorder(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -102,6 +108,7 @@ export class PersonaReferencesController {
   }
 
   @Delete(':id/references/:ingredientId')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,
