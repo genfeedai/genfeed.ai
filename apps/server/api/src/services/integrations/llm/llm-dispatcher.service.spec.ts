@@ -23,18 +23,15 @@ describe('LlmDispatcherService', () => {
   let service: LlmDispatcherService;
   let anthropicService: {
     chatCompletion: ReturnType<typeof vi.fn>;
-    streamChatCompletion: ReturnType<typeof vi.fn>;
     streamChatCompletionAggregated: ReturnType<typeof vi.fn>;
   };
   let openAiLlmService: {
     chatCompletion: ReturnType<typeof vi.fn>;
-    streamChatCompletion: ReturnType<typeof vi.fn>;
     streamChatCompletionAggregated: ReturnType<typeof vi.fn>;
   };
   let openAiOAuthService: { refreshAccessToken: ReturnType<typeof vi.fn> };
   let openRouterService: {
     chatCompletion: ReturnType<typeof vi.fn>;
-    streamChatCompletion: ReturnType<typeof vi.fn>;
     streamChatCompletionAggregated: ReturnType<typeof vi.fn>;
   };
   let byokService: {
@@ -76,12 +73,10 @@ describe('LlmDispatcherService', () => {
   beforeEach(async () => {
     anthropicService = {
       chatCompletion: vi.fn().mockResolvedValue(mockResponse),
-      streamChatCompletion: vi.fn().mockResolvedValue(new ReadableStream()),
       streamChatCompletionAggregated: vi.fn().mockResolvedValue(mockResponse),
     };
     openAiLlmService = {
       chatCompletion: vi.fn().mockResolvedValue(mockResponse),
-      streamChatCompletion: vi.fn().mockResolvedValue(new ReadableStream()),
       streamChatCompletionAggregated: vi.fn().mockResolvedValue(mockResponse),
     };
     openAiOAuthService = {
@@ -89,7 +84,6 @@ describe('LlmDispatcherService', () => {
     };
     openRouterService = {
       chatCompletion: vi.fn().mockResolvedValue(mockResponse),
-      streamChatCompletion: vi.fn().mockResolvedValue(new ReadableStream()),
       streamChatCompletionAggregated: vi.fn().mockResolvedValue(mockResponse),
     };
     byokService = {
@@ -298,8 +292,8 @@ describe('LlmDispatcherService', () => {
     });
   });
 
-  describe('chatCompletion — local provider', () => {
-    it('should fall back to deepseek when GPU_LLM_URL is not configured', async () => {
+  describe('chatCompletion — retired local/ ids', () => {
+    it('sends a local/ id to the router, never to a self-hosted endpoint', async () => {
       configService.get.mockImplementation((key: string) =>
         key === 'OPENROUTER_API_KEY' ? 'sk-or-test' : '',
       );
@@ -307,23 +301,10 @@ describe('LlmDispatcherService', () => {
       await service.chatCompletion(makeParams('local/my-model'));
 
       expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-v4.1-flash-1017' }),
-      );
-      expect(loggerService.warn).toHaveBeenCalled();
-    });
-
-    it('should use local vLLM when GPU_LLM_URL is configured', async () => {
-      configService.get.mockImplementation((key: string) =>
-        key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
-      );
-
-      await service.chatCompletion(makeParams('local/my-model'));
-
-      expect(openAiLlmService.chatCompletion).toHaveBeenCalledWith(
-        expect.any(Object),
+        expect.objectContaining({ model: 'local/my-model' }),
         undefined,
-        'http://10.0.0.10:8000/v1',
       );
+      expect(openAiLlmService.chatCompletion).not.toHaveBeenCalled();
     });
   });
 
@@ -488,58 +469,6 @@ describe('LlmDispatcherService', () => {
     });
   });
 
-  describe('streamChatCompletion', () => {
-    it('should route anthropic/ models to AnthropicService for streaming', async () => {
-      await service.streamChatCompletion(
-        makeParams('anthropic/claude-sonnet-5'),
-      );
-
-      expect(anthropicService.streamChatCompletion).toHaveBeenCalled();
-    });
-
-    it('should route openai/ models to OpenAiLlmService for streaming', async () => {
-      await service.streamChatCompletion(makeParams('openai/gpt-5.6-terra'));
-
-      expect(openAiLlmService.streamChatCompletion).toHaveBeenCalled();
-    });
-
-    it('should route other models to OpenRouterService for streaming', async () => {
-      await service.streamChatCompletion(
-        makeParams('deepseek/deepseek-v4.1-flash-1017'),
-      );
-
-      expect(openRouterService.streamChatCompletion).toHaveBeenCalled();
-    });
-
-    it('should route local/ models to OpenAiLlmService with GPU URL for streaming', async () => {
-      configService.get.mockImplementation((key: string) =>
-        key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
-      );
-
-      await service.streamChatCompletion(makeParams('local/my-model'));
-
-      expect(openAiLlmService.streamChatCompletion).toHaveBeenCalledWith(
-        expect.any(Object),
-        undefined,
-        'http://10.0.0.10:8000',
-      );
-    });
-
-    it('should resolve BYOK key for streaming when organizationId is provided', async () => {
-      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
-
-      await service.streamChatCompletion(
-        makeParams('anthropic/claude-sonnet-5'),
-        orgId,
-      );
-
-      expect(anthropicService.streamChatCompletion).toHaveBeenCalledWith(
-        expect.any(Object),
-        'byok-key',
-      );
-    });
-  });
-
   describe('streamChatCompletionAggregated', () => {
     it('should route anthropic/ models to AnthropicService', async () => {
       const result = await service.streamChatCompletionAggregated(
@@ -587,45 +516,6 @@ describe('LlmDispatcherService', () => {
       expect(
         anthropicService.streamChatCompletionAggregated,
       ).toHaveBeenCalledWith(expect.any(Object), undefined, onToken);
-    });
-
-    it('should stream local/ models via the GPU vLLM URL', async () => {
-      configService.get.mockImplementation((key: string) =>
-        key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
-      );
-      const onToken = vi.fn();
-
-      await service.streamChatCompletionAggregated(
-        makeParams('local/my-model'),
-        undefined,
-        onToken,
-      );
-
-      expect(
-        openAiLlmService.streamChatCompletionAggregated,
-      ).toHaveBeenCalledWith(
-        expect.any(Object),
-        undefined,
-        onToken,
-        'http://10.0.0.10:8000/v1',
-      );
-    });
-
-    it('should fall back to deepseek streaming when GPU_LLM_URL is unset', async () => {
-      configService.get.mockReturnValue('');
-
-      await service.streamChatCompletionAggregated(
-        makeParams('local/my-model'),
-      );
-
-      expect(
-        openRouterService.streamChatCompletionAggregated,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-v4.1-flash-1017' }),
-        undefined,
-        undefined,
-      );
-      expect(loggerService.warn).toHaveBeenCalled();
     });
 
     it('should resolve BYOK key when organizationId is provided', async () => {
@@ -892,27 +782,6 @@ describe('LlmDispatcherService', () => {
       ];
       expect(sent.response_format?.json_schema.name).toBe('content_plan');
     });
-
-    it('keeps enforcing the schema on the local vLLM route', async () => {
-      configService.get.mockImplementation((key: string) =>
-        key === 'GPU_LLM_URL' ? 'http://gpu.internal:8000' : '',
-      );
-      openAiLlmService.chatCompletion.mockResolvedValue(
-        structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
-      );
-
-      await service.completeStructured({
-        messages: [{ content: 'Plan it', role: 'user' }],
-        model: 'local/qwen3',
-        schema: planSchema,
-        schemaName: 'content_plan',
-      });
-
-      const [sent] = openAiLlmService.chatCompletion.mock.calls[0] as [
-        OpenRouterChatCompletionParams,
-      ];
-      expect(sent.response_format?.json_schema.name).toBe('content_plan');
-    });
   });
   describe('guarded visual completion routes', () => {
     const params = {
@@ -996,26 +865,6 @@ describe('LlmDispatcherService', () => {
         undefined,
       );
       expect(openAiOAuthService.refreshAccessToken).not.toHaveBeenCalled();
-    });
-    it('uses only the configured local endpoint and never falls back', async () => {
-      configService.get.mockImplementation((key: string) =>
-        key === 'GPU_LLM_URL' ? 'http://localhost:8000' : undefined,
-      );
-      const local = { ...params, model: 'local/test' };
-      const expected = await service.getCompletionRoute(local.model, 'org');
-      openAiLlmService.chatCompletion.mockRejectedValueOnce(
-        new Error('offline'),
-      );
-      await expect(
-        service.chatCompletionForRoute(local, 'org', expected),
-      ).rejects.toThrow('offline');
-      expect(openAiLlmService.chatCompletion).toHaveBeenCalledWith(
-        local,
-        undefined,
-        'http://localhost:8000/v1',
-      );
-      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
-      expect(byokService.lookupApiKey).not.toHaveBeenCalled();
     });
   });
 });

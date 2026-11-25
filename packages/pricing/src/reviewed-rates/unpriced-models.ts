@@ -18,8 +18,6 @@ const UNMAPPED_METRIC =
   'Replicate bills it on a metric the importer cannot map yet (2026-10-27).';
 const TIER_WITHOUT_PRICE =
   'Replicate lists a billing tier without a price (2026-10-27).';
-const LOCAL_MODEL =
-  'Self-hosted local model: there is no provider list price to import.';
 const HIGGSFIELD_DOP_NOT_LISTED =
   'Higgsfield no longer lists this DoP endpoint in its docs catalog (checked 2026-11-15), so no estimate can price it; retire it unless Higgsfield confirms it still answers.';
 const HIGGSFIELD_ESTIMATE_PENDING =
@@ -72,8 +70,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'mureka/v9':
     'The provider pricing page was unreachable (HTTP 404) when captured.',
   'google/gemini-3.1-pro': RANGE_CRITERION,
-  'local/mistral-small': LOCAL_MODEL,
-  'local/qwen-32b': LOCAL_MODEL,
   'luma/modify-video': UNMAPPED_METRIC,
   'openai/gpt-image-1-mini': TIER_WITHOUT_PRICE,
   'prunaai/p-image-trainer': UNMAPPED_METRIC,

@@ -237,7 +237,7 @@ export class InstagramPublisherService extends BasePublisherService {
           brandId,
           mediaInfo.mediaUrls[0],
           caption,
-          undefined, // coverImageUrl
+          context.coverImageUrl,
           undefined, // hashtags
           shareToFeed,
           credential.id,

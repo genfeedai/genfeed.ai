@@ -9,11 +9,7 @@
 import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  ModelCategory,
-  ModelLifecycle,
-  ModelProvider,
-} from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_CAPABILITY,
   AGENT_CHAT_MODEL_KEYS,
@@ -25,7 +21,6 @@ import {
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   estimateAgentMessageCredits,
   getAgentChatModel,
-  LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
   REASONING_FEATURE,
 } from '@genfeedai/contracts/constants';
 import { getRuntimeAgentChatMarginMultiplier } from '@genfeedai/pricing';
@@ -280,26 +275,6 @@ export class AgentChatModelRegistryService
       }
       return left.key.localeCompare(right.key);
     })[0];
-  }
-
-  /** Self-hosted fleet default when subscription prefers local inference. */
-  async getLocalDefaultModelKey(): Promise<string> {
-    await this.ensureFresh();
-    const local = [...this.byKey.values()].filter(
-      (row) =>
-        row.isActive &&
-        row.lifecycle === ModelLifecycle.RECOMMENDED &&
-        (row.provider === ModelProvider.GENFEED_AI ||
-          row.key.startsWith('local/')),
-    );
-    const marked = local.find((row) => row.isDefault);
-    if (marked) {
-      return marked.key;
-    }
-    if (local[0]) {
-      return local[0].key;
-    }
-    return LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY;
   }
 
   /**

@@ -3,7 +3,7 @@ import {
   ModelCategory,
   ModelProvider,
 } from '@genfeedai/contracts';
-import { SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants/self-hosted-models.constant';
+import { CURATED_MEDIA_MODELS } from '@genfeedai/contracts/constants/curated-media-models.constant';
 import { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import {
   contentMixFromToolArguments,
@@ -65,7 +65,7 @@ function turboRunCreditRange(): { maximum: number; minimum: number } {
  * row in the catalog.
  */
 function avatarClipCreditRange(): { maximum: number; minimum: number } {
-  const perSecond = SELF_HOSTED_MODELS.flatMap((model) =>
+  const perSecond = CURATED_MEDIA_MODELS.flatMap((model) =>
     model.provider === ModelProvider.HEYGEN &&
     model.category === ModelCategory.AVATAR &&
     'costPerUnit' in model &&

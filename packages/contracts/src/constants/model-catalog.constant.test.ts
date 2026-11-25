@@ -9,10 +9,10 @@ import {
 } from '..';
 import {
   AGENT_CHAT_MODEL_KEYS,
+  AGENT_CHAT_MODELS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   LLM_DEFAULTS,
   RETIRED_AGENT_CHAT_MODEL_KEYS,
-  SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import {
   BRAND_DETECTION_CAPABILITY,
@@ -57,22 +57,20 @@ describe('UNIFIED_MODEL_CATALOG', () => {
   });
 
   it('seeds every agent chat row as TEXT', () => {
-    expect(agentRows.length).toBeGreaterThanOrEqual(
-      SELECTABLE_AGENT_CHAT_MODELS.length,
-    );
+    expect(agentRows.length).toBeGreaterThanOrEqual(AGENT_CHAT_MODELS.length);
     expect(
       agentRows.every((entry) => entry.category === ModelCategory.TEXT),
     ).toBe(true);
   });
 
-  it('activates exactly the selectable agent chat models', () => {
+  it('activates exactly the agent chat models', () => {
     const activeAgentKeys = agentRows
       .filter((entry) => entry.isActive)
       .map((entry) => entry.key)
       .sort();
 
     expect(activeAgentKeys).toEqual(
-      SELECTABLE_AGENT_CHAT_MODELS.map((model) => model.key).sort(),
+      AGENT_CHAT_MODELS.map((model) => model.key).sort(),
     );
   });
 
@@ -120,15 +118,17 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
   });
 
-  it('seeds self-hosted chat models inactive so operators opt in', () => {
-    const selfHostedRows = agentRows.filter(
-      (entry) => entry.provider === ModelProvider.GENFEED_AI,
-    );
+  it('keeps a retired row for each former local/ chat model', () => {
+    for (const key of ['local/qwen-32b', 'local/mistral-small']) {
+      const row = UNIFIED_MODEL_CATALOG.find((entry) => entry.key === key);
 
-    expect(selfHostedRows.length).toBeGreaterThan(0);
-    expect(selfHostedRows.every((entry) => entry.isActive === false)).toBe(
-      true,
-    );
+      expect(row).toMatchObject({
+        isActive: false,
+        isPublic: false,
+        lifecycle: ModelLifecycle.RETIRED,
+        provider: ModelProvider.OPENROUTER,
+      });
+    }
   });
 
   it('marks a single default agent chat model', () => {

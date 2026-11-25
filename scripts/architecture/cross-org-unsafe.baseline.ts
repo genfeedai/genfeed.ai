@@ -227,7 +227,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only.
     {
       file: 'apps/server/api/src/services/agent-orchestrator/agent-chat-model-registry.service.ts',
-      line: 122,
+      line: 117,
     },
     // #6120: global bearer-receipt lookup and claim of an organization-less
     // receipt.

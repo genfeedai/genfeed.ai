@@ -1,7 +1,7 @@
 import type { NodeDefinition } from '@api/collections/workflows/registry/node-registry';
 import {
+  AGENT_CHAT_MODELS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
-  SELECTABLE_AGENT_CHAT_MODELS,
 } from '@genfeedai/contracts/constants';
 
 export const SOURCE_CORPUS_CONFIG_LIMITS = {
@@ -540,7 +540,7 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         default: DEFAULT_AGENT_CHAT_MODEL_KEY,
         description: 'LLM model to use for generation',
         label: 'Model',
-        options: SELECTABLE_AGENT_CHAT_MODELS.map((model) => model.key),
+        options: AGENT_CHAT_MODELS.map((model) => model.key),
         type: 'select',
       },
       systemPrompt: {

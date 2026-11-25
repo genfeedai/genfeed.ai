@@ -6,7 +6,6 @@ export {
   argilSchema,
   elevenlabsSchema,
   falSchema,
-  fleetSchema,
   generalAiSchema,
   hedraSchema,
   heygenSchema,

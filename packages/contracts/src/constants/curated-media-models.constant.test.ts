@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ModelCategory, ModelLifecycle, ModelProvider, PricingType } from '..';
+import { CURATED_MEDIA_MODELS } from './curated-media-models.constant';
 import { MODEL_KEYS } from './model-keys.constant';
-import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
 const modelKeyValues = new Set(Object.values(MODEL_KEYS));
 
-describe('SELF_HOSTED_MODELS', () => {
+describe('CURATED_MEDIA_MODELS', () => {
   it('uses unique registry keys that exist on MODEL_KEYS', () => {
-    const keys = SELF_HOSTED_MODELS.map((model) => model.key);
+    const keys = CURATED_MEDIA_MODELS.map((model) => model.key);
 
     expect(keys.length).toBeGreaterThan(0);
     expect(new Set(keys).size).toBe(keys.length);
@@ -17,7 +17,7 @@ describe('SELF_HOSTED_MODELS', () => {
   it('marks at most one default per category and always stores provider USD', () => {
     const defaultsByCategory = new Map<ModelCategory, number>();
 
-    for (const model of SELF_HOSTED_MODELS) {
+    for (const model of CURATED_MEDIA_MODELS) {
       expect(model.providerCostUsd).toBeGreaterThan(0);
       expect(model.cost).toBeGreaterThan(0);
 
@@ -44,7 +44,7 @@ describe('SELF_HOSTED_MODELS', () => {
   });
 
   it('carries HeyGen Voice as a Recommended voice row priced per 1,000 characters at the list price', () => {
-    const voice = SELF_HOSTED_MODELS.find(
+    const voice = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_VOICE,
     );
 
@@ -60,10 +60,10 @@ describe('SELF_HOSTED_MODELS', () => {
   });
 
   it('carries Avatar IV as the lower-cost avatar engine and Avatar V as the ultra option', () => {
-    const avatarIv = SELF_HOSTED_MODELS.find(
+    const avatarIv = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_IV,
     );
-    const avatarV = SELF_HOSTED_MODELS.find(
+    const avatarV = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_V,
     );
 
@@ -90,10 +90,10 @@ describe('SELF_HOSTED_MODELS', () => {
   });
 
   it('carries Avatar 6 and Turbo at the 1080p API rates', () => {
-    const avatar6 = SELF_HOSTED_MODELS.find(
+    const avatar6 = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_6,
     );
-    const turbo = SELF_HOSTED_MODELS.find(
+    const turbo = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
     );
 
@@ -122,7 +122,7 @@ describe('SELF_HOSTED_MODELS', () => {
   });
 
   it('prices photo animation per second at the Avatar IV photo-avatar rate', () => {
-    const photoAvatar = SELF_HOSTED_MODELS.find(
+    const photoAvatar = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
     );
 
@@ -149,7 +149,7 @@ describe('SELF_HOSTED_MODELS', () => {
   ])(
     'carries %s as a Recommended ElevenLabs voice row priced per 1,000 characters',
     (key, providerCostUsd, cost, isDefault) => {
-      const voice = SELF_HOSTED_MODELS.find((model) => model.key === key);
+      const voice = CURATED_MEDIA_MODELS.find((model) => model.key === key);
 
       expect(voice).toMatchObject({
         category: ModelCategory.VOICE,
@@ -171,7 +171,7 @@ describe('SELF_HOSTED_MODELS', () => {
     'prices %s per output second so platform-key lip-sync can be held',
     (key, providerCostUsd, costPerUnit, cost) => {
       expect(
-        SELF_HOSTED_MODELS.find((model) => model.key === key),
+        CURATED_MEDIA_MODELS.find((model) => model.key === key),
       ).toMatchObject({
         category: ModelCategory.VIDEO_EDIT,
         cost,

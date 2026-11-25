@@ -18,26 +18,14 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ByokProvider } from '@genfeedai/contracts';
-import {
-  AGENT_CHAT_MODEL_KEYS,
-  LLM_DEFAULTS,
-} from '@genfeedai/contracts/constants';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ILlmCompletionCallContext } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-const TRAILING_SLASH_PATTERN = /\/$/;
-
-type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
-
-/**
- * Stand-in when a `local/` model is requested but no GPU fleet is configured.
- * Cheapest catalogued model on purpose — the caller asked for self-hosted
- * inference and is not expecting a frontier bill.
- */
-const SELF_HOSTED_FALLBACK_MODEL = LLM_DEFAULTS.selfHostedFallback;
+type LlmProvider = 'anthropic' | 'openai' | 'openrouter';
 
 @Traced()
 @Injectable()
@@ -59,10 +47,6 @@ export class LlmDispatcherService {
    * Preferred provider from model id prefix only (no key availability).
    */
   private preferredProviderForModel(model: string): LlmProvider {
-    if (model.startsWith('local/')) {
-      return 'local';
-    }
-
     if (model.startsWith('anthropic/')) {
       return 'anthropic';
     }
@@ -103,10 +87,6 @@ export class LlmDispatcherService {
     organizationId?: string,
   ): Promise<{ apiKeyOverride?: string; provider: LlmProvider }> {
     const preferred = this.preferredProviderForModel(model);
-
-    if (preferred === 'local') {
-      return { provider: 'local' };
-    }
 
     let apiKeyOverride: string | undefined;
     if (organizationId) {
@@ -174,21 +154,6 @@ export class LlmDispatcherService {
 
   private async resolveGuardedRoute(modelKey: string, organizationId: string) {
     const preferred = this.preferredProviderForModel(modelKey);
-    if (preferred === 'local') {
-      const endpoint = String(
-        this.configService.get('GPU_LLM_URL') || '',
-      ).trim();
-      return {
-        route: {
-          modelKey,
-          provider: preferred,
-          isByok: false,
-          isAvailable: Boolean(endpoint),
-        } satisfies ILlmCompletionRoute,
-        apiKeyOverride: undefined,
-        endpoint,
-      };
-    }
     let provider = preferred;
     let key = await this.byokService.lookupApiKey(
       organizationId,
@@ -209,7 +174,6 @@ export class LlmDispatcherService {
         isAvailable: Boolean(key) || this.hasPlatformKey(provider),
       } satisfies ILlmCompletionRoute,
       apiKeyOverride: key?.apiKey,
-      endpoint: undefined,
     };
   }
   async getCompletionRoute(
@@ -224,7 +188,7 @@ export class LlmDispatcherService {
     expectedRoute: ILlmCompletionRoute,
     callContext?: ILlmCompletionCallContext,
   ): Promise<OpenRouterChatCompletionResponse> {
-    const { route, apiKeyOverride, endpoint } = await this.resolveGuardedRoute(
+    const { route, apiKeyOverride } = await this.resolveGuardedRoute(
       params.model,
       organizationId,
     );
@@ -243,12 +207,6 @@ export class LlmDispatcherService {
           return this.anthropicService.chatCompletion(params, apiKeyOverride);
         case 'openai':
           return this.openAiLlmService.chatCompletion(params, apiKeyOverride);
-        case 'local':
-          return this.openAiLlmService.chatCompletion(
-            params,
-            undefined,
-            `${endpoint?.replace(TRAILING_SLASH_PATTERN, '')}/v1`,
-          );
         default:
           return this.openRouterService.chatCompletion(params, apiKeyOverride);
       }
@@ -275,18 +233,6 @@ export class LlmDispatcherService {
       params.model,
       organizationId,
     );
-
-    // Local vLLM — bypass BYOK, ensure instance is running, route directly
-    if (provider === 'local') {
-      return this.dispatchWithTelemetry(
-        () => this.callLocalProvider(params),
-        params,
-        organizationId,
-        provider,
-        false,
-        callContext,
-      );
-    }
 
     if (apiKeyOverride) {
       this.loggerService.log(
@@ -340,10 +286,9 @@ export class LlmDispatcherService {
    * returned.
    *
    * Enforcement is per route — OpenRouter and native OpenAI take
-   * `response_format`, the `local/` vLLM server turns it into guided decoding,
-   * and the Anthropic adapter translates it into a forced tool call. Where a
-   * route cannot enforce anything (an OpenRouter upstream that ignores the
-   * field, a self-hosted build without guided decoding) validation still runs,
+   * `response_format`, and the Anthropic adapter translates it into a forced
+   * tool call. Where a route cannot enforce anything (an OpenRouter upstream
+   * that ignores the field) validation still runs,
    * so the contract is the same everywhere: one repair retry, then a typed
    * {@link LlmStructuredOutputError} carrying the zod issues. There is no
    * silent fallback — an unusable answer is the caller's decision to make.
@@ -385,52 +330,12 @@ export class LlmDispatcherService {
   }
 
   /**
-   * Streaming chat completion with automatic provider routing and BYOK key resolution.
-   */
-  async streamChatCompletion(
-    params: OpenRouterChatCompletionParams,
-    organizationId?: string,
-  ): Promise<ReadableStream<string>> {
-    const { apiKeyOverride, provider } = await this.resolveRoute(
-      params.model,
-      organizationId,
-    );
-
-    // Local vLLM — bypass BYOK, route directly
-    if (provider === 'local') {
-      return this.openAiLlmService.streamChatCompletion(
-        params,
-        undefined,
-        String(this.configService.get('GPU_LLM_URL') || ''),
-      );
-    }
-
-    switch (provider) {
-      case 'anthropic':
-        return this.anthropicService.streamChatCompletion(
-          params,
-          apiKeyOverride,
-        );
-      case 'openai':
-        return this.openAiLlmService.streamChatCompletion(
-          params,
-          apiKeyOverride,
-        );
-      default:
-        return this.openRouterService.streamChatCompletion(
-          params,
-          apiKeyOverride,
-        );
-    }
-  }
-
-  /**
    * Real incremental streaming chat completion. Surfaces text deltas through
    * `onToken` as the model generates them and resolves with the same
    * OpenRouter-shaped aggregated response `chatCompletion` returns (text +
    * tool calls + usage), so the caller's tool loop and accounting are
-   * unchanged. Reuses the same provider routing, BYOK resolution, local-vLLM
-   * warm-up, and 401-refresh behaviour as `chatCompletion`.
+   * unchanged. Reuses the same provider routing, BYOK resolution, and
+   * 401-refresh behaviour as `chatCompletion`.
    */
   async streamChatCompletionAggregated(
     params: OpenRouterChatCompletionParams,
@@ -442,17 +347,6 @@ export class LlmDispatcherService {
       params.model,
       organizationId,
     );
-
-    if (provider === 'local') {
-      return this.dispatchWithTelemetry(
-        () => this.callLocalProviderStreaming(params, onToken),
-        params,
-        organizationId,
-        provider,
-        false,
-        callContext,
-      );
-    }
 
     if (apiKeyOverride) {
       this.loggerService.log(
@@ -649,71 +543,6 @@ export class LlmDispatcherService {
     const value = error as { status?: number; response?: { status?: number } };
     const status = value.status ?? value.response?.status;
     return status === 400 || status === 404 || status === 422 || status === 429;
-  }
-
-  /**
-   * Streaming variant of {@link callLocalProvider}: streams from the configured
-   * vLLM server, falling back to the cheapest OpenRouter model when GPU_LLM_URL is
-   * unset.
-   */
-  private async callLocalProviderStreaming(
-    params: OpenRouterChatCompletionParams,
-    onToken?: OpenRouterStreamTokenHandler,
-  ): Promise<OpenRouterChatCompletionResponse> {
-    const llmUrl = String(this.configService.get('GPU_LLM_URL') || '');
-
-    if (!llmUrl) {
-      this.loggerService.warn(
-        `${this.constructorName}: GPU_LLM_URL not configured — streaming falls back to ${SELF_HOSTED_FALLBACK_MODEL}`,
-      );
-      return this.openRouterService.streamChatCompletionAggregated(
-        { ...params, model: SELF_HOSTED_FALLBACK_MODEL },
-        undefined,
-        onToken,
-      );
-    }
-
-    this.loggerService.log(
-      `${this.constructorName}: Streaming ${params.model} → local vLLM at ${llmUrl}`,
-    );
-
-    return this.openAiLlmService.streamChatCompletionAggregated(
-      params,
-      undefined,
-      onToken,
-      `${llmUrl}/v1`,
-    );
-  }
-
-  /**
-   * Route to the configured vLLM server (OpenAI-compatible API). Its host is
-   * run by the operator; Genfeed never starts or stops it.
-   * Falls back to the cheapest catalogued model if GPU_LLM_URL is not configured.
-   */
-  private async callLocalProvider(
-    params: OpenRouterChatCompletionParams,
-  ): Promise<OpenRouterChatCompletionResponse> {
-    const llmUrl = String(this.configService.get('GPU_LLM_URL') || '');
-
-    if (!llmUrl) {
-      this.loggerService.warn(
-        `${this.constructorName}: GPU_LLM_URL not configured — falling back to ${SELF_HOSTED_FALLBACK_MODEL}`,
-      );
-      return this.openRouterService.chatCompletion({
-        ...params,
-        model: SELF_HOSTED_FALLBACK_MODEL,
-      });
-    }
-
-    this.loggerService.log(
-      `${this.constructorName}: Routing ${params.model} → local vLLM at ${llmUrl}`,
-    );
-
-    return this.openAiLlmService.chatCompletion(
-      params,
-      undefined,
-      `${llmUrl}/v1`,
-    );
   }
 
   private isUnauthorizedError(error: unknown): boolean {

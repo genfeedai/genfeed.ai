@@ -16,7 +16,7 @@ const VENDOR_FAMILY_ALIASES: Record<string, string> = {
   'x-ai': 'xai',
 };
 
-/** Prefixes that route to many families; `local/<name>` is resolved by name. */
+/** Prefixes that route to many families. */
 const UNRESOLVABLE_PREFIXES = new Set([
   'fal',
   'fal-ai',
@@ -24,15 +24,6 @@ const UNRESOLVABLE_PREFIXES = new Set([
   'openrouter',
   'replicate',
 ]);
-
-/** Self-hosted `local/` models carry the upstream family in the model name. */
-const LOCAL_MODEL_FAMILIES: Array<[prefix: string, family: string]> = [
-  ['deepseek', 'deepseek'],
-  ['gemma', 'google'],
-  ['llama', 'meta'],
-  ['mistral', 'mistral'],
-  ['qwen', 'qwen'],
-];
 
 export class CrossFamilyViolationError extends Error {
   constructor(message: string) {
@@ -45,14 +36,6 @@ export function resolveModelFamily(registryKey: string): string | null {
   const [prefix, name] = registryKey.trim().toLowerCase().split('/', 2);
   if (!prefix || !name) {
     return null;
-  }
-
-  if (prefix === 'local') {
-    return (
-      LOCAL_MODEL_FAMILIES.find(([localPrefix]) =>
-        name.startsWith(localPrefix),
-      )?.[1] ?? null
-    );
   }
 
   if (UNRESOLVABLE_PREFIXES.has(prefix)) {

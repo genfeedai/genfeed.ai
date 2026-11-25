@@ -111,17 +111,6 @@ describe('OpenAiLlmService', () => {
       expect(callArgs.model).toBe('gpt-5.6-terra');
     });
 
-    it('should strip the local/ prefix from model name', async () => {
-      mockCreate.mockResolvedValue(makeOpenAIResponse());
-
-      await service.chatCompletion(
-        makeParams({ model: 'local/llama3-instruct' }),
-      );
-
-      const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
-      expect(callArgs.model).toBe('llama3-instruct');
-    });
-
     it('should omit temperature and max_tokens for reasoning models (o3)', async () => {
       mockCreate.mockResolvedValue(makeOpenAIResponse());
 
@@ -263,22 +252,6 @@ describe('OpenAiLlmService', () => {
       await expect(service.streamChatCompletion(makeParams())).rejects.toThrow(
         'Missing provider key: OPENAI_API_KEY',
       );
-    });
-
-    it('should use baseURL when provided (bypass API key check)', async () => {
-      async function* asyncGen() {
-        yield { choices: [{ delta: { content: 'x' } }] };
-      }
-      mockCreate.mockResolvedValue(asyncGen());
-      configService.get.mockReturnValue(undefined as never);
-
-      const stream = await service.streamChatCompletion(
-        makeParams(),
-        undefined,
-        'http://local-llm:8080/v1',
-      );
-
-      expect(stream).toBeInstanceOf(ReadableStream);
     });
   });
 

@@ -48,7 +48,6 @@ function createService(options?: {
 }): AgentOrchestratorContextService {
   return new AgentOrchestratorContextService(
     {
-      getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
       resolveModelKey: vi.fn().mockResolvedValue('test-model'),
       resolveOverrideModelKey: vi.fn().mockResolvedValue('test-model'),
     } as never,
@@ -92,7 +91,6 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
     const assembleContext = vi.fn().mockResolvedValue(null);
     const service = new AgentOrchestratorContextService(
       {
-        getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
         resolveModelKey: vi.fn().mockResolvedValue('test-model'),
         resolveOverrideModelKey: vi.fn().mockResolvedValue('test-model'),
       } as never,
@@ -146,7 +144,6 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
       const assembleContext = vi.fn().mockResolvedValue(null);
       const service = new AgentOrchestratorContextService(
         {
-          getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
           resolveModelKey: vi.fn().mockResolvedValue('test-model'),
           resolveOverrideModelKey: vi.fn().mockResolvedValue('test-model'),
         } as never,
@@ -638,7 +635,6 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
   }): {
     modelAccess: { enforceModel: ReturnType<typeof vi.fn> };
     registry: {
-      getLocalDefaultModelKey: ReturnType<typeof vi.fn>;
       resolveModelKey: ReturnType<typeof vi.fn>;
       resolveOverrideModelKey: ReturnType<typeof vi.fn>;
     };
@@ -651,7 +647,6 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       ),
     };
     const registry = {
-      getLocalDefaultModelKey: vi.fn().mockResolvedValue('local-default-model'),
       resolveModelKey: vi.fn().mockResolvedValue('resolved-model'),
       resolveOverrideModelKey: vi.fn().mockResolvedValue('resolved-model'),
     };
