@@ -63,6 +63,12 @@ export type IoRedisRetryStrategy = (retries: number) => number | null;
 
 export interface IoRedisConnectionOptions {
   connectTimeout?: number;
+  /**
+   * ioredis queues commands while disconnected by default. Pass `false` for a
+   * client whose callers fail open, so they get an error at once instead of
+   * waiting for the reconnect.
+   */
+  enableOfflineQueue?: boolean;
   /** Defaults to true — caller must invoke `.connect()` explicitly (matches prior node-redis usage). */
   lazyConnect?: boolean;
   retryStrategy?: IoRedisRetryStrategy;
@@ -96,6 +102,18 @@ const bullMQWorkerRetryStrategy: IoRedisRetryStrategy = (retries: number) => {
     BULLMQ_WORKER_MIN_RETRY_DELAY_MS,
   );
 };
+
+const RECONNECT_MIN_DELAY_MS = 100;
+const RECONNECT_MAX_DELAY_MS = 30_000;
+
+/**
+ * Reconnect delay for a client that must outlive a Redis failover or engine
+ * patch. ioredis treats a non-number as "stop", which parks the client at
+ * `status: 'end'` for the life of the process: every later command fails with
+ * "Connection is closed" until the process restarts.
+ */
+export const redisReconnectBackoff: IoRedisRetryStrategy = (retries) =>
+  Math.min(RECONNECT_MIN_DELAY_MS * 2 ** retries, RECONNECT_MAX_DELAY_MS);
 
 /**
  * Staging mirrors production so the Redis-restart recovery path can be verified
@@ -233,6 +251,9 @@ export function buildIoRedisClientOptions(
   return {
     connectTimeout: options.connectTimeout ?? 3_000,
     ...(config.db !== undefined && { db: config.db }),
+    ...(options.enableOfflineQueue !== undefined && {
+      enableOfflineQueue: options.enableOfflineQueue,
+    }),
     host: config.host,
     lazyConnect: options.lazyConnect ?? true,
     ...(config.password && { password: config.password }),

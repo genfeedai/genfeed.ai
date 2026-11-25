@@ -151,6 +151,46 @@ describe('RedisService', () => {
     );
   });
 
+  it('keeps reconnecting after the first connection, with a capped backoff', async () => {
+    const publisher = buildMockClient();
+    const subscriber = buildMockClient();
+
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
+
+    createService();
+    await service.onModuleInit();
+
+    const options = vi.mocked(Redis).mock.calls[0][0] as unknown as {
+      enableOfflineQueue: boolean;
+      retryStrategy: (retries: number) => number | null;
+    };
+
+    expect(options.enableOfflineQueue).toBe(false);
+    expect([0, 1, 5, 20, 1000].map(options.retryStrategy)).toEqual([
+      100, 200, 3_200, 30_000, 30_000,
+    ]);
+  });
+
+  it('does not retry in the background when the first connection fails', async () => {
+    const publisher = buildMockClient();
+    publisher.connect.mockRejectedValueOnce(new Error('publisher failed'));
+
+    vi.mocked(Redis).mockImplementationOnce(
+      () => publisher as unknown as Redis,
+    );
+
+    createService();
+    await service.onModuleInit();
+
+    const options = vi.mocked(Redis).mock.calls[0][0] as unknown as {
+      retryStrategy: (retries: number) => number | null;
+    };
+
+    expect(options.retryStrategy(0)).toBeNull();
+  });
+
   it('should warn and stay disabled when Redis connect fails', async () => {
     const publisher = buildMockClient();
     const subscriber = buildMockClient();
