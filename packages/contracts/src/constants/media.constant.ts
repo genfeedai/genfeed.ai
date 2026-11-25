@@ -59,6 +59,11 @@ export const CLIPPER_REFERENCE_FRAME_MAX_CANDIDATES = 5;
 export const CLIPPER_SOURCE_MIN_DURATION_SECONDS = 15;
 /** Maximum source duration accepted by clip ingestion and materialization. */
 export const CLIPPER_SOURCE_MAX_DURATION_SECONDS = 6 * 60 * 60;
+/**
+ * Longest YouTube source a free public tool accepts. Every run pays for
+ * transcription, so a source over this is refused before it is downloaded.
+ */
+export const PUBLIC_TOOL_SOURCE_MAX_DURATION_SECONDS = 60 * 60;
 /** Supports materializing multi-hour clip sources before downstream processing. */
 export const YT_DLP_PROCESS_TIMEOUT_MS = 30 * 60_000;
 export const CLIPPER_REFERENCE_FRAME_JOB_TIMEOUT_MS =

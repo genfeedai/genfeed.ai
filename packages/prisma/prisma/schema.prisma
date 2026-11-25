@@ -1192,6 +1192,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   backgroundColor          String       @default("transparent")
   colorPalette             Json         @default("[]")
   fontRoles                Json         @default("{}")
+  /// The look of the brand's images and video. Text generation never reads it.
+  visualDirection          String?
   referenceImages          Json         @default("[]")
   scope                    AssetScope   @default(USER)
   isActive                 Boolean      @default(true)
@@ -1199,6 +1201,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   isDeleted                Boolean      @default(false)
   isHighlighted            Boolean      @default(false)
   isFleetEnabled           Boolean      @default(false)
+  // Owner's choice to show reach and post metrics on the public profile.
+  isPublicAnalyticsEnabled Boolean      @default(true)
   /// Distinct visitors to the public profile, at most one per visitor a day.
   profileViewCount         Int          @default(0)
   defaultVideoModel        String?

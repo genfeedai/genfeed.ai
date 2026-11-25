@@ -74,6 +74,16 @@ export class CreateBrandDto {
   readonly text?: string;
 
   @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  @ApiProperty({
+    description:
+      'The look of the brand images and video, in plain sentences. Image and video generation use it; text generation does not.',
+    required: false,
+  })
+  readonly visualDirection?: string;
+
+  @IsString()
   @ApiProperty({
     default: FontFamily.MONTSERRAT_BLACK,
     description: 'The font family to use for text overlays',
@@ -135,6 +145,16 @@ export class CreateBrandDto {
     required: false,
   })
   readonly isFleetEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description:
+      'Whether the public profile shows reach and post metrics (likes, comments, reposts)',
+    required: false,
+  })
+  readonly isPublicAnalyticsEnabled?: boolean;
 
   @IsString()
   @IsOptional()

@@ -276,6 +276,38 @@ describe('ClipperAnalysisWorkflowService', () => {
       expect.anything(),
     );
   });
+  it('hands the source length limit of a free public run to the files service', async () => {
+    http.post.mockReturnValue(of({ data: {} }));
+    const prepare = actions.get('clipper.analysis.prepare-source');
+
+    await expect(
+      prepare?.({
+        input: {
+          job: {
+            maxSourceDurationSeconds: 3600,
+            orgId: 'org-1',
+            projectId: 'project-1',
+            userId: 'user-1',
+            youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45',
+          },
+        },
+      } as never),
+    ).rejects.toThrow(/jobId/);
+
+    expect(http.post).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/files/process/video'),
+      expect.objectContaining({
+        params: {
+          inputPath: 'https://www.youtube.com/watch?v=abc123def45',
+          materializeSource: true,
+          maxDurationSeconds: 3600,
+        },
+        type: 'video-to-audio',
+      }),
+      expect.anything(),
+    );
+  });
+
   it.each([
     [
       'an uploaded audio file by its storage key',

@@ -52,9 +52,7 @@ describe('DesktopDragStrip', () => {
     expect(strip?.className).not.toContain('backdrop-blur');
     expect(strip?.className).not.toContain('bg-background/');
     expect(strip).toHaveClass('bg-background');
-    expect(strip?.className).toContain(
-      '[body:has([data-shell-chrome=true])_&]:bg-gray-100',
-    );
+    expect(strip?.className).not.toContain('bg-gray-100');
   });
 
   it('yields to the shell topbar when it is the window titlebar', () => {

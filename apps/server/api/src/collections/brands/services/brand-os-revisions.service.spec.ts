@@ -277,6 +277,26 @@ describe('BrandOsRevisionsService', () => {
     });
   });
 
+  it('saves the visual direction on the brand and the draft revision, apart from the writing guidance', async () => {
+    const { brandWrites, service } = harness([row()]);
+
+    const result = await service.applyVisualIdentity(ORG, BRAND, {
+      visualDirection: 'Oil painting, monochrome.',
+    });
+
+    expect(brandWrites).toEqual([
+      { visualDirection: 'Oil painting, monochrome.' },
+    ]);
+    expect(result.content.fields.visualDirection).toMatchObject({
+      currentValue: 'Oil painting, monochrome.',
+      group: 'visual',
+      ownerPath: 'brand.visualDirection',
+    });
+    expect(result.content.fields.promptGuidelines?.currentValue).not.toBe(
+      'Oil painting, monochrome.',
+    );
+  });
+
   it('refuses an invalid palette before saving any visual fields', async () => {
     const { brandWrites, service } = harness([row()]);
 
@@ -498,6 +518,53 @@ describe('BrandOsRevisionsService', () => {
       expect(tx.brand.update).not.toHaveBeenCalled();
     },
   );
+
+  describe('required text context budget', () => {
+    function withGuidelines(length: number): BrandOsRevision {
+      const content = draft();
+      content.generationRules = rules();
+      const field = content.fields.promptGuidelines;
+      if (!field) throw new Error('The draft has no promptGuidelines field');
+      field.currentValue = 'g'.repeat(length);
+      return {
+        ...row('long', 2),
+        content: content as unknown as Prisma.JsonValue,
+      };
+    }
+
+    it('refuses to approve a kit whose required text exceeds the budget, naming the field and the overflow', async () => {
+      const { service, rows } = harness([withGuidelines(6200)]);
+      const hash = hashBrandGenerationRulesReviewV1(rules());
+      const outcome = await service
+        .approve(ORG, BRAND, 'long', USER, TIMESTAMP.toISOString(), hash)
+        .catch((error: unknown) => error);
+      expect(outcome).toBeInstanceOf(ConflictException);
+      expect((outcome as ConflictException).getResponse()).toMatchObject({
+        code: 'brand_kit_required_context_too_long',
+        fields: expect.arrayContaining([
+          { characters: 6202, field: 'promptGuidelines' },
+        ]),
+        maxCharacters: 6000,
+        message: expect.stringContaining('promptGuidelines (6,202 characters)'),
+      });
+      expect(rows[0].status).toBe(BrandOsRevisionStatus.DRAFT);
+    });
+
+    it('approves a kit that sits just under the budget', async () => {
+      const { service } = harness([withGuidelines(4000)]);
+      const hash = hashBrandGenerationRulesReviewV1(rules());
+      await expect(
+        service.approve(
+          ORG,
+          BRAND,
+          'long',
+          USER,
+          TIMESTAMP.toISOString(),
+          hash,
+        ),
+      ).resolves.toMatchObject({ status: BrandOsRevisionStatus.APPROVED });
+    });
+  });
 
   it('rejects a well formed mismatch and preserves approval, content, digest and version history', async () => {
     const initial = [

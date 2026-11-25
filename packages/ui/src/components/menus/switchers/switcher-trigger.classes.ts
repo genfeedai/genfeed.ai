@@ -1,11 +1,11 @@
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 
 /**
  * Shared chrome for org + brand labeled switchers so the topbar / sidebar
  * header don't drift (different px, gap, avatar size, label weight).
  */
-export const SWITCHER_TRIGGER_CLASSNAME =
-  'flex h-8 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2.5 text-left transition-colors duration-150 hover:bg-foreground/5';
+export const SWITCHER_TRIGGER_CLASSNAME = `flex h-8 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2.5 text-left transition-colors duration-150 hover:bg-foreground/5 ${SHELL_CHROME_FOCUS_CLASS}`;
 
 export const SWITCHER_TRIGGER_OPEN_CLASSNAME = 'bg-foreground/5';
 
@@ -24,8 +24,7 @@ export const SWITCHER_COMPOSITE_SHELL_CLASSNAME =
   'group flex h-8 w-full min-w-0 items-center rounded-md transition-colors duration-150 hover:bg-foreground/5';
 
 /** Trigger segment inside the composite shell (no own hover fill). */
-export const SWITCHER_COMPOSITE_TRIGGER_CLASSNAME =
-  'flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-l-md px-2.5 text-left';
+export const SWITCHER_COMPOSITE_TRIGGER_CLASSNAME = `flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-l-md px-2.5 text-left ${SHELL_CHROME_FOCUS_CLASS}`;
 
 /**
  * Clear segment — hairline divider only, no second bordered control.
@@ -36,7 +35,7 @@ export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
   'flex h-8 w-7 flex-shrink-0 items-center justify-center rounded-r-md border-l',
   'text-muted-foreground transition-[opacity,color,background-color,border-color] duration-150',
   'hover:bg-foreground/5 hover:text-foreground',
-  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+  SHELL_CHROME_FOCUS_CLASS,
   'disabled:cursor-not-allowed disabled:opacity-50',
   'border-foreground/10',
   '[@media(hover:hover)]:border-transparent',

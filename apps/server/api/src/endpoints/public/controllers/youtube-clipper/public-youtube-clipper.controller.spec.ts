@@ -105,8 +105,23 @@ describe('PublicYoutubeClipperController', () => {
     );
   });
 
+  it('caps a day of free clipper runs across every caller', () => {
+    expect(
+      Reflect.getMetadata(
+        RATE_LIMIT_KEY,
+        PublicYoutubeClipperController.prototype.create,
+      ),
+    ).toEqual([
+      { limit: 3, scope: 'ip', windowMs: 3_600_000 },
+      expect.objectContaining({
+        limit: 100,
+        scope: 'global',
+        windowMs: 86_400_000,
+      }),
+    ]);
+  });
+
   it.each([
-    ['create', PublicYoutubeClipperController.prototype.create, 3, 3_600_000],
     ['read', PublicYoutubeClipperController.prototype.read, 60, 60_000],
     ['preview', PublicYoutubeClipperController.prototype.preview, 1, 3_600_000],
   ] as const)(
