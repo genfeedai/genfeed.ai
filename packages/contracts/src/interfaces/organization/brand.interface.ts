@@ -77,6 +77,8 @@ export interface IBrand extends IBaseEntity {
   colorPalette?: BrandPaletteColor[];
   /** The font for headings, body text and captions. */
   fontRoles?: BrandFontRoles;
+  /** The look of the brand's images and video. Text generation never reads it. */
+  visualDirection?: string;
 
   voice?: string;
   music?: string;
@@ -113,6 +115,8 @@ export interface IBrand extends IBaseEntity {
   isVerified: boolean;
   isDefault: boolean;
   isFleetEnabled: boolean;
+  /** Show reach and post metrics on the public profile; on unless the owner turns it off. */
+  isPublicAnalyticsEnabled?: boolean;
   scope: AssetScope;
   isActive: boolean;
   isHighlighted?: boolean;

@@ -787,19 +787,17 @@ describe('UniversalWorkspaceShell', () => {
       within(sidebar).getByTestId('context-sidebar-outlet'),
     ).toHaveTextContent('Asset detail');
 
-    // No header and no close control: the topbar's Context toggle closes it.
-    // The selection is plain content.
-    expect(within(sidebar).queryByTestId('context-sidebar-close')).toBeNull();
+    // One 48px header row holds the title and the panel toggle (the topbar's
+    // Context toggle closes it too). No chat header, no collapse control.
+    const header = within(sidebar).getByTestId('context-sidebar-header');
+    expect(header).toHaveClass('h-12', 'border-b');
+    expect(
+      within(header).getByRole('button', { name: 'Close details' }),
+    ).toBeInTheDocument();
     expect(
       within(sidebar).queryByRole('button', { name: 'Collapse details' }),
     ).toBeNull();
     expect(within(sidebar).queryByTestId('workspace-panel-header')).toBeNull();
-    expect(
-      within(sidebar).queryByRole('button', { name: 'Close panel' }),
-    ).toBeNull();
-    expect(
-      within(sidebar).getByTestId('context-sidebar-title').closest('.border-b'),
-    ).toBeNull();
 
     act(() => contextHandle.current?.close());
 
@@ -847,7 +845,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).toHaveStyle({
       minWidth: '0px',
       width: '0px',
-      right: 'var(--shell-inset, 0px)',
+      right: '0px',
     });
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
@@ -892,23 +890,17 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: flush against the page block, its left border the divider and its
-    // left corners square; the panel starts under the full-width topbar.
-    expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
+    // Open: flush against the page, its left border the divider, no rounding.
+    // The panel runs the full window height, beside the topbar.
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('400px');
-    expect(aside).toHaveClass(
-      'bg-background',
-      'rounded-l-none',
-      'border',
-      'border-border',
-    );
-    expect(aside).not.toHaveClass('border-l', 'border-border-strong');
+    expect(aside).toHaveClass('bg-background', 'border-l', 'border-border');
+    expect(aside).not.toHaveClass('rounded-lg', 'rounded-l-none');
     expect(aside).toHaveStyle({
-      bottom: 'var(--shell-inset, 0px)',
-      right: 'var(--shell-inset, 0px)',
-      top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
+      bottom: '0px',
+      right: '0px',
+      top: 'var(--desktop-titlebar-height)',
       width: '400px',
     });
     expect(aside).toHaveAttribute('data-motion', 'layout');
@@ -936,11 +928,10 @@ describe('UniversalWorkspaceShell', () => {
 
     act(() => contextHandle.current?.close());
 
-    expect(layoutRoot).toHaveAttribute('data-inspector-open', 'false');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('0px');
-    expect(aside).not.toHaveClass('border');
+    expect(aside).not.toHaveClass('border-l');
     expect(aside).toHaveStyle({
       minWidth: '0px',
       width: '0px',

@@ -17,6 +17,7 @@ import {
   readChannelSettingString,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolveYouTubeUploadVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { YOUTUBE_AI_GENERATED_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/youtube-publishing.contract';
 import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -203,8 +204,18 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
     // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
     // and YouTube rejects the field when it is absent rather than defaulting.
-    const audienceConfig =
-      madeForKids === undefined ? {} : { selfDeclaredMadeForKids: madeForKids };
+    // `containsSyntheticMedia` is the altered or synthetic content disclosure;
+    // like the audience field it stays off the request when the setting is absent.
+    const synthetic = readChannelSettingBoolean(
+      settings,
+      YOUTUBE_AI_GENERATED_SETTING_KEY,
+    );
+    const audienceConfig = {
+      ...(madeForKids === undefined
+        ? {}
+        : { selfDeclaredMadeForKids: madeForKids }),
+      ...(synthetic === undefined ? {} : { containsSyntheticMedia: synthetic }),
+    };
 
     if (!hasFutureScheduledDate) {
       return { ...audienceConfig, privacyStatus: requestedPrivacy };

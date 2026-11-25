@@ -13,6 +13,7 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly musicIngredientId: string | null;
   declare readonly isDefault: boolean;
   declare readonly isFleetEnabled: boolean;
+  declare readonly isPublicAnalyticsEnabled: boolean;
 
   declare readonly logo?: string;
   declare readonly banner?: string;
@@ -47,6 +48,7 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly backgroundColor: BrandDocument['backgroundColor'];
   declare readonly colorPalette: BrandDocument['colorPalette'];
   declare readonly fontRoles: BrandDocument['fontRoles'];
+  declare readonly visualDirection: BrandDocument['visualDirection'];
 
   declare readonly defaultVideoModel: BrandDocument['defaultVideoModel'];
   declare readonly defaultImageModel: BrandDocument['defaultImageModel'];

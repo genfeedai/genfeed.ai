@@ -335,6 +335,9 @@ function buildIdentitySnapshot(
         ? {}
         : { guidelines: value('promptGuidelines') }),
     },
+    ...(value('visualDirection') === undefined
+      ? {}
+      : { visualDirection: value('visualDirection') }),
     generationRules,
     diagnostics: [],
   };

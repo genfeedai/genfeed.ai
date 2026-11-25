@@ -1,4 +1,8 @@
 import {
+  PUBLIC_YOUTUBE_CLIPPER_DAILY_RUNS,
+  publicToolDailyLimit,
+} from '@api/endpoints/public/constants/public-tool-daily-limits.constant';
+import {
   CreatePublicYoutubeClipperDto,
   CreatePublicYoutubeClipperPreviewDto,
 } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.dto';
@@ -33,7 +37,10 @@ export class PublicYoutubeClipperController {
   @HttpCode(HttpStatus.ACCEPTED)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
-  @RateLimit({ limit: 3, scope: 'ip', windowMs: 60 * 60 * 1000 })
+  @RateLimit([
+    { limit: 3, scope: 'ip', windowMs: 60 * 60 * 1000 },
+    publicToolDailyLimit(PUBLIC_YOUTUBE_CLIPPER_DAILY_RUNS, 'YouTube clipper'),
+  ])
   async create(
     @Req() request: Request,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
