@@ -32,6 +32,13 @@ const ROOT_PATTERN = /^[A-Za-z]+\./u;
 const STRINGS_PATTERN = /strings: JSON\.parse\(("(?:[^"\\]|\\.)*")\),/u;
 const GRAPH_PATTERN = /graph: "([A-Za-z0-9_-]*)"/u;
 
+/** A filter whose every edge is a value: nothing is below it to keep or cut. */
+function isLeafFilter(edges) {
+  return (
+    edges.length > 0 && edges.every((edge) => edge.childNodeId === undefined)
+  );
+}
+
 /** How many nested levels of a root's types the graph keeps; undefined drops it. */
 export function keptDepth(rootName) {
   return ROOT_PATTERN.test(rootName) ? READ_DEPTH : undefined;
@@ -196,9 +203,17 @@ export function pruneGraph(graph, depthOf) {
         if (edge.childNodeId === undefined) continue;
         // Below the root's own arguments, follow only the filters of scalar
         // fields (`{ in: [...] }`), not the where-inputs of related models,
-        // which is where most of the graph is.
+        // which is where most of the graph is. A Json field takes no bare
+        // value, so its edge has an empty scalar mask: it is told apart by its
+        // filter, a node of scalar-valued edges with no child below it. Cut,
+        // `{ receipts: { equals: [...] } }` matched no row.
         const isDeep = depth < READ_DEPTH;
-        if (isDeep && edge.scalarMask === 0 && edge.enumNameIndex === undefined)
+        if (
+          isDeep &&
+          edge.scalarMask === 0 &&
+          edge.enumNameIndex === undefined &&
+          !isLeafFilter(graph.inputNodes[edge.childNodeId])
+        )
           continue;
         pending.push(['input', edge.childNodeId, depth - 1]);
       }
