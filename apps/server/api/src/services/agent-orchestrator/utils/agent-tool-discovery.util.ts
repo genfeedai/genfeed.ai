@@ -1,4 +1,8 @@
-import type { OpenRouterTool } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import type {
+  OpenRouterMessage,
+  OpenRouterTool,
+  OpenRouterToolCallResponse,
+} from '@api/services/integrations/openrouter/dto/openrouter.dto';
 
 /** Name of the meta tool the model calls to load tools outside its core set. */
 export const FIND_TOOLS_TOOL_NAME = 'find_tools';
@@ -134,8 +138,34 @@ export class TurnToolset {
     if (this.isLazy && this.byName.has(name)) this.loaded.add(name);
   }
 
-  isFindTools(name: string): boolean {
-    return this.isLazy && name === FIND_TOOLS_TOOL_NAME;
+  /**
+   * Answers a `find_tools` call as the tool message for the model, and loads
+   * what it finds. `find_tools` is local to the turn, so it has no credit,
+   * confirmation or tool-card path. Returns null for any other call.
+   */
+  answerFindTools(
+    toolCall: OpenRouterToolCallResponse,
+  ): OpenRouterMessage | null {
+    if (!this.isLazy || toolCall.function.name !== FIND_TOOLS_TOOL_NAME)
+      return null;
+    let args: { limit?: unknown; query?: unknown } = {};
+    try {
+      args = JSON.parse(toolCall.function.arguments);
+    } catch {
+      // An unreadable argument string is an empty query, and nothing matches it.
+    }
+    const result = this.find(
+      typeof args.query === 'string' ? args.query : '',
+      typeof args.limit === 'number' ? args.limit : undefined,
+    );
+    return {
+      content: JSON.stringify({
+        data: { found: result.found, message: result.message },
+        success: true,
+      }),
+      role: 'tool',
+      tool_call_id: toolCall.id,
+    };
   }
 
   /** Matches the pool against a query and loads what it finds. */
