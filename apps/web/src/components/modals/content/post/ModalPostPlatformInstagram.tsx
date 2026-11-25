@@ -4,6 +4,7 @@ import { PostCategory } from '@genfeedai/contracts';
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   config: IPostPlatformConfig;
@@ -21,8 +22,10 @@ export default function ModalPostPlatformInstagram({
   isLoading,
   updatePlatformConfig,
 }: Props) {
-  const radioValue =
-    config.category === PostCategory.IMAGE
+  const translate = useTranslations('ui.instagramPostType');
+  const radioValue = config.isStory
+    ? 'story'
+    : config.category === PostCategory.IMAGE
       ? 'image'
       : config.isShareToFeedSelected
         ? 'video-feed'
@@ -33,10 +36,20 @@ export default function ModalPostPlatformInstagram({
       return;
     }
 
+    // A Story keeps the media's own category: it is one image or one video.
+    if (value === 'story') {
+      updatePlatformConfig(config.credentialId, {
+        isShareToFeedSelected: false,
+        isStory: true,
+      });
+      return;
+    }
+
     if (value === 'image') {
       updatePlatformConfig(config.credentialId, {
         category: PostCategory.IMAGE,
         isShareToFeedSelected: false,
+        isStory: false,
       });
       return;
     }
@@ -44,12 +57,13 @@ export default function ModalPostPlatformInstagram({
     updatePlatformConfig(config.credentialId, {
       category: PostCategory.VIDEO,
       isShareToFeedSelected: value === 'video-feed',
+      isStory: false,
     });
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium">Instagram Post Type</p>
+      <p className="text-sm font-medium">{translate('heading')}</p>
 
       <RadioGroup
         className="space-y-2"
@@ -65,7 +79,7 @@ export default function ModalPostPlatformInstagram({
             id={`${config.credentialId}-instagram-image`}
             value="image"
           />
-          <span className="text-sm">Image Post</span>
+          <span className="text-sm">{translate('image')}</span>
         </Label>
 
         <Label
@@ -76,7 +90,7 @@ export default function ModalPostPlatformInstagram({
             id={`${config.credentialId}-instagram-video-only`}
             value="video-only"
           />
-          <span className="text-sm">Reel only</span>
+          <span className="text-sm">{translate('reelOnly')}</span>
         </Label>
 
         <Label
@@ -87,7 +101,18 @@ export default function ModalPostPlatformInstagram({
             id={`${config.credentialId}-instagram-video-feed`}
             value="video-feed"
           />
-          <span className="text-sm">Reel + Feed</span>
+          <span className="text-sm">{translate('reelFeed')}</span>
+        </Label>
+
+        <Label
+          className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
+          htmlFor={`${config.credentialId}-instagram-story`}
+        >
+          <RadioGroupItem
+            id={`${config.credentialId}-instagram-story`}
+            value="story"
+          />
+          <span className="text-sm">{translate('story')}</span>
         </Label>
       </RadioGroup>
     </div>

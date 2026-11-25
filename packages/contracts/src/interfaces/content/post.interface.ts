@@ -171,6 +171,8 @@ export interface IPostPlatformConfig {
   isCredentialValid?: boolean;
   category?: PostCategory;
   isShareToFeedSelected?: boolean;
+  /** Instagram only: publish as a Story instead of a post or Reel. */
+  isStory?: boolean;
   referenceState?: string;
   signatureIds?: string[];
 }

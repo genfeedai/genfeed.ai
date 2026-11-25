@@ -10,6 +10,11 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostPlatformCard from '@/components/modals/content/post/ModalPostPlatformCard';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 function renderCard(scheduleTimezone: string) {
   const config: IPostPlatformConfig = {
     credentialId: 'cred-instagram',
