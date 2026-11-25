@@ -24,6 +24,15 @@ export const API_KEY_POST_CREATION_SCOPES = [
   ApiKeyScope.POSTS_PUBLISH,
 ] as const;
 
+/**
+ * Drafting and generating post content: any scope that creates a post, plus
+ * `admin`, which keys minted for the desktop shell and server tooling carry.
+ */
+export const API_KEY_POST_DRAFTING_SCOPES = [
+  ...API_KEY_POST_CREATION_SCOPES,
+  ApiKeyScope.ADMIN,
+] as const;
+
 /** Every scope that publishes on a channel; each implies reading its posts and accounts. */
 const API_KEY_PUBLISHING_WRITE_SCOPES = [
   ApiKeyScope.POSTS_DRAFT,
