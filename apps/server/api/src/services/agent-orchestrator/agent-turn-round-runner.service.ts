@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { agentToolCreditFloor } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { isOrchestratorBilledAgentTool } from '@api/services/agent-orchestrator/constants/agent-tool-billing-mode.constant';
 import type {
   AgentChatContext,
   AgentChatRequest,
@@ -40,6 +42,12 @@ import {
   resolveTerminalToolOutcome,
   type TerminalToolOutcome,
 } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
+import {
+  type AgentToolCreditHold,
+  releaseAgentToolCredits,
+  reserveAgentToolCredits,
+  settleAgentToolCredits,
+} from '@api/services/agent-orchestrator/utils/agent-tool-credit-hold.util';
 import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
 import { buildToolResultSummary } from '@api/services/agent-orchestrator/utils/agent-tool-result-summary.util';
 import { buildUnknownToolRecoveryParams } from '@api/services/agent-orchestrator/utils/agent-unknown-tool-recovery.util';
@@ -182,6 +190,22 @@ export class AgentTurnRoundRunnerService {
         input.preflightCreditCost,
       );
     if (canAfford) return false;
+    await this.recordInsufficientCredits(input);
+    return true;
+  }
+
+  private async recordInsufficientCredits(input: {
+    context: AgentChatContext;
+    messages: ExecuteToolRoundParams['messages'];
+    preflightCreditCost: number;
+    requestedToolName: CuratedActionName;
+    startTime: number;
+    state: AgentToolRoundState;
+    strategy: AgentToolRoundStrategy;
+    toolCallId: string;
+    toolName: string;
+    toolParams: Record<string, unknown>;
+  }): Promise<void> {
     const durationMs = Date.now() - input.startTime;
     const error = `Insufficient credits (need ${input.preflightCreditCost})`;
     const summary: ToolCallSummary = {
@@ -211,7 +235,6 @@ export class AgentTurnRoundRunnerService {
       role: 'tool' as const,
       tool_call_id: input.toolCallId,
     });
-    return true;
   }
 
   private async recordUnknownToolFailure(input: {
@@ -373,21 +396,79 @@ export class AgentTurnRoundRunnerService {
       },
     );
 
-    const result = await this.executeToolUntilSettled(
-      params,
-      toolName,
-      preparedToolCall,
-    );
+    // Hold the price before the tool starts: the affordability check above is
+    // a read, so concurrent calls on a balance that pays for one would all
+    // pass it. A tool that bills itself takes its own hold instead.
+    let hold: AgentToolCreditHold | null = null;
+    if (invocation.creditCost > 0 && isOrchestratorBilledAgentTool(toolName)) {
+      hold = await reserveAgentToolCredits({
+        actorUserId: context.userId,
+        amount: invocation.creditCost,
+        brandId: context.scope?.brandId,
+        credits: this.creditsUtilsService,
+        idempotencyKey: `${context.executionId ?? threadId}:agent-tool:${randomUUID()}`,
+        organizationId: context.organizationId,
+        toolName,
+      });
+      if (!hold) {
+        await this.recordInsufficientCredits({
+          context,
+          messages,
+          preflightCreditCost,
+          requestedToolName,
+          startTime,
+          state,
+          strategy,
+          toolCallId: toolCall.id,
+          toolName,
+          toolParams: invocation.toolParams,
+        });
+        return { kind: 'skipped' };
+      }
+    }
+
+    let result: AgentToolResult | null;
+    try {
+      result = await this.executeToolUntilSettled(
+        params,
+        toolName,
+        preparedToolCall,
+      );
+    } catch (error: unknown) {
+      await this.releaseToolHold(hold, context.organizationId);
+      throw error;
+    }
     if (!result) {
+      await this.releaseToolHold(hold, context.organizationId);
       return {
         kind: 'cancelled',
         result: { isCancelled: true, wasInterrupted: true },
       };
     }
 
-    return this.recordExecutedToolCall(params, toolCall, {
-      invocation: { ...invocation, toolParams: preparedToolCall.parameters },
-      result,
+    try {
+      return await this.recordExecutedToolCall(params, toolCall, {
+        hold,
+        invocation: { ...invocation, toolParams: preparedToolCall.parameters },
+        result,
+      });
+    } catch (error: unknown) {
+      // A settled hold cannot be released again, so this only frees a hold the
+      // billing step never reached.
+      await this.releaseToolHold(hold, context.organizationId);
+      throw error;
+    }
+  }
+
+  private async releaseToolHold(
+    hold: AgentToolCreditHold | null,
+    organizationId: string,
+  ): Promise<void> {
+    if (!hold) return;
+    await releaseAgentToolCredits({
+      credits: this.creditsUtilsService,
+      hold,
+      organizationId,
     });
   }
 
@@ -604,7 +685,11 @@ export class AgentTurnRoundRunnerService {
   private async recordExecutedToolCall(
     params: ExecuteToolRoundParams,
     toolCall: OpenRouterToolCallResponse,
-    executed: { invocation: ToolInvocation; result: AgentToolResult },
+    executed: {
+      hold: AgentToolCreditHold | null;
+      invocation: ToolInvocation;
+      result: AgentToolResult;
+    },
   ): Promise<ToolCallOutcome> {
     const {
       context,
@@ -614,7 +699,7 @@ export class AgentTurnRoundRunnerService {
       strategy = {},
       threadId,
     } = params;
-    const { invocation, result } = executed;
+    const { hold, invocation, result } = executed;
     const { creditCost, requestedToolName, startTime, toolName, toolParams } =
       invocation;
     const modelVisibleResult =
@@ -647,7 +732,16 @@ export class AgentTurnRoundRunnerService {
       ? Math.max(0, result.creditsUsed ?? 0)
       : 0;
 
-    if (isOrchestratorBilled) {
+    if (hold && isOrchestratorBilled) {
+      await settleAgentToolCredits({
+        actorUserId: context.userId,
+        credits: this.creditsUtilsService,
+        hold,
+        organizationId: context.organizationId,
+        toolName,
+      });
+      state.totalCreditsUsed += creditCost;
+    } else if (isOrchestratorBilled) {
       await this.creditsUtilsService.deductCreditsFromOrganization(
         context.organizationId,
         context.userId,
@@ -657,8 +751,10 @@ export class AgentTurnRoundRunnerService {
         { brandId: context.scope?.brandId },
       );
       state.totalCreditsUsed += creditCost;
-    } else if (delegatedCredits > 0) {
-      state.totalCreditsUsed += delegatedCredits;
+    } else {
+      // A failed tool, a pending approval, or a tool that billed itself.
+      await this.releaseToolHold(hold, context.organizationId);
+      if (delegatedCredits > 0) state.totalCreditsUsed += delegatedCredits;
     }
 
     const summary: ToolCallSummary = {
