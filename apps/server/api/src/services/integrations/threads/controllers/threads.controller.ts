@@ -10,7 +10,6 @@ import {
   claimOAuthVerifyCredential,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
-import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -21,11 +20,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import {
-  ApiKeyScope,
-  CredentialPlatform,
-  OAuthGrantType,
-} from '@genfeedai/contracts';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { THREADS_GRAPH_URL } from '@genfeedai/integrations';
 import {
@@ -107,7 +102,6 @@ export class ThreadsController {
    * Step 1: Get Threads OAuth URL for user to connect their account.
    */
   @Post('connect')
-  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -161,7 +155,6 @@ export class ThreadsController {
    * Step 2: Handle the OAuth callback, exchange code for access token
    */
   @Post('verify')
-  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,

@@ -13,7 +13,6 @@ import {
   claimOAuthVerifyCredential,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
-import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -32,7 +31,7 @@ import {
   throwMappedInstagramOAuthError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { INSTAGRAM_UNIFIED_LOGIN_DIALOG_URL } from '@genfeedai/integrations';
 import {
@@ -78,7 +77,6 @@ export class InstagramController {
    * This will allow us to request permissions to publish on their behalf.
    */
   @Post('connect')
-  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -183,7 +181,6 @@ export class InstagramController {
    * shell plus the failure-stage bookkeeping for observability.
    */
   @Post('verify')
-  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
@@ -339,7 +336,6 @@ export class InstagramController {
    * so a client cannot claim an account the token does not authorize.
    */
   @Post(':credentialId/select-account')
-  @RequiredScopes(ApiKeyScope.ADMIN)
   async selectAccount(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -466,7 +462,6 @@ export class InstagramController {
   }
 
   @Post(':credentialId/authorized-signals/refresh')
-  @RequiredScopes(ApiKeyScope.ADMIN)
   async refreshAuthorizedSignals(
     @Req() request: Request,
     @CurrentUser() user: User,

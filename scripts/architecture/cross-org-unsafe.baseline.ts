@@ -302,13 +302,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin content-learning account inventory and health.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 77,
+      line: 79,
     },
     // #8168: superadmin prompt slot outcome report reads the organizations
     // named in the query, one organizationId-scoped query per organization.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 123,
+      line: 125,
     },
     // #6120: platform emergency pause locates any organization's learning
     // account.
@@ -386,7 +386,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin operates on a bot in any organization.
     {
       file: 'apps/server/api/src/collections/bots/controllers/bots.controller.ts',
-      line: 296,
+      line: 302,
     },
     // #6120: superadmin list of another organization's credentials.
     {
@@ -448,12 +448,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads another organization's blacklist entry.
     {
       file: 'apps/server/api/src/collections/elements/blacklists/controllers/blacklists.controller.ts',
-      line: 144,
+      line: 147,
     },
     // #6120: superadmin edits another organization's blacklist entry.
     {
       file: 'apps/server/api/src/collections/elements/blacklists/controllers/blacklists.controller.ts',
-      line: 167,
+      line: 170,
     },
     // #6120: superadmin names a foreign organization.
     {
@@ -463,21 +463,21 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads any organization's folder.
     {
       file: 'apps/server/api/src/collections/folders/controllers/folders.controller.ts',
-      line: 88,
+      line: 90,
     },
     // #6120: superadmin-only CRUD over platform (organization-less) font
     // families.
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 80,
+      line: 82,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 106,
+      line: 110,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 120,
+      line: 125,
     },
     // #6120: superadmin may read any organization's article (findOne,
     // createPreviewLink).
@@ -501,7 +501,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 306,
+      line: 310,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).
