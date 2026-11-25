@@ -7,6 +7,7 @@ import { assertRedactedGenerationBriefEvidence } from '@api/services/generation-
 import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { nanoBanana2DispatchSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { REVIEWED_RATE_SHEET_ENTRIES } from '@genfeedai/pricing';
 import { describe, expect, it } from 'vitest';
 
 const fixturesDir = join(
@@ -154,7 +155,7 @@ describe('compileNanoBanana2GenerationBrief', () => {
     expect(brief).toEqual(original);
   });
 
-  it('compiles Nano Banana 2, 2.1, and 2 Lite from their own profiles and never sets a dispatch resolution', () => {
+  it('compiles Nano Banana 2, 2.1, and 2 Lite from their own profiles and dispatches the default resolution tier of the ones that have one', () => {
     const brief = imageGenerationBriefSchema.parse(
       readFixture('unbranded.input.json'),
     );
@@ -181,11 +182,11 @@ describe('compileNanoBanana2GenerationBrief', () => {
     expect(nanoBanana2LiteResult.evidence.profileId).toBe(
       'nano-banana-2-lite-capability',
     );
-    // `resolution: { supported: true }` on their capability profile, but the
-    // brief carries no resolution-tier value to map onto it, so the dispatch
-    // never sets `resolution`.
-    expect(nanoBanana2Result.dispatch).not.toHaveProperty('resolution');
-    expect(nanoBanana21Result.dispatch).not.toHaveProperty('resolution');
+    // The brief carries no resolution-tier value, so a model whose profile
+    // supports resolution dispatches Replicate's default tier, the one its
+    // reviewed rates price. Lite has no resolution input.
+    expect(nanoBanana2Result.dispatch.resolution).toBe('1K');
+    expect(nanoBanana21Result.dispatch.resolution).toBe('1K');
     expect(nanoBanana2LiteResult.dispatch).not.toHaveProperty('resolution');
     // Only Nano Banana Pro has a `safetyFilterLevel` default; the other
     // siblings must omit the field entirely rather than dispatch `undefined`.
@@ -199,4 +200,33 @@ describe('compileNanoBanana2GenerationBrief', () => {
       'safety_filter_level',
     );
   });
+
+  // API-GENFEED-AI-BE: the compiled dispatch is what admission quotes. With no
+  // resolution on it, no reviewed per-tier rate matched and onboarding images
+  // failed with "Unpriced or ambiguous variant: output".
+  it.each(
+    REVIEWED_RATE_SHEET_ENTRIES.filter(
+      (entry) =>
+        entry.provider === 'replicate' &&
+        entry.endpoint.startsWith('google/nano-banana') &&
+        entry.rates.some((rate) => 'resolution' in rate.when),
+    ).map((entry) => [
+      entry.endpoint,
+      entry.rates.map((rate) => rate.when.resolution),
+    ]),
+  )(
+    'dispatches %s at a resolution its reviewed rates price',
+    (modelKey, tiers) => {
+      const brief = imageGenerationBriefSchema.parse(
+        readFixture('unbranded.input.json'),
+      );
+
+      const { dispatch } = compileNanoBanana2GenerationBrief({
+        brief,
+        modelKey: String(modelKey),
+      });
+
+      expect(tiers).toContain(dispatch.resolution);
+    },
+  );
 });
