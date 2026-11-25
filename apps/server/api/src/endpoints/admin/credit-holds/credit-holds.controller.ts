@@ -1,9 +1,10 @@
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { CreditHoldRecoveryAction } from '@genfeedai/contracts';
+import { ApiKeyScope, CreditHoldRecoveryAction } from '@genfeedai/contracts';
 import { CreditHoldReportSerializer } from '@genfeedai/serializers';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
@@ -53,6 +54,7 @@ export class AdminCreditHoldsController {
   }
 
   @Post(':reservationId/actions')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async act(
     @Req() request: Request,
