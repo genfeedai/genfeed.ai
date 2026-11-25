@@ -319,6 +319,38 @@ export class AgentTurnRoundRunnerService {
     };
   }
 
+  /**
+   * `find_tools` is local to the turn: it loads matching tools into the next
+   * rounds' request and costs nothing, so it has no credit, confirmation or
+   * tool-card path.
+   */
+  private answerFindTools(
+    params: ExecuteToolRoundParams,
+    toolCall: OpenRouterToolCallResponse,
+  ): void {
+    let query = '';
+    let limit: number | undefined;
+    try {
+      const args = JSON.parse(toolCall.function.arguments) as {
+        limit?: unknown;
+        query?: unknown;
+      };
+      query = typeof args.query === 'string' ? args.query : '';
+      limit = typeof args.limit === 'number' ? args.limit : undefined;
+    } catch {
+      // An unreadable argument string is an empty query: the answer says nothing matched.
+    }
+    const result = params.toolset?.find(query, limit);
+    params.messages.push({
+      content: JSON.stringify({
+        data: { found: result?.found ?? [], message: result?.message },
+        success: true,
+      }),
+      role: 'tool' as const,
+      tool_call_id: toolCall.id,
+    });
+  }
+
   private async runToolCall(
     params: ExecuteToolRoundParams,
     toolCall: OpenRouterToolCallResponse,
@@ -332,12 +364,20 @@ export class AgentTurnRoundRunnerService {
       }
     }
 
+    if (params.toolset?.isFindTools(toolCall.function.name)) {
+      this.answerFindTools(params, toolCall);
+      return { kind: 'skipped' };
+    }
+
     const invocation = await this.resolveToolInvocation(params, toolCall);
     if (!invocation) {
       return { kind: 'skipped' };
     }
     const { preflightCreditCost, requestedToolName, startTime, toolName } =
       invocation;
+    // A tool called by name stays in the later rounds' request, so a second
+    // step that needs it again does not have to search first.
+    params.toolset?.load(toolName);
 
     assertAgentCreditBudget(
       context,
