@@ -162,10 +162,12 @@ describe('RedisService', () => {
     createService();
     await service.onModuleInit();
 
-    const options = vi.mocked(Redis).mock.calls[0][0] as unknown as {
-      enableOfflineQueue: boolean;
-      retryStrategy: (retries: number) => number | null;
-    };
+    const [options] = vi.mocked(Redis).mock.calls[0] as unknown as [
+      {
+        enableOfflineQueue: boolean;
+        retryStrategy: (retries: number) => number | null;
+      },
+    ];
 
     expect(options.enableOfflineQueue).toBe(false);
     expect([0, 1, 5, 20, 1000].map(options.retryStrategy)).toEqual([
@@ -184,9 +186,9 @@ describe('RedisService', () => {
     createService();
     await service.onModuleInit();
 
-    const options = vi.mocked(Redis).mock.calls[0][0] as unknown as {
-      retryStrategy: (retries: number) => number | null;
-    };
+    const [options] = vi.mocked(Redis).mock.calls[0] as unknown as [
+      { retryStrategy: (retries: number) => number | null },
+    ];
 
     expect(options.retryStrategy(0)).toBeNull();
   });
