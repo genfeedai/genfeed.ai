@@ -4,7 +4,10 @@ import {
   CONTENT_QUALITY_SCORING_SCHEMA_NAME,
   contentQualityScoringSchema,
 } from '@genfeedai/contracts/api-types/contracts';
-import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import {
+  AGENT_CHAT_MODEL_KEYS,
+  LLM_DEFAULTS,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   FixtureRow,
@@ -37,8 +40,9 @@ import {
 } from './judges';
 import type { CalibrationPlan } from './types';
 
-const CROSS_MODEL = 'openai/gpt-5.6-luna';
-const GOOGLE_MODEL = 'google/gemini-3.6-flash';
+const CROSS_MODEL: string = AGENT_CHAT_MODEL_KEYS.GPT_6_LUNA;
+// Same family as both production profiles' default models (anthropic).
+const SAME_FAMILY_MODEL: string = AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5;
 const OUTPUT = 'Our skillet is here. Shop now.';
 const CRITERIA =
   'Brand evaluation criteria (score against these as well):\n- Calm voice.';
@@ -317,13 +321,13 @@ describe('production judge arms', () => {
 });
 
 describe('buildArmSpecs', () => {
-  it('keeps D-2 arm order and records a same-family cross key once', () => {
+  it('keeps D-2 arm order and records a same-family cross key once per profile', () => {
     const { arms, skippedCrossFamily } = buildArmSpecs({
       dispatcherKind: 'stub',
       harnessJudgeKeys: [CROSS_MODEL, DEFAULT_TEXT_MODEL],
       plan: plan({
         brandContext: { brands: {}, schemaVersion: 1 },
-        crossFamilyModels: [CROSS_MODEL, GOOGLE_MODEL],
+        crossFamilyModels: [CROSS_MODEL, SAME_FAMILY_MODEL],
         productionProfiles: ['evaluations', 'content-quality'],
       }),
     });
@@ -333,7 +337,6 @@ describe('buildArmSpecs', () => {
       `content-quality+criteria@${LLM_DEFAULTS.background}`,
       `evaluations@${DEFAULT_TEXT_MODEL}`,
       `evaluations@${CROSS_MODEL}`,
-      `evaluations@${GOOGLE_MODEL}`,
       `harness-rubric@${CROSS_MODEL}`,
       `harness-rubric@${DEFAULT_TEXT_MODEL}`,
     ]);
@@ -345,7 +348,6 @@ describe('buildArmSpecs', () => {
       false,
       false,
       false,
-      false,
     ]);
     expect(arms.map((arm) => arm.promptSource)).toEqual([
       'production-code',
@@ -353,24 +355,27 @@ describe('buildArmSpecs', () => {
       'production-code',
       'stub-stand-in',
       'stub-stand-in',
-      'stub-stand-in',
       'harness',
       'harness',
     ]);
     expect(arms.map((arm) => arm.family)).toEqual([
-      'google',
-      'openai',
-      'google',
       'anthropic',
       'openai',
-      'google',
+      'anthropic',
+      'anthropic',
+      'openai',
       'openai',
       'anthropic',
     ]);
     expect(skippedCrossFamily).toEqual([
       {
-        model: GOOGLE_MODEL,
+        model: SAME_FAMILY_MODEL,
         profileId: 'content-quality',
+        reason: 'same-family',
+      },
+      {
+        model: SAME_FAMILY_MODEL,
+        profileId: 'evaluations',
         reason: 'same-family',
       },
     ]);
