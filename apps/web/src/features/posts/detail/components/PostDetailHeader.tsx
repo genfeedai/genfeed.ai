@@ -57,7 +57,8 @@ export interface PostDetailHeaderProps {
   isExpandingToThread?: boolean;
   onViewModeChange: (mode: 'edit' | 'preview') => void;
   onDelete: () => void;
-  onCreateRemix?: () => void;
+  /** Where Remix opens; a link, so the destination is prepared like any other. */
+  remixHref?: string;
   onDuplicate?: () => void;
   onExpandToThread?: (count: 2 | 3 | 5) => void;
   onRepurpose?: () => void;
@@ -103,7 +104,7 @@ export default function PostDetailHeader({
   isExpandingToThread = false,
   onViewModeChange,
   onDelete,
-  onCreateRemix,
+  remixHref,
   onDuplicate: _onDuplicate,
   onExpandToThread,
   onRepurpose,
@@ -202,12 +203,12 @@ export default function PostDetailHeader({
       });
     }
 
-    if (canCreateRemix && onCreateRemix) {
+    if (canCreateRemix && remixHref) {
       actions.push({
+        href: remixHref,
         icon: <Copy className="size-4" />,
         id: 'remix',
         label: translate('remix'),
-        onSelect: onCreateRemix,
       });
     }
 
@@ -276,11 +277,11 @@ export default function PostDetailHeader({
     isEditable,
     isExpandingToThread,
     onAskAgent,
-    onCreateRemix,
     onDelete,
     onRepurpose,
     onViewModeChange,
     post,
+    remixHref,
     showViewModeToggle,
     translate,
     viewMode,

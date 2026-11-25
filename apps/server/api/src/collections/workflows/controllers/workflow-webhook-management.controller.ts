@@ -7,10 +7,11 @@ import { WorkflowWebhookService } from '@api/collections/workflows/services/work
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
-import { WorkflowWebhookAuthType } from '@genfeedai/contracts';
+import { ApiKeyScope, WorkflowWebhookAuthType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -48,6 +49,7 @@ export class WorkflowWebhookManagementController {
   }
 
   @Post(':workflowId/webhook')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateWebhook(
     @Param('workflowId') workflowId: string,
@@ -82,6 +84,7 @@ export class WorkflowWebhookManagementController {
    * 'webhook not configured' guard is preserved.
    */
   @Patch(':workflowId/webhook')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async patchWebhook(
     @Param('workflowId') workflowId: string,
@@ -118,6 +121,7 @@ export class WorkflowWebhookManagementController {
   }
 
   @Delete(':workflowId/webhook')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async deleteWebhook(
     @Param('workflowId') workflowId: string,

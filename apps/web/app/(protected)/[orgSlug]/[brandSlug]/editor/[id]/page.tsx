@@ -1,11 +1,17 @@
-import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/editor-detail-surface';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { Suspense } from 'react';
 import type { DetailPageProps } from '@/props/pages/page.props';
+import EditorDetailContent from './editor-detail-content';
 
 export const generateMetadata = createPageMetadata('Editor');
 
-export default async function EditorDetailPage({ params }: DetailPageProps) {
-  const { id } = await params;
-
-  return <EditorDetailSurface projectId={id} />;
+// The id is read inside the boundary: awaiting it at the top of the page makes
+// the whole route a request-time hole, so a prepared destination would still
+// wait for the server render on click.
+export default function EditorDetailPage({ params }: DetailPageProps) {
+  return (
+    <Suspense fallback={null}>
+      <EditorDetailContent params={params} />
+    </Suspense>
+  );
 }

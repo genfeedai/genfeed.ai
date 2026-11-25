@@ -62,7 +62,7 @@ describe('edgeSlice onNodesChange dirty semantics', () => {
     useWorkflowStore.getState().setDirty(false);
     useWorkflowStore
       .getState()
-      .onNodesChange([{ item: node, type: 'add' } as NodeChange<WorkflowNode>]);
+      .onNodesChange([{ id: node.id, item: node, type: 'add' }]);
     expect(useWorkflowStore.getState().isDirty).toBe(true);
   });
 

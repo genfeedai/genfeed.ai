@@ -22,7 +22,7 @@
     "@types/node": "26.6.6",
     "@types/react": "19.3.2",
     "@types/react-dom": "19.3.0",
-    "@xyflow/react": "12.12.1",
+    "@xyflow/react": "13.0.3",
     "jsdom": "29.1.1",
     "react": "19.3.1",
     "react-compare-slider": "4.0.0",
@@ -127,7 +127,7 @@
   "main": "./dist/index.js",
   "name": "@genfeedai/workflows",
   "peerDependencies": {
-    "@xyflow/react": ">=12.0.0",
+    "@xyflow/react": ">=13.0.0",
     "next": ">=14.0.0",
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0",

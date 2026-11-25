@@ -203,13 +203,6 @@ export default function OutreachCampaignsList() {
     router.push(createCampaignHref);
   }, [createCampaignHref, router]);
 
-  const handleConfigureCampaign = useCallback(
-    (campaign: OutreachCampaign) => {
-      router.push(href(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`));
-    },
-    [href, router],
-  );
-
   const handleDeleteCampaign = useCallback(
     async (campaign: OutreachCampaign) => {
       if (!confirm(`Are you sure you want to delete "${campaign.label}"?`)) {
@@ -299,7 +292,6 @@ export default function OutreachCampaignsList() {
           onStart={handleStartCampaign}
           onPause={handlePauseCampaign}
           onComplete={handleCompleteCampaign}
-          onConfigure={handleConfigureCampaign}
           onDelete={handleDeleteCampaign}
         />
         {!isLoading && pageCampaigns.length > 0 ? (

@@ -17,10 +17,12 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -34,6 +36,7 @@ import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util'
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import {
   AgentFailureReason,
+  ApiKeyScope,
   MemberRole,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -290,6 +293,7 @@ export class WorkflowExecutionsController {
   }
 
   @Patch('admin/failures/:id/resolution')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator('superadmin')
   @ApiOperation({ summary: 'Mark an agent failure as resolved or reopen it' })
   @ApiParam({ description: 'Execution ID', name: 'id' })
@@ -373,6 +377,7 @@ export class WorkflowExecutionsController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Create and start a new workflow execution' })
   @ApiResponse({ description: 'Execution created', status: 201 })
@@ -406,6 +411,7 @@ export class WorkflowExecutionsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @OrganizationModule('automation', 'cancel')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Update an execution (cancel a running execution)' })
