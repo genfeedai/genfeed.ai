@@ -138,6 +138,8 @@ interface StudioGenerationOptions {
   pinnedModelKey?: string;
   /** Submit the video's cheap draft settings instead of the real ones. */
   isDraft?: boolean;
+  /** The user removed every brand reference Studio showed; the server adds none. */
+  skipBrandReferences?: boolean;
 }
 
 interface StudioGenerationReferences {
@@ -1041,6 +1043,9 @@ export function useStudioGeneration({
                 ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
                 ...(options?.promptAuthor
                   ? { promptAuthor: options.promptAuthor }
+                  : {}),
+                ...(options?.skipBrandReferences
+                  ? { skipBrandReferences: true }
                   : {}),
               },
               promptData,

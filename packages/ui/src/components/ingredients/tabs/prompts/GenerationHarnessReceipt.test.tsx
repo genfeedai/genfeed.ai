@@ -1,3 +1,4 @@
+import type { GenerationBrandReferencesReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { render, screen } from '@testing-library/react';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { NextIntlClientProvider } from 'next-intl';
@@ -257,6 +258,37 @@ describe('GenerationHarnessReceipt', () => {
         'Not measured. A layer is placed over this output, so its final pixels are not proven.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it.each<[GenerationBrandReferencesReceipt, string]>([
+    [
+      { attachedAssetIds: ['style-1', 'product-1'] },
+      '2 brand references were added because none were attached.',
+    ],
+    [
+      { attachedAssetIds: ['style-1'] },
+      '1 brand reference was added because none were attached.',
+    ],
+    [
+      { attachedAssetIds: [], skippedReason: 'model_accepts_no_references' },
+      'None were added: this model does not accept reference images.',
+    ],
+  ])('says what the brand references did (%j)', (brandReferences, expected) => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{ ...brandedReceipt, brandReferences }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(screen.getByText('Brand references')).toBeInTheDocument();
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
+  it('shows no brand references note when the receipt records none', () => {
+    render(<GenerationHarnessReceipt receipt={brandedReceipt} />, {
+      wrapper: EnglishMessages,
+    });
+    expect(screen.queryByText('Brand references')).not.toBeInTheDocument();
   });
 
   it('shows no palette check until one was measured', () => {
