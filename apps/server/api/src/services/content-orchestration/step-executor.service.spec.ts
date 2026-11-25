@@ -59,8 +59,8 @@ describe('StepExecutorService', () => {
       textToSpeech: vi.fn(),
     };
     mockManagedInferenceRuntimeService = {
-      generateVideo: vi.fn(),
-      pollJob: vi.fn(),
+      generateManagedVideoForOrg: vi.fn(),
+      pollManagedJobForOrg: vi.fn(),
     };
     mockReplicateService = {
       getPrediction: vi.fn(),
@@ -533,10 +533,12 @@ describe('StepExecutorService', () => {
 
   describe('image-to-video - ComfyUI', () => {
     it('should route COMFYUI to ManagedInferenceRuntimeService and poll for completion', async () => {
-      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue({
-        jobId: 'job-123',
-      });
-      mockManagedInferenceRuntimeService.pollJob
+      mockManagedInferenceRuntimeService.generateManagedVideoForOrg.mockResolvedValue(
+        {
+          jobId: 'job-123',
+        },
+      );
+      mockManagedInferenceRuntimeService.pollManagedJobForOrg
         .mockResolvedValueOnce({ status: 'processing' })
         .mockResolvedValueOnce({
           output: { video_url: 'https://comfy.ai/video.mp4' },
@@ -565,19 +567,19 @@ describe('StepExecutorService', () => {
         url: 'https://comfy.ai/video.mp4',
       });
       expect(
-        mockManagedInferenceRuntimeService.generateVideo,
+        mockManagedInferenceRuntimeService.generateManagedVideoForOrg,
       ).toHaveBeenCalled();
-      expect(mockManagedInferenceRuntimeService.pollJob).toHaveBeenCalledWith(
-        'videos',
-        'job-123',
-        'org-123',
-      );
+      expect(
+        mockManagedInferenceRuntimeService.pollManagedJobForOrg,
+      ).toHaveBeenCalledWith('org-123', 'videos', 'job-123');
 
       setTimeoutSpy.mockRestore();
     });
 
     it('should throw when ManagedInferenceRuntimeService is not available', async () => {
-      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue(null);
+      mockManagedInferenceRuntimeService.generateManagedVideoForOrg.mockResolvedValue(
+        null,
+      );
 
       await expect(
         service.execute(
@@ -588,16 +590,20 @@ describe('StepExecutorService', () => {
           },
           baseContext,
         ),
-      ).rejects.toThrow('Fleet videos instance not available');
+      ).rejects.toThrow('Managed videos instance not available');
     });
 
     it('should throw when ComfyUI job fails', async () => {
-      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue({
-        jobId: 'job-fail',
-      });
-      mockManagedInferenceRuntimeService.pollJob.mockResolvedValue({
-        status: 'failed',
-      });
+      mockManagedInferenceRuntimeService.generateManagedVideoForOrg.mockResolvedValue(
+        {
+          jobId: 'job-fail',
+        },
+      );
+      mockManagedInferenceRuntimeService.pollManagedJobForOrg.mockResolvedValue(
+        {
+          status: 'failed',
+        },
+      );
       const setTimeoutSpy = vi
         .spyOn(globalThis, 'setTimeout')
         .mockImplementation(((callback: TimerHandler) => {
@@ -625,12 +631,16 @@ describe('StepExecutorService', () => {
     });
 
     it('should timeout after 10 minutes', async () => {
-      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue({
-        jobId: 'job-timeout',
-      });
-      mockManagedInferenceRuntimeService.pollJob.mockResolvedValue({
-        status: 'processing',
-      });
+      mockManagedInferenceRuntimeService.generateManagedVideoForOrg.mockResolvedValue(
+        {
+          jobId: 'job-timeout',
+        },
+      );
+      mockManagedInferenceRuntimeService.pollManagedJobForOrg.mockResolvedValue(
+        {
+          status: 'processing',
+        },
+      );
       const dateNowSpy = vi
         .spyOn(Date, 'now')
         .mockReturnValueOnce(0)

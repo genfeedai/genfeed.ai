@@ -588,7 +588,6 @@ describe('Library asset lifecycle', () => {
         { resolveApiKey: vi.fn() } as never,
         { deleteVoice: vi.fn() } as unknown as ElevenLabsService,
         { deleteVoice: vi.fn() } as never,
-        { cloneVoice: vi.fn(), isAvailable: vi.fn() } as never,
         logger,
         {
           publishAssetStatus: vi.fn(),

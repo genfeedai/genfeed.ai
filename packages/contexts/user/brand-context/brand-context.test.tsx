@@ -124,12 +124,6 @@ describe('BrandProvider', () => {
     fleetCapabilities: {
       brandEnabled: true,
       brandId: 'brand_123',
-      fleet: {
-        images: true,
-        llm: true,
-        videos: true,
-        voices: true,
-      },
       id: 'fleet-capabilities:org_123:brand_123',
       organizationId: 'org_123',
     },

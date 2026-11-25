@@ -320,13 +320,6 @@ export class OrganizationsSettingsController {
     return serializeSingle(req, FleetCapabilitiesSerializer, {
       brandEnabled: Boolean(brandSettings.isFleetEnabled),
       brandId,
-      // Public Core exposes the brand switch here without probing managed fleet runtime.
-      fleet: {
-        images: false,
-        llm: false,
-        videos: false,
-        voices: false,
-      },
       id: `fleet-capabilities:${resolvedOrganizationId}:${brandId}`,
       organizationId: resolvedOrganizationId,
     });

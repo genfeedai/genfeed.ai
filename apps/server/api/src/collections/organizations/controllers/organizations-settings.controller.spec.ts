@@ -901,12 +901,6 @@ describe('OrganizationsSettingsController', () => {
       expect(result).toMatchObject({
         brandEnabled: true,
         brandId,
-        fleet: {
-          images: false,
-          llm: false,
-          videos: false,
-          voices: false,
-        },
         id: `fleet-capabilities:${organizationId}:${brandId}`,
         organizationId,
       });

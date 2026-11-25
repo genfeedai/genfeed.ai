@@ -25,7 +25,6 @@ import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { CommonModule } from '@api/common/common.module';
 import { ArgilWebhookService } from '@api/endpoints/webhooks/argil/webhooks.argil.service';
-import { FleetWebhookService } from '@api/endpoints/webhooks/fleet/webhooks.fleet.service';
 import { GitHubWebhookService } from '@api/endpoints/webhooks/github/webhooks.github.service';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { HeygenWebhookVerificationService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.verification.service';
@@ -66,7 +65,6 @@ import { Module } from '@nestjs/common';
   exports: [
     ArgilModule,
     ArgilWebhookService,
-    FleetWebhookService,
     GitHubWebhookService,
     HeygenWebhookService,
     HeygenWebhookVerificationService,
@@ -123,7 +121,6 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ArgilWebhookService,
-    FleetWebhookService,
     ModelRegistrationService,
     GitHubWebhookService,
     HeygenWebhookService,

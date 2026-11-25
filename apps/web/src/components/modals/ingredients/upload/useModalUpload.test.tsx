@@ -52,9 +52,6 @@ const boundary = vi.hoisted(() => ({
   presigned: vi.fn(),
   isPresigned: true,
 }));
-vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ selectedBrand: null, fleetCapabilities: null }),
-}));
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => () =>
     Promise.resolve(factory('test-token')),

@@ -363,6 +363,38 @@ describe('AgentChatModelRegistryService.resolveOverrideModelKey', () => {
     );
   });
 
+  it.each(['local/qwen-32b', 'local/mistral-small'])(
+    'stops a stored %s override once its retired row is synced, so the key is never dispatched',
+    async (storedKey) => {
+      const service = buildService([
+        row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+        row({
+          isActive: false,
+          key: storedKey,
+          label: 'Retired local model',
+          lifecycle: ModelLifecycle.RETIRED,
+        }),
+      ]);
+
+      await expect(service.resolveOverrideModelKey(storedKey)).rejects.toThrow(
+        'The model Retired local model was retired. Pick a new model, then run it again.',
+      );
+    },
+  );
+
+  it.each(['local/qwen-32b', 'local/mistral-small'])(
+    'sends a stored %s override to the platform default before its retired row is synced',
+    async (storedKey) => {
+      const service = buildService([
+        row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+      ]);
+
+      await expect(service.resolveOverrideModelKey(storedKey)).resolves.toBe(
+        'recommended',
+      );
+    },
+  );
+
   it('falls back to the platform default and warns when an override resolves to an inactive model', async () => {
     const warn = vi.fn();
     const service = new AgentChatModelRegistryService(

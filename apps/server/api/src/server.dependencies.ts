@@ -70,7 +70,7 @@ export interface ServerByokResolver {
 export interface ServerCustomerInstanceResolver {
   findRunningForOrg(
     orgId: string,
-    role: 'images' | 'voices' | 'videos',
+    role: 'voices' | 'videos',
   ): Promise<{ apiUrl?: string | null } | null>;
 }
 
