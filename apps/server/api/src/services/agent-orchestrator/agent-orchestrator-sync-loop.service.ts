@@ -52,6 +52,7 @@ import {
   resolveBlockedTools,
   TURBO_RUN_SCOPED_ALLOWED_TOOLS,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
+import { createTurnToolset } from '@api/services/agent-orchestrator/utils/agent-tool-discovery.util';
 import {
   AGENT_UNPRODUCED_DRAFTS_INSTRUCTION,
   claimsUnproducedDrafts,
@@ -208,6 +209,7 @@ export class AgentOrchestratorSyncLoopService {
     try {
       const { allowedToolNames, messages, tools } =
         await this.prepareSyncTurnInputs(params);
+      const toolset = createTurnToolset(tools);
       let round = 0;
       let hasRequestedUnproducedDrafts = false;
 
@@ -221,7 +223,7 @@ export class AgentOrchestratorSyncLoopService {
             params,
             round,
             toolRoundState,
-            tools,
+            tools: toolset.roundTools(),
           });
 
         const choice = response.choices[0];
@@ -276,6 +278,7 @@ export class AgentOrchestratorSyncLoopService {
           thinkingModel: policy.thinkingModelOverride ?? model,
           threadId,
           toolCalls,
+          toolset,
         });
         loopState.terminalContent = toolRoundResult.terminalContent;
       }

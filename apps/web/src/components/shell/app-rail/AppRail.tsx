@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -85,7 +86,7 @@ function AppRailItem({
       : label;
   const itemClassName = cn(
     'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-    'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    SHELL_CHROME_FOCUS_CLASS,
     // Same motion and fills as the sidebar menu rows (one shared primitive).
     sidebarRowStateClassName(isActive, 'text-foreground/50'),
     isLocked && 'opacity-60',

@@ -16,6 +16,7 @@ import {
 } from '@api/collections/content-learning/services/learning-dataset-publication.fixture';
 import { LearningDatasetScaleFixture } from '@api/collections/content-learning/services/learning-dataset-scale.fixture';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import { linkLearningPublicationSource } from '@api/collections/content-learning/services/learning-publication-link.helper';
 import {
   learningPublicationDependencyRefsV1,
   resolveLearningPublicationSourceV1,
@@ -1231,6 +1232,78 @@ describe.skipIf(!explicitUrl)(
         datasetEdges.filter((edge) => edge.sourceKind === 'consent'),
       ).toHaveLength(10);
     }, 120000);
+
+    it('links every canonical publication edge in a bounded number of queries, replays them and rolls them back with the transaction', async () => {
+      await seed(1000);
+      const publication = publications[0];
+      const current = await resolveLearningPublicationSourceV1(
+        prisma,
+        'org-0',
+        publication.source.postId,
+      );
+      if (!current) throw new Error('Missing production current publication');
+      const checkpoint =
+        await prisma.contentLearningCheckpoint.findUniqueOrThrow({
+          where: { id: checkpointIds[0] },
+        });
+      const derived = {
+        kind: 'checkpoint' as const,
+        id: checkpoint.id,
+        organizationId: 'org-0',
+        version: String(checkpoint.revision),
+      };
+      const where = {
+        derivedKind: derived.kind,
+        derivedId: derived.id,
+        isDeleted: false,
+      };
+      const dependencies = new LearningDependencyService(
+        prisma as unknown as PrismaService,
+      );
+      await prisma.contentLearningDependency.deleteMany({ where });
+
+      const rolledBack = new Error('rolled back with the checkpoint');
+      await expect(
+        prisma.$transaction(async (tx) => {
+          await linkLearningPublicationSource(
+            dependencies,
+            tx,
+            current,
+            derived,
+          );
+          throw rolledBack;
+        }),
+      ).rejects.toBe(rolledBack);
+      expect(await prisma.contentLearningDependency.count({ where })).toBe(0);
+
+      const before = queryCount;
+      const created = await prisma.$transaction((tx) =>
+        linkLearningPublicationSource(dependencies, tx, current, derived),
+      );
+      // begin, derived pin, read, createMany, re-read and commit
+      expect(queryCount - before).toBeLessThanOrEqual(8);
+      expect(
+        created
+          .map((edge) => ({
+            kind: edge.sourceKind,
+            id: edge.sourceId,
+            version: edge.sourceVersion,
+            organizationId: edge.sourceOrganizationId,
+          }))
+          .sort((a, b) => a.kind.localeCompare(b.kind)),
+      ).toEqual(
+        [...publication.refs].sort((a, b) => a.kind.localeCompare(b.kind)),
+      );
+      expect(await prisma.contentLearningDependency.count({ where })).toBe(8);
+
+      const replayed = await prisma.$transaction((tx) =>
+        linkLearningPublicationSource(dependencies, tx, current, derived),
+      );
+      expect(replayed.map((edge) => edge.id).sort()).toEqual(
+        created.map((edge) => edge.id).sort(),
+      );
+      expect(await prisma.contentLearningDependency.count({ where })).toBe(8);
+    }, 180000);
 
     it('excludes publication authority corruption while standalone pin digest remains independent', async () => {
       await seed(1000);

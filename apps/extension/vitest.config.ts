@@ -72,6 +72,10 @@ export default defineConfig({
           extensionAppDir,
           '../../packages/ui/src/components/prompt-editor',
         ),
+        '@ui-constants': path.resolve(
+          extensionAppDir,
+          '../../packages/ui/src/components/constants',
+        ),
         '@ui': path.resolve(extensionAppDir, '../../packages/ui/src'),
         '~': path.resolve(extensionAppDir, './src'),
         '~components': path.resolve(extensionAppDir, './src/components'),

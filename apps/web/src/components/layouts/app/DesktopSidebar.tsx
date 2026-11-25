@@ -24,10 +24,17 @@ type DesktopSidebarProps = {
   children: ReactNode;
   collapsedWidth?: number;
   /**
-   * In-flow column inside the rounded content block. Fixed positioning would
-   * escape the block's overflow clip and sit on the window chrome instead.
+   * In-flow column of the content shell, the full window height beside the
+   * rail, with a 48px header row level with the topbar. Without a rail it is
+   * fixed instead.
    */
   embedded?: boolean;
+  /**
+   * The 48px top row of an embedded menu: level with the topbar and the rail's
+   * mark band, with the same bottom line. It holds the macOS window controls
+   * while the menu is open; empty otherwise.
+   */
+  header?: ReactNode;
   isCollapsed: boolean;
   isResizing?: boolean;
   onResizeKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
@@ -49,6 +56,7 @@ export default function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   embedded = false,
+  header = null,
   isCollapsed,
   isResizing = false,
   onResizeKeyDown,
@@ -85,12 +93,12 @@ export default function DesktopSidebar({
           ? 'none'
           : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
         width: widthStyle,
-        // Fixed only when the host has no rounded block to clip into.
+        // Fixed only when the host has no content shell to sit in.
         ...(embedded
           ? {}
           : {
               left: 'var(--desktop-rail-width, 0px)',
-              top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
+              top: 'var(--desktop-titlebar-height)',
             }),
       }}
     >
@@ -106,7 +114,17 @@ export default function DesktopSidebar({
           width: contentWidth,
         }}
       >
-        {children}
+        {embedded ? (
+          <div
+            className="flex h-[var(--shell-topbar-height)] shrink-0 items-center border-b border-border"
+            // Under the macOS traffic lights; it drags the window there.
+            data-desktop-drag="true"
+            data-testid="desktop-sidebar-header"
+          >
+            {header}
+          </div>
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
       {canResize ? (
         <Button

@@ -409,7 +409,17 @@ describe('AppProtectedTopbar', () => {
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
-    expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3', 'md:px-3');
+    expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3');
+    expect(topbarInner).not.toHaveClass('md:px-3');
+    // From lg the breadcrumb sits in the middle column of a 1fr / auto / 1fr
+    // grid, so it is centred in the row and the dropdowns have room.
+    expect(topbarInner).toHaveClass('lg:grid', 'lg:grid-cols-[1fr_auto_1fr]');
+    expect(
+      screen.getByTestId('app-protected-topbar-breadcrumb'),
+    ).toContainElement(breadcrumbs);
+    expect(screen.getByTestId('app-protected-topbar-breadcrumb')).toHaveClass(
+      'lg:justify-center',
+    );
     expect(topbarInner).not.toHaveClass('justify-center');
     expect(breadcrumbs).toHaveTextContent('Playground');
     expect(

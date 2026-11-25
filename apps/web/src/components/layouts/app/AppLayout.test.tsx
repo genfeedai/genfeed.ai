@@ -1,5 +1,11 @@
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -184,9 +190,7 @@ describe('AppLayout', () => {
     expect(rail).toHaveClass('fixed', 'bottom-0');
     expect(rail).toHaveStyle({
       left: 'var(--desktop-rail-width, 0px)',
-      // Shares the content surface's top inset so its header lines up with the
-      // topbar row.
-      top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
+      top: 'var(--desktop-titlebar-height)',
     });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(1);
     expect(screen.queryByTestId('desktop-app-rail')).not.toBeInTheDocument();
@@ -232,14 +236,17 @@ describe('AppLayout', () => {
       'left-0',
       'bottom-0',
       'w-[var(--desktop-rail-width)]',
-      // Same plane as the topbar, no divider.
+      // One step off the page, divided from it by a 1px right border.
       'bg-gray-100',
+      'border-r',
+      'border-border',
     );
-    expect(appRail).not.toHaveClass('border-r', 'bg-foreground/5');
+    expect(appRail).not.toHaveClass('bg-foreground/5');
     expect(appRail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(appRail).not.toHaveClass('pt-[var(--shell-topbar-height)]');
     const mark = screen.getByTestId('app-rail-mark');
     const collapse = screen.getByRole('button', { name: 'Collapse sidebar' });
+    expect(mark).toHaveClass('border-b', 'border-border');
     expect(mark).toContainElement(collapse);
     expect(collapse.querySelector('img')?.getAttribute('src')).toContain(
       'logo.svg',
@@ -259,10 +266,12 @@ describe('AppLayout', () => {
       '--desktop-rail-width': '48px',
       '--shell-topbar-height': '48px',
     });
-    // Desktop: the topbar sits on the chrome plane, outside the page.
+    // Desktop: the topbar sits on the page plane with a bottom line, outside
+    // the page block.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
       'fixed',
-      'bg-gray-100',
+      'bg-background',
+      'border-b',
       'md:static',
     );
     expect(screen.getByTestId('app-content-panel')).not.toContainElement(
@@ -270,7 +279,7 @@ describe('AppLayout', () => {
     );
   });
 
-  it('keeps the menu and page in one rounded block under a chrome topbar', () => {
+  it('keeps the menu and page in one flush block under a chrome topbar', () => {
     render(
       <AppLayout
         menuComponent={<MenuComponent />}
@@ -288,15 +297,12 @@ describe('AppLayout', () => {
     const sidebar = screen.getByTestId('desktop-sidebar-rail');
 
     expect(layoutRoot).toHaveClass(
-      'bg-gray-100',
-      '[--shell-inset:0px]',
-      '[--shell-edge:0px]',
-      'md:[--shell-inset:0.5rem]',
+      'bg-background',
       '[--shell-topbar-offset:var(--shell-topbar-height)]',
     );
-    expect(layoutRoot).not.toHaveClass('md:[--shell-edge:1px]');
-    // Shell starts after the rail. Inspector width is reserved on the panel,
-    // not the shell, so the topbar icons stay put.
+    expect(layoutRoot).not.toHaveClass('bg-gray-100');
+    // Shell starts after the rail. The topbar and the block each reserve the
+    // inspector's width, so the panel can run the full window height.
     expect(contentShell).toHaveClass(
       'md:pl-[var(--desktop-rail-width)]',
       'md:pt-[var(--desktop-titlebar-height)]',
@@ -309,41 +315,51 @@ describe('AppLayout', () => {
     expect(contentShell).not.toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
     );
-    // Menu and page share the rounded block. The topbar stays outside it.
+    // Menu and page share one flush block: no inset, border or rounding. The
+    // topbar stays outside it.
     expect(panel).toHaveClass(
       'bg-background',
-      'md:mb-[var(--shell-inset)]',
-      'md:mr-[var(--shell-inset)]',
-      'xl:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset))]',
-      'xl:[[data-inspector-open=true]_&]:rounded-r-none',
-      'xl:[[data-inspector-open=true]_&]:border-r-0',
+      'xl:mr-[var(--workspace-inspector-width,0px)]',
       'md:flex-row',
       'md:overflow-hidden',
+    );
+    expect(panel).not.toHaveClass(
       'md:rounded-lg',
       'md:border',
-      'md:border-border',
-    );
-    expect(panel).not.toHaveClass('md:ml-[var(--shell-inset)]');
-    // The inspector sits flush against the block: no extra gap when it opens,
-    // and the block keeps its bottom edge and inset.
-    expect(panel).not.toHaveClass(
-      'xl:[[data-inspector-open=true]_&]:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset)*2)]',
-      'xl:[[data-inspector-open=true]_&]:border-b-0',
-      'xl:[[data-inspector-open=true]_&]:mb-0',
+      'md:mb-[var(--shell-inset)]',
+      'md:mr-[var(--shell-inset)]',
     );
     expect(panel).toHaveAttribute('data-motion', 'layout');
     expect(panel.style.transition).toContain('margin-right');
-    expect(panel).toContainElement(sidebar);
+    // The menu is a column of the content shell, the full window height beside
+    // the rail: not inside the page block, and not under the topbar.
+    expect(contentShell).toContainElement(sidebar);
+    expect(panel).not.toContainElement(sidebar);
+    expect(
+      screen.getByTestId('app-topbar-shell').compareDocumentPosition(sidebar) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+    expect(contentShell).toHaveClass('md:flex-row');
     expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'after:bg-border');
     expect(sidebar).not.toHaveClass('fixed');
+    // Its first row is the topbar's height, with the same bottom line.
+    expect(screen.getByTestId('desktop-sidebar-header')).toHaveClass(
+      'h-[var(--shell-topbar-height)]',
+      'border-b',
+    );
     expect(panel).not.toContainElement(screen.getByTestId('app-topbar-shell'));
     expect(contentShell).toContainElement(
       screen.getByTestId('app-topbar-shell'),
     );
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'bg-gray-100',
-      'md:border-b-0',
+    // The topbar ends at the panel's left edge, with a bottom line.
+    const topbar = screen.getByTestId('app-topbar-shell');
+    expect(topbar).toHaveClass(
+      'bg-background',
+      'border-b',
+      'xl:mr-[var(--workspace-inspector-width,0px)]',
     );
+    expect(topbar).not.toHaveClass('md:border-b-0');
+    expect(topbar.style.transition).toContain('margin-right');
     expect(mainContent).toHaveClass(
       'md:overflow-y-auto',
       'md:pt-0',
@@ -746,7 +762,7 @@ describe('AppLayout desktop titlebar', () => {
     );
   });
 
-  it('makes the topbar the macOS titlebar with the controls after the traffic lights', () => {
+  it("puts the macOS window controls in the open menu's top row and moves them to the topbar when it collapses", () => {
     desktopGlobal.__GENFEED_RUNTIME_CONFIG__ = { clientSurface: 'desktop' };
     vi.stubGlobal('navigator', {
       platform: 'MacIntel',
@@ -762,9 +778,15 @@ describe('AppLayout desktop titlebar', () => {
       '--desktop-traffic-lights-inset': '76px',
     });
 
+    // The lights cover the rail's mark band, so the mark and the toggle sit in
+    // the menu's top row, which runs the full window height beside the rail.
     const controls = screen.getByTestId('desktop-titlebar-controls');
-    expect(screen.getByTestId('app-topbar-shell')).toContainElement(controls);
-    // The lights cover the rail's mark band, so its toggle moves here.
+    expect(screen.getByTestId('desktop-sidebar-header')).toContainElement(
+      controls,
+    );
+    expect(screen.getByTestId('app-topbar-shell')).not.toContainElement(
+      controls,
+    );
     expect(controls).toContainElement(
       screen.getByRole('button', { name: 'Collapse sidebar' }),
     );
@@ -774,6 +796,24 @@ describe('AppLayout desktop titlebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
     expect(routerMock.back).toHaveBeenCalledTimes(1);
     expect(routerMock.forward).toHaveBeenCalledTimes(1);
+
+    // Collapsed, the menu has no top row: the controls move into the topbar.
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    const collapsedControls = screen.getByTestId('desktop-titlebar-controls');
+    expect(screen.getByTestId('app-topbar-shell')).toContainElement(
+      collapsedControls,
+    );
+    expect(screen.getByTestId('desktop-sidebar-header')).not.toContainElement(
+      collapsedControls,
+    );
+    expect(
+      within(collapsedControls).getByRole('button', { name: 'Expand sidebar' }),
+    ).toBeInTheDocument();
+
+    // The collapsed state persists in storage; leave it as found.
+    fireEvent.click(
+      within(collapsedControls).getByRole('button', { name: 'Expand sidebar' }),
+    );
   });
 
   it('keeps the sidebar toggle in the rail on a native window frame', () => {

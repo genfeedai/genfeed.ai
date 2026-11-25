@@ -10,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import {
   CircleQuestionMark,
   type LucideIcon,
@@ -70,7 +71,8 @@ function RailLink({
           aria-label={label}
           className={cn(
             'inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-            'hover:bg-foreground/5 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            'hover:bg-foreground/5 hover:text-foreground',
+            SHELL_CHROME_FOCUS_CLASS,
             isActive ? 'bg-foreground/5 text-foreground' : 'text-foreground/50',
           )}
           data-testid={testId}
