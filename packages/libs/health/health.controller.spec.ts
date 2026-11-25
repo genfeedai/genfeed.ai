@@ -1,5 +1,7 @@
 import { HealthController } from '@libs/health/health.controller';
 import { HEALTH_CONTRIBUTOR } from '@libs/health/health-contributor.interface';
+import { RedisService } from '@libs/redis/redis.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('HealthController', () => {
@@ -284,6 +286,38 @@ describe('HealthController', () => {
     it('should return alive status', () => {
       const result = controller.live();
       expect(result).toHaveProperty('status', 'alive');
+    });
+  });
+
+  describe('Redis connection', () => {
+    const buildController = async (
+      hasClosedConnection: boolean,
+    ): Promise<HealthController> => {
+      const module = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: RedisService,
+            useValue: { hasClosedConnection: () => hasClosedConnection },
+          },
+        ],
+      }).compile();
+
+      return module.get(HealthController);
+    };
+
+    it('answers 503 on /health and /health/ready once a Redis client is closed for good', async () => {
+      const closed = await buildController(true);
+
+      expect(() => closed.check()).toThrow(ServiceUnavailableException);
+      expect(() => closed.ready()).toThrow(ServiceUnavailableException);
+    });
+
+    it('stays healthy while Redis is connected or only reconnecting', async () => {
+      const open = await buildController(false);
+
+      expect(open.check()).toHaveProperty('status', 'ok');
+      expect(open.ready()).toHaveProperty('status', 'ready');
     });
   });
 });
