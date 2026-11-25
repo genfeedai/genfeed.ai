@@ -11,7 +11,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 type ScopedRequest = Request & {
   auth?: { userId?: string };
@@ -27,19 +27,30 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const rateLimitOptions = this.reflector.get<RateLimitOptions>(
-      RATE_LIMIT_KEY,
-      context.getHandler(),
-    );
+    const configured = this.reflector.get<
+      RateLimitOptions | RateLimitOptions[] | undefined
+    >(RATE_LIMIT_KEY, context.getHandler());
 
     // If no rate limit is specified, allow the request
-    if (!rateLimitOptions) {
+    if (!configured) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest<ScopedRequest>();
     const response = context.switchToHttp().getResponse();
+    for (const options of Array.isArray(configured)
+      ? configured
+      : [configured]) {
+      await this.enforce(request, response, options);
+    }
+    return true;
+  }
 
+  private async enforce(
+    request: ScopedRequest,
+    response: Response,
+    rateLimitOptions: RateLimitOptions,
+  ): Promise<void> {
     const key = this.generateKey(request, rateLimitOptions);
 
     const windowMs = rateLimitOptions.windowMs || 60000; // Default 1 minute
@@ -53,21 +64,24 @@ export class RateLimitGuard implements CanActivate {
       await this.cacheService.expire(key, Math.ceil(windowMs / 1000));
     }
 
-    response.setHeader('X-RateLimit-Limit', limit);
-    response.setHeader(
-      'X-RateLimit-Remaining',
-      Math.max(0, limit - currentCount),
-    );
-    response.setHeader(
-      'X-RateLimit-Reset',
-      new Date(Date.now() + windowMs).toISOString(),
-    );
-    response.setHeader('RateLimit-Limit', limit);
-    response.setHeader(
-      'RateLimit-Remaining',
-      Math.max(0, limit - currentCount),
-    );
-    response.setHeader('RateLimit-Reset', Math.ceil(windowMs / 1000));
+    // A shared window says nothing about this caller's own allowance.
+    if (rateLimitOptions.scope !== 'global') {
+      response.setHeader('X-RateLimit-Limit', limit);
+      response.setHeader(
+        'X-RateLimit-Remaining',
+        Math.max(0, limit - currentCount),
+      );
+      response.setHeader(
+        'X-RateLimit-Reset',
+        new Date(Date.now() + windowMs).toISOString(),
+      );
+      response.setHeader('RateLimit-Limit', limit);
+      response.setHeader(
+        'RateLimit-Remaining',
+        Math.max(0, limit - currentCount),
+      );
+      response.setHeader('RateLimit-Reset', Math.ceil(windowMs / 1000));
+    }
 
     if (currentCount > limit) {
       response.setHeader('Retry-After', Math.ceil(windowMs / 1000));
@@ -75,14 +89,14 @@ export class RateLimitGuard implements CanActivate {
       throw new HttpException(
         {
           code: 'RATE_LIMIT_EXCEEDED',
-          detail: `Rate limit exceeded. Please retry after ${Math.ceil(windowMs / 1000)} seconds.`,
+          detail:
+            rateLimitOptions.message ??
+            `Rate limit exceeded. Please retry after ${Math.ceil(windowMs / 1000)} seconds.`,
           title: 'Too Many Requests',
         },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-
-    return true;
   }
 
   private generateKey(
@@ -113,6 +127,11 @@ export class RateLimitGuard implements CanActivate {
     // Add custom identifier from rate limit options if provided
     if (rateLimitOptions?.user) {
       parts.push('custom', rateLimitOptions.user);
+    }
+
+    if (rateLimitOptions.scope === 'global') {
+      parts.push('global');
+      return parts.join(':');
     }
 
     if (rateLimitOptions.scope === 'organization') {
