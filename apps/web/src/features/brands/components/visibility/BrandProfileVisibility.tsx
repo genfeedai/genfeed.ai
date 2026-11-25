@@ -1,8 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { ButtonGroup, ButtonGroupText } from '@ui/primitives/button-group';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  inputGroupButtonClassName,
+} from '@ui/primitives/input-group';
 import { Switch } from '@ui/primitives/switch';
 import { ExternalLink, Link2 } from 'lucide-react';
 import Link from 'next/link';
@@ -19,10 +25,10 @@ export interface BrandProfileVisibilityProps {
 }
 
 /**
- * Who can see the profile, in one control: the visibility switch, then the two
- * things you can only do with a public profile (copy its link, open it). Copy
- * and view are disabled while the profile is private, so the switch is what
- * turns them on.
+ * Who can see the profile, in one input group: the visibility switch, the
+ * profile link, then the two things you can only do with a public profile
+ * (copy the link, open it). Copy and open are disabled while the profile is
+ * private, so the switch is what turns them on.
  */
 export default function BrandProfileVisibility({
   isPublic,
@@ -34,53 +40,64 @@ export default function BrandProfileVisibility({
   const t = useTranslations('pages.brandDetailOverview');
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <ButtonGroup aria-label={t('profileVisibility')} className="w-auto">
-        <ButtonGroupText>
-          <Switch
-            aria-label={t('publicProfileSwitch')}
-            isChecked={isPublic}
-            isDisabled={isUpdating}
-            label={t('publicLabel')}
-            onCheckedChange={onToggle}
-            size="sm"
-          />
-        </ButtonGroupText>
-        <Button
-          ariaLabel={t('copyPublicProfileLink')}
-          icon={<Link2 className="size-4" />}
-          isDisabled={!isPublic}
-          onClick={onCopy}
-          size={ButtonSize.ICON}
-          tooltip={isPublic ? t('copyPublicProfileLink') : t('turnOnPublic')}
-          variant={ButtonVariant.SECONDARY}
+    <InputGroup aria-label={t('profileVisibility')} className="max-w-md">
+      <InputGroupAddon>
+        <Switch
+          aria-label={t('publicProfileSwitch')}
+          isChecked={isPublic}
+          isDisabled={isUpdating}
+          label={t('publicLabel')}
+          onCheckedChange={onToggle}
+          size="sm"
         />
-        {isPublic ? (
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
+      </InputGroupAddon>
+      <InputGroupInput
+        aria-label={t('publicProfileLink')}
+        className={cn(!isPublic && 'text-muted-foreground/60')}
+        onFocus={(event) => event.currentTarget.select()}
+        readOnly
+        value={profileUrl.replace(URL_SCHEME_PATTERN, '')}
+      />
+      <Button
+        ariaLabel={t('copyPublicProfileLink')}
+        className={inputGroupButtonClassName}
+        icon={<Link2 className="size-4" />}
+        isDisabled={!isPublic}
+        onClick={onCopy}
+        size={ButtonSize.ICON}
+        tooltip={isPublic ? t('copyPublicProfileLink') : t('turnOnPublic')}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+      {isPublic ? (
+        <Button
+          asChild
+          className={inputGroupButtonClassName}
+          size={ButtonSize.ICON}
+          tooltip={t('viewPublicProfile')}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          <Link
+            aria-label={t('viewPublicProfile')}
+            href={profileUrl}
+            rel="noopener noreferrer"
+            target="_blank"
           >
-            <Link href={profileUrl} rel="noopener noreferrer" target="_blank">
-              <ExternalLink className="size-4" />
-              {t('viewPublicProfile')}
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            icon={<ExternalLink className="size-4" />}
-            isDisabled
-            label={t('viewPublicProfile')}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          />
-        )}
-      </ButtonGroup>
-      <p className="text-sm text-foreground/50">
-        {isPublic
-          ? profileUrl.replace(URL_SCHEME_PATTERN, '')
-          : t('privateHint')}
-      </p>
-    </div>
+            <ExternalLink className="size-4" />
+          </Link>
+        </Button>
+      ) : (
+        <Button
+          ariaLabel={t('viewPublicProfile')}
+          className={inputGroupButtonClassName}
+          icon={<ExternalLink className="size-4" />}
+          isDisabled
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
+      )}
+    </InputGroup>
   );
 }
