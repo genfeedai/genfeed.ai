@@ -30,10 +30,13 @@ import {
 } from '@api/collections/workflows/workflow-node-predicates';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkflowTrigger } from '@genfeedai/contracts';
@@ -85,6 +88,7 @@ export class WorkflowBuilderController {
   }
 
   @Post('validate-connection')
+  @ApiKeyReadAccess()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   validateNodeConnection(@Body() body: ValidateWorkflowConnectionDto): {
     data: { valid: boolean; reason?: string };
@@ -106,6 +110,7 @@ export class WorkflowBuilderController {
   }
 
   @Post('generate')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateWorkflow(
     @Body() dto: GenerateWorkflowDto,
@@ -130,6 +135,7 @@ export class WorkflowBuilderController {
   }
 
   @Post('import')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importWorkflow(
     @Req() request: Request,
@@ -247,6 +253,7 @@ export class WorkflowBuilderController {
   }
 
   @Post(':workflowId/validate-reference')
+  @ApiKeyReadAccess()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async validateWorkflowReference(
     @Param('workflowId') workflowId: string,
@@ -284,6 +291,7 @@ export class WorkflowBuilderController {
   }
 
   @Post(':workflowId/validate')
+  @ApiKeyReadAccess()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async validateWorkflow(
     @Param('workflowId') workflowId: string,

@@ -241,6 +241,28 @@ describe('TrendIngestionHealthService', () => {
     expect(recorder.afterCommit).toHaveBeenCalledTimes(2);
   });
 
+  it('does not call an incident closed without a success a recovery', () => {
+    const { service } = setup();
+    const closed: PendingIngestionAlert = {
+      brief: 'twitter trends scope closed',
+      description: 'closed without a successful refresh',
+      isClosedWithoutSuccess: true,
+      isRecovery: true,
+      key: 'closed',
+      sourceId: 'twitter/trends/scope-a',
+      title: 'Trend ingestion incident closed',
+    };
+    // biome-ignore lint/complexity/useLiteralKeys: Exercise the card layout without a full run.
+    const card = service['buildDigestCard']([closed, { ...closed, key: 'b' }]);
+    expect(card.title).toBe(
+      'Trend ingestion: 2 closed without a successful refresh',
+    );
+    expect(card.description).toContain(
+      '**Closed without a successful refresh (2)**',
+    );
+    expect(card.description).not.toContain('Recovered');
+  });
+
   it('leads a mixed digest with the counts and lists missed incidents before recoveries', () => {
     const { service } = setup();
     const alert = (
@@ -661,7 +683,7 @@ describe('TrendIngestionHealthService', () => {
       [
         'says when no scoped attempt was recorded',
         [],
-        'No scoped refresh attempt is recorded for this scope',
+        'No scoped refresh receipt is recorded for this scope',
       ],
     ] as const)(
       'the scope alert %s',
@@ -719,7 +741,7 @@ describe('TrendIngestionHealthService', () => {
     });
 
     it('closes per-scope incidents when a global outage starts, and the aggregate when it ends', async () => {
-      const { service, health, prisma, events } = setup();
+      const { service, health, prisma, events, digests } = setup();
       prisma.credential.findMany.mockResolvedValue([
         { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
       ]);
@@ -732,6 +754,13 @@ describe('TrendIngestionHealthService', () => {
       // Global goes stale: scope folds into the aggregate incident.
       health.getHealth.mockResolvedValue([]);
       await service.checkMissedWindows(new Date('2026-10-04T00:15:00.000Z'));
+      // The scope's incident closed because the aggregate now reports it, not
+      // because a refresh succeeded, so the card must not say it recovered.
+      const closedCard = digests().at(-1)?.messages[0].message.payload.card;
+      expect(JSON.stringify(closedCard)).toContain(
+        'closed without a successful refresh',
+      );
+      expect(JSON.stringify(closedCard)).not.toContain('no longer has');
       const aggregate = () =>
         [...events.keys()].filter(
           (key) =>
