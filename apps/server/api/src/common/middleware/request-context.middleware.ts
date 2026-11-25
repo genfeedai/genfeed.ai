@@ -128,10 +128,13 @@ export class RequestContextMiddleware implements NestMiddleware {
 
     const cacheKey = buildRcKey(userId, organizationId, brandId || undefined);
 
-    try {
-      const publisher = this.redisService.getPublisher();
+    const publisher = this.redisService.getPublisher();
 
-      if (publisher) {
+    // Redis is only a cache. When it errors (a failover, an engine patch), the
+    // context is built from the database below; swallowing the error here left
+    // `req.context` empty and every organization-module route answered 403.
+    if (publisher) {
+      try {
         const cached = await publisher.get(cacheKey);
         if (cached) {
           // The key is per user, organization and brand, not per credential:
@@ -143,8 +146,16 @@ export class RequestContextMiddleware implements NestMiddleware {
           };
           return;
         }
+      } catch (error: unknown) {
+        this.logger.error(
+          'RequestContextMiddleware cache read failed, hydrating from the database',
+          error,
+          this.context,
+        );
       }
+    }
 
+    try {
       const [orgSetting, subscription] = await Promise.all([
         this.organizationSettingsService.findOne({
           organizationId: organizationId,
@@ -166,16 +177,24 @@ export class RequestContextMiddleware implements NestMiddleware {
         userId,
       };
 
+      req.context = requestContext;
+
       if (publisher) {
         const keysSetKey = buildRcKeysSetKey(userId);
-        await Promise.all([
-          publisher.setex(cacheKey, RC_TTL, JSON.stringify(requestContext)),
-          publisher.sadd(keysSetKey, cacheKey),
-          publisher.expire(keysSetKey, RC_KEYS_SET_TTL),
-        ]);
+        try {
+          await Promise.all([
+            publisher.setex(cacheKey, RC_TTL, JSON.stringify(requestContext)),
+            publisher.sadd(keysSetKey, cacheKey),
+            publisher.expire(keysSetKey, RC_KEYS_SET_TTL),
+          ]);
+        } catch (error: unknown) {
+          this.logger.error(
+            'RequestContextMiddleware cache write failed',
+            error,
+            this.context,
+          );
+        }
       }
-
-      req.context = requestContext;
     } catch (error: unknown) {
       this.logger.error('RequestContextMiddleware failed', error, this.context);
     }

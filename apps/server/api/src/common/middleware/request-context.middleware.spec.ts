@@ -231,6 +231,57 @@ describe('RequestContextMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it('Redis read fails → builds the context from the database', async () => {
+    const publisher = buildPublisher({
+      get: vi.fn().mockRejectedValue(new Error('Connection is closed.')),
+    });
+    redisService.getPublisher.mockReturnValue(publisher);
+
+    middleware = new RequestContextMiddleware(
+      redisService as unknown as RedisService,
+      buildLogger(),
+      buildOrgSettingsService('scale') as never,
+      buildSubscriptionsService('active') as never,
+      {} as never,
+    );
+
+    const req = { user: buildUser() } as never;
+
+    await middleware.hydrate(req);
+
+    expect((req as { context: unknown }).context).toMatchObject({
+      organizationId: 'org_1',
+      stripeSubscriptionStatus: 'active',
+      subscriptionTier: 'scale',
+      userId: 'user_1',
+    });
+  });
+
+  it('Redis write fails → still sets the context built from the database', async () => {
+    const publisher = buildPublisher({
+      setex: vi.fn().mockRejectedValue(new Error('READONLY')),
+    });
+    redisService.getPublisher.mockReturnValue(publisher);
+
+    middleware = new RequestContextMiddleware(
+      redisService as unknown as RedisService,
+      buildLogger(),
+      buildOrgSettingsService('scale') as never,
+      buildSubscriptionsService('active') as never,
+      {} as never,
+    );
+
+    const req = { user: buildUser() } as never;
+
+    await middleware.hydrate(req);
+
+    expect((req as { context: unknown }).context).toMatchObject({
+      organizationId: 'org_1',
+      subscriptionTier: 'scale',
+      userId: 'user_1',
+    });
+  });
+
   it('DB returns null → falls back to legacy auth provider identity', async () => {
     const publisher = buildPublisher();
     redisService.getPublisher.mockReturnValue(publisher);
