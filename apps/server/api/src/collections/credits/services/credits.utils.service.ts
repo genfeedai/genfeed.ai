@@ -4,6 +4,7 @@ import { publishAvailableBalance } from '@api/collections/credits/services/credi
 import { computeCycleCredits } from '@api/collections/credits/services/credit-cycle-metrics.util';
 import type { CreditCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
 import { withEarnedAmount } from '@api/collections/credits/services/credit-earned-amount.util';
+import { applyCreditRefund } from '@api/collections/credits/services/credit-refund-entry.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -167,7 +168,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       if (!isSettlingAdmittedWork) {
         await this.freeTrialService.assertTrialActive(
           organizationId,
-          new Date(),
           creditsToDeduct,
         );
       }
@@ -400,16 +400,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     organizationId: string,
     requiredCredits: number,
   ): Promise<boolean> {
-    if (
-      requiredCredits > 0 &&
-      (await this.freeTrialService.isTrialExpired(organizationId))
-    ) {
-      // Past the trial only earned credits are spendable.
-      const spendable =
-        await this.freeTrialService.expiredTrialSpendableCredits(
-          organizationId,
-        );
-      return spendable !== null && requiredCredits <= spendable;
+    const spendable =
+      requiredCredits > 0
+        ? await this.freeTrialService.expiredTrialSpendableCredits(
+            organizationId,
+          )
+        : null;
+    if (typeof spendable === 'number') {
+      return requiredCredits <= spendable;
     }
 
     const currentBalance =
@@ -461,7 +459,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
   ): Promise<ICreditReservation> {
     await this.freeTrialService.assertTrialActive(
       input.organizationId,
-      new Date(),
       input.amount,
     );
     const account = await this.billingAccountsService.resolveForOrganization(
@@ -745,37 +742,20 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         );
         if (replay) return replay;
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
-        const currentBalance = wallet.available;
-        const newBalance = currentBalance + creditsToRefund;
-
-        // A refund puts back the earned credits that spends consumed, so a
-        // refunded spend does not turn them into credits a plan reset removes.
-        const { earnedRestored } = await this.creditBalanceService.applyDelta(
-          organizationId,
+        return applyCreditRefund(
+          this.creditBalanceService,
+          this.creditTransactionsService,
           {
-            balanceDelta: creditsToRefund,
-            billingAccountId: wallet.billingAccountId,
-            restoreEarnedUpTo: creditsToRefund,
+            creditsToRefund,
+            description,
+            expiresAt,
+            options,
+            organizationId,
+            source,
+            wallet,
           },
           tx,
         );
-        await this.creditTransactionsService.createTransactionEntry(
-          organizationId,
-          CreditTransactionCategory.REFUND,
-          creditsToRefund,
-          currentBalance,
-          newBalance,
-          source,
-          description,
-          expiresAt,
-          tx,
-          {
-            ...options,
-            ...withEarnedAmount(options?.metadata, earnedRestored),
-          },
-        );
-
-        return { currentBalance, newBalance, wasApplied: true };
       };
 
       const { currentBalance, newBalance, wasApplied } =

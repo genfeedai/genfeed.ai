@@ -1099,7 +1099,6 @@ describe('CreditsUtilsService', () => {
       ).rejects.toMatchObject({ errorCode: 'INSUFFICIENT_CREDITS' });
       expect(freeTrialService.assertTrialActive).toHaveBeenCalledWith(
         'org_1',
-        expect.any(Date),
         5,
       );
       expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();

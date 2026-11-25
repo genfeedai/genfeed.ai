@@ -402,14 +402,14 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 698,
+      line: 708,
     },
     // The free-trial expiry sweep discovers never-paid organizations past the
     // window across tenants; each one is then expired in its own
     // organization-scoped serializable transaction.
     {
       file: 'apps/server/api/src/collections/credits/services/free-trial.service.ts',
-      line: 129,
+      line: 160,
     },
     // Email-verified grant: resolves the user's first owned organization; the entitlement is user-scoped, not tenant-scoped.
     {

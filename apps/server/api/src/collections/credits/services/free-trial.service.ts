@@ -98,8 +98,8 @@ export class FreeTrialService {
    */
   async assertTrialActive(
     organizationId: string,
-    now: Date = new Date(),
     requiredCredits?: number,
+    now: Date = new Date(),
   ): Promise<void> {
     const trialEndsAt = await this.findExpiredTrialEnd(organizationId, now);
     if (!trialEndsAt) {

@@ -3318,6 +3318,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'billingAccountId',
       'createdAt',
       'earnedBalance',
+      'earnedSpent',
       'heldAmount',
       'id',
       'isDeleted',

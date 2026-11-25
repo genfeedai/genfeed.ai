@@ -276,11 +276,12 @@ describe('FreeTrialService', () => {
       await expect(
         service.assertTrialActive(
           'org_1',
+          undefined,
           new Date('2026-10-13T23:59:59.000Z'),
         ),
       ).resolves.toBeUndefined();
       await expect(
-        service.assertTrialActive('org_1', LEGACY_ENDS_AT),
+        service.assertTrialActive('org_1', undefined, LEGACY_ENDS_AT),
       ).rejects.toBeInstanceOf(FreeTrialExpiredException);
     });
 
@@ -377,7 +378,7 @@ describe('FreeTrialService', () => {
       organizationFindFirst.mockResolvedValueOnce({ createdAt: CREATED_AT });
 
       await expect(
-        buildService().assertTrialActive('org_1', IN_WINDOW),
+        buildService().assertTrialActive('org_1', undefined, IN_WINDOW),
       ).resolves.toBeUndefined();
       expect(organizationFindFirst).toHaveBeenCalledTimes(1);
       expect(organizationFindFirst).toHaveBeenCalledWith({
@@ -389,11 +390,15 @@ describe('FreeTrialService', () => {
     it('refuses a never-paid organization past its window before the sweep ran', async () => {
       organizationFindFirst.mockResolvedValueOnce({ createdAt: CREATED_AT });
 
-      const refusal = buildService().assertTrialActive('org_1', PAST_WINDOW);
+      const refusal = buildService().assertTrialActive(
+        'org_1',
+        undefined,
+        PAST_WINDOW,
+      );
 
       await expect(refusal).rejects.toBeInstanceOf(FreeTrialExpiredException);
       await expect(
-        buildService().assertTrialActive('org_1', PAST_WINDOW),
+        buildService().assertTrialActive('org_1', undefined, PAST_WINDOW),
       ).rejects.toMatchObject({ errorCode: 'INSUFFICIENT_CREDITS' });
     });
 
@@ -403,8 +408,8 @@ describe('FreeTrialService', () => {
         .mockResolvedValueOnce(subject({ subscriptions: [{ id: 's' }] }));
       const service = buildService();
 
-      await service.assertTrialActive('org_1', PAST_WINDOW);
-      await service.assertTrialActive('org_1', PAST_WINDOW);
+      await service.assertTrialActive('org_1', undefined, PAST_WINDOW);
+      await service.assertTrialActive('org_1', undefined, PAST_WINDOW);
 
       expect(organizationFindFirst).toHaveBeenCalledTimes(2);
     });
@@ -426,9 +431,9 @@ describe('FreeTrialService', () => {
           .mockResolvedValueOnce(subject());
         const service = buildService();
 
-        await service.assertTrialActive('org_1', PAST_WINDOW);
+        await service.assertTrialActive('org_1', undefined, PAST_WINDOW);
         await expect(
-          service.assertTrialActive('org_1', PAST_WINDOW),
+          service.assertTrialActive('org_1', undefined, PAST_WINDOW),
         ).rejects.toBeInstanceOf(FreeTrialExpiredException);
         expect(organizationFindFirst).toHaveBeenCalledTimes(4);
       },
