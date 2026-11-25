@@ -10,6 +10,7 @@ import { getAppVersion } from '@libs/health/app-version.util';
 import { installWideEventJobInstrumentation } from '@libs/jobs/wide-event-jobs';
 import { LoggerService } from '@libs/logger/logger.service';
 import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
+import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BullRegistrar } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -40,12 +41,29 @@ function buildHealthResponse(status: string): HealthResponse {
   };
 }
 
-function registerHealthRoutes(server: ReturnType<typeof express>): void {
+/**
+ * A Redis client closed for good never recovers, so this worker would run no
+ * job until it restarts (#11388). Answering 503 lets the container health check
+ * replace the task. A client still reconnecting is healthy.
+ */
+function respondRedisClosed(res: Response): void {
+  res.status(503).json(buildHealthResponse('redis_connection_closed'));
+}
+
+function registerHealthRoutes(
+  server: ReturnType<typeof express>,
+  redis: Pick<RedisService, 'hasClosedConnection'>,
+): void {
   server.get('/', (_req: Request, res: Response) => {
     res.redirect('/v1/health');
   });
 
   server.get('/v1/health', (_req: Request, res: Response) => {
+    if (redis.hasClosedConnection()) {
+      respondRedisClosed(res);
+      return;
+    }
+
     res.json(buildHealthResponse('ok'));
   });
 
@@ -58,6 +76,11 @@ function registerHealthRoutes(server: ReturnType<typeof express>): void {
   });
 
   server.get('/v1/health/ready', (_req: Request, res: Response) => {
+    if (redis.hasClosedConnection()) {
+      respondRedisClosed(res);
+      return;
+    }
+
     res.json(buildHealthResponse('ready'));
   });
 
@@ -69,9 +92,10 @@ function registerHealthRoutes(server: ReturnType<typeof express>): void {
 async function startHealthServer(
   port: number,
   logger: LoggerService,
+  redis: Pick<RedisService, 'hasClosedConnection'>,
 ): Promise<Server> {
   const server = express();
-  registerHealthRoutes(server);
+  registerHealthRoutes(server, redis);
 
   return await new Promise<Server>((resolve, reject) => {
     const httpServer = server.listen(port, () => {
@@ -114,7 +138,11 @@ async function main() {
     // bootstrap validation. Only now may workers consume already queued jobs.
     await app.get(BullRegistrar).register();
 
-    const healthServer = await startHealthServer(port, logger);
+    const healthServer = await startHealthServer(
+      port,
+      logger,
+      app.get(RedisService),
+    );
 
     logger.debug(`Workers service is running on port ${port}`);
     logger.debug(`Cron jobs are active`);

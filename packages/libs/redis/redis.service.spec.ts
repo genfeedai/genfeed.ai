@@ -175,6 +175,27 @@ describe('RedisService', () => {
     ]);
   });
 
+  it('reports a closed connection only after it was connected and a client ended', async () => {
+    const publisher = buildMockClient();
+    const subscriber = buildMockClient();
+
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
+
+    createService();
+    expect(service.hasClosedConnection()).toBe(false);
+
+    await service.onModuleInit();
+    expect(service.hasClosedConnection()).toBe(false);
+
+    Object.assign(subscriber, { status: 'reconnecting' });
+    expect(service.hasClosedConnection()).toBe(false);
+
+    Object.assign(subscriber, { status: 'end' });
+    expect(service.hasClosedConnection()).toBe(true);
+  });
+
   it('does not retry in the background when the first connection fails', async () => {
     const publisher = buildMockClient();
     publisher.connect.mockRejectedValueOnce(new Error('publisher failed'));

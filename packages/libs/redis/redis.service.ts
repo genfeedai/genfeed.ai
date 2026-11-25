@@ -222,6 +222,22 @@ export class RedisService
   }
 
   /**
+   * True when Redis was connected and a client has since been closed for good
+   * (ioredis status `end`). Such a client never recovers, so a task in this
+   * state must report unhealthy and be replaced. A client that is only
+   * reconnecting (`reconnecting`) is not closed, and a Redis that was never
+   * reachable keeps the feature disabled instead. Reads in-memory state only.
+   */
+  hasClosedConnection(): boolean {
+    return (
+      this.isInitialized &&
+      [this.publisher, this.subscriber].some(
+        (client) => client?.status === 'end',
+      )
+    );
+  }
+
+  /**
    * Get the raw publisher client for direct Redis commands (sorted sets, etc.)
    * Returns null if Redis is not initialized.
    */
