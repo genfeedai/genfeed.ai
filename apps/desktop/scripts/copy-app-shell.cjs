@@ -3,7 +3,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
+  compactBuildJson,
   pruneBuildTraceFiles,
+  pruneFullSegmentPayloads,
   pruneTracedSourceFiles,
   pruneUnusedBuildFiles,
   pruneUnusedNextRuntimeFiles,
@@ -219,4 +221,18 @@ const prunedBuildBytes = pruneUnusedBuildFiles(
 );
 process.stdout.write(
   `[desktop] pruned ${(prunedBuildBytes / (1024 * 1024)).toFixed(1)} MiB of unused build files\n`,
+);
+
+const prunedFullBytes = pruneFullSegmentPayloads(
+  path.join(outputRoot, relativeServerDirectory),
+);
+process.stdout.write(
+  `[desktop] pruned ${(prunedFullBytes / (1024 * 1024)).toFixed(1)} MiB of full-page segment payloads\n`,
+);
+
+const compactedJsonBytes = compactBuildJson(
+  path.join(outputRoot, relativeServerDirectory, '.next'),
+);
+process.stdout.write(
+  `[desktop] compacted ${(compactedJsonBytes / (1024 * 1024)).toFixed(1)} MiB of build manifest whitespace\n`,
 );

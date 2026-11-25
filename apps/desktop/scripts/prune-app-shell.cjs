@@ -52,6 +52,67 @@ function pruneTracedSourceFiles(serverDirectory) {
   return removedBytes;
 }
 
+// `next build` prerenders a `<route>.segments` directory next to every static
+// route. Its `_full.segment.rsc` (~13 MiB over all routes) is only requested
+// by the client-resume script that Next inlines into the prerendered HTML of
+// "static fallback" shells (routes with dynamic params), and by the dev-only
+// instant-navigation test bootstrap. Routes whose `.html` carries no such
+// script never request it, so drop it there and keep it wherever the HTML
+// asks for it. `_tree`, per-segment payloads, `.html`, `.rsc` and `.meta` stay.
+const CLIENT_RESUME_MARKER = '__NEXT_CLIENT_RESUME';
+const SEGMENTS_SUFFIX = '.segments';
+const FULL_SEGMENT_FILE = '_full.segment.rsc';
+
+function htmlRequestsFullSegment(htmlPath) {
+  return (
+    !fs.existsSync(htmlPath) ||
+    fs.readFileSync(htmlPath, 'utf8').includes(CLIENT_RESUME_MARKER)
+  );
+}
+
+function pruneFullSegmentPayloads(serverDirectory) {
+  const appDirectory = path.join(serverDirectory, '.next', 'server', 'app');
+
+  if (!fs.existsSync(appDirectory)) {
+    return 0;
+  }
+
+  let removedBytes = 0;
+  const queue = [appDirectory];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const absolutePath = path.join(current, entry.name);
+
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      if (!entry.name.endsWith(SEGMENTS_SUFFIX)) {
+        queue.push(absolutePath);
+        continue;
+      }
+
+      const htmlPath = path.join(
+        current,
+        `${entry.name.slice(0, -SEGMENTS_SUFFIX.length)}.html`,
+      );
+      const fullSegmentPath = path.join(absolutePath, FULL_SEGMENT_FILE);
+
+      if (
+        fs.existsSync(fullSegmentPath) &&
+        !htmlRequestsFullSegment(htmlPath)
+      ) {
+        removedBytes += removePath(fullSegmentPath);
+      }
+    }
+  }
+
+  return removedBytes;
+}
+
 // Files inside `node_modules` that the packaged production server never loads.
 // Paths are relative to `node_modules`.
 const UNUSED_RUNTIME_FILES = [
@@ -121,6 +182,57 @@ function pruneUnusedBuildFiles(serverRoot) {
   return removedBytes;
 }
 
+// Next writes its build manifests and the per-route `.meta` files
+// pretty-printed. The server reads all of them through `JSON.parse`, so
+// re-serialising them without whitespace changes no value it sees. Files that
+// do not parse, or would not shrink, are left untouched.
+const COMPACTABLE_EXTENSIONS = new Set(['.json', '.meta']);
+
+function compactBuildJson(nextDirectory) {
+  if (!fs.existsSync(nextDirectory)) {
+    return 0;
+  }
+
+  let savedBytes = 0;
+  const queue = [nextDirectory];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const absolutePath = path.join(current, entry.name);
+
+      if (entry.isDirectory()) {
+        queue.push(absolutePath);
+        continue;
+      }
+
+      if (
+        !entry.isFile() ||
+        !COMPACTABLE_EXTENSIONS.has(path.extname(entry.name))
+      ) {
+        continue;
+      }
+
+      const original = fs.readFileSync(absolutePath, 'utf8');
+      let compact;
+
+      try {
+        compact = JSON.stringify(JSON.parse(original));
+      } catch {
+        continue;
+      }
+
+      if (Buffer.byteLength(compact) < Buffer.byteLength(original)) {
+        fs.writeFileSync(absolutePath, compact);
+        savedBytes += Buffer.byteLength(original) - Buffer.byteLength(compact);
+      }
+    }
+  }
+
+  return savedBytes;
+}
+
 function listTracedSourceFiles(serverDirectory) {
   const found = [];
   const queue = SOURCE_ROOTS.map((root) => path.join(serverDirectory, root));
@@ -147,8 +259,10 @@ function listTracedSourceFiles(serverDirectory) {
 }
 
 module.exports = {
+  compactBuildJson,
   listTracedSourceFiles,
   pruneBuildTraceFiles,
+  pruneFullSegmentPayloads,
   pruneTracedSourceFiles,
   pruneUnusedBuildFiles,
   pruneUnusedNextRuntimeFiles,

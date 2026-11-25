@@ -7,6 +7,8 @@ import path from 'node:path';
 interface PruneAppShell {
   listTracedSourceFiles(serverDirectory: string): string[];
   pruneBuildTraceFiles(directory: string): number;
+  compactBuildJson(nextDirectory: string): number;
+  pruneFullSegmentPayloads(serverDirectory: string): number;
   pruneTracedSourceFiles(serverDirectory: string): number;
   pruneUnusedBuildFiles(serverRoot: string): number;
   pruneUnusedNextRuntimeFiles(nodeModulesRoot: string): number;
@@ -24,6 +26,9 @@ describe('desktop app shell pruning', () => {
     fs.writeFileSync(absolutePath, content);
     return absolutePath;
   };
+
+  const read = (relativePath: string): string =>
+    fs.readFileSync(path.join(root, relativePath), 'utf8');
 
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-app-shell-'));
@@ -145,5 +150,60 @@ describe('desktop app shell pruning', () => {
     expect(fs.readdirSync(path.join(root, '.next/server/app/serwist'))).toEqual(
       ['sw.js.body'],
     );
+  });
+
+  it('removes full-page segment payloads only where the HTML does not request them', () => {
+    const app = '.next/server/app';
+    write(`${app}/plain.html`, '<html/>');
+    write(`${app}/plain.segments/_tree.segment.rsc`, 'tree');
+    write(`${app}/plain.segments/_full.segment.rsc`, 'full');
+    write(`${app}/plain.segments/!KHB1YmxpYyk/__PAGE__.segment.rsc`, 'page');
+    write(
+      `${app}/(protected)/[slug].html`,
+      '<script>__NEXT_CLIENT_RESUME=fetch("/")</script>',
+    );
+    write(`${app}/(protected)/[slug].segments/_full.segment.rsc`, 'kept');
+    write(`${app}/(protected)/admin.segments/_full.segment.rsc`, 'orphan');
+
+    expect(prune.pruneFullSegmentPayloads(root)).toBe('full'.length);
+    expect(
+      fs
+        .readdirSync(path.join(root, app), { recursive: true })
+        .map(String)
+        .filter((name) => name.endsWith('.rsc'))
+        .sort(),
+    ).toEqual([
+      '(protected)/[slug].segments/_full.segment.rsc',
+      '(protected)/admin.segments/_full.segment.rsc',
+      'plain.segments/!KHB1YmxpYyk/__PAGE__.segment.rsc',
+      'plain.segments/_tree.segment.rsc',
+    ]);
+  });
+
+  it('skips the full-page segment prune when there is no app output', () => {
+    expect(prune.pruneFullSegmentPayloads(root)).toBe(0);
+  });
+
+  it('compacts parseable build JSON and leaves everything else alone', () => {
+    write('.next/routes-manifest.json', '{\n  "a": [\n    1,\n    2\n  ]\n}');
+    write('.next/server/app/page.meta', '{\n  "status": 200\n}');
+    write('.next/server/broken.json', '{ not json');
+    write('.next/server/already.json', '{"a":1}');
+    write('.next/server/page.js', 'const a = {\n  b: 1\n};');
+
+    expect(prune.compactBuildJson(path.join(root, '.next'))).toBe(
+      '{\n  "a": [\n    1,\n    2\n  ]\n}'.length -
+        '{"a":[1,2]}'.length +
+        '{\n  "status": 200\n}'.length -
+        '{"status":200}'.length,
+    );
+    expect(read('.next/routes-manifest.json')).toBe('{"a":[1,2]}');
+    expect(read('.next/server/app/page.meta')).toBe('{"status":200}');
+    expect(read('.next/server/broken.json')).toBe('{ not json');
+    expect(read('.next/server/page.js')).toBe('const a = {\n  b: 1\n};');
+  });
+
+  it('skips compaction when the build directory is missing', () => {
+    expect(prune.compactBuildJson(path.join(root, '.next'))).toBe(0);
   });
 });
