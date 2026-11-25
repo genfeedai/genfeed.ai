@@ -18,10 +18,14 @@ interface GraphPost {
 
 /**
  * An HTTP double that records every Graph API create call and answers like it.
- * `refuseLabel` makes Instagram answer a create call that carries the AI label
- * with the given HTTP status, as it would for a parameter it does not accept.
+ * `refuseLabel` makes Instagram answer a create call that carries `refuseField`
+ * (the AI label unless said otherwise) with the given HTTP status, as it would
+ * for a parameter it does not accept.
  */
-function createGraphDouble(refuseLabel?: { status: number; code?: number }) {
+function createGraphDouble(
+  refuseLabel?: { status: number; code?: number },
+  refuseField: 'alt_text' | 'is_ai_generated' = 'is_ai_generated',
+) {
   const posts: GraphPost[] = [];
   const http = {
     get: vi.fn((url: string) =>
@@ -38,7 +42,7 @@ function createGraphDouble(refuseLabel?: { status: number; code?: number }) {
         config: { params: GraphPost['params'] },
       ) => {
         posts.push({ params: config.params, path: url.split('/v1/')[1] });
-        if (refuseLabel && config.params.is_ai_generated) {
+        if (refuseLabel && config.params[refuseField]) {
           return throwError(() => ({
             response: {
               data: {
@@ -228,5 +232,200 @@ describe('InstagramPublishingService when Instagram refuses the AI label', () =>
     ).rejects.toBeDefined();
 
     expect(graph.createCalls()).toHaveLength(1);
+  });
+});
+
+describe('InstagramPublishingService alt text', () => {
+  it('sends a single image its alt text, trimmed', async () => {
+    const graph = createGraphDouble();
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      false,
+      '  A red bicycle against a white wall  ',
+    );
+
+    expect(graph.createCalls()[0].params.alt_text).toBe(
+      'A red bicycle against a white wall',
+    );
+  });
+
+  it('sends nothing for blank alt text', async () => {
+    const graph = createGraphDouble();
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      false,
+      '   ',
+    );
+
+    expect(graph.createCalls()[0].params).not.toHaveProperty('alt_text');
+  });
+
+  it('cuts alt text at the 1,000 characters Instagram accepts', async () => {
+    const graph = createGraphDouble();
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      false,
+      'a'.repeat(1200),
+    );
+
+    expect(String(graph.createCalls()[0].params.alt_text)).toHaveLength(1000);
+  });
+
+  it('never splits an emoji when it cuts alt text', async () => {
+    const graph = createGraphDouble();
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      false,
+      `${'a'.repeat(999)}😀😀`,
+    );
+
+    expect(String(graph.createCalls()[0].params.alt_text)).toBe(
+      `${'a'.repeat(999)}😀`,
+    );
+  });
+
+  it('gives each carousel slide its own alt text and the carousel none', async () => {
+    const graph = createGraphDouble();
+    await graph.service.uploadCarousel(
+      'org',
+      'brand',
+      [
+        'https://cdn.test/1.jpg',
+        'https://cdn.test/2.jpg',
+        'https://cdn.test/3.jpg',
+      ],
+      'caption',
+      undefined,
+      undefined,
+      false,
+      ['First slide', undefined, 'Third slide'],
+    );
+
+    const creates = graph.createCalls();
+    const slides = creates.filter((call) => call.params.is_carousel_item);
+    const container = creates.filter((call) => call.params.children);
+
+    expect(slides.map((call) => call.params.image_url)).toEqual([
+      'https://cdn.test/1.jpg',
+      'https://cdn.test/2.jpg',
+      'https://cdn.test/3.jpg',
+    ]);
+    expect(slides.map((call) => call.params.alt_text)).toEqual([
+      'First slide',
+      undefined,
+      'Third slide',
+    ]);
+    expect(container).toHaveLength(1);
+    expect(container[0].params).not.toHaveProperty('alt_text');
+  });
+
+  it('creates a slide again without alt text when Instagram refuses it, and still publishes', async () => {
+    const graph = createGraphDouble({ status: 400 }, 'alt_text');
+
+    await graph.service.uploadCarousel(
+      'org',
+      'brand',
+      ['https://cdn.test/1.jpg', 'https://cdn.test/2.jpg'],
+      'caption',
+      undefined,
+      undefined,
+      false,
+      ['First slide', 'Second slide'],
+    );
+
+    const slides = graph
+      .createCalls()
+      .filter((call) => call.params.is_carousel_item);
+    expect(slides).toHaveLength(4);
+    expect(slides.filter((call) => call.params.alt_text)).toHaveLength(2);
+    expect(
+      slides
+        .filter((call) => !('alt_text' in call.params))
+        .map((call) => call.params.image_url),
+    ).toEqual(['https://cdn.test/1.jpg', 'https://cdn.test/2.jpg']);
+    expect(graph.publishCalls()).toHaveLength(1);
+  });
+
+  it('keeps the AI label when only the alt text is refused', async () => {
+    const graph = createGraphDouble({ status: 400 }, 'alt_text');
+
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      true,
+      'A red bicycle',
+    );
+
+    const creates = graph.createCalls();
+    expect(creates).toHaveLength(2);
+    expect(creates[1].params.is_ai_generated).toBe(true);
+    expect(creates[1].params).not.toHaveProperty('alt_text');
+    expect(graph.publishCalls()).toHaveLength(1);
+  });
+
+  it('drops both optional fields when Instagram refuses the label too', async () => {
+    const graph = createGraphDouble({ status: 400 }, 'is_ai_generated');
+
+    await graph.service.uploadImage(
+      'org',
+      'brand',
+      'https://cdn.test/a.jpg',
+      'caption',
+      undefined,
+      undefined,
+      true,
+      'A red bicycle',
+    );
+
+    const creates = graph.createCalls();
+    expect(creates).toHaveLength(3);
+    expect(creates[1].params.alt_text).toBeUndefined();
+    expect(creates[2].params).not.toHaveProperty('alt_text');
+    expect(creates[2].params).not.toHaveProperty('is_ai_generated');
+    expect(graph.publishCalls()).toHaveLength(1);
+  });
+
+  it('does not retry an authorization error, and publishes nothing', async () => {
+    const graph = createGraphDouble({ code: 190, status: 400 }, 'alt_text');
+
+    await expect(
+      graph.service.uploadImage(
+        'org',
+        'brand',
+        'https://cdn.test/a.jpg',
+        'caption',
+        undefined,
+        undefined,
+        false,
+        'A red bicycle',
+      ),
+    ).rejects.toBeDefined();
+
+    expect(graph.createCalls()).toHaveLength(1);
+    expect(graph.publishCalls()).toHaveLength(0);
   });
 });

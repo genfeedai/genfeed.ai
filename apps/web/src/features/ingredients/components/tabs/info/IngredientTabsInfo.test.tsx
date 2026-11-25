@@ -1,7 +1,7 @@
 import { IngredientCategory, IngredientExtension } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IngredientTabsInfo from '@/features/ingredients/components/tabs/info/IngredientTabsInfo';
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -18,8 +18,14 @@ vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   })),
 }));
 
+const { patchIngredient } = vi.hoisted(() => ({
+  patchIngredient: vi.fn(),
+}));
+
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: vi.fn(() =>
+    vi.fn(async () => ({ patch: patchIngredient })),
+  ),
 }));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
@@ -30,6 +36,14 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
     })),
   },
 }));
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: ui } = await import('../../../../../../messages/en/ui.json');
+  return { useTranslations: createTranslateFromCatalog({ ui }) };
+});
 
 describe('IngredientTabsInfo', () => {
   const ingredient = {
@@ -118,6 +132,89 @@ describe('IngredientTabsInfo', () => {
         'description',
         'Updated Description',
       );
+    });
+  });
+
+  describe('alt text', () => {
+    const image = { ...ingredient, altText: 'A red bicycle' } as IIngredient;
+
+    beforeEach(() => {
+      patchIngredient.mockReset();
+    });
+
+    it('shows the saved alt text of an image', () => {
+      render(<IngredientTabsInfo ingredient={image} onUpdate={vi.fn()} />);
+
+      expect(screen.getByRole('textbox', { name: 'Alt text' })).toHaveValue(
+        'A red bicycle',
+      );
+    });
+
+    it('saves the trimmed alt text on blur and hands back the updated image', async () => {
+      const updated = { ...image, altText: 'A blue bicycle' } as IIngredient;
+      patchIngredient.mockResolvedValue(updated);
+      const onUpdate = vi.fn();
+
+      render(<IngredientTabsInfo ingredient={image} onUpdate={onUpdate} />);
+
+      const altText = screen.getByRole('textbox', { name: 'Alt text' });
+      fireEvent.change(altText, { target: { value: '  A blue bicycle  ' } });
+      fireEvent.blur(altText);
+
+      await waitFor(() => {
+        expect(patchIngredient).toHaveBeenCalledWith('ingredient-1', {
+          altText: 'A blue bicycle',
+        });
+      });
+      await waitFor(() => {
+        expect(onUpdate).toHaveBeenCalledWith(updated);
+      });
+    });
+
+    it('clears the alt text with an empty value', async () => {
+      patchIngredient.mockResolvedValue({ ...image, altText: '' });
+
+      render(<IngredientTabsInfo ingredient={image} onUpdate={vi.fn()} />);
+
+      const altText = screen.getByRole('textbox', { name: 'Alt text' });
+      fireEvent.change(altText, { target: { value: '' } });
+      fireEvent.blur(altText);
+
+      await waitFor(() => {
+        expect(patchIngredient).toHaveBeenCalledWith('ingredient-1', {
+          altText: '',
+        });
+      });
+    });
+
+    it('does not save when the alt text did not change', () => {
+      render(<IngredientTabsInfo ingredient={image} onUpdate={vi.fn()} />);
+
+      fireEvent.blur(screen.getByRole('textbox', { name: 'Alt text' }));
+
+      expect(patchIngredient).not.toHaveBeenCalled();
+    });
+
+    it('stops the field at the length Instagram accepts', () => {
+      render(<IngredientTabsInfo ingredient={image} onUpdate={vi.fn()} />);
+
+      expect(screen.getByRole('textbox', { name: 'Alt text' })).toHaveAttribute(
+        'maxlength',
+        '1000',
+      );
+    });
+
+    it('has no alt text field for a video', () => {
+      const video = {
+        ...ingredient,
+        category: IngredientCategory.VIDEO,
+      } as IIngredient;
+
+      render(<IngredientTabsInfo ingredient={video} onUpdate={vi.fn()} />);
+
+      expect(
+        screen.queryByRole('textbox', { name: 'Alt text' }),
+      ).not.toBeInTheDocument();
     });
   });
 

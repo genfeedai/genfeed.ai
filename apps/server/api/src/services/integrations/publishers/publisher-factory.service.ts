@@ -190,6 +190,9 @@ export class PublisherFactoryService
           ...(typeof ingredient === 'object' && ingredient.category
             ? { category: ingredient.category }
             : {}),
+          ...(typeof ingredient === 'object' && ingredient.altText
+            ? { altText: ingredient.altText }
+            : {}),
           id,
           mediaUrl,
         };

@@ -1204,6 +1204,13 @@
   "ingredientCaptions": {
     "createdPrefix": "Created "
   },
+  "ingredientAltText": {
+    "helper": "Describes the image for screen readers. Sent to Instagram with the image. Up to {max} characters.",
+    "label": "Alt text",
+    "placeholder": "Describe what the image shows",
+    "saveFailed": "Could not save the alt text",
+    "saved": "Alt text saved"
+  },
   "modelSelectorFilters": {
     "capabilities": "Model capabilities",
     "categories": "Model categories"

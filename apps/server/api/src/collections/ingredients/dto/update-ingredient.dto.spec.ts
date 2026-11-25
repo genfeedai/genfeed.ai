@@ -75,3 +75,31 @@ describe('ingredient provenance at the HTTP boundary', () => {
     },
   );
 });
+
+describe('alt text at the HTTP boundary', () => {
+  const transform = (body: Record<string, unknown>) =>
+    new ValidationPipe().transform(body, {
+      metatype: UpdateIngredientDto,
+      type: 'body',
+    });
+
+  it('keeps alt text up to 1,000 characters', async () => {
+    const result = await transform({ altText: 'a'.repeat(1000) });
+
+    expect(result).toHaveProperty('altText', 'a'.repeat(1000));
+  });
+
+  it('keeps an empty string, which clears the alt text', async () => {
+    const result = await transform({ altText: '' });
+
+    expect(result).toHaveProperty('altText', '');
+  });
+
+  it('refuses alt text over 1,000 characters', async () => {
+    await expect(transform({ altText: 'a'.repeat(1001) })).rejects.toThrow();
+  });
+
+  it('refuses alt text that is not text', async () => {
+    await expect(transform({ altText: 42 })).rejects.toThrow();
+  });
+});

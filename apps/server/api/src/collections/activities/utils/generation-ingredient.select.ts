@@ -8,6 +8,7 @@ import type { Prisma } from '@genfeedai/prisma';
  */
 const GENERATION_INGREDIENT_COLUMNS = {
   agentStrategyId: true,
+  altText: true,
   brandId: true,
   category: true,
   createdAt: true,

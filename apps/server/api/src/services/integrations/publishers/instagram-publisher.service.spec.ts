@@ -346,6 +346,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           mockCredential.id,
           false, // isAiGenerated
+          undefined, // altText
         );
       });
 
@@ -501,6 +502,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           mockCredential.id,
           false, // isAiGenerated
+          [undefined, undefined, undefined], // altTexts
         );
       });
     });
@@ -530,9 +532,74 @@ describe('InstagramPublisherService', () => {
           createPublishContext(mockCarouselPost, { aiGenerated: true }),
         );
 
-        expect(instagramService.uploadImage.mock.calls[0].at(-1)).toBe(true);
-        expect(instagramService.uploadReel.mock.calls[0].at(-1)).toBe(true);
-        expect(instagramService.uploadCarousel.mock.calls[0].at(-1)).toBe(true);
+        // isAiGenerated is argument 7 of the image and carousel uploads and
+        // argument 9 of the Reel upload.
+        expect(instagramService.uploadImage.mock.calls[0][6]).toBe(true);
+        expect(instagramService.uploadReel.mock.calls[0][8]).toBe(true);
+        expect(instagramService.uploadCarousel.mock.calls[0][6]).toBe(true);
+      });
+    });
+
+    describe('alt text', () => {
+      const withAltTexts = (
+        post: PostEntity,
+        altTexts: Array<string | undefined>,
+      ) =>
+        ({
+          ...post,
+          ingredients: (post.ingredients as unknown as object[]).map(
+            (ingredient, index) => ({
+              ...ingredient,
+              altText: altTexts[index],
+            }),
+          ),
+        }) as unknown as PostEntity;
+
+      it("sends a single image the ingredient's alt text", async () => {
+        instagramService.uploadImage.mockResolvedValue({
+          mediaId: 'm1',
+          shortcode: 'S1',
+        });
+
+        await service.publish(
+          createPublishContext(
+            withAltTexts(mockImagePost, ['  A red bicycle  ']),
+          ),
+        );
+
+        expect(instagramService.uploadImage.mock.calls[0][7]).toBe(
+          'A red bicycle',
+        );
+      });
+
+      it('sends a carousel one alt text per slide, in slide order', async () => {
+        instagramService.uploadCarousel.mockResolvedValue({
+          mediaId: 'm3',
+          shortcode: 'S3',
+        });
+
+        await service.publish(
+          createPublishContext(
+            withAltTexts(mockCarouselPost, ['One', '   ', 'Three']),
+          ),
+        );
+
+        expect(instagramService.uploadCarousel.mock.calls[0][7]).toEqual([
+          'One',
+          undefined,
+          'Three',
+        ]);
+      });
+
+      it('sends no alt text for an ingredient without one', async () => {
+        instagramService.uploadImage.mockResolvedValue({
+          mediaId: 'm1',
+          shortcode: 'S1',
+        });
+
+        await service.publish(createPublishContext(mockImagePost));
+
+        expect(instagramService.uploadImage.mock.calls[0][7]).toBeUndefined();
       });
     });
 

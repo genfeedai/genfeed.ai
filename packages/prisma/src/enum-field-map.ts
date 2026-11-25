@@ -4129,6 +4129,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'agentStrategy',
       'agentStrategyId',
+      'altText',
       'assetLabel',
       'bookmark',
       'bookmarkId',
