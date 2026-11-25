@@ -60,6 +60,25 @@ export interface PublicImageUpload {
 }
 
 @Traced()
+const MISSING_OBJECT_MESSAGE_PATTERN = /status code 404/i;
+
+/**
+ * The files service could not find the stored object. It answers 404; an older
+ * files deployment wrapped the same miss as a 400 that names the 404.
+ */
+function isStoredObjectMissing(error: unknown): boolean {
+  const response = (
+    error as {
+      response?: { data?: { message?: unknown }; status?: unknown };
+    } | null
+  )?.response;
+  if (response?.status === HttpStatus.NOT_FOUND) return true;
+  const message = response?.data?.message;
+  return (
+    typeof message === 'string' && MISSING_OBJECT_MESSAGE_PATTERN.test(message)
+  );
+}
+
 @Injectable()
 export class PresignedUploadService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -226,6 +245,20 @@ export class PresignedUploadService {
         },
       );
     } catch (error: unknown) {
+      if (isStoredObjectMissing(error)) {
+        // Nothing is stored under the key, so there is nothing to read or
+        // delete. The ingredient fails and the caller uploads a new file.
+        this.loggerService.warn(`${url} stored object was not found`);
+        await this.patchFailed(id);
+        throw new HttpException(
+          {
+            detail:
+              'The uploaded file was not found in storage. Upload it again, then complete the upload.',
+            title: 'Uploaded file not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
       this.loggerService.error(`${url} failed to extract metadata`, undefined, {
         error: {
           message: (error as Error)?.message,
@@ -463,7 +496,7 @@ export class PresignedUploadService {
   }
 
   /** Marks a rejected upload failed and removes the stored object best-effort. */
-  private async rejectUpload(id: string, s3Key: string): Promise<void> {
+  private async patchFailed(id: string): Promise<void> {
     try {
       await this.ingredientsService.patch(id, {
         status: IngredientStatus.FAILED,
@@ -474,6 +507,10 @@ export class PresignedUploadService {
         error,
       );
     }
+  }
+
+  private async rejectUpload(id: string, s3Key: string): Promise<void> {
+    await this.patchFailed(id);
     try {
       await this.filesClientService.deleteStoredObject(s3Key);
     } catch {

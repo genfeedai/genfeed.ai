@@ -316,6 +316,14 @@ export class UploadService {
       );
       if (!response.ok || !response.body) {
         await response.body?.cancel();
+        // A source that is gone is an answer the caller acts on, not a 400
+        // about the request or a files fault, so it keeps its 404.
+        if (response.status === HttpStatus.NOT_FOUND) {
+          throw new HttpException(
+            'The source object was not found',
+            HttpStatus.NOT_FOUND,
+          );
+        }
         throw new Error(`Request failed with status code ${response.status}`);
       }
       const body = Readable.fromWeb(
@@ -389,10 +397,12 @@ export class UploadService {
       // Release the upstream socket on every failed exit, including setup
       // failures before the body was piped anywhere.
       abort.abort();
-      this.loggerService.error(
-        'Failed to download file directly from URL',
-        error,
-      );
+      const logFailure =
+        error instanceof HttpException &&
+        error.getStatus() === HttpStatus.NOT_FOUND
+          ? this.loggerService.warn.bind(this.loggerService)
+          : this.loggerService.error.bind(this.loggerService);
+      logFailure('Failed to download file directly from URL', error);
 
       if (error instanceof HttpException) {
         throw error;
@@ -727,7 +737,13 @@ export class UploadService {
         stack?: string;
         message?: string;
       };
-      this.loggerService.error(`${url} upload failed`, {
+      const isMissingSource =
+        error instanceof HttpException &&
+        error.getStatus() === HttpStatus.NOT_FOUND;
+      const logUploadFailure = isMissingSource
+        ? this.loggerService.warn.bind(this.loggerService)
+        : this.loggerService.error.bind(this.loggerService);
+      logUploadFailure(`${url} upload failed`, {
         duration: `${totalDuration}ms`,
         error: (error as Error)?.message,
         key,
