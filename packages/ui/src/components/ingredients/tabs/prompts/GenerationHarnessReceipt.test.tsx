@@ -162,4 +162,107 @@ describe('GenerationHarnessReceipt', () => {
     expect(screen.getByText(/Brand enhancement failed/)).toBeInTheDocument();
     expect(screen.queryByText(/exactly as typed/)).not.toBeInTheDocument();
   });
+
+  const brandedReceipt = {
+    originalPrompt: 'A cat',
+    enhancedPrompt: 'A cat on a brand-blue sofa',
+    status: 'applied' as const,
+    brandMode: 'approved_brand' as const,
+    source: 'brand' as const,
+    brandId: 'brand-1',
+    appliedPacks: [],
+  };
+
+  it('lists each approved colour with how much of the output it covers', () => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{
+          ...brandedReceipt,
+          brandPalette: {
+            status: 'measured',
+            colors: [
+              {
+                id: 'blue',
+                hex: '#123456',
+                usage: 'Primary',
+                isRequired: true,
+                coverage: 0.34,
+                result: 'found',
+              },
+              {
+                id: 'gold',
+                hex: '#C9A27A',
+                usage: 'Accent',
+                isRequired: false,
+                coverage: 0,
+                result: 'absent',
+              },
+            ],
+          },
+        }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(screen.getByText('Palette check')).toBeInTheDocument();
+    expect(screen.getByText('1 of 2 colours found')).toBeInTheDocument();
+    expect(screen.getByText('34% of the output')).toBeInTheDocument();
+    expect(screen.getByText('0% of the output')).toBeInTheDocument();
+    expect(screen.getByText('Found')).toBeInTheDocument();
+    expect(screen.getByText('Not found')).toBeInTheDocument();
+    expect(screen.getByText(/A miss is information/)).toBeInTheDocument();
+  });
+
+  it('says the receipt records a failed check when a required colour is missing', () => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{
+          ...brandedReceipt,
+          brandPalette: {
+            status: 'measured',
+            colors: [
+              {
+                id: 'blue',
+                hex: '#123456',
+                isRequired: true,
+                coverage: 0,
+                result: 'absent',
+              },
+            ],
+          },
+        }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(
+      screen.getByText(/A required colour is missing/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/A miss is information/)).not.toBeInTheDocument();
+  });
+
+  it('says why the palette was not measured', () => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{
+          ...brandedReceipt,
+          brandPalette: {
+            status: 'not_measured',
+            reasonCode: 'visual_composite_unproven',
+          },
+        }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(
+      screen.getByText(
+        'Not measured. A layer is placed over this output, so its final pixels are not proven.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no palette check until one was measured', () => {
+    render(<GenerationHarnessReceipt receipt={brandedReceipt} />, {
+      wrapper: EnglishMessages,
+    });
+    expect(screen.queryByText('Palette check')).not.toBeInTheDocument();
+  });
 });
