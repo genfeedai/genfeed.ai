@@ -1,6 +1,7 @@
 import { AdminAnnouncementsModule } from '@api/endpoints/admin/announcements/announcements.module';
 import { AdminCommunityModule } from '@api/endpoints/admin/community/community.module';
 import { AdminCreditHoldsModule } from '@api/endpoints/admin/credit-holds/credit-holds.module';
+import { AdminCustomerInstancesModule } from '@api/endpoints/admin/customer-instances/admin-customer-instances.module';
 import { AdminEconomicsModule } from '@api/endpoints/admin/economics/economics.module';
 import { AdminFeaturedWorkflowsModule } from '@api/endpoints/admin/featured-workflows/featured-workflows.module';
 import { AdminHarnessActivationModule } from '@api/endpoints/admin/harness/harness-activation.module';
@@ -26,6 +27,7 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [
     AdminCreditHoldsModule,
+    AdminCustomerInstancesModule,
     AdminEconomicsModule,
     AdminModelPricingModule,
     AdminSystemNotificationsModule,
