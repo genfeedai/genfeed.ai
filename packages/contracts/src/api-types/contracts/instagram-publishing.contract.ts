@@ -23,6 +23,28 @@ export const INSTAGRAM_AI_GENERATED_SETTING: ChannelSettingDefinition = {
   type: 'boolean',
 };
 
+/** Instagram target setting naming the Library image used as a Reel's cover. */
+export const INSTAGRAM_COVER_IMAGE_SETTING_KEY = 'coverImageId';
+
+/**
+ * The catalog entry for a Reel's cover. It holds a Library image id, never a
+ * URL: the publisher turns the id into a short-lived link inside the
+ * organization, so another tenant's image can never be named.
+ */
+export const INSTAGRAM_COVER_IMAGE_SETTING: ChannelSettingDefinition = {
+  description:
+    'Library image id used as the Reel cover. Only applies to Reels; leave blank to let Instagram pick a frame.',
+  key: INSTAGRAM_COVER_IMAGE_SETTING_KEY,
+  label: 'Reel cover image',
+  type: 'string',
+};
+
+/** Every setting Instagram publishing adds to the catalog beyond `placement`. */
+export const INSTAGRAM_PUBLISHING_SETTINGS: ChannelSettingDefinition[] = [
+  INSTAGRAM_AI_GENERATED_SETTING,
+  INSTAGRAM_COVER_IMAGE_SETTING,
+];
+
 /**
  * Longest text alternative Instagram accepts for an image (`alt_text`). The
  * Library caps an image's alt text at the same length, so what is saved is

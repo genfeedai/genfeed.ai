@@ -127,6 +127,12 @@ export interface PublishContext {
    * JSON so a stale or unknown key can never reach a provider API.
    */
   settings: ChannelTargetSettings;
+  /**
+   * Authorized execution URL of the Library image named by the `coverImageId`
+   * setting, issued inside the publishing organization by the factory. Absent
+   * when the post names no cover.
+   */
+  coverImageUrl?: string;
   /** Canonical audience axis resolved before provider execution. */
   visibility?: PostVisibility;
 }
