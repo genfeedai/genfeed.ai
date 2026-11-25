@@ -114,11 +114,16 @@ export function useOutreachCampaignDetail() {
   const isRefreshing =
     (campaignQuery.isFetching && !campaignQuery.isPending) ||
     (targetsQuery.isFetching && !targetsQuery.isPending);
-  const loadError = campaignQuery.error ?? targetsQuery.error;
-  const loadErrorUpdatedAt = Math.max(
-    campaignQuery.errorUpdatedAt,
-    targetsQuery.errorUpdatedAt,
-  );
+  // The failed read on screen: the notice and its timestamp come from this one
+  // query. A campaign read that recovered keeps its old `errorUpdatedAt`, which
+  // must not stand in for a different failed target page.
+  const failedQuery = campaignQuery.error
+    ? campaignQuery
+    : targetsQuery.error
+      ? targetsQuery
+      : null;
+  const loadError = failedQuery?.error ?? null;
+  const loadErrorUpdatedAt = failedQuery?.errorUpdatedAt ?? 0;
 
   // One toast per failed read; a failed background refresh keeps what is on
   // screen.
