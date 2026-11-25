@@ -41,6 +41,11 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
+import {
+  postTikTokInit,
+  tikTokBrandToggles,
+  wantsTikTokAiLabel,
+} from './tiktok-ai-label.util';
 import { TiktokAnalyticsService } from './tiktok-analytics.service';
 import { resolveTikTokPrivacyLevel } from './tiktok-publishing.mapper';
 
@@ -699,36 +704,32 @@ export class TiktokService {
 
       const description = htmlToText(post.description);
 
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/post/publish/video/init/`,
-          {
-            post_info: {
-              brand_content_toggle:
-                settings.commercialContent === true &&
-                settings.brandedContent === true,
-              brand_organic_toggle:
-                settings.commercialContent === true &&
-                settings.yourBrand === true,
-              description,
-              disable_comment: disableOptions.comment,
-              disable_duet: disableOptions.duet,
-              disable_stitch: disableOptions.stitch,
-              privacy_level: privacyLevel,
-              title: description || post.label || '',
-            },
-            source_info: {
-              source: 'PULL_FROM_URL',
-              video_url: videoUrl,
-            },
+      const res = await postTikTokInit(
+        this.httpService,
+        this.loggerService,
+        `${this.endpoint}/post/publish/video/init/`,
+        {
+          post_info: {
+            ...tikTokBrandToggles(settings),
+            description,
+            disable_comment: disableOptions.comment,
+            disable_duet: disableOptions.duet,
+            disable_stitch: disableOptions.stitch,
+            privacy_level: privacyLevel,
+            title: description || post.label || '',
           },
-          {
-            headers: {
-              Authorization: `Bearer ${decryptedAccessToken}`,
-              'Content-Type': this.contentType,
-            },
+          source_info: {
+            source: 'PULL_FROM_URL',
+            video_url: videoUrl,
           },
-        ),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${decryptedAccessToken}`,
+            'Content-Type': this.contentType,
+          },
+        },
+        wantsTikTokAiLabel(settings) ? 'post_info' : undefined,
       );
 
       return this.processPublishResponse(
@@ -855,38 +856,34 @@ export class TiktokService {
 
       const description = htmlToText(post.description);
 
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/post/publish/content/init/`,
-          {
-            media_type: 'PHOTO',
-            post_info: {
-              auto_add_music: true,
-              brand_content_toggle:
-                settings.commercialContent === true &&
-                settings.brandedContent === true,
-              brand_organic_toggle:
-                settings.commercialContent === true &&
-                settings.yourBrand === true,
-              description,
-              disable_comment: disableOptions.comment,
-              privacy_level: privacyLevel,
-              title: description || post.label || '',
-            },
-            post_mode: draftMode ? 'MEDIA_UPLOAD' : 'DIRECT_POST',
-            source_info: {
-              photo_cover_index: 0,
-              photo_images: imageUrls,
-              source: 'PULL_FROM_URL',
-            },
+      const res = await postTikTokInit(
+        this.httpService,
+        this.loggerService,
+        `${this.endpoint}/post/publish/content/init/`,
+        {
+          media_type: 'PHOTO',
+          post_info: {
+            auto_add_music: true,
+            ...tikTokBrandToggles(settings),
+            description,
+            disable_comment: disableOptions.comment,
+            privacy_level: privacyLevel,
+            title: description || post.label || '',
           },
-          {
-            headers: {
-              Authorization: `Bearer ${decryptedAccessToken}`,
-              'Content-Type': this.contentType,
-            },
+          post_mode: draftMode ? 'MEDIA_UPLOAD' : 'DIRECT_POST',
+          source_info: {
+            photo_cover_index: 0,
+            photo_images: imageUrls,
+            source: 'PULL_FROM_URL',
           },
-        ),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${decryptedAccessToken}`,
+            'Content-Type': this.contentType,
+          },
+        },
+        wantsTikTokAiLabel(settings) ? 'body' : undefined,
       );
 
       return this.processPublishResponse(

@@ -38,10 +38,12 @@ import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contrac
 import { INSTAGRAM_PUBLISHING_SETTINGS } from './instagram-publishing.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
+  TIKTOK_AI_GENERATED_SETTING,
   TIKTOK_PRIVACY_OPTIONS,
   validateTikTokPublishingSettings,
 } from './tiktok-publishing.contract';
 import { X_QUOTED_POST_SETTING } from './x-quote-post.contract';
+import { YOUTUBE_AI_GENERATED_SETTING } from './youtube-publishing.contract';
 
 export {
   type ChannelSettingDefinition,
@@ -355,6 +357,7 @@ const channelCapabilities = [
         label: 'Cover frame (seconds)',
         type: 'string',
       },
+      YOUTUBE_AI_GENERATED_SETTING,
     ],
     status: 'supported',
   },
@@ -449,6 +452,7 @@ const channelCapabilities = [
         label: 'Music Usage Confirmation',
         type: 'boolean',
       },
+      TIKTOK_AI_GENERATED_SETTING,
     ],
     status: 'supported',
   },

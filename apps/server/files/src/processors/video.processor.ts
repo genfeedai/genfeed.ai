@@ -764,7 +764,17 @@ export class VideoProcessor extends WorkerHost {
       let sourceDurationSeconds: number | undefined;
       let sourceUrl: string | undefined;
       if (isYoutubeUrl(params.inputPath)) {
-        await this.ytDlpService.downloadVideo(params.inputPath, inputPath);
+        const maxDurationSeconds = Math.min(
+          params.maxDurationSeconds ?? CLIPPER_SOURCE_MAX_DURATION_SECONDS,
+          CLIPPER_SOURCE_MAX_DURATION_SECONDS,
+        );
+        // Only a caller that set its own limit gets the refusal before the
+        // download; the 6 hour limit keeps its check on the stored file.
+        await (params.maxDurationSeconds === undefined
+          ? this.ytDlpService.downloadVideo(params.inputPath, inputPath)
+          : this.ytDlpService.downloadVideo(params.inputPath, inputPath, {
+              maxDurationSeconds,
+            }));
         const sourceMetadata =
           await this.ffmpegService.getVideoMetadata(inputPath);
         const parsedSourceDuration = Number(sourceMetadata.format?.duration);
@@ -773,9 +783,13 @@ export class VideoProcessor extends WorkerHost {
           : undefined;
         if (
           sourceDurationSeconds !== undefined &&
-          sourceDurationSeconds > CLIPPER_SOURCE_MAX_DURATION_SECONDS
+          sourceDurationSeconds > maxDurationSeconds
         ) {
-          throw new Error('Clip sources may be up to 6 hours long.');
+          throw new Error(
+            params.maxDurationSeconds === undefined
+              ? 'Clip sources may be up to 6 hours long.'
+              : YtDlpService.sourceTooLongMessage(maxDurationSeconds),
+          );
         }
         sourceS3Key = this.s3Service.generateS3Key('videos', ingredientId);
         await this.s3Service.uploadFile(sourceS3Key, inputPath, 'video/mp4');
