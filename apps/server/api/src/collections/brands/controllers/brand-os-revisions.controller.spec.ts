@@ -7,6 +7,7 @@ import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MemberRole } from '@genfeedai/contracts';
 import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
@@ -53,6 +54,21 @@ function harness(stored: Revision[] = [{ ...revision }]) {
       throw new ConflictException('Revision changed');
   };
   const service = {
+    create: async (
+      organizationId: string,
+      brandId: string,
+      nextContent: typeof content,
+    ) => {
+      const row = {
+        ...revision,
+        brandId,
+        content: nextContent,
+        id: `rev-created-${rows.length}`,
+        organizationId,
+      };
+      rows.push(row);
+      return row;
+    },
     approve: async (
       organizationId: string,
       brandId: string,
@@ -226,6 +242,37 @@ describe('BrandOsRevisionsController', () => {
         organizationId: 'attacker-org',
         status: 'DRAFT',
       }),
+    ]);
+  });
+
+  it('writes to the organization the request is pinned to, not the session organization (#11066)', async () => {
+    const { controller, rows } = harness([
+      { ...revision },
+      { ...revision, id: 'rev-2', organizationId: 'org-2' },
+    ]);
+    const edited = { ...content, label: 'Acme 2' } as typeof content;
+
+    await runWithTenantContext({ organizationId: 'org-2' }, async () => {
+      await controller.create(request, user, 'brand-1', { content });
+      await controller.update(request, user, 'brand-1', 'rev-2', {
+        content: edited,
+        updatedAt: revision.updatedAt,
+      });
+      await controller.approve(request, user, 'brand-1', 'rev-2', {
+        updatedAt: '2026-09-14T10:30:00.000Z',
+      });
+    });
+
+    expect(
+      rows.map(({ id, organizationId, status }) => ({
+        id,
+        organizationId,
+        status,
+      })),
+    ).toEqual([
+      { id: 'rev-1', organizationId: 'org-1', status: 'DRAFT' },
+      { id: 'rev-2', organizationId: 'org-2', status: 'APPROVED' },
+      { id: 'rev-created-2', organizationId: 'org-2', status: 'DRAFT' },
     ]);
   });
 
