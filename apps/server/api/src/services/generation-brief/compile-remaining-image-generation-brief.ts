@@ -4,9 +4,10 @@ import {
   buildImageGenerationBriefEvidence,
   buildImageGenerationBriefPrompt,
   recordExcessImageGenerationBriefReferences,
+  recordUnsupportedImageGenerationBriefReferenceRoles,
   recordUnsupportedImageGenerationBriefReferences,
   resolveImageGenerationBriefAspectRatio,
-  selectImageGenerationBriefReferences,
+  selectImageGenerationBriefReferencesByRole,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type {
@@ -99,9 +100,14 @@ export function compileRemainingImageGenerationBrief(
     );
   }
 
-  const { excludedCount, included } = selectImageGenerationBriefReferences(
-    brief,
-    profile.references.max,
+  const { excludedCount, included, unsupportedRoles } =
+    selectImageGenerationBriefReferencesByRole(brief, profile.references);
+  recordUnsupportedImageGenerationBriefReferenceRoles(
+    omitted,
+    unsupportedRoles,
+    policy,
+    brief.fidelityMode,
+    spec.modelLabel,
   );
   recordExcessImageGenerationBriefReferences(
     omitted,

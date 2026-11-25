@@ -149,6 +149,32 @@ describe('compileRunwayGen4ImageTurboGenerationBrief', () => {
     ).toThrow(GenerationBriefCompileError);
   });
 
+  it('fills its three slots with the product and subject before style references and records the rest as excess', () => {
+    const base = imageGenerationBriefSchema.parse(
+      readFixture('unbranded.input.json'),
+    );
+    const brief = imageGenerationBriefSchema.parse({
+      ...base,
+      references: [
+        { assetId: 'asset_style_1', role: 'style' },
+        { assetId: 'asset_style_2', role: 'style' },
+        { assetId: 'asset_product_1', role: 'product' },
+        { assetId: 'asset_subject_1', role: 'subject' },
+      ],
+    });
+
+    const result = compileRunwayGen4ImageTurboGenerationBrief({
+      brief,
+      modelKey: RUNWAY_GEN4_IMAGE_TURBO_MODEL_KEY,
+    });
+
+    expect(result.dispatch.reference_images).toEqual([
+      'asset_product_1',
+      'asset_subject_1',
+      'asset_style_1',
+    ]);
+  });
+
   it('does not mutate the normalized brief', () => {
     const brief = imageGenerationBriefSchema.parse(
       readFixture('guided.input.json'),

@@ -16,8 +16,9 @@ import {
   buildImageGenerationBriefEvidence,
   buildImageGenerationBriefPrompt,
   recordExcessImageGenerationBriefReferences,
+  recordUnsupportedImageGenerationBriefReferenceRoles,
   resolveImageGenerationBriefAspectRatio,
-  selectImageGenerationBriefReferences,
+  selectImageGenerationBriefReferencesByRole,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -71,9 +72,14 @@ export function compileRunwayGen4ImageTurboGenerationBrief(
   const policy = generationFidelityPolicies[brief.fidelityMode];
   const omitted: GenerationBriefOmittedSignal[] = [];
 
-  const { excludedCount, included } = selectImageGenerationBriefReferences(
-    brief,
-    profile.references.max,
+  const { excludedCount, included, unsupportedRoles } =
+    selectImageGenerationBriefReferencesByRole(brief, profile.references);
+  recordUnsupportedImageGenerationBriefReferenceRoles(
+    omitted,
+    unsupportedRoles,
+    policy,
+    brief.fidelityMode,
+    RUNWAY_GEN4_IMAGE_TURBO_MODEL_LABEL,
   );
   recordExcessImageGenerationBriefReferences(
     omitted,
