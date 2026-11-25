@@ -145,6 +145,9 @@ describe.skipIf(!connectionString)(
     beforeEach(async () => {
       // The unit config unstubs env between tests.
       vi.stubEnv('GENFEED_CLOUD', '1');
+      // The sweep dates a video by `NOW`, and the paid-access read decides a
+      // subscription by `Date.now()`: both must name the same instant.
+      vi.spyOn(Date, 'now').mockReturnValue(NOW.getTime());
       suffix = randomUUID();
       deletedKeys.length = 0;
       // The unit config resets mock implementations between tests.
@@ -184,6 +187,7 @@ describe.skipIf(!connectionString)(
     });
 
     afterEach(async () => {
+      vi.restoreAllMocks();
       const orgs = { in: [paygOrgId, subscriberOrgId] };
       await database().postIngredient.deleteMany({
         where: { organizationId: orgs },
@@ -227,6 +231,36 @@ describe.skipIf(!connectionString)(
       expect(deletedKeys).toEqual([`ingredients/videos/vr-sub-31-${suffix}`]);
       expect(await expiredAt('sub-8')).toBeNull();
       expect(await expiredAt('sub-29')).toBeNull();
+    });
+
+    it('uses the upgraded window when the cached grant predates the upgrade', async () => {
+      await video('payg-10', paygOrgId, 10);
+      const paidAccess = new OrganizationPaidAccessService(
+        sweepPrisma as never,
+        logger as never,
+      );
+      const cachingService = new VideoRetentionService(
+        sweepPrisma,
+        files as never,
+        paidAccess,
+        logger as never,
+      );
+      // Reads the organization as pay-as-you-go and caches that answer.
+      expect(await paidAccess.hasPaidSubscriptionStrict(paygOrgId)).toBe(false);
+      await database().subscription.create({
+        data: {
+          currentPeriodEnd: new Date(NOW.getTime() + 20 * DAY),
+          organizationId: paygOrgId,
+          plan: 'monthly',
+          status: SubscriptionStatus.ACTIVE,
+          userId,
+        },
+      });
+
+      await cachingService.sweep(NOW);
+
+      expect(deletedKeys).toEqual([]);
+      expect(await expiredAt('payg-10')).toBeNull();
     });
 
     it('shortens the window when a subscriber downgrades', async () => {

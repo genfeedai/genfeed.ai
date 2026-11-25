@@ -74,7 +74,7 @@ type VideoRow = { id: string; s3Key: string | null };
  * an import or a legacy row of unknown origin is the user's own file. A video
  * attached to a post that is scheduled, publishing, published or failed is
  * never touched. The window is read from the organization's
- * subscription at sweep time, so an upgrade extends it and a downgrade shortens
+ * subscription at sweep time, uncached, so an upgrade extends it and a downgrade shortens
  * it. An organization whose subscription cannot be read is skipped, never
  * treated as pay-as-you-go. Deployments without organization billing keep
  * every file.
@@ -116,8 +116,10 @@ export class VideoRetentionService {
 
         let isSubscriber: boolean;
         try {
+          // Fresh, not the 30 second request cache: an upgrade since the last
+          // read must lengthen the window before anything is deleted.
           isSubscriber =
-            await this.paidAccess.hasPaidSubscriptionStrict(organizationId);
+            !(await this.paidAccess.isSubscriptionGatedFresh(organizationId));
         } catch (error: unknown) {
           totals.skippedOrganizations += 1;
           this.logger.warn('Video retention skipped an organization', {
