@@ -12,6 +12,6 @@ topics: [github, project-board, workflow]
 **Why:** If a child has started, the epic is no longer backlog/todo work. Leaving the parent in `Todo` creates board drift and hides active work.
 
 **How to apply:**
-- When moving a child issue to `In Progress`, `Human Review`, or `Done`, check its parent epic.
+- When moving a child issue to `In Progress`, `Review`, or `Done`, check its parent epic.
 - If the parent epic is still `Backlog`, `Todo`, or `Deferred`, move it to `In Progress`.
 - Keep the parent open until all required child issues and epic-level verification are complete.
