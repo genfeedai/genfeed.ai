@@ -12,7 +12,12 @@ type OrganizationRow = {
   onboardingCompleted: boolean;
   settings: { subscriptionTier: string } | null;
   slug: string;
-  user: { email: string | null };
+  user: {
+    appSource: string;
+    email: string | null;
+    emailVerified: boolean;
+    isOnboardingCompleted: boolean;
+  };
 };
 
 function organization(
@@ -31,7 +36,12 @@ function organization(
     onboardingCompleted: true,
     settings: null,
     slug: id,
-    user: { email: `${id}@example.test` },
+    user: {
+      appSource: 'GENFEED',
+      email: `${id}@example.test`,
+      emailVerified: false,
+      isOnboardingCompleted: false,
+    },
     ...overrides,
   };
 }
@@ -115,7 +125,12 @@ describe('OrganizationsReportService', () => {
         label: 'Acme',
         settings: { subscriptionTier: 'pro' },
         slug: 'acme',
-        user: { email: 'owner@acme.test' },
+        user: {
+          appSource: 'GENFEED',
+          email: 'owner@acme.test',
+          emailVerified: true,
+          isOnboardingCompleted: true,
+        },
       }),
       organization('org_2', '2026-02-02T00:00:00.000Z', {
         _count: { members: 0 },
@@ -124,17 +139,24 @@ describe('OrganizationsReportService', () => {
         label: 'Gone',
         onboardingCompleted: false,
         slug: 'gone',
-        user: { email: null },
+        user: {
+          appSource: 'GETSHAREABLE',
+          email: null,
+          emailVerified: false,
+          isOnboardingCompleted: false,
+        },
       }),
     ]).getReport({ limit: 20, page: 1, skip: 0 }, true);
 
     expect(report.organizations).toEqual([
       {
+        appSource: 'GENFEED',
         category: 'BUSINESS',
         createdAt: '2026-01-02T03:04:05.000Z',
         id: 'org_1',
         isDeleted: false,
         isOnboardingCompleted: true,
+        isOwnerEmailVerified: true,
         label: 'Acme',
         memberCount: 3,
         ownerEmail: 'owner@acme.test',
@@ -142,17 +164,43 @@ describe('OrganizationsReportService', () => {
         subscriptionTier: 'pro',
       },
       {
+        appSource: 'GETSHAREABLE',
         category: 'AGENCY',
         createdAt: '2026-02-02T00:00:00.000Z',
         id: 'org_2',
         isDeleted: true,
         isOnboardingCompleted: false,
+        isOwnerEmailVerified: false,
         label: 'Gone',
         memberCount: 0,
         ownerEmail: null,
         slug: 'gone',
         subscriptionTier: null,
       },
+    ]);
+  });
+
+  it('counts the owner flag as completed, like the funnel', async () => {
+    const report = await buildService([
+      organization('org_wizard', '2026-01-01T00:00:00.000Z', {
+        onboardingCompleted: false,
+        user: {
+          appSource: 'GENFEED',
+          email: 'owner@acme.test',
+          emailVerified: true,
+          isOnboardingCompleted: true,
+        },
+      }),
+      organization('org_neither', '2026-01-02T00:00:00.000Z', {
+        onboardingCompleted: false,
+      }),
+    ]).getReport({ limit: 20, page: 1, skip: 0 });
+
+    expect(
+      report.organizations.map((row) => [row.id, row.isOnboardingCompleted]),
+    ).toEqual([
+      ['org_wizard', true],
+      ['org_neither', false],
     ]);
   });
 });

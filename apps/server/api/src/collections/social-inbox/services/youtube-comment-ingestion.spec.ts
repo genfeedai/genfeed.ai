@@ -94,12 +94,29 @@ describe('ingestOwnedYoutubeComments', () => {
     expect(result.postFailures).toHaveLength(1);
   });
 
-  it('keeps going past a failure that only affects one video', async () => {
+  it('skips a video with comments disabled without recording a failure', async () => {
     const commentsDisabled = Object.assign(new Error('Comments disabled'), {
       errors: [{ reason: 'commentsDisabled' }],
       status: 403,
     });
     const listVideoComments = vi.fn().mockRejectedValue(commentsDisabled);
+
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({ listVideoComments }),
+    );
+
+    expect(listVideoComments).toHaveBeenCalledTimes(3);
+    expect(result.postFailures).toEqual([]);
+    expect(result.postsScanned).toBe(3);
+  });
+
+  it('keeps going past an unrelated failure that only affects one video', async () => {
+    const providerError = Object.assign(new Error('Backend Error'), {
+      status: 500,
+    });
+    const listVideoComments = vi.fn().mockRejectedValue(providerError);
 
     const result = await ingestOwnedYoutubeComments(
       scope,

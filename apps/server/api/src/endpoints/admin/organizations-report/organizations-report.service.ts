@@ -1,3 +1,4 @@
+import { isOnboardingCompleted } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.util';
 import {
   type PageWindow,
   toPaginationParams,
@@ -36,7 +37,14 @@ export class OrganizationsReportService {
           onboardingCompleted: true,
           settings: { select: { subscriptionTier: true } },
           slug: true,
-          user: { select: { email: true } },
+          user: {
+            select: {
+              appSource: true,
+              email: true,
+              emailVerified: true,
+              isOnboardingCompleted: true,
+            },
+          },
         },
         skip,
         take: limit,
@@ -48,11 +56,16 @@ export class OrganizationsReportService {
     return {
       generatedAt: new Date().toISOString(),
       organizations: organizations.map((organization) => ({
+        appSource: organization.user.appSource,
         category: organization.accountType ?? organization.category,
         createdAt: organization.createdAt.toISOString(),
         id: organization.id,
         isDeleted: organization.isDeleted,
-        isOnboardingCompleted: organization.onboardingCompleted,
+        isOnboardingCompleted: isOnboardingCompleted({
+          organization: organization.onboardingCompleted,
+          owner: organization.user.isOnboardingCompleted,
+        }),
+        isOwnerEmailVerified: organization.user.emailVerified,
         label: organization.label,
         memberCount: organization._count.members,
         ownerEmail: organization.user.email,

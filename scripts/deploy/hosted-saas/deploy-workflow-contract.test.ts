@@ -319,6 +319,24 @@ describe('hosted SaaS on-demand seed contract', () => {
     );
   });
 
+  test.each(['articles', 'reference-data-sync', 'model-registry-retirement'])(
+    'the %s override loop hands every argument to the task runner in equals form',
+    async (seedName) => {
+      const seed = await workflow('seed-hosted-saas.yml');
+      const start = seed.indexOf(`\n            ${seedName})`);
+      const end = seed.indexOf('\n              ;;', start);
+      const block = seed.slice(start, end);
+
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+      // An option-like value such as --live or --env=production must not ride
+      // as a separate token: the runner's parser would read it as an option.
+      expect(block).toContain('override+=("--command-arg=${arg}")');
+      expect(block).not.toMatch(/override\+=\([^)]*--command-arg\s/);
+      expect(block).not.toMatch(/override\+=\(\s*"?--command-arg"?\s+/);
+    },
+  );
+
   test('report seeds run fixed queries in a read-only transaction', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf('READ_ONLY_REPORT_SCRIPT: |');

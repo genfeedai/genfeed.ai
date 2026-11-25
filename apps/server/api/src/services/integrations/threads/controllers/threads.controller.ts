@@ -21,6 +21,7 @@ import {
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { THREADS_GRAPH_URL } from '@genfeedai/integrations';
 import {
   CredentialOAuthSerializer,
@@ -274,7 +275,6 @@ export class ThreadsController {
         userId,
       );
 
-      // Update the credential with the access token
       let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
@@ -285,6 +285,7 @@ export class ThreadsController {
           isConnected: true,
           isDeleted: false,
           oauthState: verifiedOAuthState(state),
+          ...(await this.grantedScopesPatch(access_token)),
         },
       );
 
@@ -302,6 +303,17 @@ export class ThreadsController {
       }
       return returnInternalServerError('Failed to verify Threads OAuth');
     }
+  }
+
+  /**
+   * Neither token exchange lists the grant, so ask Threads which permissions
+   * this token carries. Unknown stays unknown: the reply calls then rely on
+   * Threads' own refusal.
+   */
+  private async grantedScopesPatch(accessToken: string) {
+    return buildGrantedScopesCredentialPatch(
+      await this.threadsService.getGrantedScopes(accessToken),
+    );
   }
 
   private async resolveExternalProfile(

@@ -140,6 +140,7 @@ function harness(initial: BrandOsRevision[] = []) {
       isHighlighted: false,
       profileViewCount: 0,
       isFleetEnabled: false,
+      isPublicAnalyticsEnabled: true,
       referenceImages: [],
       voiceIngredientId: null,
       musicIngredientId: null,

@@ -53,6 +53,7 @@ describe('ThreadsController', () => {
   const mockHttpService = { get: vi.fn(), post: vi.fn() };
   const mockThreadsService = {
     getAccountDetails: vi.fn(),
+    getGrantedScopes: vi.fn(),
     getTrends: vi.fn(),
   };
   const mockLoggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
@@ -356,6 +357,58 @@ describe('ThreadsController', () => {
         }),
       );
       expect(result).toEqual({ id: 'credential-id', isConnected: true });
+    });
+  });
+
+  describe('verify granted scopes', () => {
+    const connect = async (grantedScopes: string[] | undefined) => {
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
+        brandId: 'brand-id',
+        id: 'credential-id',
+        organizationId: 'organization-id',
+        userId: 'user-id',
+      });
+      mockHttpService.post.mockReturnValue(
+        of({ data: { access_token: 'short-token', user_id: 'threads-user' } }),
+      );
+      mockHttpService.get.mockReturnValue(
+        of({ data: { access_token: 'long-token', expires_in: 3600 } }),
+      );
+      mockThreadsService.getAccountDetails.mockResolvedValue({
+        id: 'threads-user',
+        username: 'threads-user',
+      });
+      mockThreadsService.getGrantedScopes.mockResolvedValue(grantedScopes);
+      mockCredentialsService.patch.mockResolvedValue({ id: 'credential-id' });
+      mockCredentialsService.updateExternalProfile.mockResolvedValue({
+        id: 'credential-id',
+      });
+
+      await controller.verify(mockRequest, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+      return mockCredentialsService.patch.mock.calls[0][1];
+    };
+
+    it('stores the scopes the account granted when the connection is saved', async () => {
+      const patch = await connect(['threads_basic', 'threads_content_publish']);
+
+      expect(mockThreadsService.getGrantedScopes).toHaveBeenCalledWith(
+        'long-token',
+      );
+      expect(patch.grantedScopes).toEqual([
+        'threads_basic',
+        'threads_content_publish',
+      ]);
+      expect(patch.grantedScopesCapturedAt).toBeInstanceOf(Date);
+    });
+
+    it('saves the connection without a grant when Threads does not list one', async () => {
+      const patch = await connect(undefined);
+
+      expect(patch.accessToken).toBe('long-token');
+      expect(patch).not.toHaveProperty('grantedScopes');
     });
   });
 
