@@ -70,7 +70,7 @@ export default function ReleaseViewSwitcher({
           <Button
             ariaLabel={label}
             aria-pressed={isActive}
-            className={isActive ? 'h-8 gap-1.5 px-2' : 'size-8'}
+            className={isActive ? undefined : 'size-8'}
             key={id}
             onClick={() => onViewChange(id)}
             size={isActive ? ButtonSize.SM : ButtonSize.ICON}

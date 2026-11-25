@@ -100,6 +100,8 @@ export interface CalendarBulkGenerationOptions {
 }
 
 export interface CalendarEventPresentationOptions {
+  /** The brand's connected accounts, to draw the avatars a release goes to. */
+  credentials: ICredential[];
   translate: ContentCalendarTranslate;
   generateSlotByIdentity: (
     identityKey: string,

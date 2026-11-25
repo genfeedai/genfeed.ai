@@ -213,9 +213,14 @@ export default function ContentCalendarPage({
     getEventColor,
     getEventBadge,
     getEventActions,
+    getEventAccounts,
     getEventChannels,
     isItemDraggable,
-  } = useCalendarEventPresentation({ translate, generateSlotByIdentity });
+  } = useCalendarEventPresentation({
+    credentials,
+    generateSlotByIdentity,
+    translate,
+  });
   const { credentialOptions, platformOptions, preferredTimes } =
     useCalendarChannelOptions({
       credentials,
@@ -490,6 +495,7 @@ export default function ContentCalendarPage({
       getEventBadge={getEventBadge}
       preferredTimes={preferredTimes}
       timezone={timezone}
+      getEventAccounts={getEventAccounts}
       getEventChannels={getEventChannels}
       getEventActions={getEventActions}
       isItemDraggable={isItemDraggable}
