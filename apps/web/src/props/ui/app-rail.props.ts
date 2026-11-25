@@ -143,7 +143,7 @@ export interface AppRailItemMenuProps {
   onUnpin?: (item: AppRailNavigationItem) => void;
 }
 
-export interface TopbarAppsLinkProps {
+export interface TopbarAppsMenuProps {
   /** Falls back to the organization resolved from the URL. */
   orgSlug?: string;
 }

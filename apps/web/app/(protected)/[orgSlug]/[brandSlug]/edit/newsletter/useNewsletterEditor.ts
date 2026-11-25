@@ -1,10 +1,15 @@
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import {
+  isViewerQueryKey,
+  useAuthedQuery,
+} from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useQueryClient } from '@tanstack/react-query';
+import { type Query, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { newsletterIssueQueryKey } from '@/features/newsletter/hooks/use-newsletter-module';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
@@ -71,6 +76,7 @@ export function useNewsletterEditor(
 ): UseNewsletterEditorReturn {
   const notificationsService = NotificationsService.getInstance();
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
   const newsletterQuery = useAuthedQuery<NewslettersService, Newsletter>({
     enabled: Boolean(newsletterId),
     queryFn: (service, signal) => service.findOne(newsletterId, {}, signal),
@@ -156,18 +162,21 @@ export function useNewsletterEditor(
 
   const getService = useAuthedService(createNewslettersService);
 
+  // Written into the cache entry of the viewer who made the edit: this
+  // callback closes over that viewer, so an account signed in while the
+  // request was in flight keeps its own cached copy of the issue.
   const writeNewsletter = useCallback(
-    async (next: Newsletter) => {
-      // A read still in flight would land the older issue after this write.
-      await queryClient.cancelQueries({
-        queryKey: newsletterIssueQueryKey(next.id),
-      });
-      queryClient.setQueriesData<Newsletter>(
-        { queryKey: newsletterIssueQueryKey(next.id) },
-        next,
-      );
-    },
-    [queryClient],
+    (next: Newsletter) =>
+      updateCachedQueries<Newsletter>(
+        queryClient,
+        {
+          predicate: (cached: Query) =>
+            isViewerQueryKey(cached.queryKey, userId, orgId),
+          queryKey: newsletterIssueQueryKey(next.id),
+        },
+        () => next,
+      ),
+    [orgId, queryClient, userId],
   );
 
   /** A newsletter the user's action returned replaces the editor's fields. */

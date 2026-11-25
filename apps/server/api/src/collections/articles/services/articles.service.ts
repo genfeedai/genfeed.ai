@@ -63,6 +63,11 @@ import { assertArticleOwnershipIds } from '@api/collections/articles/utils/artic
 import { sendArticlePublishedNotification } from '@api/collections/articles/utils/article-published-notification.util';
 import { assertArticleIsReaderCopy } from '@api/collections/articles/utils/article-reader-copy.util';
 import {
+  applyPublishStateTransition,
+  patchValidatedRevision,
+  shouldGuardPublishedRevision,
+} from '@api/collections/articles/utils/article-revision-write.util';
+import {
   assertPublicSlugAvailable,
   assertPublishedSlugTransition,
   mapPublicSlugConflict,
@@ -95,7 +100,7 @@ import {
   invalidateCollectionQueryCache,
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
-import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
@@ -425,13 +430,16 @@ export class ArticlesService
 
       // If status is being changed to PUBLISHED, handle publishing logic
       if (isPublishingUpdate) {
-        await this.applyPublishStateTransition({
-          id,
-          organizationId,
-          publishedAtFromDto: updateArticleDto.publishedAt,
-          updateData,
-          userId,
-        });
+        await applyPublishStateTransition(
+          (where, select) => this.findOneSelect(where, select),
+          {
+            id,
+            organizationId,
+            publishedAtFromDto: updateArticleDto.publishedAt,
+            updateData,
+            userId,
+          },
+        );
       }
 
       await assertPublishedSlugTransition(
@@ -442,7 +450,18 @@ export class ArticlesService
       );
 
       const result = await mapPublicSlugConflict(() =>
-        super.patch(id, updateData),
+        shouldGuardPublishedRevision(
+          updateArticleDto,
+          accessible,
+          destinationStatus,
+        )
+          ? patchValidatedRevision(
+              (where, data) => super.patchOneWhere(where, data),
+              id,
+              accessible.updatedAt,
+              updateData,
+            )
+          : super.patch(id, updateData),
       );
 
       // Verify the article belongs to the user/organization (ownership already checked in controller)
@@ -489,47 +508,6 @@ export class ArticlesService
         updateArticleDto,
       });
       throw error;
-    }
-  }
-
-  /**
-   * Apply the publish-state transition to `updateData` when an article is moved
-   * to PUBLIC: always set scope to PUBLIC and stamp publishedAt the first time
-   * (preserving an existing or DTO-provided date). Extracted from `update`.
-   */
-  private async applyPublishStateTransition(params: {
-    id: string;
-    userId: string;
-    organizationId: string;
-    updateData: Record<string, unknown>;
-    publishedAtFromDto?: string;
-  }): Promise<void> {
-    // Always set scope to PUBLIC when publishing
-    params.updateData.scope = ArticleScope.PUBLIC;
-
-    // Find and verify ownership
-    const currentArticle = await this.findOneSelect(
-      {
-        id: params.id,
-        OR: [
-          { userId: params.userId },
-          { organizationId: params.organizationId },
-        ],
-      },
-      { publishedAt: true },
-    );
-
-    if (currentArticle) {
-      // Set publishedAt if empty/null (first time publishing or missing date).
-      // If republishing and publishedAt already exists, keep it as is.
-      if (!currentArticle.publishedAt) {
-        params.updateData.publishedAt =
-          params.publishedAtFromDto ?? new Date().toISOString();
-      }
-    } else if (!params.publishedAtFromDto) {
-      // Article not found, but this will be caught by the patch call below.
-      // Still stamp publishedAt for safety unless the DTO provided one.
-      params.updateData.publishedAt = new Date().toISOString();
     }
   }
 

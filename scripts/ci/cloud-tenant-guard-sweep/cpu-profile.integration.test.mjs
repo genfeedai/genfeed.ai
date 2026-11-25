@@ -12,7 +12,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
+import { awaitChildResult } from './cpu-profile-child-result.mjs';
 import { validateCpuProfile } from './cpu-profile-core.mjs';
+
+// A seal that is not complete is named by what happened. The sampler getting
+// no CPU in its window leaves `sampleCount: 0`, which the profile validator
+// reports as `invalidSchema` (#9918); say that instead of the generic reason.
+function describeUnsealedProfile(directory) {
+  let seal;
+  try {
+    seal = readFileSync(join(directory, 'cpu-profile-seal.json'), 'utf8');
+  } catch {
+    return 'CPU profile seal unavailable';
+  }
+  try {
+    const { sampleCount, startedAt, stoppedAt } = JSON.parse(seal);
+    if (sampleCount === 0)
+      return `The inspector returned a profile with no samples after ${stoppedAt - startedAt} ms (the sampler got no CPU in its window): ${seal}`;
+  } catch {
+    // An unreadable seal is reported as written below.
+  }
+  return seal;
+}
 
 test('actual worker inspector seals main-isolate CPU while deterministic main code remains busy', async (t) => {
   const directory = mkdtempSync(join(tmpdir(), 'cpu-main-proof-'));
@@ -38,48 +59,21 @@ test('actual worker inspector seals main-isolate CPU while deterministic main co
     env: { CPU_PRIVATE_SENTINEL: 'PRIVATE_PARENT_SENTINEL' },
     stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
   });
-  let childStderr = '';
-  child.stderr.on('data', (chunk) => {
-    childStderr += chunk;
-  });
-  let watchdog;
   t.after(() => {
-    clearTimeout(watchdog);
     if (child.exitCode === null) child.kill('SIGKILL');
   });
-  const result = await new Promise((resolve, reject) => {
-    // biome-ignore lint/style/noRestrictedGlobals: wall-clock guard on a real child process; fake timers cannot stop a child stuck in a busy loop
-    watchdog = setTimeout(() => {
-      child.kill('SIGKILL');
-      reject(new Error('Busy-main inspector proof exceeded child watchdog'));
-    }, 15000);
-    child.once('message', resolve);
-    child.once('error', reject);
-    child.once('exit', (code) => {
-      if (code !== 0)
-        reject(
-          new Error(
-            `Busy-main inspector child failed (exit ${code}): ${childStderr}`,
-          ),
-        );
-    });
-  });
+  const result = await awaitChildResult(child, { watchdogMs: 15000 });
   assert.equal(result.started, true);
   assert.equal(result.isolatedEnv, true);
   assert.equal(result.isolatedImports, true);
   assert.equal(readFileSync(importCount, 'utf8'), 'x');
-  let sealDiagnostic;
-  if (result.sealedWhileBusy !== true) {
-    try {
-      sealDiagnostic = readFileSync(
-        join(directory, 'cpu-profile-seal.json'),
-        'utf8',
-      );
-    } catch {
-      sealDiagnostic = 'CPU profile seal unavailable';
-    }
-  }
-  assert.equal(result.sealedWhileBusy, true, sealDiagnostic);
+  assert.equal(
+    result.sealedWhileBusy,
+    true,
+    result.sealedWhileBusy === true
+      ? undefined
+      : describeUnsealedProfile(directory),
+  );
   assert.equal(result.delayedTimerRan, false);
   const raw = JSON.parse(
     readFileSync(join(directory, 'cpu-profile.raw.json'), 'utf8'),
@@ -107,5 +101,4 @@ test('actual worker inspector seals main-isolate CPU while deterministic main co
     if (child.exitCode !== null) resolve();
     else child.once('exit', resolve);
   });
-  clearTimeout(watchdog);
 });

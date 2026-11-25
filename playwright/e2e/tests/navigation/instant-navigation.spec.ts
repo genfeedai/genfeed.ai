@@ -577,7 +577,6 @@ test('the first prefetches after the shell paints are for the shell, not the pag
     ...(await hrefsWithin('[data-testid="app-rail"] a[href]')),
     ...(await hrefsWithin('[data-testid^="app-rail-more-item"][href]')),
     ...(await hrefsWithin('[data-testid="sidebar-shell"] a[href]')),
-    ...(await hrefsWithin('[data-testid="topbar-apps-link"][href]')),
   ]);
 
   expect(firstSecond.filter((pathname) => !shellPaths.has(pathname))).toEqual(
