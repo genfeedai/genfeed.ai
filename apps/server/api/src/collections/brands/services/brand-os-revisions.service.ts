@@ -1,6 +1,7 @@
 import type { UpdateBrandKitVisualIdentityDto } from '@api/collections/brands/dto/update-brand-kit-visual-identity.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
+import { assertBrandKitRequiredTextContextFits } from '@api/collections/brands/utils/brand-kit-required-context.util';
 import {
   validateBrandOsDiagnostics,
   validateBrandOsEvidence,
@@ -460,6 +461,7 @@ export class BrandOsRevisionsService {
           field.currentValue = field.proposedValue;
         delete field.proposedValue;
       }
+      assertBrandKitRequiredTextContextFits(row, content);
       content.assetCandidates = [];
       content.status = 'accepted';
       await this.syncApprovedStyle(tx, organizationId, brandId, content);
