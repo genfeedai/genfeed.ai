@@ -13,22 +13,8 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
 }));
 
 describe('ReleaseXPostingBillingCard', () => {
-  it('sends a free plan to the plans page', () => {
-    render(<ReleaseXPostingBillingCard code="x_posting_requires_paid_plan" />);
-
-    expect(
-      screen.getByText('Posting to X needs a paid plan'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Choose a plan' })).toHaveAttribute(
-      'href',
-      '/acme/~/settings/subscription',
-    );
-  });
-
-  it('sends an empty wallet to the credits page', () => {
-    render(
-      <ReleaseXPostingBillingCard code="x_posting_insufficient_credits" />,
-    );
+  it('tells an empty wallet to buy credits, and offers the plans', () => {
+    render(<ReleaseXPostingBillingCard />);
 
     expect(
       screen.getByText('Not enough credits to post to X'),
@@ -36,6 +22,10 @@ describe('ReleaseXPostingBillingCard', () => {
     expect(screen.getByRole('link', { name: 'Buy credits' })).toHaveAttribute(
       'href',
       '/acme/~/settings/credits',
+    );
+    expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/subscription',
     );
   });
 });

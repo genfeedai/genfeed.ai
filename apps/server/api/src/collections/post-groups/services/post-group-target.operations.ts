@@ -277,11 +277,13 @@ async function scheduleTargetInTransaction(
     );
   const readiness = readinessByCredential.get(targetInput.credentialId);
   dependencies.readinessService.assertSchedulable(targetInput, readiness);
-  await dependencies.readinessService.assertXPostingAllowed(
-    params.organizationId,
-    [targetInput],
-    { includeCredits: isDueNow, text: group.baseContent },
-  );
+  if (isDueNow) {
+    await dependencies.readinessService.assertXPostingAllowed(
+      params.organizationId,
+      [targetInput],
+      group.baseContent,
+    );
+  }
 
   const isExactReplay =
     target.targetExecutionState === TargetExecutionState.SCHEDULED &&
@@ -827,15 +829,6 @@ export async function applyReleaseTargetUpdates(
     const nextState = dependencies.contractService.toTargetState(
       context.input.status,
     );
-    if (nextState === TargetExecutionState.SCHEDULED) {
-      await dependencies.readinessService.assertXPostingAllowed(
-        context.organizationId,
-        context.currentTargets.filter((target) =>
-          GROUP_ACTION_STATES.has(target.targetExecutionState),
-        ),
-        { includeCredits: false, text: context.input.baseContent },
-      );
-    }
     for (const target of context.currentTargets) {
       if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
         continue;

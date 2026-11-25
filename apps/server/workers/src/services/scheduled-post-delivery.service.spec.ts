@@ -149,7 +149,6 @@ function createDeliveryMocks() {
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
-    paidAccess: { isSubscriptionGatedFresh: vi.fn().mockResolvedValue(false) },
     prisma: {
       credential: { findMany: vi.fn() },
       post: {
@@ -216,7 +215,7 @@ function createDeliveryService(mocks: DeliveryMocks) {
   );
   const xBilling = new ScheduledPostXBilling(
     mocks.logger as never,
-    new XPostingBillingGate(mocks.paidAccess as never, mocks.credits as never),
+    new XPostingBillingGate(mocks.credits as never),
     mocks.credits as never,
     mocks.prisma as never,
     { get: () => 'https://app.genfeed.ai' } as never,
@@ -531,27 +530,6 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   describe('X posting cost', () => {
-    it('never calls X for an organization on the free plan', async () => {
-      const publish = mockSuccessfulPublisher(mocks);
-      mocks.paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
-
-      const result = await executeDelivery(
-        mocks,
-        createScheduledPost(),
-        'scheduled_sweep',
-      );
-
-      expect(publish).not.toHaveBeenCalled();
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('paid plan');
-      expect(result.error).toContain(
-        'https://app.genfeed.ai/settings/subscription',
-      );
-      expect(
-        mocks.credits.deductCreditsFromOrganization,
-      ).not.toHaveBeenCalled();
-    });
-
     it('never calls X when the organization cannot pay for the post', async () => {
       const publish = mockSuccessfulPublisher(mocks);
       mocks.credits.checkOrganizationCreditsAvailable.mockResolvedValue(false);
@@ -653,7 +631,6 @@ describe('ScheduledPostDeliveryService', () => {
         id: 'cred-1',
         platform: CredentialPlatform.BEEHIIV,
       });
-      mocks.paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
 
       const result = await executeDelivery(
         mocks,
@@ -665,7 +642,9 @@ describe('ScheduledPostDeliveryService', () => {
       expect(
         mocks.credits.deductCreditsFromOrganization,
       ).not.toHaveBeenCalled();
-      expect(mocks.paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
+      expect(
+        mocks.credits.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
     });
   });
 

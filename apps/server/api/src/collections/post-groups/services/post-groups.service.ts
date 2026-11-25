@@ -751,7 +751,7 @@ export class PostGroupsService {
         targets.filter((target) =>
           GROUP_ACTION_STATES.has(target.targetExecutionState),
         ),
-        { includeCredits: true, text: group.baseContent },
+        group.baseContent,
       );
 
       const scheduledDate = new Date();

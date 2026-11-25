@@ -633,13 +633,6 @@
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
   },
-  "xPostingBillingPrompt": {
-    "title": "Posting to X needs a plan and credits",
-    "heading": "X charges for every post, so we cannot send this one yet",
-    "body": "Posting to X is on paid plans, and each post costs credits. Choose a plan, or buy credits if you are on one, then publish again. Your post is saved.",
-    "buyCredits": "Buy credits",
-    "seePlans": "See plans"
-  },
   "upgradePrompt": {
     "title": "{quality} quality is on {plan}",
     "titleFallback": "Upgrade your plan",

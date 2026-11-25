@@ -265,7 +265,7 @@ export default function ReleaseDetailsView({
                     }
                   />
                 ) : isXPostingBillingErrorCode(target.error?.code) ? (
-                  <ReleaseXPostingBillingCard code={target.error.code} />
+                  <ReleaseXPostingBillingCard />
                 ) : target.error ? (
                   <p className="text-xs text-destructive">
                     {target.error.message}

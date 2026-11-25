@@ -148,21 +148,7 @@ describe('MCP tool error contract', () => {
     ).toBe('plan_required');
   });
 
-  it('returns the X posting refusals with the page that fixes each', () => {
-    expect(
-      classifyMcpToolFailure({
-        domainCode: 'x_posting_requires_paid_plan',
-        message:
-          'Posting to X needs a paid plan. Choose a plan to publish to X: https://app.genfeed.ai/settings/subscription',
-        status: 402,
-      }),
-    ).toEqual({
-      code: 'plan_required',
-      message:
-        'Posting to X needs a paid plan. Choose a plan to publish to X: https://app.genfeed.ai/settings/subscription',
-      nextStepUrl: appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION),
-    });
-
+  it('returns the X posting refusal with the credits page as the next step', () => {
     expect(
       classifyMcpToolFailure({
         domainCode: 'x_posting_insufficient_credits',

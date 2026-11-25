@@ -29,17 +29,15 @@ export class PostGroupReadinessService {
 
   /**
    * Refuses an X target the organization cannot pay for, while the caller is
-   * still on the request: the free plan cannot post to X, and a post sent now
-   * needs the credits it costs. Without this the request answers 200 and the
-   * worker fails the post later, where a script never looks.
-   *
-   * `includeCredits` is for a post sent now; a scheduled one is checked for the
-   * plan only, because the wallet is read again when it is sent.
+   * still on the request: a post sent now needs the credits it costs. Without
+   * this the request answers 200 and the worker fails the post later, where a
+   * script never looks. A scheduled post is not checked here, because the
+   * wallet is read again when it is sent.
    */
   async assertXPostingAllowed(
     organizationId: string,
     targets: ReadonlyArray<{ platform: unknown }>,
-    options: { includeCredits: boolean; text: string | null | undefined },
+    text: string | null | undefined,
   ): Promise<void> {
     const xTarget = targets.find((target) => isXPlatform(target.platform));
     if (!xTarget) {
@@ -47,10 +45,9 @@ export class PostGroupReadinessService {
     }
     const refusal = await this.xPostingGate.check({
       appUrl: this.configService.get('GENFEEDAI_APP_URL') ?? DEFAULT_APP_URL,
-      includeCredits: options.includeCredits,
       organizationId,
       platform: xTarget.platform,
-      text: options.text,
+      text,
     });
     if (refusal) {
       throw new XPostingBillingException(refusal);

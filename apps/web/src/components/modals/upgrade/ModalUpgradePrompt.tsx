@@ -134,56 +134,6 @@ function CreditsRequiredPrompt() {
   );
 }
 
-/**
- * Shown when the API refuses a post to X (`x_posting_requires_paid_plan` or
- * `x_posting_insufficient_credits`). X bills every post, so the free plan
- * cannot post and a paid plan pays in credits; one prompt names both ways out
- * because the refusal does not say which one the person needs.
- */
-function XPostingBillingPrompt() {
-  const translate = useTranslations('ui.xPostingBillingPrompt');
-  const { isNavigating, navigateTo } = useAppNavigation();
-
-  return (
-    <Modal id={ModalEnum.X_POSTING_BILLING} title={translate('title')}>
-      <div className="space-y-6 py-2">
-        <div className="flex items-start gap-3 p-4 bg-primary/5 shadow-border">
-          <Coins className="size-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {translate('heading')}
-            </p>
-            <p className="text-xs text-foreground/50 mt-1">
-              {translate('body')}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => navigateTo(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
-            isDisabled={isNavigating}
-            isLoading={isNavigating}
-            className="w-full"
-          >
-            {translate('seePlans')}
-            <ArrowRight className="size-4" />
-          </Button>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => navigateTo(APP_ROUTES.SETTINGS.CREDITS)}
-            isDisabled={isNavigating}
-            className="w-full"
-          >
-            {translate('buyCredits')}
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 export default function ModalUpgradePrompt({
   currentTier = SubscriptionTier.FREE,
   lockedQualityTier,
@@ -191,10 +141,6 @@ export default function ModalUpgradePrompt({
 }: ModalUpgradePromptProps) {
   if (reason === 'credits') {
     return <CreditsRequiredPrompt />;
-  }
-
-  if (reason === 'x-posting') {
-    return <XPostingBillingPrompt />;
   }
 
   return (

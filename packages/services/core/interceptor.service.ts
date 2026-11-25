@@ -1,5 +1,5 @@
 import { ModalEnum } from '@genfeedai/contracts';
-import { isXPostingBillingErrorCode } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
+import { X_POSTING_INSUFFICIENT_CREDITS_CODE } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
@@ -544,21 +544,15 @@ export abstract class HTTPBaseService {
     // credit-spending action (generate, clips, batch, editor, agent tools)
     // answers with one prompt to buy credits or pick a plan. The caller still
     // receives the rejection below.
+    // A post to X the wallet cannot pay for is the same paywall: it is refused
+    // on the request with its own code.
     const refusalCode = getJsonApiErrorMember(response.data)?.code;
     if (
       typeof window !== 'undefined' &&
-      refusalCode === INSUFFICIENT_CREDITS_ERROR_CODE
+      (refusalCode === INSUFFICIENT_CREDITS_ERROR_CODE ||
+        refusalCode === X_POSTING_INSUFFICIENT_CREDITS_CODE)
     ) {
       openModal(ModalEnum.CREDITS_REQUIRED);
-    }
-
-    // A post to X the organization cannot pay for (free plan or empty wallet)
-    // is refused on the request; the prompt says why and where to fix it.
-    if (
-      typeof window !== 'undefined' &&
-      isXPostingBillingErrorCode(refusalCode)
-    ) {
-      openModal(ModalEnum.X_POSTING_BILLING);
     }
 
     // In production, sanitize error data. Throw a real Error (not a plain

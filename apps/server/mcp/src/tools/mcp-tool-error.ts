@@ -3,10 +3,7 @@ import {
   isMcpRemovalTool,
   McpToolInputError,
 } from '@genfeedai/actions';
-import {
-  X_POSTING_INSUFFICIENT_CREDITS_CODE,
-  X_POSTING_REQUIRES_PAID_PLAN_CODE,
-} from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
+import { X_POSTING_INSUFFICIENT_CREDITS_CODE } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -614,16 +611,9 @@ export function classifyMcpToolFailure(
   }
 
   // Posting to X is refused on the request, so an agent learns it before it
-  // reports a post as sent. The API's message already names the link; the
-  // next step URL is the same page.
-  if (domainCode === X_POSTING_REQUIRES_PAID_PLAN_CODE) {
-    return compactToolError({
-      code: 'plan_required',
-      message: message || 'Posting to X needs a paid plan.',
-      nextStepUrl: nextStepUrl('plan_required'),
-    });
-  }
-
+  // reports a post as sent. Credits fix both refusals (never paid, or not
+  // enough for the post), so both are insufficient_credits with the credits
+  // page as the next step.
   if (
     domainCode === 'INSUFFICIENT_CREDITS' ||
     domainCode === X_POSTING_INSUFFICIENT_CREDITS_CODE ||

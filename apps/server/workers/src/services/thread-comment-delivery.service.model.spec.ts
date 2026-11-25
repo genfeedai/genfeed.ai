@@ -284,10 +284,9 @@ function realService(sim: Simulation, world: World): Sweep {
     lock,
     new ScheduledPostXBilling(
       logger,
-      new XPostingBillingGate(
-        { isSubscriptionGatedFresh: async () => false } as never,
-        { checkOrganizationCreditsAvailable: async () => true } as never,
-      ),
+      new XPostingBillingGate({
+        checkOrganizationCreditsAvailable: async () => true,
+      } as never),
       {
         checkOrganizationCreditsAvailable: async () => true,
         deductCreditsFromOrganization: async () => undefined,

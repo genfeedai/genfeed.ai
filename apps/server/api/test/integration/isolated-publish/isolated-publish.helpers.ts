@@ -20,6 +20,7 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
+import { XPostingBillingGate } from '@api/common/subscriptions/x-posting-billing-gate.service';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
@@ -327,6 +328,11 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       PostGroupReadinessService,
       PostGroupsService,
       PostLifecycleService,
+      {
+        // The lane under test is the scheduler, not X billing: every post may go.
+        provide: XPostingBillingGate,
+        useValue: { check: async () => null },
+      },
       AgentArtifactReferenceService,
       CronPostsService,
       {

@@ -53,6 +53,5 @@ export enum ModalEnum {
   UPGRADE_PROMPT = 'modal-upgrade-prompt',
   WATCHLIST = 'modal-watchlist',
   WORKFLOW = 'modal-workflow',
-  X_POSTING_BILLING = 'modal-x-posting-billing',
   EDIT_SETTING = 'modal-edit-setting',
 }

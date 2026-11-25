@@ -207,7 +207,6 @@ export default function GlobalModalsRenderer({
 
       <ModalUpgradePrompt currentTier={settings?.subscriptionTier} />
       <ModalUpgradePrompt reason="credits" />
-      <ModalUpgradePrompt reason="x-posting" />
 
       {postRemixData &&
         renderModal(

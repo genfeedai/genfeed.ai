@@ -32,8 +32,8 @@ export interface XPublishedPost {
 
 /**
  * What posting to X costs the organization. X bills Genfeed for every request,
- * so X posting is a paid-plan feature and every published post is charged in
- * credits. The gate runs before the provider call; the charge runs after the
+ * so every published post is charged in credits; an empty wallet is the only
+ * thing that refuses it. The gate runs before the provider call; the charge runs after the
  * provider accepted the post, so it can never fail a publish that happened.
  */
 @Injectable()
@@ -47,11 +47,9 @@ export class ScheduledPostXBilling {
   ) {}
 
   /**
-   * Refuses an X post before it is sent: an organization on the free plan
-   * (including one that only holds free credits) cannot post to X, and a paid
-   * one needs enough credits for the post. Other platforms pass. The failure
-   * carries the reason and the link that fixes it, because it is what the owner
-   * reads in the app, the alert and any webhook.
+   * Refuses an X post before it is sent when the wallet cannot cover it. Other
+   * platforms pass. The failure carries the reason and the link that fixes it,
+   * because it is what the owner reads in the app, the alert and any webhook.
    */
   async checkCanPublish(input: {
     organizationId: string | null | undefined;
@@ -62,7 +60,6 @@ export class ScheduledPostXBilling {
   }): Promise<DeliveryGateFailure | null> {
     const refusal = await this.gate.check({
       appUrl: this.configService.get('GENFEEDAI_APP_URL') || DEFAULT_APP_URL,
-      includeCredits: true,
       organizationId: input.organizationId,
       platform: input.platform,
       text: input.text,

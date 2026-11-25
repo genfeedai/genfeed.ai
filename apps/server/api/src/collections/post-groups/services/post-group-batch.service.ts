@@ -442,13 +442,6 @@ export class PostGroupBatchService {
         );
       }
     }
-    if (!isDraft) {
-      await this.readinessService.assertXPostingAllowed(
-        organizationId,
-        input.targets,
-        { includeCredits: false, text: input.baseContent },
-      );
-    }
     assertFutureTimes(input, isDraft, now);
   }
 
