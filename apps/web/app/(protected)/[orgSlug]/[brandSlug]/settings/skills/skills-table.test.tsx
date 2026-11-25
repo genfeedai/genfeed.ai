@@ -55,6 +55,32 @@ describe('SkillsTable', () => {
     ).toBeChecked();
   });
 
+  it('marks a desktop skill Desktop and a skill without a value Web', () => {
+    render(
+      <SkillsTable
+        enabledSlugs={[]}
+        isLoading={false}
+        pendingSlugs={new Set()}
+        onSkillSelect={vi.fn()}
+        onToggleSkill={vi.fn()}
+        skills={[
+          ...skillsFixture,
+          {
+            ...skillsFixture[0],
+            id: 'skill-2',
+            name: 'Motion Video',
+            runsOn: 'desktop',
+            slug: 'motion-video',
+          } as Skill,
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Runs on' })).toBeVisible();
+    expect(screen.getByText('Web')).toBeVisible();
+    expect(screen.getByText('Desktop')).toBeVisible();
+  });
+
   it('calls onSkillSelect when a row is clicked', () => {
     const onSkillSelect = vi.fn();
     render(

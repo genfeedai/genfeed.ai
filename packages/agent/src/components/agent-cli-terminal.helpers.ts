@@ -24,10 +24,21 @@ export const TERMINAL_PRESETS: Array<{
   { description: 'Open the Codex CLI', kind: 'codex', label: 'Codex CLI' },
 ];
 
+export interface TerminalStartOptions {
+  prompt?: string;
+}
+
+/** A session the terminal opens by itself once it is ready. */
+export interface TerminalLaunchRequest extends TerminalStartOptions {
+  kind: TerminalSessionKind;
+}
+
 export interface TerminalCreatePayload {
   cols?: number;
   cwd?: string;
   kind?: TerminalSessionKind;
+  /** Opening prompt for a Desktop `claude` session; the socket gateway ignores it. */
+  prompt?: string;
   rows?: number;
   threadId?: string;
 }
@@ -90,7 +101,10 @@ export interface AgentCliTerminalController {
   persistCwdInput: () => void;
   setCwdInput: (value: string) => void;
   setSearchQuery: (value: string) => void;
-  startSession: (kind: TerminalSessionKind) => void;
+  startSession: (
+    kind: TerminalSessionKind,
+    options?: TerminalStartOptions,
+  ) => void;
   status: string;
   submitCwd: () => void;
   switchSession: (sessionId: string) => void;

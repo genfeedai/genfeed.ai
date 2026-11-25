@@ -183,6 +183,33 @@ describe('DesktopTerminalService', () => {
     expect(ptyState.spawnCalls[0]?.command).toBe('claude');
   });
 
+  it('opens a claude session on its prompt as one argument and adds no permission flag', async () => {
+    const service = new DesktopTerminalService(() => null);
+
+    await service.createSession(
+      { kind: 'claude', prompt: 'Use the threejs-previs skill; rm -rf ~' },
+      () => {},
+      () => {},
+    );
+
+    expect(ptyState.spawnCalls[0]?.command).toBe('claude');
+    expect(ptyState.spawnCalls[0]?.args).toEqual([
+      'Use the threejs-previs skill; rm -rf ~',
+    ]);
+  });
+
+  it('ignores a prompt for every kind but claude', async () => {
+    const service = new DesktopTerminalService(() => null);
+
+    await service.createSession(
+      { kind: 'codex', prompt: 'ignored' },
+      () => {},
+      () => {},
+    );
+
+    expect(ptyState.spawnCalls[0]?.args).toEqual([]);
+  });
+
   it('falls back to the home directory for relative or missing cwd values', async () => {
     const service = new DesktopTerminalService(() => null);
 

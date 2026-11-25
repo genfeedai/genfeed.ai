@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import { readBrandPalette } from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import { parseBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type {
   BrandKitFieldKey,
@@ -15,6 +16,7 @@ import type {
   ContentHarnessContribution,
   ContentHarnessInput,
   ContentHarnessIntent,
+  HarnessPaletteColor,
   HarnessPersonaProfile,
   HarnessSourceRecord,
   HarnessVoiceProfile,
@@ -287,12 +289,37 @@ function buildApprovedBrandOsIdentity(
   const visualDirections = music
     ? []
     : splitVisualDirection(readBrandOsString(revision, 'visualDirection'));
+  const palette = music ? [] : readApprovedPalette(revision);
   return {
     systemDirectives,
     styleDirectives,
     ...(visualDirections.length > 0 ? { visualDirections } : {}),
+    ...(palette.length > 0 ? { palette } : {}),
     ...(guardrails.length > 0 ? { guardrails } : {}),
   };
+}
+
+const PALETTE_HEX = /^#[0-9A-F]{6}$/i;
+
+/** Primary, secondary and background first, then the named colours. */
+function readApprovedPalette(
+  revision: IBrandOsRevision,
+): HarnessPaletteColor[] {
+  const colors: HarnessPaletteColor[] = [];
+  for (const [key, usage] of [
+    ['primaryColor', 'Primary'],
+    ['secondaryColor', 'Secondary'],
+    ['backgroundColor', 'Background'],
+  ] as const) {
+    const hex = readBrandOsString(revision, key)?.trim();
+    if (hex && PALETTE_HEX.test(hex)) colors.push({ hex, usage });
+  }
+  for (const color of readBrandPalette(
+    readBrandOsValue(revision, 'colorPalette'),
+  )) {
+    colors.push({ hex: color.hex, usage: color.usage ?? color.name });
+  }
+  return colors;
 }
 
 export const buildHarnessInput = (params: {
