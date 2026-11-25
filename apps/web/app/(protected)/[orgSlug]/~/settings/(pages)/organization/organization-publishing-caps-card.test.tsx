@@ -1,11 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
@@ -13,19 +8,24 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   organizationId: 'org-1',
+  settings: {} as Record<string, number | string>,
   updateSettings: vi.fn(),
-  settings: {
-    quotaInstagram: 5,
-    quotaTiktok: 1,
-    quotaTwitter: 15,
-    quotaYoutube: 5,
-  } as Record<string, number>,
 }));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/acme${path}` }),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -49,15 +49,27 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+/** One arrow press: the value moves on key down, and commits when the key comes up. */
+function nudge(slider: HTMLElement) {
+  fireEvent.keyDown(slider, { code: 'ArrowRight', key: 'ArrowRight' });
+  fireEvent.keyUp(slider, { code: 'ArrowRight', key: 'ArrowRight' });
+}
+
+function useSettings(tier: string, caps: Record<string, number> = {}) {
+  mocks.settings = {
+    publishingQuotaTier: tier,
+    quotaInstagram: 5,
+    quotaTiktok: 1,
+    quotaTwitter: 15,
+    quotaYoutube: 5,
+    ...caps,
+  };
+}
+
 describe('OrganizationPublishingCapsCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.settings = {
-      quotaInstagram: 5,
-      quotaTiktok: 1,
-      quotaTwitter: 15,
-      quotaYoutube: 5,
-    };
+    useSettings('plan');
     mocks.updateSettings
       .mockReset()
       .mockImplementation(async (key: string, value: number) => {
@@ -65,153 +77,102 @@ describe('OrganizationPublishingCapsCard', () => {
       });
   });
 
-  it('renders a cap field per platform seeded from organization settings', () => {
+  it('shows a slider per platform at the owner cap, with the plan ceiling beside it', () => {
     render(<OrganizationPublishingCapsCard />);
 
     expect(screen.getByText('Daily publishing caps')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Max published posts per connected account per UTC day. A thread counts as one post. 0 = no cap.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('X')).toHaveValue(15);
-    expect(screen.getByLabelText('Instagram')).toHaveValue(5);
-    expect(screen.getByLabelText('YouTube')).toHaveValue(5);
-    expect(screen.getByLabelText('TikTok')).toHaveValue(1);
-  });
-
-  it('puts the help text directly below the heading', () => {
-    render(<OrganizationPublishingCapsCard />);
-
-    expect(
-      screen.getByRole('heading', { name: 'Daily publishing caps' })
-        .parentElement?.nextElementSibling,
-    ).toHaveTextContent(
-      'Max published posts per connected account per UTC day.',
+    const x = screen.getByRole('slider', { name: 'X' });
+    expect(x).toHaveAttribute('aria-valuetext', '15');
+    expect(x).toHaveAttribute('max', '25');
+    expect(screen.getByRole('slider', { name: 'Instagram' })).toHaveAttribute(
+      'max',
+      '15',
     );
+    expect(screen.getByRole('slider', { name: 'TikTok' })).toHaveAttribute(
+      'max',
+      '10',
+    );
+    expect(screen.getByText('15 / day')).toBeInTheDocument();
+    expect(screen.getAllByText(/^Up to \d+ on your plan\.$/)).toHaveLength(4);
   });
 
-  it('saves only the edited field on blur and ignores an unchanged field', async () => {
+  it('locks every slider at 1 a day before the first payment', () => {
+    useSettings('trial');
     render(<OrganizationPublishingCapsCard />);
 
-    fireEvent.blur(screen.getByLabelText('Instagram'));
-    const tiktok = screen.getByLabelText('TikTok');
-    fireEvent.change(tiktok, { target: { value: '0' } });
-    expect(mocks.updateSettings).not.toHaveBeenCalled();
-    fireEvent.blur(tiktok);
-
-    await waitFor(() => {
-      expect(mocks.updateSettings).toHaveBeenCalledExactlyOnceWith(
-        'quotaTiktok',
-        0,
+    for (const name of ['X', 'Instagram', 'YouTube', 'TikTok']) {
+      expect(screen.getByRole('slider', { name })).toHaveAttribute(
+        'aria-valuetext',
+        '1',
       );
-      expect(mocks.notificationsSuccess).toHaveBeenCalled();
-    });
+      expect(screen.getByRole('slider', { name })).toHaveAttribute(
+        'data-disabled',
+      );
+    }
+    expect(screen.getAllByText('1 / day')).toHaveLength(4);
+    expect(
+      screen.getByText(/Your first payment, credits or a plan, unlocks/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Choose a plan')).not.toBeInTheDocument();
   });
 
-  it('saves on Enter via blur', async () => {
+  it('caps a credit buyer at 5 and offers the plan', () => {
+    useSettings('credits');
     render(<OrganizationPublishingCapsCard />);
 
-    const twitter = screen.getByLabelText('X');
-    twitter.focus();
-    fireEvent.change(twitter, { target: { value: '48' } });
-    fireEvent.keyDown(twitter, { key: 'Enter' });
-
-    await waitFor(() =>
-      expect(mocks.updateSettings).toHaveBeenCalledExactlyOnceWith(
-        'quotaTwitter',
-        48,
-      ),
+    const x = screen.getByRole('slider', { name: 'X' });
+    expect(x).toHaveAttribute('max', '5');
+    // The saved cap of 15 is held to what credits allow.
+    expect(x).toHaveAttribute('aria-valuetext', '5');
+    expect(
+      screen.getAllByText('Up to 5 with credits. A plan raises it to 25.')
+        .length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Choose a plan' })).toHaveAttribute(
+      'href',
+      '/acme/settings/subscription',
     );
   });
 
-  it.each(['', '1001'])('keeps invalid edits local (%j)', (value) => {
+  it('lets a deployment without billing go to 0, shown as no cap', () => {
+    useSettings('unmetered', { quotaTwitter: 0 });
     render(<OrganizationPublishingCapsCard />);
 
-    const field = screen.getByLabelText('X');
-    fireEvent.change(field, { target: { value } });
-    fireEvent.blur(field);
-
-    expect(mocks.notificationsError).toHaveBeenCalledWith(
-      'Each cap must be a whole number between 0 and 1000.',
+    expect(screen.getByRole('slider', { name: 'X' })).toHaveAttribute(
+      'min',
+      '0',
     );
-    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(screen.getByText('No cap')).toBeInTheDocument();
   });
 
-  it('keeps other inputs editable and serializes concurrent edits', async () => {
-    let finishSave: (() => void) | undefined;
-    mocks.updateSettings.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          finishSave = resolve;
-        }),
-    );
+  it('saves a slider move once, on commit, and says so', async () => {
     render(<OrganizationPublishingCapsCard />);
 
-    const twitter = screen.getByLabelText('X');
-    fireEvent.change(twitter, { target: { value: '48' } });
-    fireEvent.blur(twitter);
-    await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalledTimes(1));
+    const tiktok = screen.getByRole('slider', { name: 'TikTok' });
+    nudge(tiktok);
 
-    const tiktok = screen.getByLabelText('TikTok');
-    expect(tiktok).toBeEnabled();
-    fireEvent.change(tiktok, { target: { value: '8' } });
-    fireEvent.blur(tiktok);
-    expect(mocks.updateSettings).toHaveBeenCalledTimes(1);
-
-    await act(async () => finishSave?.());
     await waitFor(() => {
-      expect(mocks.updateSettings.mock.calls).toEqual([
-        ['quotaTwitter', 48],
-        ['quotaTiktok', 8],
-      ]);
+      expect(mocks.updateSettings).toHaveBeenCalledWith('quotaTiktok', 2);
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'Publishing caps saved',
+      );
     });
   });
 
-  it('saves a revert when the prior edit is still in flight', async () => {
-    let finishSave: (() => void) | undefined;
-    mocks.updateSettings.mockImplementationOnce(
-      (key: string, value: number) =>
-        new Promise<void>((resolve) => {
-          finishSave = () => {
-            mocks.settings = { ...mocks.settings, [key]: value };
-            resolve();
-          };
-        }),
-    );
-    render(<OrganizationPublishingCapsCard />);
-
-    const tiktok = screen.getByLabelText('TikTok');
-    fireEvent.change(tiktok, { target: { value: '8' } });
-    fireEvent.blur(tiktok);
-    await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalledTimes(1));
-
-    fireEvent.change(tiktok, { target: { value: '1' } });
-    fireEvent.blur(tiktok);
-    await act(async () => finishSave?.());
-
-    expect(mocks.updateSettings.mock.calls).toEqual([
-      ['quotaTiktok', 8],
-      ['quotaTiktok', 1],
-    ]);
-    expect(tiktok).toHaveValue(1);
-  });
-
-  it('retains a failed edit for another blur', async () => {
+  it('tells the owner when a save fails and keeps the move on screen', async () => {
     mocks.updateSettings.mockRejectedValueOnce(new Error('boom'));
     render(<OrganizationPublishingCapsCard />);
 
-    const tiktok = screen.getByLabelText('TikTok');
-    fireEvent.change(tiktok, { target: { value: '8' } });
-    fireEvent.blur(tiktok);
+    nudge(screen.getByRole('slider', { name: 'TikTok' }));
 
     await waitFor(() =>
       expect(mocks.notificationsError).toHaveBeenCalledWith(
         'Failed to save publishing caps',
       ),
     );
-    expect(tiktok).toHaveValue(8);
-    fireEvent.blur(tiktok);
-    await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('slider', { name: 'TikTok' })).toHaveAttribute(
+      'aria-valuetext',
+      '2',
+    );
   });
 });

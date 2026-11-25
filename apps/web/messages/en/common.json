@@ -1059,15 +1059,27 @@
     },
     "publishingCaps": {
       "cardLabel": "Daily publishing caps",
-      "helpText": "Max published posts per connected account per UTC day. A thread counts as one post. 0 = no cap.",
-      "invalid": "Each cap must be a whole number between 0 and {max}.",
+      "helpText": "Max published posts per connected account per UTC day. A thread counts as one post.",
+      "hint": {
+        "credits": "Up to {max} with credits. A plan raises it to {planMax}.",
+        "plan": "Up to {max} on your plan.",
+        "trial": "Locked at 1 until your first payment",
+        "unmetered": "Set how many posts each account may publish per day. 0 = no cap."
+      },
+      "noCap": "No cap",
+      "notice": {
+        "choosePlan": "Choose a plan",
+        "creditsBody": "Credits cover every post, X included. A plan raises how high these sliders go.",
+        "creditsTitle": "Want to post more?",
+        "trial": "Free credits let you try Genfeed with 1 post / day on each account. Your first payment, credits or a plan, unlocks these sliders."
+      },
+      "perDay": "{count} / day",
       "platforms": {
         "instagram": "Instagram",
         "tiktok": "TikTok",
         "twitter": "X",
         "youtube": "YouTube"
       },
-      "save": "Save publishing caps",
       "saveFailed": "Failed to save publishing caps",
       "saved": "Publishing caps saved",
       "saving": "Saving…"

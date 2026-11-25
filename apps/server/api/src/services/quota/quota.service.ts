@@ -1,6 +1,7 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PublishingQuotaTierService } from '@api/collections/organization-settings/services/publishing-quota-tier.service';
 import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -10,6 +11,10 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  type PublishingQuotaKey,
+  resolveEffectivePublishingQuota,
+} from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -23,14 +28,8 @@ export interface QuotaCheckResult {
 }
 
 /** Platform to settings field mapping for quota lookups */
-type QuotaSettingsKey =
-  | 'quotaYoutube'
-  | 'quotaTiktok'
-  | 'quotaTwitter'
-  | 'quotaInstagram';
-
 const PLATFORM_QUOTA_FIELDS: Partial<
-  Record<CredentialPlatform, QuotaSettingsKey>
+  Record<CredentialPlatform, PublishingQuotaKey>
 > = {
   [CredentialPlatform.YOUTUBE]: 'quotaYoutube',
   [CredentialPlatform.TIKTOK]: 'quotaTiktok',
@@ -48,6 +47,7 @@ export class QuotaService {
     private readonly credentialsService: CredentialsService,
     private readonly organizationsService: OrganizationsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
+    private readonly quotaTiers: PublishingQuotaTierService,
     private readonly moduleRef: ModuleRef,
     private readonly logger: LoggerService,
   ) {}
@@ -104,11 +104,17 @@ export class QuotaService {
       );
     }
     const quotaField = PLATFORM_QUOTA_FIELDS[platform];
-    const configuredLimit = quotaField ? settings[quotaField] : undefined;
-    const dailyLimit =
-      typeof configuredLimit === 'number' && configuredLimit > 0
-        ? configuredLimit
-        : 0;
+    // The owner's cap, held to what the organization has paid: a never-paid
+    // organization is at 1 post a day, a credit buyer or a plan at most at its
+    // tier ceiling. Only a deployment without organization billing can leave a
+    // platform unmetered (cap 0).
+    const dailyLimit = quotaField
+      ? resolveEffectivePublishingQuota(
+          await this.quotaTiers.resolve(organization.id.toString()),
+          quotaField,
+          settings[quotaField],
+        )
+      : 0;
 
     // No quota field for this platform, or a limit of 0, means unmetered.
     // Mirrors CredentialPublishingReadinessService, which treats

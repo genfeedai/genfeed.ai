@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PublishingQuotaTierService } from '@api/collections/organization-settings/services/publishing-quota-tier.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { QuotaService } from '@api/services/quota/quota.service';
@@ -35,6 +36,8 @@ describe('QuotaService', () => {
   const mockCredentialsService = { findOne: vi.fn() };
   const mockOrganizationsService = { findOne: vi.fn() };
   const mockOrganizationSettingsService = { findOne: vi.fn() };
+  // The owner's caps stand unless a test names a tier.
+  const mockQuotaTiers = { resolve: vi.fn() };
   const mockModuleRef = {
     get: vi.fn().mockReturnValue(mockPostsService),
   };
@@ -46,6 +49,7 @@ describe('QuotaService', () => {
   };
 
   beforeEach(async () => {
+    mockQuotaTiers.resolve.mockResolvedValue('unmetered');
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         QuotaService,
@@ -55,6 +59,7 @@ describe('QuotaService', () => {
           provide: OrganizationSettingsService,
           useValue: mockOrganizationSettingsService,
         },
+        { provide: PublishingQuotaTierService, useValue: mockQuotaTiers },
         { provide: ModuleRef, useValue: mockModuleRef },
         { provide: LoggerService, useValue: mockLogger },
       ],
@@ -215,6 +220,126 @@ describe('QuotaService', () => {
     );
     expect(blockedResult.allowed).toBe(false);
     expect(blockedResult.currentCount).toBe(48);
+  });
+
+  describe('what the organization has paid', () => {
+    const owner = {
+      quotaInstagram: 5,
+      quotaTiktok: 1,
+      quotaTwitter: 15,
+      quotaYoutube: 5,
+    };
+
+    it.each([
+      ['TWITTER', 1],
+      ['INSTAGRAM', 1],
+      ['YOUTUBE', 1],
+      ['TIKTOK', 1],
+    ])(
+      'holds a never-paid organization to 1 post a day on %s whatever its cap says',
+      async (platform, dailyLimit) => {
+        mockQuotaTiers.resolve.mockResolvedValueOnce('trial');
+        mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+          ...owner,
+          quotaInstagram: 100,
+          quotaTwitter: 0,
+          quotaYoutube: 100,
+        });
+        mockPostsService.count.mockResolvedValueOnce(1);
+
+        const result = await service.checkQuota(
+          makeCredential(platform),
+          makeOrganization(),
+        );
+
+        expect(result.dailyLimit).toBe(dailyLimit);
+        expect(result.allowed).toBe(false);
+      },
+    );
+
+    it('lets a never-paid organization publish its first post of the day', async () => {
+      mockQuotaTiers.resolve.mockResolvedValueOnce('trial');
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce(owner);
+      mockPostsService.count.mockResolvedValueOnce(0);
+
+      const result = await service.checkQuota(
+        makeCredential('INSTAGRAM'),
+        makeOrganization(),
+      );
+
+      expect(result).toMatchObject({ allowed: true, dailyLimit: 1 });
+    });
+
+    it('holds a credit buyer to 5 a day on X though its cap says 15', async () => {
+      mockQuotaTiers.resolve.mockResolvedValueOnce('credits');
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce(owner);
+      mockPostsService.count.mockResolvedValueOnce(5);
+
+      const result = await service.checkQuota(
+        makeCredential('TWITTER'),
+        makeOrganization(),
+      );
+
+      expect(result).toMatchObject({ allowed: false, dailyLimit: 5 });
+    });
+
+    it('keeps a credit buyer below its own lower cap', async () => {
+      mockQuotaTiers.resolve.mockResolvedValueOnce('credits');
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+        ...owner,
+        quotaYoutube: 2,
+      });
+      mockPostsService.count.mockResolvedValueOnce(1);
+
+      const result = await service.checkQuota(
+        makeCredential('YOUTUBE'),
+        makeOrganization(),
+      );
+
+      expect(result).toMatchObject({ allowed: true, dailyLimit: 2 });
+    });
+
+    it('lets a plan keep a cap its owner raised to the plan ceiling', async () => {
+      mockQuotaTiers.resolve.mockResolvedValueOnce('plan');
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+        ...owner,
+        quotaTwitter: 25,
+      });
+      mockPostsService.count.mockResolvedValueOnce(24);
+
+      const result = await service.checkQuota(
+        makeCredential('TWITTER'),
+        makeOrganization(),
+      );
+
+      expect(result).toMatchObject({ allowed: true, dailyLimit: 25 });
+    });
+
+    it('cuts a plan cap set above the ceiling, and a cap of 0, to the ceiling', async () => {
+      mockQuotaTiers.resolve.mockResolvedValue('plan');
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+        ...owner,
+        quotaTwitter: 1000,
+      });
+      mockPostsService.count.mockResolvedValueOnce(0);
+      const raised = await service.checkQuota(
+        makeCredential('TWITTER'),
+        makeOrganization(),
+      );
+
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+        ...owner,
+        quotaInstagram: 0,
+      });
+      mockPostsService.count.mockResolvedValueOnce(0);
+      const unmetered = await service.checkQuota(
+        makeCredential('INSTAGRAM'),
+        makeOrganization(),
+      );
+
+      expect(raised.dailyLimit).toBe(25);
+      expect(unmetered.dailyLimit).toBe(15);
+    });
   });
 
   it('counts a 5-post X thread published today as one post', async () => {

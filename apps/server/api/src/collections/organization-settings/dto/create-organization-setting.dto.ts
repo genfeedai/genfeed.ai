@@ -419,7 +419,7 @@ export class CreateOrganizationSettingDto {
   @ApiProperty({
     default: 5,
     description:
-      'Daily cap on published YouTube posts per connected account. 0 = no cap.',
+      'Daily cap on published YouTube posts per connected account. Cloud holds it to what the organization has paid. 0 = no cap, self-hosted only.',
     maximum: PUBLISHING_QUOTA_MAX,
     minimum: 0,
     required: false,
@@ -434,7 +434,7 @@ export class CreateOrganizationSettingDto {
   @ApiProperty({
     default: 1,
     description:
-      'Daily cap on published TikTok posts per connected account. 0 = no cap.',
+      'Daily cap on published TikTok posts per connected account. Cloud holds it to what the organization has paid. 0 = no cap, self-hosted only.',
     maximum: PUBLISHING_QUOTA_MAX,
     minimum: 0,
     required: false,
@@ -449,7 +449,7 @@ export class CreateOrganizationSettingDto {
   @ApiProperty({
     default: 15,
     description:
-      'Daily cap on published X (Twitter) posts per connected account. A thread counts as one post. 0 = no cap.',
+      'Daily cap on published X (Twitter) posts per connected account. A thread counts as one post. Cloud holds it to what the organization has paid. 0 = no cap, self-hosted only.',
     maximum: PUBLISHING_QUOTA_MAX,
     minimum: 0,
     required: false,
@@ -464,7 +464,7 @@ export class CreateOrganizationSettingDto {
   @ApiProperty({
     default: 5,
     description:
-      'Daily cap on published Instagram posts per connected account. 0 = no cap.',
+      'Daily cap on published Instagram posts per connected account. Cloud holds it to what the organization has paid. 0 = no cap, self-hosted only.',
     maximum: PUBLISHING_QUOTA_MAX,
     minimum: 0,
     required: false,

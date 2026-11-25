@@ -1,4 +1,5 @@
 import type { AgentAutonomyMode } from '@genfeedai/contracts';
+import type { PublishingQuotaTier } from '@genfeedai/contracts/constants';
 import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import type { OrganizationSetting as PrismaOrganizationSetting } from '@genfeedai/prisma';
 
@@ -37,6 +38,8 @@ export interface OrganizationSettingDocument
   readonly hasPaidModuleSubscription?: boolean | null;
   /** Read-only: the org has paid for a credit pack; null when unverified. */
   readonly hasPurchasedCredits?: boolean | null;
+  /** Read-only: sets how high the daily publishing caps can go; null when unverified. */
+  readonly publishingQuotaTier?: PublishingQuotaTier | null;
   [key: string]: unknown;
 }
 

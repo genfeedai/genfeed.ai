@@ -26,6 +26,7 @@ vi.mock(
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PublishingQuotaTierService } from '@api/collections/organization-settings/services/publishing-quota-tier.service';
 import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
@@ -86,6 +87,10 @@ describe('OrganizationsSettingsController', () => {
     ensureForOrganization: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
+  };
+
+  const mockPublishingQuotaTiers = {
+    resolve: vi.fn().mockResolvedValue('unmetered'),
   };
 
   const mockBrandsService = {
@@ -195,6 +200,10 @@ describe('OrganizationsSettingsController', () => {
         {
           provide: OrganizationSettingsService,
           useValue: mockOrganizationSettingsService,
+        },
+        {
+          provide: PublishingQuotaTierService,
+          useValue: mockPublishingQuotaTiers,
         },
         {
           provide: BrandsService,
@@ -314,6 +323,76 @@ describe('OrganizationsSettingsController', () => {
         expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
       },
     );
+
+    describe('daily publishing caps', () => {
+      const capRequest = (organizationId: string) =>
+        ({
+          context: { organizationId },
+          user: { id: 'user-1', organizationId, userId: 'user-1' },
+        }) as unknown as Request;
+
+      it('refuses a cap change from an organization that never paid', async () => {
+        mockPublishingQuotaTiers.resolve.mockResolvedValueOnce('trial');
+        const organizationId = testId('org');
+
+        await expect(
+          controller.updateSettings(
+            capRequest(organizationId),
+            organizationId,
+            {
+              quotaTwitter: 3,
+            },
+          ),
+        ).rejects.toMatchObject({ status: 400 });
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['credits', 'quotaInstagram', 6],
+        ['credits', 'quotaTwitter', 0],
+        ['plan', 'quotaTwitter', 26],
+        ['plan', 'quotaTiktok', 11],
+      ])('refuses %s setting %s to %i', async (tier, key, value) => {
+        mockPublishingQuotaTiers.resolve.mockResolvedValueOnce(tier);
+        const organizationId = testId('org');
+
+        await expect(
+          controller.updateSettings(
+            capRequest(organizationId),
+            organizationId,
+            {
+              [key]: value,
+            },
+          ),
+        ).rejects.toMatchObject({ status: 400 });
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('saves a cap inside the plan ceiling', async () => {
+        mockPublishingQuotaTiers.resolve.mockResolvedValueOnce('plan');
+        const organizationId = testId('org');
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+        mockOrganizationSettingsService.patch.mockResolvedValue({
+          ...mockOrganizationSettings,
+          quotaTwitter: 25,
+        });
+
+        await controller.updateSettings(
+          capRequest(organizationId),
+          organizationId,
+          {
+            quotaTwitter: 25,
+          },
+        );
+
+        expect(mockOrganizationSettingsService.patch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({ quotaTwitter: 25 }),
+        );
+      });
+    });
 
     const organizationId = testId('org');
     const updateDto = {
