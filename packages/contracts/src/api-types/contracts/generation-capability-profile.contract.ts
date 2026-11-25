@@ -67,6 +67,16 @@ export const generationCapabilityReferencesSchema = z
   .object({
     max: z.number().int().nonnegative().max(32),
     nativeFields: z.array(generationCapabilityIdSchema).max(20),
+    /**
+     * Roles the compiler names in the prompt, one line per reference by
+     * position ("Image 2 is the product"), because the model has no native
+     * field that tells a style image from a product photo. A role missing
+     * from `roles` is one the model cannot take at all.
+     */
+    promptLabelRoles: z
+      .array(imageGenerationReferenceRoleSchema)
+      .max(20)
+      .optional(),
     roles: z.array(imageGenerationReferenceRoleSchema).max(20),
   })
   .strict();
@@ -301,7 +311,7 @@ export type NanoBananaCapabilityProfile = z.infer<
   typeof nanoBananaCapabilityProfileSchema
 >;
 
-export const NANO_BANANA_CAPABILITY_PROFILE_VERSION = 1;
+export const NANO_BANANA_CAPABILITY_PROFILE_VERSION = 2;
 export const NANO_BANANA_ASPECT_RATIOS = [
   '1:1',
   '2:3',
@@ -339,6 +349,7 @@ export const NANO_BANANA_CAPABILITY_PROFILE =
     references: {
       max: 15,
       nativeFields: ['image_input'],
+      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
       roles: ALL_IMAGE_REFERENCE_ROLES,
     },
     resolution: { supported: false },
@@ -364,7 +375,7 @@ export type NanoBanana2CapabilityProfile = z.infer<
   typeof nanoBanana2CapabilityProfileSchema
 >;
 
-export const NANO_BANANA_2_CAPABILITY_PROFILE_VERSION = 1;
+export const NANO_BANANA_2_CAPABILITY_PROFILE_VERSION = 2;
 export const NANO_BANANA_2_ASPECT_RATIOS = [
   '1:1',
   '1:4',
@@ -416,6 +427,7 @@ function buildNanoBanana2CapabilityProfile(input: {
     references: {
       max: input.maxReferences,
       nativeFields: ['image_input'],
+      promptLabelRoles: ALL_IMAGE_REFERENCE_ROLES,
       roles: ALL_IMAGE_REFERENCE_ROLES,
     },
     resolution: { supported: input.hasResolution },

@@ -14,12 +14,14 @@ import type {
   GenerationFidelityPolicy,
   ImageGenerationBrief,
   ImageGenerationBriefReference,
+  ImageGenerationReferenceRole,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { GENERATION_BRIEF_CONTRACT_VERSION } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { GenerationCapabilityProfile } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 
 const TRAILING_DOTS_PATTERN = /\.+$/u;
@@ -68,6 +70,8 @@ export interface BuildImageGenerationBriefPromptInput {
   modelLabel: string;
   omitted: GenerationBriefOmittedSignal[];
   policy: GenerationFidelityPolicy;
+  /** One line per dispatched reference, from `buildImageGenerationBriefReferenceLabels`. */
+  referenceLabels?: string[];
   supportsNegativePrompt: boolean;
 }
 
@@ -93,6 +97,7 @@ export function buildImageGenerationBriefPrompt(
     modelLabel,
     omitted,
     policy,
+    referenceLabels = [],
     supportsNegativePrompt,
   } = input;
   const parts: string[] = [brief.intent.objective];
@@ -147,6 +152,8 @@ export function buildImageGenerationBriefPrompt(
     }
   }
 
+  parts.push(...referenceLabels);
+
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
@@ -181,6 +188,115 @@ export function selectImageGenerationBriefReferences(
   const included = brief.references.slice(0, maxReferences);
   const excludedCount = Math.max(0, brief.references.length - maxReferences);
   return { excludedCount, included };
+}
+
+type ImageGenerationCapabilityReferences =
+  GenerationCapabilityProfile['references'];
+
+/**
+ * Subject, character and product references decide what the image shows, so
+ * they claim the slots first; a composition reference follows and style last.
+ * Within a tier the brief's own order stands, which keeps a reference the
+ * user attached ahead of a brand default.
+ */
+const IMAGE_REFERENCE_ROLE_SELECTION_TIER: Record<
+  ImageGenerationReferenceRole,
+  number
+> = {
+  character: 0,
+  composition: 1,
+  product: 0,
+  style: 2,
+  subject: 0,
+};
+
+export interface SelectedImageGenerationBriefReferencesByRole
+  extends SelectedImageGenerationBriefReferences {
+  /** Roles the model cannot take at all, one entry per dropped reference. */
+  unsupportedRoles: ImageGenerationReferenceRole[];
+}
+
+/**
+ * Role-aware selection: drops a reference whose role the profile does not
+ * take, then fills the slots in tier order. `included` keeps that order, so a
+ * position in the dispatch array is the position a prompt label names.
+ */
+export function selectImageGenerationBriefReferencesByRole(
+  brief: ImageGenerationBrief,
+  references: ImageGenerationCapabilityReferences,
+): SelectedImageGenerationBriefReferencesByRole {
+  const supported = brief.references.filter((reference) =>
+    references.roles.includes(reference.role),
+  );
+  const unsupportedRoles = brief.references
+    .filter((reference) => !references.roles.includes(reference.role))
+    .map((reference) => reference.role);
+  const ordered = supported
+    .map((reference, index) => ({ index, reference }))
+    .sort(
+      (left, right) =>
+        IMAGE_REFERENCE_ROLE_SELECTION_TIER[left.reference.role] -
+          IMAGE_REFERENCE_ROLE_SELECTION_TIER[right.reference.role] ||
+        left.index - right.index,
+    )
+    .map(({ reference }) => reference);
+  return {
+    excludedCount: Math.max(0, ordered.length - references.max),
+    included: ordered.slice(0, references.max),
+    unsupportedRoles,
+  };
+}
+
+export function recordUnsupportedImageGenerationBriefReferenceRoles(
+  omitted: GenerationBriefOmittedSignal[],
+  unsupportedRoles: ImageGenerationReferenceRole[],
+  policy: GenerationFidelityPolicy,
+  fidelityMode: GenerationFidelityMode,
+  modelLabel: string,
+): void {
+  for (const role of new Set(unsupportedRoles)) {
+    const count = unsupportedRoles.filter((entry) => entry === role).length;
+    recordOmittedGenerationBriefSignal(
+      omitted,
+      'references',
+      `${modelLabel} cannot take a ${role} reference; ${count} reference(s) were omitted.`,
+      policy,
+      fidelityMode === 'strict',
+      modelLabel,
+    );
+  }
+}
+
+const IMAGE_REFERENCE_LABEL_BY_ROLE: Record<
+  ImageGenerationReferenceRole,
+  (position: number) => string
+> = {
+  character: (position) =>
+    `Image ${position} is the character: keep the same face and identity`,
+  composition: (position) =>
+    `Image ${position} is a composition reference: follow its layout and framing, not its content`,
+  product: (position) => `Image ${position} is the product: keep it exactly`,
+  style: (position) =>
+    `Image ${position} is a style reference: match its palette, texture and lighting, not its subject`,
+  subject: (position) =>
+    `Image ${position} is the subject: keep it recognizable`,
+};
+
+/**
+ * One line per dispatched reference, by position and role, for a model whose
+ * profile lists the role in `promptLabelRoles`. The line carries the
+ * position only: an asset id or URL never reaches prompt text.
+ */
+export function buildImageGenerationBriefReferenceLabels(
+  included: ImageGenerationBriefReference[],
+  references: ImageGenerationCapabilityReferences,
+): string[] {
+  const labelRoles = references.promptLabelRoles ?? [];
+  return included.flatMap((reference, index) =>
+    labelRoles.includes(reference.role)
+      ? [IMAGE_REFERENCE_LABEL_BY_ROLE[reference.role](index + 1)]
+      : [],
+  );
 }
 
 export function recordExcessImageGenerationBriefReferences(
@@ -251,9 +367,10 @@ export function recordUnsupportedImageGenerationBriefReferences(
 export function buildImageGenerationBriefAppliedFields(input: {
   appliedConstraintFields: string[];
   brief: ImageGenerationBrief;
+  hasReferenceLabels?: boolean;
   hasSeed: boolean;
 }): string[] {
-  const { appliedConstraintFields, brief, hasSeed } = input;
+  const { appliedConstraintFields, brief, hasReferenceLabels, hasSeed } = input;
   return [
     'intent.objective',
     'output.aspectRatio',
@@ -264,6 +381,7 @@ export function buildImageGenerationBriefAppliedFields(input: {
     ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
     ...(brief.intent.requestedText.length > 0 ? ['intent.requestedText'] : []),
     ...appliedConstraintFields,
+    ...(hasReferenceLabels ? ['references.roles'] : []),
     ...(hasSeed ? ['seed'] : []),
   ];
 }
