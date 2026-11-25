@@ -19,8 +19,14 @@ export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
     fontRoles,
     primaryColor,
     secondaryColor,
+    visualDirection,
   } = patch;
-  const styles = { backgroundColor, primaryColor, secondaryColor };
+  const styles = {
+    backgroundColor,
+    primaryColor,
+    secondaryColor,
+    visualDirection,
+  };
   if (
     Object.values(styles).some(
       (value) => value !== undefined && typeof value !== 'string',

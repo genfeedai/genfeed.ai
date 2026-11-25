@@ -67,6 +67,17 @@ export const PROMPT_BAR_SETUP_FOLD_CLASS = '@max-[339px]/prompt-bar:hidden';
 export const PROMPT_BAR_SETUP_MENU_CLASS =
   'w-[min(360px,calc(100vw-2rem))] p-0';
 
+/**
+ * Keyboard focus on shell chrome (rail items, topbar switchers and icon
+ * buttons, the logo toggle, switcher menu rows): a quiet fill instead of the
+ * product's 2px offset ring or the browser's default outline. After a menu
+ * closes with Escape focus returns to its trigger, and the white ring stayed
+ * there until the next click. The ring stays for form controls and content.
+ * Merge it last (`cn`) so it wins over `focusRingClassName`.
+ */
+export const SHELL_CHROME_FOCUS_CLASS =
+  'focus-visible:outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-accent';
+
 /** Compact square hit target for icon-only shell buttons (refresh, etc.). */
 export const SHELL_ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 

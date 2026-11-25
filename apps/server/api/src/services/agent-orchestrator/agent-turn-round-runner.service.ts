@@ -312,12 +312,18 @@ export class AgentTurnRoundRunnerService {
       }
     }
 
+    const findToolsAnswer = params.toolset?.answerFindTools(toolCall);
+    if (findToolsAnswer) {
+      messages.push(findToolsAnswer);
+      return { kind: 'skipped' };
+    }
     const invocation = await this.resolveToolInvocation(params, toolCall);
     if (!invocation) {
       return { kind: 'skipped' };
     }
     const { preflightCreditCost, requestedToolName, startTime, toolName } =
       invocation;
+    params.toolset?.load(toolName);
 
     assertAgentCreditBudget(
       context,

@@ -1,6 +1,6 @@
+import { BrandReachService } from '@api/collections/brands/services/brand-reach.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
-import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -11,8 +11,8 @@ import { Controller, Get, Param } from '@nestjs/common';
 
 /**
  * The totals a public profile shows next to the creator's name. Sums only: no
- * post, platform or account is named, and a brand that is missing or not
- * public answers null.
+ * post, platform or account is named, and a brand that is missing, not public
+ * or with Public analytics turned off answers null.
  */
 @AutoSwagger()
 @Public()
@@ -20,7 +20,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 export class PublicBrandReachController {
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly publicBrandReachService: PublicBrandReachService,
+    private readonly brandReachService: BrandReachService,
   ) {}
 
   /** Lifetime views, impressions and engagements across the platforms. */
@@ -43,12 +43,12 @@ export class PublicBrandReachController {
       'none',
     );
 
-    if (!brand) {
+    if (!brand || brand.isPublicAnalyticsEnabled === false) {
       return { data: null };
     }
 
     return {
-      data: await this.publicBrandReachService.findForBrand(
+      data: await this.brandReachService.findForBrand(
         brandId,
         brand.organizationId,
       ),

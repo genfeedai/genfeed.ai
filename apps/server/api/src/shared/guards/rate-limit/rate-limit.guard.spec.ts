@@ -257,3 +257,88 @@ describe('RateLimitGuard', () => {
     expect(mockSetHeader).toHaveBeenCalledWith('Retry-After', 60);
   });
 });
+
+describe('RateLimitGuard shared daily window', () => {
+  function createCountingGuard(rateLimitOptions: RateLimitOptions[]) {
+    const counts = new Map<string, number>();
+    const cacheService = {
+      expire: vi.fn().mockResolvedValue(undefined),
+      incr: vi.fn(async (key: string, by: number) => {
+        counts.set(key, (counts.get(key) ?? 0) + by);
+        return counts.get(key) ?? 0;
+      }),
+    };
+    const guard = new RateLimitGuard(
+      { get: vi.fn().mockReturnValue(rateLimitOptions) } as never,
+      cacheService as never,
+    );
+    const setHeader = vi.fn();
+    function contextFor(ip: string) {
+      return {
+        getHandler: vi.fn().mockReturnValue(() => {}),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: () => ({
+            connection: { remoteAddress: ip },
+            headers: {},
+            ip,
+            method: 'POST',
+            params: {},
+            path: '/public/tool',
+            route: { path: '/public/tool' },
+          }),
+          getResponse: () => ({ setHeader }),
+        }),
+      };
+    }
+    return { contextFor, counts, guard, setHeader };
+  }
+
+  const limits: RateLimitOptions[] = [
+    { limit: 3, scope: 'ip', windowMs: 3_600_000 },
+    {
+      limit: 2,
+      message: 'The free tool is at its daily limit. Try again tomorrow.',
+      scope: 'global',
+      windowMs: 86_400_000,
+    },
+  ];
+
+  it('refuses a caller on a different IP once the shared window is spent', async () => {
+    const { contextFor, guard } = createCountingGuard(limits);
+    await guard.canActivate(contextFor('10.0.0.1') as never);
+    await guard.canActivate(contextFor('10.0.0.2') as never);
+
+    const refused = await guard
+      .canActivate(contextFor('10.0.0.3') as never)
+      .catch((error: HttpException) => error);
+
+    expect(refused).toBeInstanceOf(HttpException);
+    const exception = refused as HttpException;
+    expect(exception.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    expect(exception.getResponse()).toMatchObject({
+      detail: 'The free tool is at its daily limit. Try again tomorrow.',
+    });
+  });
+
+  it('does not spend the shared window on a caller its own IP window refused', async () => {
+    const { contextFor, counts, guard } = createCountingGuard([
+      { limit: 1, scope: 'ip', windowMs: 3_600_000 },
+      { limit: 10, scope: 'global', windowMs: 86_400_000 },
+    ]);
+    await guard.canActivate(contextFor('10.0.0.1') as never);
+    await guard
+      .canActivate(contextFor('10.0.0.1') as never)
+      .catch(() => undefined);
+
+    const sharedKey = [...counts.keys()].find((key) => key.endsWith('global'));
+    expect(counts.get(sharedKey ?? '')).toBe(1);
+  });
+
+  it('keeps the caller headers about the caller, not the shared window', async () => {
+    const { contextFor, guard, setHeader } = createCountingGuard(limits);
+    await guard.canActivate(contextFor('10.0.0.1') as never);
+
+    expect(setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', 3);
+    expect(setHeader).not.toHaveBeenCalledWith('X-RateLimit-Limit', 2);
+  });
+});

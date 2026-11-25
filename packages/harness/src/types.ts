@@ -92,6 +92,11 @@ export interface ContentHarnessInput {
 export interface ContentHarnessContribution {
   systemDirectives?: string[];
   styleDirectives?: string[];
+  /**
+   * The owner's art direction for images and video, one sentence per entry.
+   * Only media prompts read it; copy prompts never print it.
+   */
+  visualDirections?: string[];
   guardrails?: string[];
   evaluationCriteria?: string[];
   providerHints?: string[];
@@ -140,6 +145,8 @@ export interface ContentHarnessBrief {
   appliedPacks: string[];
   systemDirectives: string[];
   styleDirectives: string[];
+  /** The owner's art direction. Read by media prompts only, never by copy. */
+  visualDirections?: string[];
   guardrails: string[];
   evaluationCriteria: string[];
   providerHints: string[];

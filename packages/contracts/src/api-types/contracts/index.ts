@@ -111,3 +111,4 @@ export * from './workflow-webhook-events.contract';
 export * from './x-posting-billing.contract';
 export * from './x-quote-post.contract';
 export * from './youtube-authorized-signals.contract';
+export * from './youtube-publishing.contract';

@@ -8,6 +8,7 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { AgentToolRoundState } from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import type { buildAgentChatCompletionParams } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
+import type { TurnToolset } from '@api/services/agent-orchestrator/utils/agent-tool-discovery.util';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { CuratedActionName } from '@genfeedai/actions';
 import type { AgentType, RouterPriority } from '@genfeedai/contracts';
@@ -51,7 +52,9 @@ export interface StreamTurnInputs {
     AgentOrchestratorContextService['buildMemoryInfluenceMetadata']
   >;
   messages: StreamChatMessages;
+  /** The whole pool the turn may call; each round sends `toolset.roundTools()`. */
   tools: StreamChatTools;
+  toolset: TurnToolset;
 }
 
 /** Mutable bookkeeping that carries across the rounds of one streamed turn. */

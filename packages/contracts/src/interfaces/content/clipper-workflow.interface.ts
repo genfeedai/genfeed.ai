@@ -12,6 +12,8 @@ export interface ClipperAnalysisWorkflowInput {
   highlightModel?: string;
   language: string;
   maxClips: number;
+  /** Refuse a YouTube source longer than this, before it is downloaded. */
+  maxSourceDurationSeconds?: number;
   minViralityScore: number;
   orgId: string;
   projectId: string;

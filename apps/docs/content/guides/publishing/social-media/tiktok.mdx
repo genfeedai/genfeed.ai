@@ -94,6 +94,17 @@ To switch:
 - **Audience Controls**: Age restrictions
 - **Disclosure Labels**: Ad/promotion tags
 
+### AI-generated label
+
+Every video and photo post is sent with TikTok's **AI-generated** label (`is_aigc`)
+by default, because what Genfeed publishes is generated in Genfeed. Set
+`aiGenerated` to `false` in the post's TikTok settings for a real video or photo
+you uploaded (`check_channel` with `action=capabilities` lists it). If TikTok
+refuses a post because of the label, Genfeed starts the post again without it
+rather than losing the post. A video sent to your TikTok inbox through
+**Publish via TikTok App** carries no label, because TikTok documents no label
+for that endpoint: switch it on in the TikTok app.
+
 ## Analytics Dashboard
 
 ### Video Metrics

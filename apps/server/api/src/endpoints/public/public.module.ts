@@ -33,7 +33,6 @@ import { PublicYoutubeLongFormController } from '@api/endpoints/public/controlle
 import { PublicYoutubeOutliersController } from '@api/endpoints/public/controllers/youtube-outliers/public-youtube-outliers.controller';
 import { PublicCacheControlInterceptor } from '@api/endpoints/public/interceptors/public-cache-control.interceptor';
 import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
-import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
 import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
@@ -97,7 +96,6 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     { provide: APP_INTERCEPTOR, useClass: PublicCacheControlInterceptor },
     PublicMediaService,
     PublicArticleGenerationsService,
-    PublicBrandReachService,
     PublicBrandSocialsService,
     PublicViewsService,
     PublicYoutubeClipperService,

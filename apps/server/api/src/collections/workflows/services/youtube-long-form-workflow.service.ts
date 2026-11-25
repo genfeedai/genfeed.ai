@@ -33,7 +33,10 @@ import {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/contracts';
-import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import {
+  LLM_DEFAULTS,
+  PUBLIC_TOOL_SOURCE_MAX_DURATION_SECONDS,
+} from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
@@ -278,7 +281,15 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       id: `workflow-audio-${executionId}`,
       ingredientId: `workflow-media-${executionId}`,
       organizationId: request.context.organizationId,
-      params: { inputPath: source.youtubeUrl },
+      params: {
+        inputPath: source.youtubeUrl,
+        // A free public run is billed to the shared public organization and
+        // pays for transcription, so it takes a shorter source than a
+        // signed-in one.
+        ...(request.context.organizationId === PUBLIC_LONG_FORM_ORGANIZATION_ID
+          ? { maxDurationSeconds: PUBLIC_TOOL_SOURCE_MAX_DURATION_SECONDS }
+          : {}),
+      },
       type: 'video-to-audio',
       userId: request.context.userId,
     });

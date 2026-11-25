@@ -485,6 +485,44 @@ describe('YtDlpService', () => {
     });
   });
 
+  describe('downloadVideo with a duration limit', () => {
+    it('asks yt-dlp to skip a longer video before downloading it', async () => {
+      const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
+        outputPath,
+        { maxDurationSeconds: 3600 },
+      );
+      closeProcess(mockProcess, 0);
+      await promise;
+
+      const args = spawnMock.mock.calls[0]?.[1] as string[];
+      expect(args.slice(args.indexOf('--match-filters'))[1]).toBe(
+        'duration<=?3600',
+      );
+    });
+
+    it('tells a person a skipped video is too long', async () => {
+      const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(false);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
+        outputPath,
+        { maxDurationSeconds: 3600 },
+      );
+      closeProcess(mockProcess, 0);
+
+      await expect(promise).rejects.toThrow(
+        'This video is longer than 60 minutes. Pick a shorter one.',
+      );
+    });
+  });
+
   describe('downloadAudioLowestQuality', () => {
     it('should download the lowest quality mp3 to the requested output path', async () => {
       const url = 'https://youtube.com/watch?v=test';

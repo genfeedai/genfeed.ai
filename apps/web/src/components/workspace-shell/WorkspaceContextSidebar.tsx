@@ -12,7 +12,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import { PanelRightClose } from 'lucide-react';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
+import { PanelRight, PanelRightClose } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 type WorkspaceContextSidebarProps = {
@@ -21,9 +22,9 @@ type WorkspaceContextSidebarProps = {
 
 type WorkspaceContextSidebarRailProps = WorkspaceContextSidebarProps & {
   /**
-   * The host already owns the sidebar's chrome: the app topbar's Context
-   * toggle opens and closes it. The rail then shows the selection as plain
-   * content instead of a second bar with its own collapse button.
+   * The host is the app shell: its topbar's Context toggle opens the panel,
+   * and the header row repeats that toggle (pressed) so the panel can close
+   * from the row it opened beside.
    */
   readonly isTopbarHosted?: boolean;
   readonly target?: 'desktop' | 'mobile';
@@ -37,9 +38,10 @@ const OUTLET_CLASS_NAME =
 
 /**
  * Rail variant: the sidebar has exactly one topbar. Standalone hosts (admin)
- * get an `h-12` header here; a host with its own topbar sets `isTopbarHosted`
- * and this renders only the selection title as plain content, then the outlet
- * the selected page portals its detail into.
+ * get an `h-12` header here with a collapse button; a host whose panel runs
+ * beside the topbar sets `isTopbarHosted` and gets the same `h-12` row, level
+ * with the topbar's, holding the title, the header actions and the panel
+ * toggle. Then the outlet the selected page portals its detail into.
  */
 export function WorkspaceContextSidebarRail({
   contextSidebar,
@@ -71,13 +73,33 @@ export function WorkspaceContextSidebarRail({
       data-testid="context-sidebar"
     >
       {isTopbarHosted ? (
-        <div className="flex shrink-0 items-start justify-between gap-2 px-4 pb-2 pt-4">
-          {titleBlock}
-          <ContextSidebarHeaderOutlet
-            className={HEADER_ACTIONS_CLASS_NAME}
-            target={target}
-            testId="context-sidebar-header-actions"
-          />
+        // One 48px row, level with the topbar's: the selection title on the
+        // left, the page's header actions and the panel toggle (pressed, the
+        // same icon as the topbar's Context toggle) on the right.
+        <div
+          className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-2"
+          data-testid="context-sidebar-header"
+        >
+          <div className="min-w-0 px-2">{titleBlock}</div>
+          <div className="flex shrink-0 items-center gap-1">
+            <ContextSidebarHeaderOutlet
+              className={HEADER_ACTIONS_CLASS_NAME}
+              target={target}
+              testId="context-sidebar-header-actions"
+            />
+            <Button
+              ariaLabel={translate('close')}
+              className={SHELL_CHROME_FOCUS_CLASS}
+              data-active="true"
+              data-testid="context-sidebar-close"
+              icon={<PanelRight className="size-4" />}
+              onClick={contextSidebar.close}
+              size={ButtonSize.ICON}
+              tooltip={translate('close')}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            />
+          </div>
         </div>
       ) : (
         <div className="flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2">

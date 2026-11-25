@@ -93,6 +93,11 @@ export interface VideoProcessingParams {
    * it from storage. YouTube sources are always stored.
    */
   materializeSource?: boolean;
+  /**
+   * video-to-audio: refuse a YouTube source longer than this. Checked before
+   * the download when YouTube reports the length, and again once it is on disk.
+   */
+  maxDurationSeconds?: number;
   assetManifest?: IEditorRenderJobParams['assetManifest'];
   rendererVersion?: IEditorRenderJobParams['rendererVersion'];
   editorSourceStorageKeys?: IEditorRenderJobParams['sourceStorageKeys'];
