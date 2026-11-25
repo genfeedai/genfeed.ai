@@ -282,6 +282,16 @@ export function useBrandDetail(): UseBrandDetailReturn {
           );
         }
 
+        if (
+          field === 'isPublicAnalyticsEnabled' &&
+          typeof value === 'boolean'
+        ) {
+          applyBrand(
+            new Brand({ ...previousBrand, isPublicAnalyticsEnabled: value }),
+            previousLinks,
+          );
+        }
+
         try {
           const service = await getBrandsService();
           const updateData: Record<string, boolean | string> = {};

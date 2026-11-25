@@ -13,14 +13,17 @@
   "turnOnPublic": "Turn on Public to share the link",
   "articlesTitle": "Articles",
   "articlesTab": "Articles",
-  "overviewTab": "Overview",
   "profileSections": "Profile sections",
-  "seeAll": "See all",
   "noArticles": "No published articles yet.",
   "noArticlesDescription": "Published articles appear here and on your public profile.",
   "articlesLoadError": "Could not load articles.",
   "openArticle": "Open {label}",
   "readingTime": "{minutes} min read",
-  "articleCount": "{count, plural, one {# article} other {# articles}}",
-  "connectedAccountsPreview": "Connected accounts"
+  "connectedAccountsPreview": "Connected accounts",
+  "settingsTab": "Settings",
+  "viewsLabel": "views",
+  "impressionsLabel": "impressions",
+  "engagementsLabel": "engagements",
+  "publicAnalytics": "Public analytics",
+  "publicAnalyticsDescription": "Show views, impressions and engagements on your public profile, and likes, comments and reposts on each post."
 }

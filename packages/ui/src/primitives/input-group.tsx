@@ -14,6 +14,7 @@ import { focusRingInsetClassName } from './focus-ring';
  */
 function InputGroup({ className, ...props }: ComponentProps<'div'>) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a fieldset brings a legend and its own border; this is one joined control, named by the caller's aria-label.
     <div
       className={cn(
         'flex h-8 w-full min-w-0 items-stretch overflow-hidden rounded-md border border-border bg-tertiary text-sm text-foreground transition-[box-shadow,border-color] duration-200',
@@ -45,8 +46,4 @@ const inputGroupButtonClassName = cn(
   focusRingInsetClassName,
 );
 
-export {
-  InputGroup,
-  InputGroupAddon,
-  inputGroupButtonClassName,
-};
+export { InputGroup, InputGroupAddon, inputGroupButtonClassName };
