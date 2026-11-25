@@ -64,6 +64,7 @@ export * from './model-catalog.constant';
 export * from './model-helpers.constant';
 export * from './model-keys.constant';
 export * from './model-provider-offers.constant';
+export * from './nano-banana-resolution.constant';
 export * from './native-apps.constant';
 export * from './native-host.constant';
 export * from './newsletter-module.constant';
