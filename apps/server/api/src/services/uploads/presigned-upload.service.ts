@@ -59,7 +59,6 @@ export interface PublicImageUpload {
   publicUrl: string;
 }
 
-@Traced()
 const MISSING_OBJECT_MESSAGE_PATTERN = /status code 404/i;
 
 /**
@@ -79,6 +78,7 @@ function isStoredObjectMissing(error: unknown): boolean {
   );
 }
 
+@Traced()
 @Injectable()
 export class PresignedUploadService {
   private readonly constructorName: string = String(this.constructor.name);

@@ -3,7 +3,10 @@ import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
-import { isMcpToolRefusal } from '@mcp/tools/mcp-tool-error';
+import {
+  isMcpToolRefusal,
+  type McpUpstreamError,
+} from '@mcp/tools/mcp-tool-error';
 import { BaseApiClient } from './base-api-client';
 
 function createClient() {
@@ -190,7 +193,9 @@ describe('BaseApiClient failure report', () => {
       502,
     );
 
-    const failure = await run().catch((error: unknown) => error);
+    const failure = (await run().catch(
+      (error: unknown) => error,
+    )) as McpUpstreamError;
 
     expect(logger.error).toHaveBeenCalledTimes(1);
     const logged = logger.error.mock.calls[0][2];
@@ -208,7 +213,9 @@ describe('BaseApiClient failure report', () => {
   ])('keeps no cause code from %s', async (_label, data) => {
     const { run } = failing(data, 500);
 
-    const failure = await run().catch((error: unknown) => error);
+    const failure = (await run().catch(
+      (error: unknown) => error,
+    )) as McpUpstreamError;
 
     expect(failure.report.causeCode).toBeUndefined();
   });
