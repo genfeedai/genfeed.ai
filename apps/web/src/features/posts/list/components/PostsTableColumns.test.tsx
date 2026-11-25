@@ -21,7 +21,7 @@ function renderStatus(post: Partial<IPost>) {
     scope: PageScope.PUBLISHING,
   }).find((item) => item.key === 'status');
 
-  return render(<>{column?.render(post as IPost)}</>);
+  return render(<div>{column?.render?.(post as IPost)}</div>);
 }
 
 describe('buildPostsTableColumns status', () => {
