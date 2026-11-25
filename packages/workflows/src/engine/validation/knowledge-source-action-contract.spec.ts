@@ -109,3 +109,37 @@ describe('knowledge source action contracts carry the initiating actor', () => {
     ).not.toThrow();
   });
 });
+
+describe('archive_knowledge_source output contract', () => {
+  const archived = {
+    creditsUsed: 0,
+    data: {
+      brandId: 'brand-1',
+      id: 'source-1',
+      isVisible: false,
+      kind: 'URL',
+      message: 'Source archived.',
+      purpose: 'BRAND_TRUTH',
+      scope: 'brand',
+      title: 'Pricing',
+    },
+    success: true,
+  };
+
+  it('accepts the message the archive handler returns', () => {
+    const archive = compile('archive_knowledge_source');
+
+    expect(() => archive.validateOutput(archived, PROVENANCE)).not.toThrow();
+  });
+
+  it('still rejects a field the contract does not name', () => {
+    const archive = compile('archive_knowledge_source');
+
+    expect(() =>
+      archive.validateOutput(
+        { ...archived, data: { ...archived.data, note: 'x' } },
+        PROVENANCE,
+      ),
+    ).toThrowError(/output validation failed/);
+  });
+});
