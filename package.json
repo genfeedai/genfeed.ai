@@ -135,7 +135,7 @@
     "clean": "bunx turbo clean && rm -rf node_modules",
     "clean:generated-source": "bun run scripts/check-generated-source-artifacts.ts --fix",
     "dead-code": "bunx knip@6.44.1 --reporter compact",
-    "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject 'typescript,better-auth,api,jsdom,@types/vscode,@types/node,portless,@electric-sql/pglite,@xyflow/react,vitest,@vitest/*,@nestjs/*,stripe,@ui-sdk/*' && bun run deps:update:remotion && bun install && bun run deps:update:actions",
+    "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject 'typescript,better-auth,api,jsdom,@types/vscode,@types/node,portless,@electric-sql/pglite,@xyflow/react,@nestjs/*,stripe,@ui-sdk/*' && bun run deps:update:remotion && bun install && bun run deps:update:actions",
     "deps:update:remotion": "bun run scripts/architecture/sync-remotion-version.ts",
     "deps:update:actions": "bun run scripts/architecture/update-github-action-versions.ts",
     "dev:setup": "bun run scripts/dev/setup-portless.ts",
@@ -272,7 +272,7 @@
     "turbo": "2.11.13",
     "typescript": "6.0.3",
     "unplugin-swc": "2.0.0",
-    "vitest": "5.1.0",
+    "vitest": "5.1.2",
     "webpack": "5.113.0",
     "webpack-node-externals": "3.0.0"
   },
