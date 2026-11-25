@@ -3,9 +3,10 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { FontFamily } from '@genfeedai/contracts';
+import { ApiKeyScope, FontFamily } from '@genfeedai/contracts';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
@@ -73,6 +74,7 @@ export class AdminOrganizationBrandsController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async create(
     @Req() request: Request,
@@ -138,6 +140,7 @@ export class AdminOrganizationBrandsController {
   }
 
   @Patch(':brandId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60_000 })
   async update(
     @Param('organizationId') organizationId: string,
@@ -197,6 +200,7 @@ export class AdminOrganizationBrandsController {
   }
 
   @Post(':brandId/scan')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async scan(
     @Req() request: Request,

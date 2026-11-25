@@ -25,6 +25,7 @@ import {
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -34,7 +35,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
-import { ByokProvider, MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, ByokProvider, MemberRole } from '@genfeedai/contracts';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
@@ -208,6 +209,7 @@ export class OrganizationsSettingsController {
   }
 
   @Patch(':organizationId/settings')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateSettings(
@@ -280,6 +282,7 @@ export class OrganizationsSettingsController {
   }
 
   @Post(':organizationId/settings/webhooks/test')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -400,6 +403,7 @@ export class OrganizationsSettingsController {
   }
 
   @Post(':organizationId/settings/byok/:provider/validate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @ApiParam({ enum: ByokProvider, name: 'provider', type: String })
   @HttpCode(HttpStatus.OK)
@@ -422,6 +426,7 @@ export class OrganizationsSettingsController {
   }
 
   @Put(':organizationId/settings/byok/:provider')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @ApiParam({ enum: ByokProvider, name: 'provider', type: String })
   @HttpCode(HttpStatus.OK)
@@ -453,6 +458,7 @@ export class OrganizationsSettingsController {
   }
 
   @Delete(':organizationId/settings/byok/:provider')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @ApiParam({ enum: ByokProvider, name: 'provider', type: String })
   @HttpCode(HttpStatus.OK)

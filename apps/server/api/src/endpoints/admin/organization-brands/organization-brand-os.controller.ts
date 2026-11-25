@@ -3,8 +3,10 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { findBlockingBrandOsRevision } from '@api/endpoints/admin/organization-brands/organization-brand-os.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
@@ -64,6 +66,7 @@ export class AdminOrganizationBrandOsController {
   ) {}
 
   @Post('approve')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async approve(
