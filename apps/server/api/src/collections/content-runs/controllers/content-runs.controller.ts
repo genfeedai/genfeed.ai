@@ -33,6 +33,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -206,6 +207,7 @@ export class ContentRunsController {
   }
 
   @Post('brands/:brandId/content-runs/briefs')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async createBriefRun(
     @Req() req: Request,
     @Param('brandId') brandId: string,
@@ -224,6 +226,7 @@ export class ContentRunsController {
   }
 
   @Post('brands/:brandId/content-runs/remixes')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async createBrandRemixRun(
     @Req() req: Request,
     @Param('brandId') brandId: string,

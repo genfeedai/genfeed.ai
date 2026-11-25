@@ -1,7 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BrandedGenerationFeedbackService } from '@api/services/branded-generation-receipts/branded-generation-feedback.service';
 import { brandedGenerationFeedbackInputV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation-feedback.contract';
@@ -89,6 +91,7 @@ export class BrandedGenerationFeedbackController {
   }
 
   @Put('generation-receipts/:receiptId/feedback')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @Header('Cache-Control', 'private,no-store')
   async rate(
     @Req() request: Request,
@@ -111,6 +114,7 @@ export class BrandedGenerationFeedbackController {
   }
 
   @Delete('generation-receipts/:receiptId/feedback')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(204)
   async withdraw(
     @CurrentUser() user: AuthenticatedUser,
