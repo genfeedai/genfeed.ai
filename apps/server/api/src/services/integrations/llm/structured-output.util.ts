@@ -29,8 +29,7 @@ export interface RunStructuredCompletionParams<TResult> {
  * `z.toJSONSchema` leaves `.nullish()` fields out of `required`, which OpenAI's
  * strict structured outputs reject. Completing `required` keeps the emitted
  * schema strict-compatible while the zod schema still accepts an omitted key
- * from a route that cannot enforce anything (Replicate, a self-hosted vLLM
- * build without guided decoding).
+ * from a route that cannot enforce anything (Replicate).
  */
 export function toStructuredJsonSchema(
   schema: ZodType<unknown>,

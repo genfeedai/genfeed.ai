@@ -26,7 +26,7 @@ import { MODEL_KEYS } from './model-keys.constant';
  *
  * List prices last reviewed 2026-08.
  */
-export const SELF_HOSTED_MODELS = [
+export const CURATED_MEDIA_MODELS = [
   ...[ModelCategory.IMAGE, ModelCategory.IMAGE_EDIT].map((category) => ({
     category,
     cost: 8,

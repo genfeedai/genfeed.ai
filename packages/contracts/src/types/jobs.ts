@@ -68,8 +68,6 @@ export interface VideoJobData extends NodeJobData {
   };
 }
 
-export type LLMProvider = 'replicate' | 'ollama';
-
 export interface LLMJobData extends NodeJobData {
   nodeType: 'llm';
   nodeData: {
@@ -79,8 +77,6 @@ export interface LLMJobData extends NodeJobData {
     maxTokens?: number;
     temperature?: number;
     topP?: number;
-    provider?: LLMProvider;
-    ollamaModel?: string;
     selectedModel?: SelectedModelInfo;
     schemaParams?: SchemaParams;
   };

@@ -19,12 +19,6 @@ describe('resolveModelFamily', () => {
     );
   });
 
-  it('resolves self-hosted models by their upstream family', () => {
-    expect(resolveModelFamily('local/qwen-32b')).toBe('qwen');
-    expect(resolveModelFamily('local/mistral-small')).toBe('mistral');
-    expect(resolveModelFamily('local/unknown-model')).toBeNull();
-  });
-
   it('refuses to guess a family for routers and aggregators', () => {
     expect(resolveModelFamily('openrouter/auto')).toBeNull();
     expect(resolveModelFamily('fal-ai/flux-pro')).toBeNull();

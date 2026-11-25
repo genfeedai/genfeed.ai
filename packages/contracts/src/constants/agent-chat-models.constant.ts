@@ -37,8 +37,6 @@ export interface AgentChatModel {
   /** Provider chooses the concrete model; settle from response usage.cost. */
   usesExactProviderCost?: boolean;
   isReasoning?: boolean;
-  /** Self-hosted models run on our own fleet: platform cost, never per-user. */
-  isSelfHosted?: boolean;
   key: string;
   label: string;
   pricing: AgentChatModelPricing;
@@ -176,8 +174,6 @@ export const AGENT_CHAT_MODEL_KEYS = {
   GPT_6_LUNA: 'openai/gpt-6-luna',
   GROK_4_7: 'x-ai/grok-4.7',
   KIMI_K3_1_PRO: 'moonshotai/kimi-k3.1-pro',
-  LOCAL_MISTRAL_SMALL: 'local/mistral-small',
-  LOCAL_QWEN_32B: 'local/qwen-32b',
   NEMOTRON_3_ULTRA_FREE: 'nvidia/nemotron-3-ultra-550b-a55b:free',
   OPENROUTER_AUTO: 'openrouter/auto',
   OPENROUTER_FREE: 'openrouter/free',
@@ -234,10 +230,6 @@ export const LLM_DEFAULTS = {
   planning: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
   /** Featured / recommended step-up in pickers (not the default). */
   highlighted: AGENT_CHAT_MODEL_KEYS.GPT_6_1_TERRA,
-  /** Org-owned inference fleet. */
-  localFleet: AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B,
-  /** When a `local/` model is requested but no GPU fleet is configured. */
-  selfHostedFallback: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
 } as const;
 
 interface AgentChatModelDefinition {
@@ -247,7 +239,6 @@ interface AgentChatModelDefinition {
   isFree?: boolean;
   usesExactProviderCost?: boolean;
   isReasoning?: boolean;
-  isSelfHosted?: boolean;
   key: AgentChatModelKey;
   label: string;
   pricing: AgentChatModelPricing;
@@ -381,37 +372,16 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     qualityTier: QualityTier.ULTRA,
     speedTier: SpeedTier.SLOW,
   },
-  {
-    brandSlug: 'genfeed-ai',
-    description: 'Runs on our own fleet — no credit cost',
-    isSelfHosted: true,
-    key: AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B,
-    label: 'Qwen 32B (self-hosted)',
-    pricing: { completionPerMillion: 0, promptPerMillion: 0 },
-    qualityTier: QualityTier.HIGH,
-    speedTier: SpeedTier.MEDIUM,
-  },
-  {
-    brandSlug: 'genfeed-ai',
-    description: 'Runs on our own fleet — no credit cost',
-    isSelfHosted: true,
-    key: AGENT_CHAT_MODEL_KEYS.LOCAL_MISTRAL_SMALL,
-    label: 'Mistral Small (self-hosted)',
-    pricing: { completionPerMillion: 0, promptPerMillion: 0 },
-    qualityTier: QualityTier.STANDARD,
-    speedTier: SpeedTier.FAST,
-  },
 ];
 
 export const AGENT_CHAT_MODELS: AgentChatModel[] =
   AGENT_CHAT_MODEL_DEFINITIONS.map((definition) => {
-    // Self-hosted rounds bill the platform, declared-free rounds bill nobody.
-    // Everything else goes through the pricing formula, whose 1-credit floor
-    // catches a definition that shipped without prices instead of gifting it.
-    const creditCostPerRound =
-      definition.isSelfHosted || definition.isFree
-        ? 0
-        : calculateAgentRoundCredits(definition.pricing);
+    // Declared-free rounds bill nobody. Everything else goes through the
+    // pricing formula, whose 1-credit floor catches a definition that shipped
+    // without prices instead of gifting it.
+    const creditCostPerRound = definition.isFree
+      ? 0
+      : calculateAgentRoundCredits(definition.pricing);
 
     return {
       ...definition,
@@ -437,9 +407,6 @@ export const DEFAULT_AGENT_CHAT_MODEL_KEY = LLM_DEFAULTS.agentChat;
  * Keep separate so "highlighted" never drifts from a hard-coded string.
  */
 export const HIGHLIGHTED_AGENT_CHAT_MODEL_KEY = LLM_DEFAULTS.highlighted;
-
-/** Default when the org runs its own inference fleet. */
-export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = LLM_DEFAULTS.localFleet;
 
 /** xAI / Grok default. Alias of {@link LLM_DEFAULTS.grok}. */
 export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
@@ -468,6 +435,8 @@ export const RETIRED_AGENT_CHAT_MODEL_KEYS: ReadonlySet<string> = new Set([
   'google/gemini-2.5-flash-lite',
   'google/gemini-3-flash-preview',
   'google/gemini-3.6-flash',
+  'local/mistral-small',
+  'local/qwen-32b',
   'moonshotai/kimi-k2.5',
   'moonshotai/kimi-k3',
   AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
@@ -522,7 +491,3 @@ export function isRetiredAgentChatModel(key?: string | null): boolean {
 
   return Boolean(trimmed && RETIRED_AGENT_CHAT_MODEL_KEYS.has(trimmed));
 }
-
-/** Models offered in the picker — self-hosted entries are surfaced separately. */
-export const SELECTABLE_AGENT_CHAT_MODELS: AgentChatModel[] =
-  AGENT_CHAT_MODELS.filter((model) => !model.isSelfHosted);

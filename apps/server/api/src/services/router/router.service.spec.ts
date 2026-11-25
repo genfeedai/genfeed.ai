@@ -16,11 +16,11 @@ import { RouterService } from '@api/services/router/router.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
+  CURATED_MEDIA_MODELS,
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
   hasEndFrame,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   MODEL_KEYS,
-  SELF_HOSTED_MODELS,
 } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -335,7 +335,7 @@ describe('RouterService', () => {
       });
 
       it('routes voice to HeyGen Voice only while its reviewed character rate prices it', async () => {
-        const heygenVoice = SELF_HOSTED_MODELS.find(
+        const heygenVoice = CURATED_MEDIA_MODELS.find(
           (model) => model.key === MODEL_KEYS.HEYGEN_VOICE,
         );
         if (!heygenVoice)
@@ -391,7 +391,7 @@ describe('RouterService', () => {
 
       describe('avatar engines', () => {
         const avatarRow = (key: string) => {
-          const row = SELF_HOSTED_MODELS.find((model) => model.key === key);
+          const row = CURATED_MEDIA_MODELS.find((model) => model.key === key);
           if (!row) throw new Error(`The catalog must carry ${key}`);
           return createMockModel({ ...row, category: ModelCategory.AVATAR });
         };
@@ -489,7 +489,7 @@ describe('RouterService', () => {
         ];
         modelsService.findAllActive.mockResolvedValue(
           [...speechKeys, MODEL_KEYS.HEYGEN_VOICE].map((key) => {
-            const row = SELF_HOSTED_MODELS.find((model) => model.key === key);
+            const row = CURATED_MEDIA_MODELS.find((model) => model.key === key);
             if (!row) throw new Error(`The catalog must carry ${key}`);
             return createMockModel({ ...row, category: ModelCategory.VOICE });
           }),

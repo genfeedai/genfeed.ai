@@ -3,7 +3,7 @@
  *
  * Combines the curated inputs into one list of registry rows:
  * - media generation keys from MODEL_OUTPUT_CAPABILITIES (image/video/voice/…)
- * - curated media defaults (label/cost/isDefault) from SELF_HOSTED_MODELS
+ * - curated media defaults (label/cost/isDefault) from CURATED_MEDIA_MODELS
  * - product-text fallbacks that are not agent-chat models
  * - agent chat LLMs from AGENT_CHAT_MODELS (category TEXT)
  * - one legacy row per retired chat key, so a stored binding always resolves to
@@ -31,6 +31,7 @@ import {
   RETIRED_AGENT_CHAT_MODEL_KEYS,
 } from './agent-chat-models.constant';
 import { BRAND_VISION_MODELS } from './brand-vision-models.constant';
+import { CURATED_MEDIA_MODELS } from './curated-media-models.constant';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -38,7 +39,6 @@ import {
 } from './lowest-cost-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import { MODEL_KEYS } from './model-keys.constant';
-import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
 const KEY_SEPARATOR_RUNS_PATTERN = /[-_.]+/g;
 const WORD_INITIALS_PATTERN = /\b\w/g;
@@ -162,8 +162,8 @@ function providerFromMediaKey(key: string): ModelProvider {
 
 const CURATED_MEDIA_BY_KEY = new Map<
   string,
-  (typeof SELF_HOSTED_MODELS)[number]
->(SELF_HOSTED_MODELS.map((model) => [model.key, model]));
+  (typeof CURATED_MEDIA_MODELS)[number]
+>(CURATED_MEDIA_MODELS.map((model) => [model.key, model]));
 
 /** Hosted FLUX.1 stays legacy; explicit use still requires active, priced rows. */
 const LEGACY_FLUX_MEDIA_KEYS: ReadonlySet<string> = new Set([
@@ -254,7 +254,7 @@ const FAL_MOVED_ENDPOINTS: Readonly<Record<string, string>> = {
 
 function mediaLifecycle(
   key: string,
-  curated: (typeof SELF_HOSTED_MODELS)[number] | undefined,
+  curated: (typeof CURATED_MEDIA_MODELS)[number] | undefined,
 ): ModelLifecycle {
   if (RETIRED_MEDIA_KEYS.has(key)) return ModelLifecycle.RETIRED;
   if (LEGACY_FLUX_MEDIA_KEYS.has(key) || LEGACY_MEDIA_KEYS.has(key))
@@ -398,18 +398,10 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
   });
 }
 
-/**
- * Agent chat models as TEXT registry rows.
- *
- * Self-hosted entries get a row but stay inactive: they only resolve on an
- * install running its own inference fleet, so activation is an operator toggle
- * rather than a cloud default. Seeding them anyway is what makes that toggle
- * possible at all.
- */
+/** Agent chat models as TEXT registry rows. */
 function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
   return AGENT_CHAT_MODELS.map((model) => {
     const isDefault = model.key === DEFAULT_AGENT_CHAT_MODEL_KEY;
-    const isSelfHosted = Boolean(model.isSelfHosted);
 
     return {
       capabilities: [AGENT_CHAT_CAPABILITY],
@@ -420,20 +412,18 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       speedTier: model.speedTier,
       description: model.description,
       inputCostPerMillionTokens: model.pricing.promptPerMillion,
-      isActive: !isSelfHosted,
+      isActive: true,
       isDefault,
       isHighlighted: isDefault,
       lifecycle:
         isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
           ? ModelLifecycle.RECOMMENDED
           : ModelLifecycle.AVAILABLE,
-      isPublic: !isSelfHosted,
+      isPublic: true,
       key: model.key,
       label: model.label,
       outputCostPerMillionTokens: model.pricing.completionPerMillion,
-      provider: isSelfHosted
-        ? ModelProvider.GENFEED_AI
-        : ModelProvider.OPENROUTER,
+      provider: ModelProvider.OPENROUTER,
       recommendedFor: [AGENT_CHAT_CAPABILITY],
       supportsFeatures: model.isReasoning ? [REASONING_FEATURE] : [],
       ...(model.isFree ? { isFree: true } : {}),

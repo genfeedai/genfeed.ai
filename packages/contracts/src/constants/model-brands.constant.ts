@@ -18,7 +18,6 @@ export type ModelBrandIconKey =
   | 'recraft'
   | 'stability'
   | 'vidu'
-  | 'local'
   | 'luma'
   | 'meta'
   | 'minimax'
@@ -41,7 +40,7 @@ export interface ModelBrandConfig {
 /**
  * Keyed by the slug in front of the slash in a model key, so this covers both
  * the generation catalogue (`black-forest-labs/…`) and the agent chat catalogue
- * (`anthropic/…`, `deepseek/…`, `local/…`). A prefix missing here renders as a
+ * (`anthropic/…`, `deepseek/…`). A prefix missing here renders as a
  * grey title-cased fallback via `getBrandConfig`.
  */
 export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
@@ -73,7 +72,6 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   'recraft-ai': { color: '#6B7280', iconKey: 'recraft', label: 'Recraft' },
   sdxl: { color: '#6B7280', iconKey: 'stability', label: 'SDXL' },
   vidu: { color: '#6B7280', iconKey: 'vidu', label: 'Vidu' },
-  local: { color: '#64748B', iconKey: 'local', label: 'Self-hosted' },
   luma: { color: '#7C3AED', iconKey: 'luma', label: 'Luma' },
   meta: { color: '#0668E1', iconKey: 'meta', label: 'Meta' },
   minimax: { color: '#F97316', iconKey: 'minimax', label: 'MiniMax' },

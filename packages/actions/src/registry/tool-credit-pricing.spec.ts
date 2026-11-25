@@ -1,5 +1,5 @@
+import { CURATED_MEDIA_MODELS } from '@genfeedai/contracts/constants/curated-media-models.constant';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
-import { SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants/self-hosted-models.constant';
 import { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import {
   estimateTurboRunCredits,
@@ -297,7 +297,7 @@ describe('tool credit pricing', () => {
       ),
     ).toBe(false);
     // A HeyGen avatar clip is held per second; raw-cut holds nothing.
-    const avatarV = SELF_HOSTED_MODELS.find(
+    const avatarV = CURATED_MEDIA_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_V,
     );
     for (const name of ['run_clipper', 'create_clipper_project_from_youtube']) {

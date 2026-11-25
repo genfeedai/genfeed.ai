@@ -599,7 +599,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       response = await this.authoring.call(current, params, {
         modelKey: quote.modelKey,
         provider: z
-          .enum(['anthropic', 'openai', 'openrouter', 'local'])
+          .enum(['anthropic', 'openai', 'openrouter'])
           .parse(quote.provider),
         isByok: quote.isByok,
         isAvailable: true,
