@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { REPORT_ANALYZERS } from '../analyzers';
 import type {
@@ -113,7 +114,7 @@ describe('calibration summary', () => {
     const report = await passingReport();
 
     expect(renderSummary(report, REPORT_ANALYZERS)).toContain(
-      '  calibration content-quality@google/gemini-2.5-flash-lite: κband 1',
+      `  calibration content-quality@${LLM_DEFAULTS.background}: κband 1`,
     );
   });
 });
