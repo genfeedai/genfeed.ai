@@ -715,7 +715,7 @@ describe('UploadService', () => {
     });
 
     it('rejects a non-success response before spooling', async () => {
-      safeFetchMock.mockResolvedValue(remoteResponse('missing', {}, 404));
+      safeFetchMock.mockResolvedValue(remoteResponse('unavailable', {}, 503));
 
       const status = await rejectionStatus(
         service.uploadToS3('test-key', 'images', {
@@ -726,6 +726,25 @@ describe('UploadService', () => {
 
       expect(status).toBe(HttpStatus.BAD_REQUEST);
       expect(pipelineMock).not.toHaveBeenCalled();
+    });
+
+    it('answers a missing source object with 404 and logs it as a warning', async () => {
+      safeFetchMock.mockResolvedValue(remoteResponse('missing', {}, 404));
+
+      const status = await rejectionStatus(
+        service.uploadToS3('test-key', 'images', {
+          type: 'url',
+          url: 'https://example.com/image.jpg',
+        }),
+      );
+
+      expect(status).toBe(HttpStatus.NOT_FOUND);
+      expect(pipelineMock).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Failed to download file directly from URL',
+        expect.any(HttpException),
+      );
+      expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
     it('rejects a declared size over the 200MB limit before spooling', async () => {
