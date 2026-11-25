@@ -105,14 +105,36 @@ function toVisualCues(
   return [...new Set(cues)];
 }
 
+/**
+ * The owner's art direction is visual by authorship: it skips the copy-word
+ * filter, so one sentence that says "write" or "copy" costs only itself, and
+ * it leads the cues so the 8-cue cap never drops it for a generic directive.
+ */
+function toVisualDirectionCues(brief: ContentHarnessBrief): string[] {
+  const cues = (brief.visualDirections ?? [])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => toSentence(humanizeCue(line)));
+  return [...new Set(cues)];
+}
+
 function selectVisualCues(
   brief: ContentHarnessBrief,
   options: { shouldKeepPolicy: boolean } = { shouldKeepPolicy: true },
 ): string[] {
-  return toVisualCues(
-    [...brief.styleDirectives, ...brief.systemDirectives, ...brief.guardrails],
-    options,
-  ).slice(0, MAX_VISUAL_CUES);
+  return [
+    ...new Set([
+      ...toVisualDirectionCues(brief),
+      ...toVisualCues(
+        [
+          ...brief.styleDirectives,
+          ...brief.systemDirectives,
+          ...brief.guardrails,
+        ],
+        options,
+      ),
+    ]),
+  ].slice(0, MAX_VISUAL_CUES);
 }
 
 /**
@@ -425,10 +447,14 @@ export function buildMediaEnhancerBrief(
   const palette = selectMotionPalette(brief);
   const isLookLine = (line: string) =>
     !PALETTE_LINE.test(line) && !FONT_LINE.test(line);
-  const look = toVisualCues(
-    [...brief.styleDirectives, ...brief.systemDirectives],
-    { shouldKeepPolicy: false },
-  )
+  const look = [
+    ...new Set([
+      ...toVisualDirectionCues(brief),
+      ...toVisualCues([...brief.styleDirectives, ...brief.systemDirectives], {
+        shouldKeepPolicy: false,
+      }),
+    ]),
+  ]
     .filter(isLookLine)
     .slice(0, MAX_ENHANCER_LOOK_CUES);
   const avoid = toVisualCues(brief.guardrails, { shouldKeepPolicy: false })

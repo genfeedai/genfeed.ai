@@ -8,6 +8,19 @@ export const ids = z
   .refine((v) => new Set(v).size === v.length, 'Duplicate IDs');
 export const refs = ids.min(1);
 export const text = z.string().max(16000);
+const voiceLabel = z.string().min(1).max(512);
+
+/** How an approved brand sounds. Text generation reads it; image and video prompts do not. */
+export const brandVoiceV1Schema = z.strictObject({
+  tone: text.optional(),
+  style: text.optional(),
+  audience: z.array(voiceLabel).max(128),
+  values: z.array(voiceLabel).max(128),
+  messagingPillars: z.array(text).max(128),
+  avoid: z.array(text).max(64),
+  sample: text.optional(),
+  guidelines: text.optional(),
+});
 
 export function issue(ctx: z.RefinementCtx, message: string) {
   ctx.addIssue({ code: 'custom', message });

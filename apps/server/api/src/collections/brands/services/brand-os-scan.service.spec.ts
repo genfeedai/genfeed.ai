@@ -175,6 +175,7 @@ function harness(initial: BrandOsRevision[] = []) {
       backgroundColor: 'transparent',
       colorPalette: [],
       fontRoles: {},
+      visualDirection: null,
       agentConfig: { unrelated: 'retained' },
       brandOsRevisionVersion: initial.length,
     },

@@ -146,6 +146,55 @@ describe('buildHarnessInput approved Brand OS Policy (#7339)', () => {
     ]);
   });
 
+  function revisionOfBrand(
+    brand: Parameters<typeof buildBrandKitDraftFromBrand>[0],
+  ) {
+    return {
+      content: buildBrandKitDraftFromBrand(brand),
+      id: 'rev-1',
+    } as IBrandOsRevision;
+  }
+
+  it('hands an approved visual direction to the brief one sentence at a time', () => {
+    const input = buildHarnessInput({
+      brandOsRevision: revisionOfBrand({
+        id: 'brand-1',
+        label: 'Acme',
+        text: 'Write in short lines.',
+        visualDirection:
+          'Reinterpret classic paintings in oil. Write the mark into the scene!\nMonochrome, no gloss',
+      }),
+      intent,
+      organizationId: 'org-1',
+    });
+
+    expect(input.identityContribution?.visualDirections).toEqual([
+      'Reinterpret classic paintings in oil.',
+      'Write the mark into the scene!',
+      'Monochrome, no gloss',
+    ]);
+    expect(input.identityContribution?.systemDirectives).toContain(
+      'Prompt guidelines: Write in short lines.',
+    );
+    expect(
+      input.identityContribution?.systemDirectives?.join('\n'),
+    ).not.toContain('classic paintings');
+  });
+
+  it('leaves visual direction out of a music brief', () => {
+    const input = buildHarnessInput({
+      brandOsRevision: revisionOfBrand({
+        id: 'brand-1',
+        label: 'Acme',
+        visualDirection: 'Oil painting.',
+      }),
+      intent: { contentType: 'music', objective: 'awareness' },
+      organizationId: 'org-1',
+    });
+
+    expect(input.identityContribution).not.toHaveProperty('visualDirections');
+  });
+
   it('adds no guardrails without a Policy or with empty lists', () => {
     for (const brandOsRevision of [
       revision(),
