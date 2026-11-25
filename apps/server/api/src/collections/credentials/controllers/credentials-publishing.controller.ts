@@ -24,6 +24,7 @@ import {
   API_KEY_POSTING_CONFIGURATION_SCOPES,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   ContentSurface,
@@ -234,6 +235,7 @@ export class CredentialsPublishingController {
   }
 
   @Post(':credentialId/account-health/assess')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'CredentialsController.assessAccountHealth',
