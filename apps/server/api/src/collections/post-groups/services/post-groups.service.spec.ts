@@ -1850,6 +1850,18 @@ describe('PostGroupsService', () => {
         userId: 'user-1',
       }),
     );
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutation: expect.objectContaining({
+          targetSettings: {
+            deliveryMode: 'tiktok_app',
+            musicUsageAccepted: true,
+            privacyLevel: 'public',
+          },
+        }),
+      }),
+      expect.anything(),
+    );
   });
 
   it('rejects a native-app handoff for non-TikTok targets', async () => {

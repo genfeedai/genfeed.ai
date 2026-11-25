@@ -3,8 +3,12 @@ import {
   SKILL_MODALITIES,
   SKILL_WORKFLOW_STAGES,
 } from '@api/collections/skills/schemas/skill.schema';
-import { ContentSkillCategory, type SkillSurface } from '@genfeedai/contracts';
-import { resolveSkillSurfaces } from '@genfeedai/helpers';
+import {
+  ContentSkillCategory,
+  type SkillRunsOn,
+  type SkillSurface,
+} from '@genfeedai/contracts';
+import { inferSkillRunsOn, resolveSkillSurfaces } from '@genfeedai/helpers';
 
 import type { FirstPartySkillMetadata } from './first-party-skill.types';
 
@@ -18,6 +22,7 @@ export type FirstPartySkillTaxonomy = {
   category: ContentSkillCategory;
   channels: SkillChannel[];
   modalities: SkillModality[];
+  runsOn: SkillRunsOn;
   surfaces: SkillSurface[];
   workflowStage: SkillWorkflowStage;
 };
@@ -223,6 +228,7 @@ export function inferFirstPartySkillTaxonomy(
     category,
     channels,
     modalities,
+    runsOn: inferSkillRunsOn(metadata.tags ?? []),
     // Shared with the client so a custom skill and a first-party one resolve
     // to the same composer surfaces.
     surfaces: resolveSkillSurfaces({ category, modalities, workflowStage }),

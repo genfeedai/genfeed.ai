@@ -1,4 +1,4 @@
-import type { SkillSurface } from '@genfeedai/contracts';
+import type { SkillRunsOn, SkillSurface } from '@genfeedai/contracts';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type {
   SkillVersionListQueryV1,
@@ -148,6 +148,8 @@ export interface ListSkillsPageQuery {
   limit: number;
   modality?: string;
   page: number;
+  /** Only skills that run on web or on desktop. */
+  runsOn?: string;
   /** Case-insensitive match over name and description. */
   search?: string;
   source?: string;
@@ -178,6 +180,8 @@ export class Skill {
   outputSchema?: Record<string, unknown>;
   requiredProviders!: string[];
   reviewDefaults?: Record<string, unknown>;
+  /** Where the skill executes. Always set by the API; absent only on stale payloads. */
+  runsOn?: SkillRunsOn;
   slug!: string;
   source!: SkillSource;
   sourceListingId?: string;
@@ -421,6 +425,7 @@ export class SkillsService extends BaseService<
           ? { isDefault: query.isDefault }
           : {}),
         ...(query.modality ? { modality: query.modality } : {}),
+        ...(query.runsOn ? { runsOn: query.runsOn } : {}),
         ...(query.search?.trim() ? { q: query.search.trim() } : {}),
         ...(query.source ? { source: query.source } : {}),
         ...(query.stage ? { stage: query.stage } : {}),

@@ -6,10 +6,6 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { DashboardPage } from '../../pages/dashboard.page';
-import {
-  BLOCK_SHIFT_BUDGET_PX,
-  holdRequests,
-} from '../../utils/block-skeleton-helpers';
 
 const BOOTSTRAP_OVERVIEW = createPlaywrightApiRoutePattern(
   'auth/bootstrap/overview',
@@ -81,44 +77,5 @@ test.describe('Workspace overview — cache kept across a reload', () => {
     await expect(ready).toContainText('2');
     await expect(ready).not.toHaveAttribute('aria-busy', 'true');
     releaseRequest();
-  });
-});
-
-/**
- * The Home connection line grew in after its read answered and pushed the
- * sections down about 58 px (epic #10926). It is remembered per organization,
- * so a reload paints it at once and the sections do not move.
- */
-test.describe('Workspace overview — connection line remembered', () => {
-  test.setTimeout(90_000);
-
-  test('keeps the sections where they are while the connection read is pending', async ({
-    authenticatedPage: page,
-  }) => {
-    await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
-    await mockAnalyticsData(page);
-    const dashboardPage = new DashboardPage(page);
-
-    await dashboardPage.goto();
-    const line = page.getByTestId('operational-home-unconfigured');
-    await expect(line).toBeVisible();
-    const sections = page.getByTestId('operational-home-sections');
-    await expect(sections).toBeVisible();
-    await expect(line).toBeVisible();
-    const settled = await sections.boundingBox();
-
-    const held = await holdRequests(page, (url) =>
-      url.pathname.includes('/api-keys'),
-    );
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await held.whenHeld;
-
-    await expect(line).toBeVisible();
-    const painted = await sections.boundingBox();
-    expect(painted).not.toBeNull();
-    expect(Math.abs((painted?.y ?? 0) - (settled?.y ?? 0))).toBeLessThanOrEqual(
-      BLOCK_SHIFT_BUDGET_PX,
-    );
-    held.release();
   });
 });

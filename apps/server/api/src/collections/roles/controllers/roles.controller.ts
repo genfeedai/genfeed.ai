@@ -5,6 +5,7 @@ import { RoleEntity } from '@api/collections/roles/entities/role.entity';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -12,6 +13,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { RoleSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -34,6 +36,7 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
@@ -110,6 +113,7 @@ export class RolesController {
   }
 
   @Patch(':roleId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -132,6 +136,7 @@ export class RolesController {
   }
 
   @Delete(':roleId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(@Req() request: Request, @Param('roleId') roleId: string) {
     try {

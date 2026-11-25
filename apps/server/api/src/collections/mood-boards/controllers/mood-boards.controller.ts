@@ -3,6 +3,7 @@ import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -11,6 +12,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/index';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { MoodBoardSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,6 +61,7 @@ export class MoodBoardsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,

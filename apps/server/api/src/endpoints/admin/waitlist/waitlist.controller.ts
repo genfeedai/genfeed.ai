@@ -3,6 +3,7 @@ import { ListWaitlistQueryDto } from '@api/collections/waitlist/dto/list-waitlis
 import { ReviewWaitlistEntryDto } from '@api/collections/waitlist/dto/review-waitlist-entry.dto';
 import { WaitlistService } from '@api/collections/waitlist/services/waitlist.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { resolvePageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -10,6 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { WaitlistEntrySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -55,6 +57,7 @@ export class WaitlistController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Approve or reject a waitlist entry',

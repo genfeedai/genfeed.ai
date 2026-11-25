@@ -1,8 +1,12 @@
 # Brand artifact validation core
 
 This internal API leaf binds captured artifact bytes to canonical snapshot and
-artifact metadata. Its only application caller is the branded text seam
-(`BrandedTextGenerationService`, direct post drafts).
+artifact metadata. Its application callers are the branded text seam
+(`BrandedTextGenerationService`, direct post drafts) and
+`MediaGenerationReceiptsService`, which runs it with no vision model on a completed
+branded image or video so the palette proof lands on the receipt (#11034). That run
+is evidence only: it times out or fails into the old no-report receipt, and the
+factual coverage check stays unknown, so it never makes a media receipt `ready`.
 `BrandValidationReceiptService.validateReceipt(actor, receiptId)` (exported by
 `BrandValidationReceiptModule`) is the persisted completion adapter. The
 synthetic corpus is regression input, never provider qualification or production

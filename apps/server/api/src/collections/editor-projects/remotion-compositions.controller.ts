@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { RenderRemotionCompositionDto } from '@api/collections/editor-projects/dto/render-remotion-composition.dto';
 import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -9,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   RemotionCompositionSerializer,
   RemotionRenderSerializer,
@@ -41,6 +43,7 @@ export class RemotionCompositionsController {
   }
 
   @Post('render')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async render(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
@@ -68,6 +71,7 @@ export class RemotionCompositionsController {
   }
 
   @Post(':id/cancel')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('editor', 'read')
   async cancel(
     @Req() request: Request,
@@ -82,6 +86,7 @@ export class RemotionCompositionsController {
   }
 
   @Post(':id/retry')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async retry(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,

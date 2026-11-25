@@ -7,6 +7,7 @@ import {
   isTwitterCreditsDepletedError,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { PublishErrorKind } from '@genfeedai/contracts';
+import { DUPLICATE_CONTENT_PROVIDER_CODE } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 /**
@@ -193,7 +194,12 @@ export function mapMetaFailure(
       readInteger(body.error_subcode),
       body.is_transient === true,
     ),
-    message: withProviderReason(failure, body.message),
+    message: withProviderReason(
+      failure,
+      typeof body.error_user_msg === 'string' && body.error_user_msg
+        ? body.error_user_msg
+        : body.message,
+    ),
     providerCode: code === undefined ? undefined : String(code),
     retryAfterMs: readMetaRetryAfterMs(failure),
   };
@@ -201,6 +207,8 @@ export function mapMetaFailure(
 
 /** X problem types from its response codes guide. */
 const X_USAGE_CAPPED_TYPE_SUFFIX = '/usage-capped';
+/** X's 403 detail: "You are not allowed to create a Tweet with duplicate content." */
+const X_DUPLICATE_CONTENT_PATTERN = /duplicate content/i;
 const X_RECONNECT_TYPE_SUFFIXES = [
   '/client-forbidden',
   '/not-authorized-for-resource',
@@ -230,9 +238,10 @@ export function mapXFailure(
   const message = describeTwitterPublishError(cause);
 
   if (httpStatus === 402 || isTwitterCreditsDepletedError(cause)) {
-    // The Genfeed X app is out of credits. Nothing was published and adding
-    // credits fixes it, so the post is tried again later.
-    return { kind: PublishErrorKind.RETRY_LATER, message };
+    // The Genfeed X app is out of credits. Nothing was published, and every
+    // retry fails the same way until an operator adds credits, so the post
+    // stops here and waits for an operator's retry.
+    return { kind: PublishErrorKind.PROVIDER_CREDITS_DEPLETED, message };
   }
   if (httpStatus === 429) {
     // A usage cap lasts until the billing period turns, not until a reset
@@ -250,6 +259,13 @@ export function mapXFailure(
     };
   }
   if (httpStatus === 403) {
+    if (X_DUPLICATE_CONTENT_PATTERN.test(message)) {
+      return {
+        kind: PublishErrorKind.CONTENT_REJECTED,
+        message,
+        providerCode: DUPLICATE_CONTENT_PROVIDER_CODE,
+      };
+    }
     return {
       kind: X_RECONNECT_TYPE_SUFFIXES.some((suffix) => type.endsWith(suffix))
         ? PublishErrorKind.CHANNEL_DISCONNECTED

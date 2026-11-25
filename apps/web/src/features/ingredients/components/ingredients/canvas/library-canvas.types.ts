@@ -2,7 +2,7 @@ import type {
   IIngredient,
   IMoodBoardLayoutItem,
 } from '@genfeedai/contracts/interfaces';
-import type { Node, NodeChange, NodeProps } from '@xyflow/react';
+import type { Node, NodeChangeset, NodeProps } from '@xyflow/react';
 
 /**
  * React Flow types are generic over the node payload, so these shapes stay
@@ -25,6 +25,6 @@ export interface UseLibraryCanvasNodesParams {
 
 export interface UseLibraryCanvasNodesResult {
   nodes: LibraryCanvasFlowNode[];
-  onNodesChange: (changes: NodeChange<LibraryCanvasFlowNode>[]) => void;
+  onNodesChange: (changes: NodeChangeset<LibraryCanvasFlowNode>) => void;
   onNodeDragStop: () => void;
 }

@@ -195,6 +195,54 @@ describe('buildHarnessInput approved Brand OS Policy (#7339)', () => {
     expect(input.identityContribution).not.toHaveProperty('visualDirections');
   });
 
+  it('hands the typed palette to the brief, primary first, then the named colours', () => {
+    const input = buildHarnessInput({
+      brandOsRevision: revisionOfBrand({
+        backgroundColor: '#FFFFFF',
+        colorPalette: [
+          { hex: '#1D4ED8', name: 'Sea blue', usage: 'Water and sky' },
+          { hex: '#E11D48', name: 'Signal' },
+        ],
+        id: 'brand-1',
+        label: 'Acme',
+        primaryColor: '#0A0A0A',
+      }),
+      intent,
+      organizationId: 'org-1',
+    });
+
+    expect(input.identityContribution?.palette).toEqual([
+      { hex: '#0A0A0A', usage: 'Primary' },
+      { hex: '#FFFFFF', usage: 'Background' },
+      { hex: '#1D4ED8', usage: 'Water and sky' },
+      { hex: '#E11D48', usage: 'Signal' },
+    ]);
+  });
+
+  it('skips a colour that is not a hex code and leaves the palette out of a music brief', () => {
+    const brand = {
+      id: 'brand-1',
+      label: 'Acme',
+      primaryColor: 'blue',
+      secondaryColor: '#123456',
+    };
+
+    expect(
+      buildHarnessInput({
+        brandOsRevision: revisionOfBrand(brand),
+        intent,
+        organizationId: 'org-1',
+      }).identityContribution?.palette,
+    ).toEqual([{ hex: '#123456', usage: 'Secondary' }]);
+    expect(
+      buildHarnessInput({
+        brandOsRevision: revisionOfBrand(brand),
+        intent: { contentType: 'music', objective: 'awareness' },
+        organizationId: 'org-1',
+      }).identityContribution,
+    ).not.toHaveProperty('palette');
+  });
+
   it('adds no guardrails without a Policy or with empty lists', () => {
     for (const brandOsRevision of [
       revision(),

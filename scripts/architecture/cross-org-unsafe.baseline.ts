@@ -19,12 +19,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 254,
+      line: 256,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 309,
+      line: 313,
     },
     // Platform-owned system workflow ids are read under the system principal.
     {
@@ -95,7 +95,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // the platform-admin role and reads only the ids the client already holds.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 363,
+      line: 365,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and
@@ -142,7 +142,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 220,
+      line: 223,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
@@ -302,13 +302,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin content-learning account inventory and health.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 77,
+      line: 79,
     },
     // #8168: superadmin prompt slot outcome report reads the organizations
     // named in the query, one organizationId-scoped query per organization.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 123,
+      line: 125,
     },
     // #6120: platform emergency pause locates any organization's learning
     // account.
@@ -364,7 +364,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 295,
+      line: 304,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.
@@ -386,7 +386,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin operates on a bot in any organization.
     {
       file: 'apps/server/api/src/collections/bots/controllers/bots.controller.ts',
-      line: 296,
+      line: 302,
     },
     // #6120: superadmin list of another organization's credentials.
     {
@@ -402,14 +402,14 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 698,
+      line: 708,
     },
     // The free-trial expiry sweep discovers never-paid organizations past the
     // window across tenants; each one is then expired in its own
     // organization-scoped serializable transaction.
     {
       file: 'apps/server/api/src/collections/credits/services/free-trial.service.ts',
-      line: 129,
+      line: 160,
     },
     // Email-verified grant: resolves the user's first owned organization; the entitlement is user-scoped, not tenant-scoped.
     {
@@ -448,12 +448,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads another organization's blacklist entry.
     {
       file: 'apps/server/api/src/collections/elements/blacklists/controllers/blacklists.controller.ts',
-      line: 144,
+      line: 147,
     },
     // #6120: superadmin edits another organization's blacklist entry.
     {
       file: 'apps/server/api/src/collections/elements/blacklists/controllers/blacklists.controller.ts',
-      line: 167,
+      line: 170,
     },
     // #6120: superadmin names a foreign organization.
     {
@@ -463,21 +463,21 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads any organization's folder.
     {
       file: 'apps/server/api/src/collections/folders/controllers/folders.controller.ts',
-      line: 88,
+      line: 90,
     },
     // #6120: superadmin-only CRUD over platform (organization-less) font
     // families.
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 80,
+      line: 82,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 106,
+      line: 110,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 120,
+      line: 125,
     },
     // #6120: superadmin may read any organization's article (findOne,
     // createPreviewLink).
@@ -501,7 +501,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 306,
+      line: 310,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).

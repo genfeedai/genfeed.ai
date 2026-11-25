@@ -338,6 +338,9 @@ describe('ImagesOperationsController', () => {
           provide: BrandsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockBrand),
+            resolveBrandKitAssets: vi
+              .fn()
+              .mockResolvedValue({ references: [] }),
           },
         },
         {

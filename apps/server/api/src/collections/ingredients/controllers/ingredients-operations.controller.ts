@@ -6,9 +6,11 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -47,6 +49,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('ingredients')
+@RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
 @UseGuards(RolesGuard)
 export class IngredientsOperationsController {
   private readonly constructorName: string = String(this.constructor.name);
@@ -62,9 +65,7 @@ export class IngredientsOperationsController {
     private readonly loggerService: LoggerService,
   ) {}
 
-  /**
-   * Lazy-load FilesClientService via ModuleRef to avoid blocking HTTP module init
-   */
+  /** Lazy-load FilesClientService via ModuleRef to avoid blocking HTTP module init */
   private getFilesClientService(): FilesClientService {
     if (!this.filesClientService) {
       this.filesClientService = this.moduleRef.get(FilesClientService, {
@@ -74,9 +75,7 @@ export class IngredientsOperationsController {
     return this.filesClientService;
   }
 
-  /**
-   * Lazy-load SharedService via ModuleRef to avoid circular dependency
-   */
+  /** Lazy-load SharedService via ModuleRef to avoid circular dependency */
   private getSharedService(): SharedService {
     if (!this.sharedService) {
       this.sharedService = this.moduleRef.get(SharedService, { strict: false });
@@ -84,9 +83,7 @@ export class IngredientsOperationsController {
     return this.sharedService;
   }
 
-  /**
-   * Lazy-load NotificationsPublisherService via ModuleRef
-   */
+  /** Lazy-load NotificationsPublisherService via ModuleRef */
   private getNotificationsPublisher(): NotificationsPublisherService {
     if (!this.notificationsPublisher) {
       this.notificationsPublisher = this.moduleRef.get(

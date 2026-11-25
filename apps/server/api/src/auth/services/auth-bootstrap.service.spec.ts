@@ -110,6 +110,7 @@ describe('AuthBootstrapService', () => {
     canAffordDefaultGeneration: vi.fn(),
   };
   const freeTrialService = {
+    expiredTrialSpendableCredits: vi.fn(),
     getState: vi.fn(),
   };
   const lowCreditThresholdService = {
@@ -427,6 +428,10 @@ describe('AuthBootstrapService', () => {
         isTrialExpired,
         trialEndsAt: new Date(trialEndsAt),
       });
+      freeTrialService.expiredTrialSpendableCredits.mockResolvedValue(0);
+      defaultGenerationAffordability.canAffordDefaultGeneration.mockResolvedValue(
+        !isTrialExpired,
+      );
 
       const result = await service.getBootstrap({
         context: { organizationId: 'org_1', userId: 'user_1' },
@@ -438,6 +443,26 @@ describe('AuthBootstrapService', () => {
       expect(freeTrialService.getState).toHaveBeenCalledWith('org_1');
     },
   );
+
+  it('does not show the expired-trial state while earned credits cover a default generation', async () => {
+    freeTrialService.getState.mockResolvedValue({
+      isTrialExpired: true,
+      trialEndsAt: new Date('2026-10-01T09:00:00.000Z'),
+    });
+    freeTrialService.expiredTrialSpendableCredits.mockResolvedValue(25);
+    defaultGenerationAffordability.canAffordDefaultGeneration.mockImplementation(
+      async ({ balance }: { balance: number }) => balance >= 10,
+    );
+
+    const result = await service.getBootstrap({
+      context: { organizationId: 'org_1', userId: 'user_1' },
+      user: { id: 'user_1', organizationId: 'org_1', userId: 'user_1' },
+    } as never);
+
+    expect(result.access.isTrialExpired).toBe(false);
+    expect(result.access.canAffordDefaultGeneration).toBe(true);
+    expect(result.access.trialEndsAt).toBe('2026-10-01T09:00:00.000Z');
+  });
 
   it('carries the server-computed low-balance threshold for the banner', async () => {
     lowCreditThresholdService.resolve.mockResolvedValue({

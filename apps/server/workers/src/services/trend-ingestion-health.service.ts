@@ -35,6 +35,8 @@ export interface PendingIngestionAlert {
   /** One line for the digest; the advice that follows is shown once. */
   brief: string;
   description: string;
+  /** The incident closed with no successful refresh recorded: not a recovery. */
+  isClosedWithoutSuccess?: boolean;
   isRecovery: boolean;
   key: string;
   sourceId: string;
@@ -272,7 +274,7 @@ export class TrendIngestionHealthService {
           recoveredDescription: (latestSuccess) =>
             latestSuccess
               ? `${platform} trends completed a refresh for a previously failing tenant scope at ${latestSuccess.toISOString()}.`
-              : `${platform} trends no longer has this tenant scope in a failing state.`,
+              : `The ${platform} trends incident for this tenant scope closed without a successful refresh. The scope is no longer evaluated on its own: its account was disconnected or replaced, its baseline restarted, or a platform-wide outage now reports it. No refresh is recorded as succeeding for it.`,
           sourceId,
         });
       }
@@ -306,7 +308,7 @@ export class TrendIngestionHealthService {
     receipt: TrendRefreshHealth | undefined,
   ): string {
     if (!receipt)
-      return 'No scoped refresh attempt is recorded for this scope, so the scoped refresh may not be scheduling it.';
+      return 'No scoped refresh receipt is recorded for this scope. A missing receipt means the attempt wrote no row, not that nothing was scheduled; check the scoped refresh logs for this scope.';
     return `Last attempt: ${receipt.lastAttemptAt}. Outcome: ${receipt.outcome}${receipt.reason ? ` (${receipt.reason})` : ''}.`;
   }
 
@@ -394,10 +396,13 @@ export class TrendIngestionHealthService {
         input.alerts.push({
           brief: recovered,
           description: recovered,
+          ...(latestSuccess ? {} : { isClosedWithoutSuccess: true }),
           isRecovery: true,
           key: `${previousAlert.deduplicationKey}/recovered`,
           sourceId,
-          title: 'Trend ingestion recovered',
+          title: latestSuccess
+            ? 'Trend ingestion recovered'
+            : 'Trend ingestion incident closed',
         });
       }
       return;
@@ -518,7 +523,10 @@ export class TrendIngestionHealthService {
       };
     }
     const missed = alerts.filter((alert) => !alert.isRecovery);
-    const recovered = alerts.filter((alert) => alert.isRecovery);
+    const recovered = alerts.filter(
+      (alert) => alert.isRecovery && !alert.isClosedWithoutSuccess,
+    );
+    const closed = alerts.filter((alert) => alert.isClosedWithoutSuccess);
     let budget = DIGEST_DESCRIPTION_BUDGET;
     const section = (heading: string, rows: PendingIngestionAlert[]) => {
       if (rows.length === 0) return null;
@@ -533,25 +541,29 @@ export class TrendIngestionHealthService {
       if (hidden > 0) lines.push(`…and ${hidden} more`);
       return `**${heading} (${rows.length})**\n${lines.join('\n')}`;
     };
-    const parts =
-      missed.length > 0 && recovered.length > 0
-        ? [`${missed.length} need attention`, `${recovered.length} recovered`]
-        : [];
+    const counts = [
+      missed.length > 0 ? `${missed.length} need attention` : null,
+      recovered.length > 0 ? `${recovered.length} recovered` : null,
+      closed.length > 0 ? `${closed.length} closed without a refresh` : null,
+    ].filter((part): part is string => part !== null);
     return {
       color: missed.length > 0 ? COLOR_MISSED : COLOR_RECOVERED,
       description: [
         section('Missed two scheduled windows', missed),
         missed.length > 0 ? DIGEST_ADVICE : null,
         section('Recovered', recovered),
+        section('Closed without a successful refresh', closed),
       ]
         .filter((part): part is string => part !== null)
         .join('\n\n'),
       title:
-        parts.length > 0
-          ? `Trend ingestion: ${parts.join(', ')}`
+        counts.length > 1
+          ? `Trend ingestion: ${counts.join(', ')}`
           : missed.length > 0
             ? `Trend ingestion: ${missed.length} missed two scheduled windows`
-            : `Trend ingestion: ${recovered.length} recovered`,
+            : recovered.length > 0
+              ? `Trend ingestion: ${recovered.length} recovered`
+              : `Trend ingestion: ${closed.length} closed without a successful refresh`,
     };
   }
 }

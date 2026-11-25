@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateLaunchCopyDto } from '@api/collections/launch-copy/dto/generate-launch-copy.dto';
 import { LaunchCopyGeneratorService } from '@api/collections/launch-copy/services/launch-copy-generator.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -9,6 +10,7 @@ import {
   returnInternalServerError,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Post } from '@nestjs/common';
@@ -30,6 +32,7 @@ export class LaunchCopyController {
    * POST /launch-copy/generate
    */
   @Post('generate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60000 })
   async generate(
     @CurrentUser() user: User,

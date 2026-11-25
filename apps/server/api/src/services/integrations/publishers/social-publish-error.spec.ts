@@ -298,7 +298,7 @@ describe('toTwitterPublishError', () => {
     [
       'depleted credits',
       xError(402, { title: 'CreditsDepleted' }),
-      'retry_later',
+      'provider_credits_depleted',
     ],
     ['an X fault', xError(503), 'outcome_unknown'],
     [
@@ -338,6 +338,28 @@ describe('toTwitterPublishError', () => {
       httpStatus: 403,
       message:
         'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+    });
+  });
+
+  it('marks a duplicate-content refusal so it is not retried or reported as a fault', () => {
+    const error = xError(403, {
+      detail: 'You are not allowed to create a Tweet with duplicate content.',
+      title: 'Forbidden',
+      type: 'about:blank',
+    });
+
+    expect(toTwitterPublishError(error)).toMatchObject({
+      kind: PublishErrorKind.CONTENT_REJECTED,
+      providerCode: 'duplicate_content',
+    });
+  });
+
+  it('leaves another 403 without the duplicate-content code', () => {
+    const error = xError(403, { detail: 'Forbidden', title: 'Forbidden' });
+
+    expect(toTwitterPublishError(error)).toMatchObject({
+      kind: PublishErrorKind.CONTENT_REJECTED,
+      providerCode: undefined,
     });
   });
 

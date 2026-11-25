@@ -1,9 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
+import {
+  API_KEY_BRAND_EDIT_SCOPES,
+  API_KEY_CONTENT_GENERATION_SCOPES,
+} from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -56,6 +61,7 @@ export class ExpertPathController {
 
   /** Re-score stored positioning answers and refresh the harness draft. */
   @Post('positioning/profile')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async regeneratePositioning(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
@@ -70,6 +76,7 @@ export class ExpertPathController {
   }
 
   @Post('first-system')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async generateFirstSystem(
     @Req() req: Request,
     @Param('brandId') brandId: string,
@@ -114,6 +121,7 @@ export class ExpertPathController {
   }
 
   @Patch('first-system/:planId/items/:itemId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async reviewFirstSystemItem(
     @Req() req: Request,
     @Param('brandId') brandId: string,

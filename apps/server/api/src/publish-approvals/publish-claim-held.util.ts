@@ -17,3 +17,32 @@ export function describeLostPublishClaim(currentStatus: string): string {
     ? PUBLISH_APPROVAL_CLAIMED_BY_ANOTHER_RUN_MESSAGE
     : PUBLISH_APPROVAL_NOT_QUEUED_MESSAGE;
 }
+
+/**
+ * Why a status transition was refused. Queueing is the first step of a
+ * scheduled run's claim, so an approval a duplicate run already claimed or
+ * published reads as that claim and not as an invalid transition.
+ */
+export function describeRejectedTransition(
+  from: PublishApprovalStatus,
+  next: PublishApprovalStatus,
+): string {
+  return next === PublishApprovalStatus.QUEUED
+    ? describeLostPublishClaim(from)
+    : `Publish approval cannot transition from ${from} to ${next}.`;
+}
+
+/**
+ * Why a status write matched no row. `latestStatus` is the status read back when
+ * the write was queueing: a duplicate run that claimed or published it in
+ * between is a lost claim; any other status keeps the generic message.
+ */
+export function describeLostTransition(
+  from: PublishApprovalStatus,
+  latestStatus: string | undefined,
+): string {
+  return latestStatus === PublishApprovalStatus.EXECUTING ||
+    latestStatus === PublishApprovalStatus.PUBLISHED
+    ? PUBLISH_APPROVAL_CLAIMED_BY_ANOTHER_RUN_MESSAGE
+    : `Publish approval changed concurrently; expected status ${from}.`;
+}

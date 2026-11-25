@@ -1,5 +1,7 @@
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ThreadsCallbackService } from '@api/services/integrations/threads/services/threads-callback.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
 import {
   Body,
@@ -21,6 +23,7 @@ export class ThreadsCallbackController {
 
   @HttpCode(200)
   @Post('deauthorize')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async deauthorize(
     @Body('signed_request') signedRequest: unknown,
   ): Promise<{ success: true }> {
@@ -30,6 +33,7 @@ export class ThreadsCallbackController {
 
   @HttpCode(200)
   @Post('data-deletion')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   dataDeletion(@Body('signed_request') signedRequest: unknown) {
     return this.threadsCallbackService.handleDataDeletion(signedRequest);
   }

@@ -26,9 +26,11 @@ import { StoryboardSlideshowPostService } from '@api/collections/content-runs/se
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -64,6 +66,7 @@ export class StoryboardRunsController {
   ) {}
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async create(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -114,6 +117,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/shots/:shotId/character-replacement')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async replaceCharacter(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -165,6 +169,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/stills/quote')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   quoteStills(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -175,6 +180,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/stills')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async generateStills(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -196,6 +202,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/stills/reconcile')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async reconcileStills(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -211,6 +218,7 @@ export class StoryboardRunsController {
 
   /** Everything the long-form video still costs, before any spend (#8221). */
   @Post(':runId/long-form/estimate')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   estimateLongForm(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -228,6 +236,7 @@ export class StoryboardRunsController {
 
   /** A new storyboard with the script in another language (#8226). */
   @Post(':runId/long-form/translations')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   translateLongForm(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -245,6 +254,7 @@ export class StoryboardRunsController {
 
   /** One draft post from an approved slideshow; never scheduled or published (#8896). */
   @Post(':runId/slideshow/post')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   createSlideshowPost(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -261,6 +271,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/a-roll/quote')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   quoteARoll(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -278,6 +289,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/a-roll')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async renderARoll(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -300,6 +312,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/a-roll/reconcile')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async reconcileARoll(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -314,6 +327,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/animatic/quote')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   quoteAnimatic(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -331,6 +345,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/animatic')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async renderAnimatic(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -354,6 +369,7 @@ export class StoryboardRunsController {
 
   /** Opens the rendered long-form video as an Editor project. */
   @Post(':runId/long-form/assemble')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   assembleLongForm(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -364,6 +380,7 @@ export class StoryboardRunsController {
 
   /** Opens the animatic: the spoken draft under the presenter's photo. */
   @Post(':runId/animatic/assemble')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   assembleAnimatic(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -387,6 +404,7 @@ export class StoryboardRunsController {
   }
 
   @Patch(':runId/plan')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async updatePlan(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -402,6 +420,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/plan/reset')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async resetPlan(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -417,6 +436,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/plan/draft')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async draftPlan(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -438,6 +458,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/plan/approve')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async approvePlan(
     @Req() request: Request,
     @Param('brandId') brandId: string,
@@ -453,6 +474,7 @@ export class StoryboardRunsController {
   }
 
   @Patch(':runId/source')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async updateSource(
     @Req() request: Request,
     @Param('brandId') brandId: string,

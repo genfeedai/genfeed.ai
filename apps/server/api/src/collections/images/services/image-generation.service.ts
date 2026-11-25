@@ -22,6 +22,7 @@ import {
 } from '@api/collections/images/services/image-generation-persistence.util';
 import { buildImageQuoteProviderInput } from '@api/collections/images/services/image-generation-prompt-settings.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { resolveImageReferenceInputs } from '@api/collections/images/services/image-generation-reference-inputs.util';
 import {
   type ImageGenerationSettingsParams,
   type ImageGenerationSettingsResult,
@@ -286,6 +287,7 @@ export class ImageGenerationService {
     );
     if (accepted) return accepted;
     const {
+      brandReferences,
       referenceIds,
       referenceImageUrls,
       generationHarness,
@@ -307,11 +309,9 @@ export class ImageGenerationService {
       height,
       style,
       outputs,
-      briefBrandContext,
     } = await this.prepareImageGenerationSettings({
       brand,
       createImageDto,
-      generationHarness,
       model,
     });
     const compiledBrief = editing
@@ -322,7 +322,6 @@ export class ImageGenerationService {
           generationSource: 'image-edit',
         }
       : await this.compileImageGenerationBrief({
-          briefBrandContext,
           createImageDto,
           height,
           model,
@@ -330,7 +329,7 @@ export class ImageGenerationService {
           grantedAvatarOwners,
           organizationId: user.organizationId,
           referenceIds,
-          runReferences,
+          runReferences: runReferences ?? brandReferences,
           style,
           width,
         });
@@ -754,7 +753,6 @@ export class ImageGenerationService {
    * that has not been onboarded to model-aware compilation.
    */
   private async compileImageGenerationBrief(params: {
-    briefBrandContext?: string;
     createImageDto: CreateImageDto;
     height: number;
     model: string;
@@ -793,7 +791,6 @@ export class ImageGenerationService {
     try {
       const compiled = runImageGenerationBrief({
         avoid,
-        brandContext: params.briefBrandContext,
         brandingMode: params.createImageDto.brandingMode,
         composition: direction.composition,
         fidelityMode: params.createImageDto.fidelityMode,
@@ -888,20 +885,6 @@ export class ImageGenerationService {
       : (admission?.personaId ?? null);
     const grantedAvatarOwners = admission?.grantedAvatarOwners ?? new Map();
 
-    const referenceImageUrls =
-      editing?.sourceUrls ??
-      (isFlux3ImageModel(model)
-        ? await this.admissionService.resolveFlux3References(
-            user.organizationId,
-            brandId,
-            referenceIds,
-          )
-        : await this.admissionService.resolveReferenceImageUrls(
-            user.organizationId,
-            referenceIds,
-            grantedAvatarOwners,
-          ));
-
     const generationHarness: GenerationHarnessReceipt = editing
       ? {
           originalPrompt: promptOriginalText,
@@ -921,9 +904,19 @@ export class ImageGenerationService {
         );
 
     return {
-      referenceIds,
-      referenceImageUrls,
-      generationHarness,
+      ...(await resolveImageReferenceInputs({
+        admissionService: this.admissionService,
+        brandId,
+        brandsService: this.brandsService,
+        createImageDto,
+        editingSourceUrls: editing?.sourceUrls,
+        generationHarness,
+        grantedAvatarOwners,
+        isEditing: Boolean(editing),
+        model,
+        organizationId: user.organizationId,
+        referenceIds,
+      })),
       grantedAvatarOwners,
       personaId,
     };

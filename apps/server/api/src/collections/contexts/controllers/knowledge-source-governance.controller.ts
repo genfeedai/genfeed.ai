@@ -6,11 +6,12 @@ import {
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { KnowledgeSourceVersionSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -39,6 +40,7 @@ export class KnowledgeSourceGovernanceController {
   constructor(private readonly records: KnowledgeRecordsService) {}
 
   @Post(':sourceId/versions/:versionId/schedule-purge')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiQuery(BRAND_ID_QUERY)
@@ -63,6 +65,7 @@ export class KnowledgeSourceGovernanceController {
   }
 
   @Post(':sourceId/versions/:versionId/purge')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiQuery(BRAND_ID_QUERY)
@@ -85,6 +88,7 @@ export class KnowledgeSourceGovernanceController {
   }
 
   @Post(':sourceId/versions/:versionId/legal-hold')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiQuery(BRAND_ID_QUERY)
@@ -109,6 +113,7 @@ export class KnowledgeSourceGovernanceController {
   }
 
   @Post(':sourceId/versions/:versionId/erase')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiQuery(BRAND_ID_QUERY)

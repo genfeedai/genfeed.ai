@@ -152,7 +152,7 @@ describe('BrandRemixRunPlanningService', () => {
     );
   });
 
-  it('maps persisted reference categories into immutable semantic defaults', () => {
+  it('defaults to style then product references and leaves the face opt-in', () => {
     const draft = planning.defaultDraft(
       {
         ...brandContext,
@@ -198,13 +198,12 @@ describe('BrandRemixRunPlanningService', () => {
     );
 
     expect(draft.references).toEqual([
-      expect.objectContaining({ assetId: 'face-1', role: 'character' }),
+      expect.objectContaining({ assetId: 'style-1', role: 'style' }),
       expect.objectContaining({
         assetId: 'product-1',
         description: 'Matte black bottle with gold cap',
         role: 'product',
       }),
-      expect.objectContaining({ assetId: 'style-1', role: 'style' }),
     ]);
   });
 

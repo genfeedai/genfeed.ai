@@ -14,11 +14,13 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { API_KEY_POST_DRAFTING_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -50,6 +52,7 @@ export class PostsThreadDraftController {
   ) {}
 
   @Post(':postId/thread-drafts')
+  @RequiredScopes(...API_KEY_POST_DRAFTING_SCOPES)
   @Credits({
     allowByokBypass: true,
     description: 'Thread draft (text model)',

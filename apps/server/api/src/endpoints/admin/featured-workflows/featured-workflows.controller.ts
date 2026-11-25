@@ -2,6 +2,8 @@ import { ReorderFeaturedWorkflowsDto } from '@api/collections/workflows/dto/reor
 import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { IFeaturedWorkflowPinsResponse } from '@genfeedai/contracts/interfaces';
 import {
   Body,
@@ -35,6 +37,7 @@ export class FeaturedWorkflowsController {
   }
 
   @Put('order')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Reorder the pinned Featured workflows' })
   async reorder(
     @Body() dto: ReorderFeaturedWorkflowsDto,
@@ -45,6 +48,7 @@ export class FeaturedWorkflowsController {
   }
 
   @Put(':workflowId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Pin a workflow to the end of Featured' })
   async pin(
     @Param('workflowId') workflowId: string,
@@ -53,6 +57,7 @@ export class FeaturedWorkflowsController {
   }
 
   @Delete(':workflowId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Unpin a workflow from Featured' })
   async unpin(
     @Param('workflowId') workflowId: string,

@@ -9,6 +9,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { creatorOrganizationOfMemberWhere } from '@api/collections/organizations/utils/organization-membership.util';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -20,6 +21,7 @@ import {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { classifyStripeFailure } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type IUserSubscriptionsService,
@@ -65,6 +67,7 @@ export class UserStripeController {
   ) {}
 
   @Post('checkout')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Create checkout session for user credit purchase' })
   @ApiResponse({ description: 'Checkout session created', status: 200 })
   @ApiResponse({ description: 'Bad request', status: 400 })

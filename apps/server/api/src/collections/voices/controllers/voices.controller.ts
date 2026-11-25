@@ -3,6 +3,7 @@ import { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -11,6 +12,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -65,6 +67,7 @@ export class VoicesController {
   }
 
   @Delete('clone/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async deleteClonedVoice(
     @Req() request: Request,

@@ -3,6 +3,7 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   resolvePageWindow,
@@ -13,6 +14,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { AnnouncementSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -39,6 +41,7 @@ export class AnnouncementsController {
   ) {}
 
   @Post('broadcast')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Broadcast an announcement to Discord and/or Twitter',

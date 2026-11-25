@@ -1129,6 +1129,75 @@ describe('WorkflowExecutionProcessor', () => {
           processor.process(publishJob('agent.autopilot.proactive') as never),
         ).rejects.toBeInstanceOf(UnrecoverableError);
       });
+
+      describe.each([
+        ['an approval that is not queued', NOT_QUEUED],
+        [
+          'a post held by brand policy',
+          'Nodes failed: claim-publish: This post is held: it breaks the brand Policy.',
+        ],
+      ])('refused on purpose: %s', (_name, message) => {
+        const jobWithCompensation = () =>
+          createMockJob(
+            {
+              systemRun: {
+                failureWorkflow: { canonicalId: 'scheduled-post.fail' },
+                input: {
+                  actionType: 'scheduled-post.publish',
+                  canonicalId: 'scheduled-post.publish',
+                  organizationId: 'org-1',
+                  source: 'scheduled-post',
+                  userId: 'user-1',
+                },
+              },
+              type: 'system-run',
+            },
+            { attemptsMade: 0, opts: { attempts: 3 } },
+          );
+
+        it('records the outcome on the post, then completes the job without an error', async () => {
+          mockFailedRun(message);
+
+          await expect(
+            processor.process(jobWithCompensation() as never),
+          ).resolves.toEqual({
+            reason: 'publish_refused',
+            status: WorkflowExecutionStatus.FAILED,
+          });
+          expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+            expect.objectContaining({
+              canonicalId: 'scheduled-post.fail',
+              inputValues: expect.objectContaining({ workflowError: message }),
+            }),
+          );
+          expect(mockLogger.error).not.toHaveBeenCalled();
+        });
+      });
+
+      it('still fails a publish node fault after running the compensation', async () => {
+        mockFailedRun('Nodes failed: claim-publish: Publish claim crashed.');
+
+        await expect(
+          processor.process(
+            createMockJob(
+              {
+                systemRun: {
+                  failureWorkflow: { canonicalId: 'scheduled-post.fail' },
+                  input: {
+                    actionType: 'scheduled-post.publish',
+                    canonicalId: 'scheduled-post.publish',
+                    organizationId: 'org-1',
+                    source: 'scheduled-post',
+                    userId: 'user-1',
+                  },
+                },
+                type: 'system-run',
+              },
+              { attemptsMade: 0, opts: { attempts: 3 } },
+            ) as never,
+          ),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+      });
     });
 
     describe('deterministic contract failures are terminal (#5622)', () => {

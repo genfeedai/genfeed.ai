@@ -48,8 +48,6 @@ export interface GenerationHarnessReceipt {
   negativePrompt?: string;
   /** The media brand brief the enhancer was given, verbatim; absent when the brief had nothing visual. */
   enhancerBrief?: string;
-  /** Brand voice (tone, voice, audience, values) from the pinned revision, for brief-compiled models; absent in raw mode. */
-  brandVoice?: string;
   /**
    * A receipt is either `applied` or `skipped`: enhancement off, an explicit
    * `raw` opt-out, or a failed enhancement that fell back to the prompt as
@@ -70,6 +68,17 @@ export interface GenerationHarnessReceipt {
   appliedPacks: Array<{ id: string; version: string }>;
   /** Exact Knowledge source versions folded into the enhanced prompt. */
   knowledgeReceipts?: KnowledgeReceipt[];
+  /**
+   * Brand references attached because the caller attached none. Absent when
+   * the caller chose the references, branding was off, or the brand has none.
+   */
+  brandReferences?: GenerationBrandReferencesReceipt;
+}
+
+export interface GenerationBrandReferencesReceipt {
+  attachedAssetIds: string[];
+  /** The brand had references but the model accepts none. */
+  skippedReason?: 'model_accepts_no_references';
 }
 
 /** Safe projection from persisted receipt JSON, including historical receipts. */

@@ -1,181 +1,158 @@
 import {
-  buildImageGenerationBriefAppliedFields,
-  buildImageGenerationBriefPrompt,
-  fitBrandContextToPromptBudget,
+  buildImageGenerationBriefReferenceLabels,
+  recordUnsupportedImageGenerationBriefReferenceRoles,
+  selectImageGenerationBriefReferencesByRole,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
+import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import {
   generationFidelityPolicies,
   imageGenerationBriefSchema,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { GenerationBriefOmittedSignal } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { describe, expect, it } from 'vitest';
 
-function buildBrief(overrides: {
-  brandContext?: string;
-  fidelityMode?: 'off' | 'guided' | 'strict';
-}) {
+function briefWith(
+  references: Array<{ assetId: string; role: string }>,
+  fidelityMode: 'guided' | 'strict' = 'guided',
+) {
   return imageGenerationBriefSchema.parse({
     constraints: [],
-    fidelityMode: overrides.fidelityMode ?? 'off',
-    intent: {
-      ...(overrides.brandContext
-        ? { brandContext: overrides.brandContext }
-        : {}),
-      objective: 'a sunset over the ocean',
-    },
+    fidelityMode,
+    intent: { objective: 'A flat white', requestedText: [], subjects: [] },
     mediaKind: 'image',
-    output: {},
+    output: { aspectRatio: '1:1' },
+    provenance: [],
+    references,
     version: 1,
   });
 }
 
-/**
- * `buildImageGenerationBriefPrompt` backs 13 of 15 image compiler families
- * (the rest — FLUX Schnell, MiniMax H3 — inline the same logic). One spec
- * here is the single highest-leverage proof that Brand voice reaches
- * brief-compiled models (#4676 FR1).
- */
-describe('buildImageGenerationBriefPrompt brandContext (#4676)', () => {
-  it('appends brandContext to the prompt when present', () => {
-    const result = buildImageGenerationBriefPrompt({
-      brief: buildBrief({ brandContext: 'Warm, confident, editorial voice.' }),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
+const labelledReferences = {
+  max: 3,
+  nativeFields: ['image_input'],
+  promptLabelRoles: ['product', 'style'] as ('product' | 'style')[],
+  roles: ['subject', 'product', 'style'] as ('subject' | 'product' | 'style')[],
+};
 
-    // `joinGenerationBriefPromptParts` strips each part's trailing period
-    // before rejoining with '. ' — expected, existing behavior.
-    expect(result.prompt).toBe(
-      'a sunset over the ocean. Warm, confident, editorial voice',
+describe('selectImageGenerationBriefReferencesByRole', () => {
+  it('orders subject and product before style and keeps the brief order inside a tier', () => {
+    const result = selectImageGenerationBriefReferencesByRole(
+      briefWith([
+        { assetId: 'style_explicit', role: 'style' },
+        { assetId: 'style_brand', role: 'style' },
+        { assetId: 'product_1', role: 'product' },
+      ]),
+      labelledReferences,
     );
+
+    expect(result.included.map((reference) => reference.assetId)).toEqual([
+      'product_1',
+      'style_explicit',
+      'style_brand',
+    ]);
+    expect(result.excludedCount).toBe(0);
   });
 
-  it('is unaffected by fidelity policy — brand voice never depends on avoid-forced guided mode', () => {
-    const guided = buildImageGenerationBriefPrompt({
-      brief: buildBrief({
-        brandContext: 'Warm, confident, editorial voice.',
-        fidelityMode: 'guided',
-      }),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.guided,
-      supportsNegativePrompt: false,
-    });
-    const off = buildImageGenerationBriefPrompt({
-      brief: buildBrief({ brandContext: 'Warm, confident, editorial voice.' }),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    expect(guided.prompt).toBe(off.prompt);
-  });
-
-  it('omits brandContext from the prompt when absent', () => {
-    const result = buildImageGenerationBriefPrompt({
-      brief: buildBrief({}),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    expect(result.prompt).toBe('a sunset over the ocean');
-  });
-
-  it('trims brand voice to fit the remaining budget instead of failing the whole compile (#4676)', () => {
-    const omitted: Array<{ field: string; reason: string }> = [];
-    const result = buildImageGenerationBriefPrompt({
-      brief: buildBrief({
-        brandContext: 'x'.repeat(50),
-      }),
-      // "a sunset over the ocean" is 24 chars; leave room for only part of
-      // the 50-char brand text after the ". " separator.
-      maxCharacters: 24 + 2 + 10,
-      modelLabel: 'Test Model',
-      omitted,
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    expect(result.prompt.length).toBeLessThanOrEqual(24 + 2 + 10);
-    expect(result.prompt).toContain('a sunset over the ocean');
-    expect(result.prompt).toContain('…');
-    expect(omitted).toContainEqual(
-      expect.objectContaining({ field: 'intent.brandContext' }),
+  it('drops a role the model cannot take and reports it apart from the excess', () => {
+    const result = selectImageGenerationBriefReferencesByRole(
+      briefWith([
+        { assetId: 'comp_1', role: 'composition' },
+        { assetId: 'style_1', role: 'style' },
+      ]),
+      labelledReferences,
     );
+
+    expect(result.included.map((reference) => reference.assetId)).toEqual([
+      'style_1',
+    ]);
+    expect(result.unsupportedRoles).toEqual(['composition']);
+    expect(result.excludedCount).toBe(0);
   });
 
-  it('drops brand voice entirely, recording it, when there is no room at all', () => {
-    const omitted: Array<{ field: string; reason: string }> = [];
-    const result = buildImageGenerationBriefPrompt({
-      brief: buildBrief({ brandContext: 'Warm, confident, editorial voice.' }),
-      // Exactly enough room for the objective and nothing else.
-      maxCharacters: 'a sunset over the ocean'.length,
-      modelLabel: 'Test Model',
-      omitted,
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    expect(result.prompt).toBe('a sunset over the ocean');
-    expect(omitted).toContainEqual(
-      expect.objectContaining({ field: 'intent.brandContext' }),
+  it('counts references past the slot limit as excess after the order is applied', () => {
+    const result = selectImageGenerationBriefReferencesByRole(
+      briefWith([
+        { assetId: 's1', role: 'style' },
+        { assetId: 's2', role: 'style' },
+        { assetId: 's3', role: 'style' },
+        { assetId: 'p1', role: 'product' },
+      ]),
+      labelledReferences,
     );
+
+    expect(result.included.map((reference) => reference.assetId)).toEqual([
+      'p1',
+      's1',
+      's2',
+    ]);
+    expect(result.excludedCount).toBe(1);
   });
 });
 
-describe('fitBrandContextToPromptBudget', () => {
-  it('returns the full text when it fits', () => {
-    const omitted: Array<{ field: string; reason: string }> = [];
+describe('buildImageGenerationBriefReferenceLabels', () => {
+  it('writes one line per labelled reference by position', () => {
+    const { included } = selectImageGenerationBriefReferencesByRole(
+      briefWith([
+        { assetId: 'style_1', role: 'style' },
+        { assetId: 'subject_1', role: 'subject' },
+        { assetId: 'product_1', role: 'product' },
+      ]),
+      labelledReferences,
+    );
+
     expect(
-      fitBrandContextToPromptBudget({
-        brandContext: 'short',
-        maxCharacters: 100,
-        modelLabel: 'Test Model',
-        omitted,
-        otherPartsLength: 10,
-      }),
-    ).toBe('short');
-    expect(omitted).toHaveLength(0);
+      buildImageGenerationBriefReferenceLabels(included, labelledReferences),
+    ).toEqual([
+      'Image 2 is the product: keep it exactly',
+      'Image 3 is a style reference: match its palette, texture and lighting, not its subject',
+    ]);
   });
 
-  it('returns undefined and records nothing when there is no brand context', () => {
-    const omitted: Array<{ field: string; reason: string }> = [];
+  it('writes nothing for a model whose profile names no label roles', () => {
+    const { included } = selectImageGenerationBriefReferencesByRole(
+      briefWith([{ assetId: 'product_1', role: 'product' }]),
+      { ...labelledReferences, promptLabelRoles: undefined },
+    );
+
     expect(
-      fitBrandContextToPromptBudget({
-        maxCharacters: 100,
-        modelLabel: 'Test Model',
-        omitted,
-        otherPartsLength: 10,
+      buildImageGenerationBriefReferenceLabels(included, {
+        ...labelledReferences,
+        promptLabelRoles: undefined,
       }),
-    ).toBeUndefined();
-    expect(omitted).toHaveLength(0);
+    ).toEqual([]);
   });
 });
 
-describe('buildImageGenerationBriefAppliedFields brandContext (#4676)', () => {
-  it('records intent.brandContext only when present', () => {
-    expect(
-      buildImageGenerationBriefAppliedFields({
-        appliedConstraintFields: [],
-        brief: buildBrief({ brandContext: 'Warm voice' }),
-        hasSeed: false,
-      }),
-    ).toContain('intent.brandContext');
+describe('recordUnsupportedImageGenerationBriefReferenceRoles', () => {
+  it('records each unsupported role once with its count', () => {
+    const omitted: GenerationBriefOmittedSignal[] = [];
 
-    expect(
-      buildImageGenerationBriefAppliedFields({
-        appliedConstraintFields: [],
-        brief: buildBrief({}),
-        hasSeed: false,
-      }),
-    ).not.toContain('intent.brandContext');
+    recordUnsupportedImageGenerationBriefReferenceRoles(
+      omitted,
+      ['composition', 'composition'],
+      generationFidelityPolicies.guided,
+      'guided',
+      'Test Model',
+    );
+
+    expect(omitted).toEqual([
+      {
+        field: 'references',
+        reason:
+          'Test Model cannot take a composition reference; 2 reference(s) were omitted.',
+      },
+    ]);
+  });
+
+  it('rejects a strict brief when the model cannot take the role', () => {
+    expect(() =>
+      recordUnsupportedImageGenerationBriefReferenceRoles(
+        [],
+        ['composition'],
+        generationFidelityPolicies.strict,
+        'strict',
+        'Test Model',
+      ),
+    ).toThrow(GenerationBriefCompileError);
   });
 });

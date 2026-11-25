@@ -93,7 +93,9 @@ export default class ApiTestTimingsReporter {
   onTestRunStart(specifications) {
     this.startedAt = new Date().toISOString();
     this.started = performance.now();
-    // Vitest 5 supplies the candidates BEFORE sharding in this callback.
+    // Vitest 5.1 passes the specifications already sharded, so these are the
+    // files this shard was given. The union over every shard of a run is the
+    // full candidate list, which is what test-timings.mjs prunes against.
     this.candidateFiles = specifications
       .map((specification) =>
         path
@@ -166,7 +168,7 @@ export function formatTimingSummary(record) {
     '',
     `Source: \`${tableCell(record.sourceSha || 'local')}\`. Selection: ${record.selection.mode}. Complete receipt: **${record.isComplete}**.`,
     '',
-    `Vitest wall time: **${seconds(record.wallMs)}s**. Files with results: ${files.length}. Candidates before sharding: ${record.candidateFiles.length}. Assertions: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped, ${counts.todo} todo, ${counts.pending} pending. Retries: ${retries}. Unhandled errors: ${record.unhandledErrorCount}.`,
+    `Vitest wall time: **${seconds(record.wallMs)}s**. Files with results: ${files.length}. Files given to this shard: ${record.candidateFiles.length}. Assertions: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped, ${counts.todo} todo, ${counts.pending} pending. Retries: ${retries}. Unhandled errors: ${record.unhandledErrorCount}.`,
     '',
     'Phase values are accumulated per-file measurements; their sums across workers are not job wall time. Tests/hooks can overlap. Outer setup, database and dependency-build time remains in the Actions step timings.',
     '',

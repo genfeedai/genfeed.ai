@@ -3,6 +3,7 @@ import { SourcePostDraftActionDto } from '@api/collections/source-posts/dto/sour
 import { SourcePostsQueryDto } from '@api/collections/source-posts/dto/source-posts-query.dto';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -11,6 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { SourcePostSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -62,6 +64,7 @@ export class SourcePostsController {
   }
 
   @Post(':id/actions/draft')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   createDraft(
     @CurrentUser() user: User,

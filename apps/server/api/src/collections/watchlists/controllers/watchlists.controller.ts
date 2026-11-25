@@ -6,6 +6,7 @@ import { WatchlistsService } from '@api/collections/watchlists/services/watchlis
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
@@ -16,7 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { WatchlistPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, WatchlistPlatform } from '@genfeedai/contracts';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -122,6 +123,7 @@ export class WatchlistsController {
    * instead of throwing a conflict.
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Body() dto: CreateWatchlistDto,
@@ -164,6 +166,7 @@ export class WatchlistsController {
    * Update a watchlist item
    */
   @Patch(':watchlistId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() req: Request,
@@ -214,6 +217,7 @@ export class WatchlistsController {
    * Delete a watchlist item (soft delete)
    */
   @Delete(':watchlistId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async delete(
     @CurrentUser() user: User,

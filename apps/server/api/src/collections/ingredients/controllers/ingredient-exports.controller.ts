@@ -1,8 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { RequestTimeout } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
@@ -26,6 +28,7 @@ import type { Request } from 'express';
 export class IngredientExportsController {
   constructor(private readonly exports: IngredientExportService) {}
   @Post(':id/export')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @RequestTimeout(600_000)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   async export(

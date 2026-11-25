@@ -206,6 +206,7 @@ export function loadFirstPartySkillDefinitions(
       instructions,
       modalities: taxonomy.modalities,
       name: titleizeSkillSlug(frontmatter?.name ?? slug),
+      runsOn: taxonomy.runsOn,
       surfaces: taxonomy.surfaces,
       version: metadata.version ?? frontmatter?.version ?? '1.0.0',
       workflowStage: taxonomy.workflowStage,

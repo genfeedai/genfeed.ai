@@ -8,6 +8,7 @@ import {
 } from '@api/collections/bot-activities/services/bot-activities.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -16,6 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import type {
   IAssistedReplyOpenResult,
@@ -145,6 +147,7 @@ export class BotActivitiesController {
    * never posts these replies; the person posts them in X.
    */
   @Post(':id/reply-queue/open')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Open a drafted X reply in the X composer' })
   @ApiResponse({
@@ -164,6 +167,7 @@ export class BotActivitiesController {
   }
 
   @Post(':id/reply-queue/posted')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm a drafted X reply was posted in X' })
   @ApiResponse({ description: 'Returns the updated queue usage', status: 200 })
@@ -178,6 +182,7 @@ export class BotActivitiesController {
   }
 
   @Post(':id/reply-queue/dismiss')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Dismiss a drafted X reply' })
   @ApiResponse({ description: 'Returns the updated queue usage', status: 200 })

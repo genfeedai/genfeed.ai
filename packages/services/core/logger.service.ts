@@ -125,6 +125,27 @@ function isSentryStarting(): boolean {
 }
 
 /**
+ * What `fetch` throws when the request never reached the server: Chromium says
+ * "Failed to fetch", Safari "Load failed", Firefox "NetworkError when
+ * attempting to fetch resource". A tab that idled offline or behind a sleeping
+ * laptop raises it on its next request; it is the user's network, not a bug.
+ * The axios interceptor flags its own network errors; a call made straight
+ * through `fetch` (the auth token request) throws this bare TypeError instead.
+ */
+const BROWSER_FETCH_FAILURE_MESSAGES = new Set([
+  'failed to fetch',
+  'load failed',
+  'networkerror when attempting to fetch resource.',
+]);
+
+function isBrowserFetchFailure(error: unknown): boolean {
+  return (
+    error instanceof TypeError &&
+    BROWSER_FETCH_FAILURE_MESSAGES.has(error.message.trim().toLowerCase())
+  );
+}
+
+/**
  * Helper to safely capture errors in Sentry
  * Extracts the actual Error object and context from the log object
  */
@@ -136,6 +157,10 @@ const captureSentryError = (message: string, obj?: unknown) => {
     }
 
     const errorObj = logContext?.error || obj;
+    if (isBrowserFetchFailure(errorObj)) {
+      return;
+    }
+
     if (
       errorObj instanceof Error &&
       ((errorObj as Error & Record<string, unknown>).isAuthError === true ||

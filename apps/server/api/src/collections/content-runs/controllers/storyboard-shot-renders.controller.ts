@@ -9,6 +9,7 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { StoryboardRunSerializer } from '@genfeedai/serializers';
@@ -25,6 +26,7 @@ export class StoryboardShotRendersController {
 
   /** Prices a draft or final video render of approved shots (#9618). */
   @Post(':runId/renders/quote')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   quoteRenders(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -57,6 +59,7 @@ export class StoryboardShotRendersController {
   }
 
   @Post(':runId/renders/reconcile')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async reconcileRenders(
     @Req() request: Request,
     @Param('brandId') brandId: string,

@@ -203,17 +203,6 @@ describe('GitHub Action version updater', () => {
       'portless',
       // Existing desktop data needs PGlite 0.5.10; upgrades require a migration plan.
       '@electric-sql/pglite',
-      // @xyflow/react 13 changes the node and edge change types the canvases use.
-      '@xyflow/react',
-      // vitest 5.1.1 drops files from --shard runs (api-test-timings.test.mjs fails).
-      'vitest',
-      '@vitest/*',
-      // @nestjs/common 12.6 changes the applyDecorators return type used by many decorators.
-      '@nestjs/*',
-      // stripe 23.2 moves the pinned API version type; change both together.
-      'stripe',
-      // @ui-sdk/* beta.17 changes the page-controls registration the MCP approval cards read.
-      '@ui-sdk/*',
     ]);
     expect(command).toContain('--cooldown 3h');
     expect(command.split(' && ').slice(1)).toEqual([

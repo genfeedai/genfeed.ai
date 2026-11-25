@@ -1,4 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  AppRouterContext,
+  type AppRouterInstance,
+} from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { describe, expect, it, vi } from 'vitest';
 import DeskTableView from '@/features/trends/desk/desk-table-view';
 import type { DiscoveryDeskItem } from '@/features/trends/props/discovery-desk.props';
@@ -191,5 +195,33 @@ describe('Discovery table row contract', () => {
     expect(screen.getAllByText('Full caption body')).toHaveLength(2);
     fireEvent.click(row);
     expect(screen.getAllByText('Full caption body')).toHaveLength(1);
+  });
+});
+
+describe('Discovery table remix navigation', () => {
+  it('prepares the remix destination when the pointer reaches the control', () => {
+    const router = { prefetch: vi.fn() };
+    const finding = {
+      ...video('Source post', 'https://youtube.com/watch?v=dQw4w9WgXcQ'),
+      remixSelector: { kind: 'source_post', sourcePostId: 'post-7' },
+    } as unknown as DiscoveryDeskItem;
+
+    render(
+      <AppRouterContext.Provider value={router as unknown as AppRouterInstance}>
+        <DeskTableView
+          cursorKey={null}
+          href={(path) => `/acme/moonrise${path}`}
+          items={[finding]}
+          onCursor={vi.fn()}
+          onToggleSelect={vi.fn()}
+          selection={new Set()}
+        />
+      </AppRouterContext.Provider>,
+    );
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(router.prefetch.mock.calls).toEqual([
+      ['/acme/moonrise/playground?platform=youtube&sourcePostId=post-7'],
+    ]);
   });
 });

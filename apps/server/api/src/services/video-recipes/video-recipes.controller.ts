@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ResolveVideoRecipeRoutingDto } from '@api/services/video-recipes/dto/resolve-video-recipe-routing.dto';
 import { VideoRecipeRoutingService } from '@api/services/video-recipes/video-recipe-routing.service';
 import { videoRecipeRoutingRequestSchema } from '@genfeedai/contracts/api-types/contracts/video-recipe.contract';
@@ -20,6 +22,7 @@ export class VideoRecipesController {
 
   /** Which model runs each step of a recipe for this brand, and why. Spends nothing. */
   @Post(':recipeKey/routing')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(200)
   async resolveRouting(
     @Param('brandId') brandId: string,

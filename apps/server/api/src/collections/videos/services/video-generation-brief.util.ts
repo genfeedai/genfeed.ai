@@ -14,7 +14,6 @@ import type { VideoReferenceUrlService } from '@api/collections/videos/services/
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   GenerationBriefCompileError,
-  resolveIsGenerationBriefBrandVoiceOn,
   runVideoGenerationBrief,
 } from '@api/services/generation-brief';
 import { omitMentionedText } from '@api/services/generation-brief/omit-mentioned-text.util';
@@ -38,7 +37,6 @@ export interface CompiledDispatchReferenceDeps {
 }
 
 function compileVideoGenerationBrief(params: {
-  briefBrandContext?: string;
   createVideoDto: CreateVideoDto;
   height: number;
   model: string;
@@ -74,7 +72,6 @@ function compileVideoGenerationBrief(params: {
       audioDirection: params.createVideoDto.speech,
       audioReferenceIds: params.createVideoDto.audioReferences,
       avoid,
-      brandContext: params.briefBrandContext,
       brandingMode: params.createVideoDto.brandingMode,
       composition: direction.composition,
       durationSeconds: params.createVideoDto.duration,
@@ -276,20 +273,12 @@ export async function prepareGenerationBrief(
   generationSource: string;
 }> {
   const { createVideoDto, model, referenceIds, user } = params.resolved;
-  // The pinned revision's brand voice, carried on the enhancement receipt.
-  const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
-    brandingMode: createVideoDto.brandingMode,
-    isBrandingEnabled: createVideoDto.isBrandingEnabled,
-  })
-    ? params.generationHarness.brandVoice
-    : undefined;
   const {
     brief,
     dispatch: rawCompiledDispatch,
     evidence,
     generationSource,
   } = compileVideoGenerationBrief({
-    briefBrandContext,
     createVideoDto,
     generationHarness: params.generationHarness,
     height: params.height,

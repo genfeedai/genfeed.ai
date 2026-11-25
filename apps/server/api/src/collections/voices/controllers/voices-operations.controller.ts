@@ -9,6 +9,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -16,7 +17,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
 import {
@@ -42,6 +43,7 @@ export class VoicesOperationsController {
   ) {}
 
   @Post('generate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     operationId: 'VoicesController.generate',
     summary: 'generate',
@@ -65,6 +67,7 @@ export class VoicesOperationsController {
   }
 
   @Post('clone')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     operationId: 'VoicesController.cloneVoice',
     summary: 'cloneVoice',

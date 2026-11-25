@@ -1,7 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { streamRemoteAttachment } from '@api/helpers/utils/stream-attachment/stream-attachment.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
@@ -38,6 +41,7 @@ export class MediaDeliveryController {
   ) {}
 
   @Post(':id/original-grant')
+  @ApiKeyReadAccess()
   @Header('Cache-Control', 'no-store')
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   async original(
@@ -69,6 +73,7 @@ export class MediaDeliveryController {
   }
 
   @Post(':id/public-derivative')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async preparePublic(
     @Req() request: Request,

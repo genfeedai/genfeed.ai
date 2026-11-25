@@ -8,6 +8,7 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { StoryboardRunSerializer } from '@genfeedai/serializers';
@@ -21,6 +22,7 @@ export class StoryboardAssetBibleController {
 
   /** Prices one generation call for an asset bible entry. Spends nothing. */
   @Post(':runId/assets/quote')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   quoteAssets(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -53,6 +55,7 @@ export class StoryboardAssetBibleController {
   }
 
   @Post(':runId/assets/reconcile')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async reconcileAssets(
     @Req() request: Request,
     @Param('brandId') brandId: string,
