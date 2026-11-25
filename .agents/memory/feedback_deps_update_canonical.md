@@ -3,7 +3,7 @@ name: deps_update_is_canonical
 description: bun run deps:update owns package and GitHub Action bumps; Dependabot is retired
 type: feedback
 status: active
-last_verified: 2026-10-23
+last_verified: 2026-11-25
 topics: [deps, dependabot, github-actions, ci]
 ---
 
@@ -14,7 +14,7 @@ topics: [deps, dependabot, github-actions, ci]
 **How to apply:**
 
 - Use `bun run deps:update` (or `bun run deps:update:actions` for pins only).
-- Weekly automation lives in `.github/workflows/deps-update.yml`.
+- No workflow runs it. `deps-update.yml` was removed on 2026-11-25: it failed every week from 2026-11-10 because the Actions token cannot push changes to `.github/workflows` files, and nobody noticed for five weeks. A session runs `bun run deps:update` and opens the PR, and the release thread does so before every cut.
 - Digest pins, local refs, container refs, and branch pins stay untouched.
 - Close leftover Dependabot PRs; do not merge TypeScript or `@types/node` major bumps from that queue.
 

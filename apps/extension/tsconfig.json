@@ -12,6 +12,7 @@
         "../../packages/ui/src/*",
         "../../packages/ui/src/components/*"
       ],
+      "@ui-constants/*": ["../../packages/ui/src/components/constants/*"],
       "~*": ["./src/*"],
       "@helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],

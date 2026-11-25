@@ -42,6 +42,7 @@ describe('YoutubeLongFormWorkflowService', () => {
     runWorkflow: vi.fn(),
   };
   const http = { get: vi.fn() };
+  const fileQueue = { processVideo: vi.fn(), waitForJob: vi.fn() };
   const prisma = {
     $transaction: vi.fn(),
     article: { create: vi.fn() },
@@ -66,7 +67,7 @@ describe('YoutubeLongFormWorkflowService', () => {
     );
     prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
     service = new YoutubeLongFormWorkflowService(
-      { processVideo: vi.fn(), waitForJob: vi.fn() } as never,
+      fileQueue as never,
       http as never,
       { chatCompletion: vi.fn() } as never,
       prisma as never,
@@ -257,6 +258,47 @@ describe('YoutubeLongFormWorkflowService', () => {
       contentId: 'newsletter-1',
       executionId: 'execution-account',
       sourceArtifactId: 'artifact-source',
+    });
+  });
+
+  describe('extracting audio', () => {
+    const SOURCE = {
+      title: 'A talk',
+      videoId: 'abc123',
+      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
+    };
+
+    async function extract(kind: 'account' | 'preview') {
+      fileQueue.processVideo.mockResolvedValue({ jobId: 'job-1' });
+      fileQueue.waitForJob.mockResolvedValue({
+        s3Key: 'audio.mp3',
+        sourceS3Key: 'source.mp4',
+        sourceUrl: 'https://cdn.example/source.mp4',
+        url: 'https://cdn.example/audio.mp3',
+      });
+      const extract = actions.get(YOUTUBE_LONG_FORM_ACTION_IDS.EXTRACT_AUDIO);
+      await extract?.(
+        kind === 'preview'
+          ? actionRequest({ source: SOURCE })
+          : actionRequest(
+              { source: SOURCE },
+              { organizationId: 'org-1', userId: 'user-1' },
+            ),
+      );
+      return fileQueue.processVideo.mock.calls[0]?.[0]?.params;
+    }
+
+    it('limits a free public run to one hour of source', async () => {
+      expect(await extract('preview')).toEqual({
+        inputPath: SOURCE.youtubeUrl,
+        maxDurationSeconds: 3600,
+      });
+    });
+
+    it('leaves a signed-in run on the standard source limit', async () => {
+      expect(await extract('account')).toEqual({
+        inputPath: SOURCE.youtubeUrl,
+      });
     });
   });
 

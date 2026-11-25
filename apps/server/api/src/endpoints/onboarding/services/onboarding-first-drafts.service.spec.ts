@@ -270,6 +270,32 @@ describe('OnboardingFirstDraftsService', () => {
       ]);
     });
 
+    // API-GENFEED-AI-A5: the gateway wait can time out after the image was
+    // accepted. The run must keep the accepted ingredient so the readback can
+    // report its eventual outcome, and must not submit the master again.
+    it('keeps the accepted master image when the gateway wait times out', async () => {
+      gateway.generateImage.mockImplementationOnce(
+        async (input: {
+          onPlaceholderCreated: (id: string) => Promise<void>;
+        }) => {
+          await input.onPlaceholderCreated('ing_pending_master');
+          throw new Error('Request timed out');
+        },
+      );
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.imageIngredientId).toBe('ing_pending_master');
+      expect(result.imageUrl).toBeNull();
+      expect(result.status).toBe('partial');
+      const bodies = vi
+        .mocked(buildFirstRunOnboardingImageBody)
+        .mock.calls.map(([input]) => input);
+      expect(
+        bodies.filter((input) => input.leadingReferenceIds === undefined),
+      ).toHaveLength(1);
+    });
+
     it('gives each channel its own angle, written from the brand and not from the X post', async () => {
       await service.generate(user, 'brand_1', {});
 

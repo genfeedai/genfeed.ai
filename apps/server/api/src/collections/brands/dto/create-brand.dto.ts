@@ -136,6 +136,16 @@ export class CreateBrandDto {
   })
   readonly isFleetEnabled?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description:
+      'Whether the public profile shows reach and post metrics (likes, comments, reposts)',
+    required: false,
+  })
+  readonly isPublicAnalyticsEnabled?: boolean;
+
   @IsString()
   @IsOptional()
   @ApiProperty({

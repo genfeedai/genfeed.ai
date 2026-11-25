@@ -129,6 +129,11 @@ export {
 export { focusRingClassName, focusRingInsetClassName } from './focus-ring';
 export { Form, type FormProps } from './form';
 export { Input, type InputProps } from './input';
+export {
+  InputGroup,
+  InputGroupAddon,
+  inputGroupButtonClassName,
+} from './input-group';
 export { Kbd, type KbdProps } from './kbd';
 export { kbdVariants } from './kbd.variants';
 export { Label } from './label';
