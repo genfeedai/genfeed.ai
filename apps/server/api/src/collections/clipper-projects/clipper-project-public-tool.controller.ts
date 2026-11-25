@@ -2,9 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ClaimPublicYoutubeClipperDto } from '@api/collections/clipper-projects/dto/claim-public-youtube-clipper.dto';
 import { PublicYoutubeClipperClaimService } from '@api/collections/clipper-projects/services/public-youtube-clipper-claim.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ClipperProjectSerializer } from '@genfeedai/serializers';
@@ -32,6 +34,7 @@ export class ClipperProjectPublicToolController {
   ) {}
 
   @Post('claim')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
