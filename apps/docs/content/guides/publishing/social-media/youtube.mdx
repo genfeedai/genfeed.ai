@@ -71,6 +71,13 @@ formats, publishing features, analytics, and troubleshooting.
 - Set as premiere
 - Private/Unlisted/Public visibility
 
+### Altered or synthetic content
+
+Every upload is sent with YouTube's **altered or synthetic content** disclosure
+(`status.containsSyntheticMedia`) by default, because what Genfeed publishes is
+generated in Genfeed. Set `aiGenerated` to `false` in the post's YouTube settings
+for a real video you uploaded (`check_channel` with `action=capabilities` lists it).
+
 ## Analytics Integration
 
 Track your YouTube performance directly in Genfeed.ai:

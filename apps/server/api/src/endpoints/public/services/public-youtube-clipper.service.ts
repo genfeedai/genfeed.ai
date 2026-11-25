@@ -25,7 +25,10 @@ import {
 } from '@api/services/public-clipper-tool/public-clipper-tool-store.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { JobState } from '@genfeedai/contracts';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  LLM_DEFAULTS,
+  PUBLIC_TOOL_SOURCE_MAX_DURATION_SECONDS,
+} from '@genfeedai/contracts/constants';
 import type {
   IPublicYoutubeClipperRecommendation,
   IPublicYoutubeClipperToolSession,
@@ -71,6 +74,7 @@ type PublicYoutubeClipperSessionEnvelope = {
     highlightModel: string;
     language: string;
     maxClips: number;
+    maxSourceDurationSeconds: number;
     minViralityScore: number;
     orgId: string;
     projectId: string;
@@ -420,9 +424,10 @@ export class PublicYoutubeClipperService implements OnModuleInit {
         ? [
             {
               highlightFallback: 'deterministic',
-              highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+              highlightModel: LLM_DEFAULTS.fastText,
               language: created.session.language,
               maxClips: MAX_FREE_RECOMMENDATIONS,
+              maxSourceDurationSeconds: PUBLIC_TOOL_SOURCE_MAX_DURATION_SECONDS,
               minViralityScore: 0,
               orgId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
               projectId: this.store.toWorkerProjectId(created.previewToken),

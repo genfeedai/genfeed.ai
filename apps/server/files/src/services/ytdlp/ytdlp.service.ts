@@ -35,6 +35,12 @@ function summarizeYtDlpStderr(stderr: string): string {
 export class YtDlpService {
   constructor(private readonly logger: LoggerService) {}
 
+  /** The sentence a person reads when a source is over a tool's length limit. */
+  public static sourceTooLongMessage(maxDurationSeconds: number): string {
+    const minutes = Math.floor(maxDurationSeconds / 60);
+    return `This video is longer than ${minutes} minutes. Pick a shorter one.`;
+  }
+
   public downloadAudio(url: string): Promise<string> {
     const outputDir = resolveContainedPath(
       FILES_TMP_ROOT,
@@ -60,7 +66,17 @@ export class YtDlpService {
     return this.runYtDlp(args, outputFile);
   }
 
-  public downloadVideo(url: string, outputPath?: string): Promise<string> {
+  /**
+   * `maxDurationSeconds` makes yt-dlp skip a video YouTube reports as longer
+   * than that before it downloads a byte (a video with no reported length is
+   * let through). A skipped video exits cleanly with no file, which is turned
+   * into a "too long" error here.
+   */
+  public downloadVideo(
+    url: string,
+    outputPath?: string,
+    options: { maxDurationSeconds?: number } = {},
+  ): Promise<string> {
     const containedOutputPath = outputPath
       ? resolveContainedPath(FILES_TMP_ROOT, outputPath, createBadRequest)
       : undefined;
@@ -75,12 +91,16 @@ export class YtDlpService {
     const expectedOutput =
       containedOutputPath || path.join(outputDir, `${timestamp}.mp4`);
 
+    const { maxDurationSeconds } = options;
     const args = [
       '--no-playlist',
       '--socket-timeout',
       '30',
       '--max-filesize',
       '10G',
+      ...(maxDurationSeconds === undefined
+        ? []
+        : ['--match-filters', `duration<=?${Math.floor(maxDurationSeconds)}`]),
       '-f',
       'bestvideo[height<=720]+bestaudio/best[height<=720]',
       '--merge-output-format',
@@ -91,7 +111,16 @@ export class YtDlpService {
       url,
     ];
 
-    return this.runYtDlp(args, expectedOutput);
+    return this.runYtDlp(args, expectedOutput).catch((error: unknown) => {
+      if (
+        maxDurationSeconds !== undefined &&
+        error instanceof Error &&
+        error.message.includes('without creating an output file')
+      ) {
+        throw new Error(YtDlpService.sourceTooLongMessage(maxDurationSeconds));
+      }
+      throw error;
+    });
   }
 
   public downloadAudioLowestQuality(

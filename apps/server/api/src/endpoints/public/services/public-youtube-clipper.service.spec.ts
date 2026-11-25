@@ -6,7 +6,10 @@ import type {
   PublicClipperToolStoreService,
   StoredPublicYoutubeClipperSession,
 } from '@api/services/public-clipper-tool/public-clipper-tool-store.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  isRetiredAgentChatModel,
+  LLM_DEFAULTS,
+} from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, GoneException } from '@nestjs/common';
 
@@ -151,11 +154,16 @@ describe('PublicYoutubeClipperService', () => {
     expect(scheduledAnalysisJobs).toContainEqual(
       expect.objectContaining({
         highlightFallback: 'deterministic',
-        highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+        highlightModel: LLM_DEFAULTS.fastText,
         maxClips: 3,
+        maxSourceDurationSeconds: 3600,
         projectId: `public-youtube-clipper-session-${'f'.repeat(64)}`,
       }),
     );
+  });
+
+  it('asks an active model for highlights, never a retired one', () => {
+    expect(isRetiredAgentChatModel(LLM_DEFAULTS.fastText)).toBe(false);
   });
 
   it.each([
