@@ -7,14 +7,12 @@ import {
   ATTACHMENT_POST_LABEL_SUFFIXES,
   attachmentPostLabel,
   buildAttachmentPostData,
+  MAX_ATTACHMENT_POSTS_PER_TARGET,
   planAttachmentPosts,
   readStoredAttachments,
 } from '@api/collections/post-groups/services/post-group-attachment-posts.util';
 import { scopedWhere } from '@api/index';
 import { traced } from '@libs/tracing/traced';
-
-/** A target carries a handful of comments; this only bounds the read. */
-const MAX_ATTACHMENT_POSTS_PER_TARGET = 50;
 
 type SyncReleaseAttachmentPostsParams = {
   /** Target states that may still change: a published target is left alone. */
@@ -38,7 +36,8 @@ type SyncReleaseAttachmentPostsParams = {
  * each (a parent moved to SCHEDULED must not leave its comment in DRAFT, where
  * the worker never loads it). A target that already published is left alone.
  *
- * Child posts are matched to the plan by position in `order`, and only rows
+ * Child posts are matched to the plan by position in `order`, including rows
+ * that can no longer change (those are skipped, never rewritten), and only rows
  * labelled as attachment posts are touched, so thread children written by
  * the composer or an agent are never rewritten here.
  */
@@ -79,12 +78,19 @@ export const syncReleaseAttachmentPosts = traced(
             label: { endsWith: suffix },
           })),
           parentId: target.id,
-          targetExecutionState: { in: Array.from(params.editableStates) },
         }),
       });
 
       for (const [index, attachment] of plan.entries()) {
         const current = existing[index];
+        // A row that is no longer editable (delivered, or failed past
+        // retry) keeps its position and is never rewritten or replaced.
+        if (
+          current &&
+          !params.editableStates.has(current.targetExecutionState)
+        ) {
+          continue;
+        }
         if (!current) {
           await tx.post.create({
             data: buildAttachmentPostData({
@@ -127,7 +133,12 @@ export const syncReleaseAttachmentPosts = traced(
         });
       }
 
-      const removedIds = existing.slice(plan.length).map((child) => child.id);
+      const removedIds = existing
+        .slice(plan.length)
+        .filter((child) =>
+          params.editableStates.has(child.targetExecutionState),
+        )
+        .map((child) => child.id);
       if (removedIds.length > 0) {
         await tx.post.updateMany({
           data: { isDeleted: true },

@@ -314,6 +314,48 @@ describe('syncReleaseAttachmentPosts', () => {
     expect(childrenOf(table)).toEqual([agentThreadChild]);
   });
 
+  it('keeps a delivered comment in its position and never rewrites it', async () => {
+    const delivered = {
+      description: 'first, already sent',
+      id: 'delivered',
+      isDeleted: false,
+      label: 'Golden hour comment',
+      order: 0,
+      organizationId: 'org-1',
+      parentId: 'target-1',
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+    };
+    const table = createPostTable([delivered]);
+    const tx = table as unknown as SchedulerTx;
+
+    await syncReleaseAttachmentPosts(tx, {
+      editableStates: EDITABLE_STATES,
+      group: makeGroup({
+        attachments: [
+          { body: 'first, already sent', kind: ReleaseAttachmentKind.COMMENT },
+          { body: 'second', kind: ReleaseAttachmentKind.COMMENT },
+        ],
+      }),
+      organizationId: 'org-1',
+      targets: [makeTarget()],
+      userId: 'user-1',
+    });
+    await syncReleaseAttachmentPosts(tx, {
+      editableStates: EDITABLE_STATES,
+      group: makeGroup({ attachments: [] }),
+      organizationId: 'org-1',
+      targets: [makeTarget()],
+      userId: 'user-1',
+    });
+
+    expect(
+      childrenOf(table).map((row) => [
+        row.description,
+        row.targetExecutionState,
+      ]),
+    ).toEqual([['first, already sent', TargetExecutionState.PUBLISHED]]);
+  });
+
   it('skips a channel with no comment surface when the comment was meant for every channel', async () => {
     const table = createPostTable();
     const tx = table as unknown as SchedulerTx;
@@ -383,6 +425,21 @@ describe('planAttachmentPosts', () => {
         targetAttachments: target,
       }),
     ).toEqual(expected);
+  });
+
+  it('refuses a plan larger than one target can carry', () => {
+    const attachments = Array.from({ length: 51 }, (_, index) => ({
+      body: `comment ${index}`,
+      kind: ReleaseAttachmentKind.COMMENT,
+    }));
+
+    expect(() =>
+      planAttachmentPosts({
+        platform: CredentialPlatform.INSTAGRAM,
+        releaseAttachments: attachments,
+        targetAttachments: [],
+      }),
+    ).toThrow(BadRequestException);
   });
 
   it('refuses a comment aimed at a channel that cannot publish one', () => {

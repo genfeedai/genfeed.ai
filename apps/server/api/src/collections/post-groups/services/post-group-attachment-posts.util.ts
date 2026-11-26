@@ -28,6 +28,12 @@ export const ATTACHMENT_POST_LABEL_SUFFIXES = [
   ` ${ReleaseAttachmentKind.THREAD}`,
 ] as const;
 
+/**
+ * The most comment and thread posts one target may carry. The sync reads every
+ * managed child of a target in one bounded query, so the plan must fit it.
+ */
+export const MAX_ATTACHMENT_POSTS_PER_TARGET = 50;
+
 export function attachmentPostLabel(
   releaseTitle: string,
   kind: AttachmentPostPlan['kind'],
@@ -85,7 +91,14 @@ export function planAttachmentPosts(params: {
     return [];
   }
 
-  return [...releaseScoped, ...targetScoped].map((attachment, index) => ({
+  const attachments = [...releaseScoped, ...targetScoped];
+  if (attachments.length > MAX_ATTACHMENT_POSTS_PER_TARGET) {
+    throw new BadRequestException(
+      `A channel can carry at most ${MAX_ATTACHMENT_POSTS_PER_TARGET} comments and thread posts.`,
+    );
+  }
+
+  return attachments.map((attachment, index) => ({
     body: attachment.body,
     kind: attachment.kind as AttachmentPostPlan['kind'],
     order: attachment.order ?? index,
