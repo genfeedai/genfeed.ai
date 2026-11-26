@@ -98,7 +98,7 @@ script's reading and should be confirmed before a table is written for them.
 | `GenerationPromptSnapshot.brandedGenerationReceiptStage` |  | 1 | `api/services/branded-generation-receipts/branded-generation-prompt-store.service.ts` |  | none |
 | `SkillReceipt.status` | `completed` | 2 | `api/skills-pro/services/skill-download.service.ts` |  | none |
 | `Goal.status` |  | 0 |  | `GoalStatus` | union only |
-| `DesktopThread.status` | `idle` | 1 | `api/services/sync/desktop-sync.service.ts` | `DesktopThreadStatus` | union only |
+| `DesktopThread.status` | `idle` | 0 |  |  | none |
 | `KnowledgeSourceVersion.transcriptState` |  | 2 | `api/collections/contexts/services/knowledge-transcript-ingest.service.ts` |  | none |
 | `KnowledgeCaptureRequest.status` | `queued` | 4 | `api/collections/contexts/services/knowledge-embedding-completion.service.ts` | `KnowledgeCaptureRequestStatus` | union only |
 | `BreakoutResponse.state` | `detected` | 1 | `api/collections/outliers/services/breakout-response-identity.util.ts` | `BreakoutResponseState` | union only |
