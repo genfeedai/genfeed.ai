@@ -3,11 +3,13 @@ import type {
   IngredientFormat,
   IngredientLineageDirection,
   IngredientOrigin,
+  IngredientVersionRelation,
 } from '@genfeedai/contracts';
 import type {
   ICredential,
   IImage,
   IIngredient,
+  IIngredientVersionHistory,
   IPost,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
@@ -140,6 +142,30 @@ export interface IngredientStackStripProps {
 
 export interface IngredientLineageItemProps {
   ingredient: IIngredient;
+}
+
+export interface IngredientVersionHistoryProps {
+  ingredientId: string;
+  className?: string;
+}
+
+export interface IngredientVersionRowProps {
+  ingredient: IIngredient;
+  isBusy: boolean;
+  isActive: boolean;
+  number: number;
+  onActivate: (versionId: string, number: number) => void;
+  relation: IngredientVersionRelation;
+}
+
+export interface UseIngredientVersionsResult {
+  /** Null until the first load finishes, or when it failed. */
+  history: IIngredientVersionHistory | null;
+  hasError: boolean;
+  isBusy: boolean;
+  isLoading: boolean;
+  /** Resolves true when the version became active. */
+  activate: (versionId: string) => Promise<boolean>;
 }
 
 export interface UseIngredientLineageResult {

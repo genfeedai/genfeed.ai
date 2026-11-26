@@ -17,6 +17,7 @@ import {
   ImageFormat,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -192,6 +193,7 @@ describe('ImageUpscaleService', () => {
       model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       organizationId: parent.organizationId,
       parentId: parent.id,
+      relationKind: IngredientRelationKind.TRANSFORMATION,
       status: IngredientStatus.PROCESSING,
       transformations: [TransformationCategory.UPSCALED],
     });

@@ -49,6 +49,8 @@ export interface StudioInspectorUsedInPanelProps {
 
 export interface StudioInspectorHistoryPanelProps {
   childAssets: readonly IIngredient[];
+  /** The asset whose versions are listed first; absent for a job with no asset yet. */
+  ingredientId?: string | null;
   isLoading: boolean;
   onSelect: (job: StudioPlaygroundJob) => void;
   siblingJobs: readonly StudioPlaygroundJob[];

@@ -6,6 +6,7 @@ import {
   FleetReviewStatus,
   IngredientCategory,
   type IngredientOrigin,
+  type IngredientRelationKind,
   IngredientStatus,
   QualityStatus,
   TransformationCategory,
@@ -301,6 +302,11 @@ export class CreateIngredientDto {
  */
 export type IngredientServerCreate = CreateIngredientDto & {
   readonly origin: IngredientOrigin;
+  /**
+   * How this asset relates to `parentId` (#7395). Server-owned like `origin`: a
+   * client cannot choose it, and a parent without one stays lineage-unavailable.
+   */
+  readonly relationKind?: IngredientRelationKind;
   readonly generationProvider?: Prisma.InputJsonValue;
   /** A Studio video draft; set by the server from the submit options. */
   readonly isDraftRender?: boolean;
