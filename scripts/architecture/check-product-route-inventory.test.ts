@@ -241,12 +241,13 @@ describe('runCheckProductRouteInventory', () => {
     // catch-all. Organization settings Preferences folded into General. The
     // brand kit is one page with anchors; its /:tab route is gone. Discovery dropped its
     // Following and Trend Turnover pages (four routes across brand and org).
+    // Desktop local mode and its /desktop/local page were removed.
     expect(runCheckProductRouteInventory()).toMatchObject({
-      appPublicRouteCount: 25,
+      appPublicRouteCount: 24,
       issues: [],
       protectedPageCount: 253,
       protectedRouteCount: 277,
-      publicRouteCount: 124,
+      publicRouteCount: 123,
       websitePublicRouteCount: 99,
     });
   });

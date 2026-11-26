@@ -50,6 +50,7 @@ const BRAND_ID_REQUIRED_NODE_TYPES = new Set([
   'brandCover',
   'effect-captions',
   'imageGen',
+  'motionControl',
   'musicSource',
   'soundOverlay',
   'textToSpeech',

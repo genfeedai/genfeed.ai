@@ -33,6 +33,7 @@ import {
   type ExecutionContext,
   ImageGenExecutor,
   LocalizeSpeechExecutor,
+  MotionControlExecutor,
   ReframeExecutor,
   TextToSpeechExecutor,
   UpscaleExecutor,
@@ -67,6 +68,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
   register(engine: WorkflowEngine): void {
     this.registerImageGenExecutor(engine);
     this.registerVideoGenExecutor(engine);
+    this.registerMotionControlExecutor(engine);
     this.registerLocalizationExecutors(engine);
     this.registerTextToSpeechExecutor(engine);
     this.registerReframeExecutor(engine);
@@ -284,6 +286,75 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     engine.registerExecutor(
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
+    );
+  }
+
+  private registerMotionControlExecutor(engine: WorkflowEngine): void {
+    const replicateService = this.replicateService;
+    if (!replicateService) {
+      return;
+    }
+
+    const motionControlExecutor = new MotionControlExecutor();
+    motionControlExecutor.setResolver(async (model, params, context, node) => {
+      const funded = await this.authorizeMediaDispatch(node, context);
+      const prepared =
+        funded?.prepared.actionId === 'motionControl'
+          ? funded.prepared
+          : await this.providerPlan.prepareMotionControl({
+              model,
+              params,
+              context,
+              node,
+            });
+      const byok = funded
+        ? funded.credential
+        : await this.byokService?.resolveApiKey(
+            context.organizationId,
+            ByokProvider.REPLICATE,
+          );
+      const pendingOutput = await this.dispatchFundedMedia(funded, () =>
+        this.helper.createAndLinkProcessingOutput({
+          continuation: {
+            actionId: 'motionControl',
+            context,
+            isByok: Boolean(byok),
+            node,
+            provider: 'replicate',
+          },
+          output: prepared.output,
+          resultUrl: (ingredientId) =>
+            this.helper.buildVideoIngredientUrl(ingredientId),
+          runProvider: async (_ingredientId, continuationId) =>
+            replicateService.runModel(
+              model,
+              await this.authorizeInput(
+                prepared.input,
+                context,
+                prepared.output.brandId,
+              ),
+              byok?.apiKey,
+              continuationId,
+            ),
+        }),
+      );
+
+      return {
+        generationBriefEvidence: prepared.generationBriefEvidence,
+        generationSource: prepared.generationSource,
+        id: pendingOutput.ingredientId,
+        model,
+        provider: 'replicate',
+        status: IngredientStatus.PROCESSING,
+        videoUrl: this.helper.buildVideoIngredientUrl(
+          pendingOutput.ingredientId,
+        ),
+      };
+    });
+
+    engine.registerExecutor(
+      'motionControl',
+      this.helper.wrapEngineExecutor(motionControlExecutor),
     );
   }
 

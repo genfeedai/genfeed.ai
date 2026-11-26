@@ -137,6 +137,25 @@ describe('DevtoService', () => {
       expect(payload.article).not.toHaveProperty('canonical_url');
     });
 
+    it('sends canonical_url and series only when the publisher supplies them', async () => {
+      httpPostMock.mockReturnValue(of({ data: mockDevtoArticle }));
+
+      await service.createArticle('plain-api-key', {
+        bodyMarkdown: 'Body',
+        canonicalUrl: 'https://genfeed.ai/articles/hello',
+        published: false,
+        series: 'Genfeed, from brief to feed',
+        tags: [],
+        title: 'Hello dev.to',
+      });
+
+      const [, payload] = httpPostMock.mock.calls[0];
+      expect(payload.article.canonical_url).toBe(
+        'https://genfeed.ai/articles/hello',
+      );
+      expect(payload.article.series).toBe('Genfeed, from brief to feed');
+    });
+
     it('should throw when the request fails', async () => {
       httpPostMock.mockReturnValue(throwError(() => new Error('dev.to down')));
 

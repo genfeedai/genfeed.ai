@@ -281,16 +281,66 @@ export interface ImageGridSplitNodeData extends BaseNodeData {
   quality: number; // 1-100
 }
 
-// Annotation shape types (simplified for node storage)
-export interface AnnotationShapeData {
-  id: string;
-  type: 'rectangle' | 'circle' | 'arrow' | 'freehand' | 'text';
-  strokeColor: string;
-  strokeWidth: number;
-  fillColor: string | null;
-  // Shape-specific properties stored as generic record
-  props: Record<string, unknown>;
+/**
+ * Annotation geometry is stored as fractions (0..1) of the image, never pixels, so a saved
+ * shape survives a reload and a viewport resize without drift. Ids are stable.
+ */
+export interface NormalizedPoint {
+  x: number;
+  y: number;
 }
+
+export type AnnotationShapeKind =
+  | 'rectangle'
+  | 'ellipse'
+  | 'arrow'
+  | 'freehand'
+  | 'text';
+
+interface AnnotationBoxFields {
+  height: number;
+  id: string;
+  width: number;
+  x: number;
+  y: number;
+}
+
+export interface AnnotationRectangleData extends AnnotationBoxFields {
+  kind: 'rectangle';
+}
+
+export interface AnnotationEllipseData extends AnnotationBoxFields {
+  kind: 'ellipse';
+}
+
+export type AnnotationBoxData = AnnotationRectangleData | AnnotationEllipseData;
+
+export interface AnnotationArrowData {
+  id: string;
+  kind: 'arrow';
+  points: NormalizedPoint[];
+}
+
+export interface AnnotationFreehandData {
+  id: string;
+  kind: 'freehand';
+  points: NormalizedPoint[];
+}
+
+export type AnnotationLineData = AnnotationArrowData | AnnotationFreehandData;
+
+export interface AnnotationTextData {
+  id: string;
+  kind: 'text';
+  text: string;
+  x: number;
+  y: number;
+}
+
+export type AnnotationShapeData =
+  | AnnotationBoxData
+  | AnnotationLineData
+  | AnnotationTextData;
 
 export interface AnnotationNodeData extends BaseNodeData {
   // Input from connection

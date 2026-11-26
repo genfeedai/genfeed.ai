@@ -17,7 +17,11 @@ import { ReactFlowProvider } from '@xyflow/react';
 import type { WorkflowSeed } from '@/features/automation/props/workflow-new-page.props';
 import '@xyflow/react/dist/style.css';
 
-import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
+import {
+  GeometryNodeInspector,
+  useGeometryRunGuard,
+  WorkflowEditorShell,
+} from '@genfeedai/workflows/ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
@@ -280,11 +284,17 @@ export default function WorkflowNewPageClient() {
     [workflowRunTracker],
   );
 
+  const checkGeometry = useGeometryRunGuard();
+
   const handleRun = useCallback(
     async (
       inputValues: Record<string, unknown> = {},
       options: { saveDefaults: boolean } = { saveDefaults: false },
     ): Promise<void> => {
+      // Invalid annotation or trajectory geometry blocks the run, with the problem named.
+      if (!checkGeometry()) {
+        return;
+      }
       let runStarted = false;
 
       try {
@@ -333,6 +343,7 @@ export default function WorkflowNewPageClient() {
       }
     },
     [
+      checkGeometry,
       currentWorkflowId,
       getWorkflowService,
       saveInputDefaults,
@@ -414,7 +425,10 @@ export default function WorkflowNewPageClient() {
                       runId={activeExecutionId}
                     />
                   ) : (
-                    <CloudActionNodeInspector />
+                    <>
+                      <GeometryNodeInspector />
+                      <CloudActionNodeInspector />
+                    </>
                   )
                 }
               />

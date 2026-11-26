@@ -10,6 +10,7 @@ const MEDIA_CALLBACK_ACTION_IDS = new Set([
   'aiAvatarVideo',
   'imageGen',
   'lipSync',
+  'motionControl',
   'reframe',
   'upscale',
   'videoGen',

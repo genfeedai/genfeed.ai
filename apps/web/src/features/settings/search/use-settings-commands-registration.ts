@@ -101,8 +101,7 @@ function resolvePriority(currentApp: AppContext | undefined): number {
 export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
   const runtime = useDesktopRuntimeContext();
   const isSubscriptionAvailable =
-    runtime.status === 'web' ||
-    (runtime.status === 'ready' && runtime.context?.runtimeMode === 'cloud');
+    runtime.status === 'web' || runtime.status === 'ready';
   const showCredits = shouldShowCreditsNav(
     getDesktopCreditsVisibility(runtime),
   );
