@@ -1,6 +1,7 @@
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   ContentIntelligencePlatform,
@@ -368,13 +369,17 @@ export class CreatorScraperService {
     });
 
     try {
-      const results = await this.apifyService.runActor<LinkedInProfileResult>(
-        'curious_coder/linkedin-profile-scraper',
-        {
-          maxPosts,
-          profileUrls: [`https://linkedin.com/in/${handle}`],
-          proxyConfiguration: { useApifyProxy: true },
-        },
+      const results = await runWithDefaultApifyCaller(
+        'content-intelligence.creator-scraper',
+        () =>
+          this.apifyService.runActor<LinkedInProfileResult>(
+            'curious_coder/linkedin-profile-scraper',
+            {
+              maxPosts,
+              profileUrls: [`https://linkedin.com/in/${handle}`],
+              proxyConfiguration: { useApifyProxy: true },
+            },
+          ),
       );
 
       const profileData = results[0];
@@ -431,13 +436,17 @@ export class CreatorScraperService {
     });
 
     try {
-      const results = await this.apifyService.runActor<InstagramProfileResult>(
-        'apify/instagram-scraper',
-        {
-          directUrls: [`https://instagram.com/${handle}`],
-          resultsLimit: maxPosts,
-          resultsType: 'posts',
-        },
+      const results = await runWithDefaultApifyCaller(
+        'content-intelligence.creator-scraper',
+        () =>
+          this.apifyService.runActor<InstagramProfileResult>(
+            'apify/instagram-scraper',
+            {
+              directUrls: [`https://instagram.com/${handle}`],
+              resultsLimit: maxPosts,
+              resultsType: 'posts',
+            },
+          ),
       );
 
       const userInfo = results[0];
@@ -499,12 +508,16 @@ export class CreatorScraperService {
     });
 
     try {
-      const videos = await this.apifyService.runActor<TikTokVideoData>(
-        'clockworks/tiktok-profile-scraper',
-        {
-          profiles: [handle],
-          resultsPerPage: maxPosts,
-        },
+      const videos = await runWithDefaultApifyCaller(
+        'content-intelligence.creator-scraper',
+        () =>
+          this.apifyService.runActor<TikTokVideoData>(
+            'clockworks/tiktok-profile-scraper',
+            {
+              profiles: [handle],
+              resultsPerPage: maxPosts,
+            },
+          ),
       );
 
       const userInfo = videos[0]?.authorMeta;
