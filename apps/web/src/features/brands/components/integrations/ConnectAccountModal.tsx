@@ -12,7 +12,7 @@ export default function ConnectAccountModal(props: ConnectAccountModalProps) {
   return (
     <ConnectAccountShell groups={platformGroups} {...shell}>
       {(visibleGroups) => (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           {visibleGroups.map((group) => (
             <section className="flex flex-col gap-2" key={group.id}>
               <h3 className="text-xs font-medium text-muted-foreground">

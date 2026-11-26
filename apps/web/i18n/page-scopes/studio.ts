@@ -12,6 +12,7 @@ import turboProjects from '../../messages/en/pages/turboProjects.json';
 const messages = {
   articles: { edit: articles.edit },
   library: {
+    inspector: { versions: library.inspector.versions },
     knowledge: library.knowledge,
     recovery: library.recovery,
     review: library.review,

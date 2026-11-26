@@ -7,6 +7,7 @@ import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authori
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -169,6 +170,7 @@ describe('ImageResizeService', () => {
       organizationId: 'org-1',
       origin: IngredientOrigin.GENERATED,
       parentId: 'image-1',
+      relationKind: IngredientRelationKind.DERIVATIVE,
       s3Key: 'ingredients/images/image-2',
       status: IngredientStatus.GENERATED,
       transformations: [TransformationCategory.RESIZED],

@@ -26,6 +26,7 @@ import { IngredientLineageService } from '@api/collections/ingredients/services/
 import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
 import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientTagsService } from '@api/collections/ingredients/services/ingredient-tags.service';
+import { IngredientVersionsService } from '@api/collections/ingredients/services/ingredient-versions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -75,6 +76,7 @@ import { Module } from '@nestjs/common';
     IngredientGenerationCancellationService,
     IngredientGenerationCostService,
     IngredientLineageService,
+    IngredientVersionsService,
     IngredientReviewStateService,
     IngredientStackService,
     IngredientTagsService,

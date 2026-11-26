@@ -21,6 +21,7 @@ import {
   ActivitySource,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -134,6 +135,7 @@ export class ImageUpscaleService {
         model,
         organizationId: parent.organizationId ?? undefined,
         parentId: parent.id,
+        relationKind: IngredientRelationKind.TRANSFORMATION,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.UPSCALED],
       });

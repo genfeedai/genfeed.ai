@@ -110,6 +110,15 @@ enum TransformationCategory {
   REFRAMED
 }
 
+// How a child asset relates to its parent (#7395). Null means the link was
+// written before relations were recorded: it is never guessed.
+enum IngredientRelationKind {
+  VERSION
+  TRANSFORMATION
+  DERIVATIVE
+  SOURCE
+}
+
 enum ContentRating {
   SFW
   SUGGESTIVE
@@ -2592,6 +2601,13 @@ model Ingredient {
   transformations       TransformationCategory[] @default([])
   order                 Int                      @default(0)
   version               Int                      @default(1)
+  // Relation to `parentId` (#7395); null for links written before it existed.
+  relationKind          IngredientRelationKind?
+  // On a version family's first asset: the member that is active (#7397).
+  // Null means the newest member. Version walks use the partial index
+  // `ingredients_version_parent_idx` (parentId where relationKind is VERSION or
+  // TRANSFORMATION), which only the migration declares.
+  activeVersionId       String?
   isHighlighted         Boolean                  @default(false)
   isDefault             Boolean                  @default(false)
   scope                 AssetScope               @default(USER)

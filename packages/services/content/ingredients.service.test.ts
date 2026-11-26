@@ -303,6 +303,51 @@ describe('IngredientsService', () => {
     });
   });
 
+  describe('versions', () => {
+    const document = () => ({
+      ...collectionDocument([
+        { id: 'a', label: 'First' },
+        { id: 'b', label: 'Second' },
+      ]),
+      meta: {
+        activeVersionId: 'b',
+        isLineageAvailable: true,
+        rootId: 'a',
+        versions: [
+          { id: 'a', isActive: false, number: 1, relation: 'original' },
+          { id: 'b', isActive: true, number: 2, relation: 'version' },
+        ],
+      },
+    });
+
+    it('reads the history with its items in version order', async () => {
+      http.get.mockResolvedValue(axiosResponse(document()));
+
+      const history = await service.findVersions('b');
+
+      expect(http.get.mock.calls[0]?.[0]).toBe('b/versions');
+      expect(history).toMatchObject({
+        activeVersionId: 'b',
+        ingredientId: 'b',
+        isLineageAvailable: true,
+        rootId: 'a',
+      });
+      expect(history.items.map((item) => item.id)).toEqual(['a', 'b']);
+      expect(history.versions.map((entry) => entry.number)).toEqual([1, 2]);
+    });
+
+    it('PATCHes the chosen version and returns the new history', async () => {
+      http.patch.mockResolvedValue(axiosResponse(document()));
+
+      const history = await service.setActiveVersion('a', 'b');
+
+      expect(http.patch).toHaveBeenCalledWith('a/versions/active', {
+        versionId: 'b',
+      });
+      expect(history.activeVersionId).toBe('b');
+    });
+  });
+
   describe('findByIds', () => {
     it('returns [] without a request for empty ids', async () => {
       const result = await service.findByIds([]);
