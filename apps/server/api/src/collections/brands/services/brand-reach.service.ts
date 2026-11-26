@@ -50,7 +50,7 @@ function publicBrandReachSql(options: {
  * Each connected account keeps one audience snapshot per day, so the audience
  * is the latest snapshot of every account that still has a count, summed. YouTube
  * reports subscribers where the other networks report followers. An account that
- * was disconnected or deleted, or a snapshot that was deleted, is left out, and
+ * was disconnected, deleted or moved to another brand, or a snapshot that was deleted, is left out, and
  * a brand with no count at all answers NULL, never 0.
  */
 function publicBrandFollowersSql(options: {
@@ -66,6 +66,7 @@ function publicBrandFollowersSql(options: {
       JOIN "credentials" c ON c."id" = s."credentialId"
         AND c."isDeleted" = false
         AND c."isConnected" = true
+        AND c."brandId" = s."brandId"
       WHERE s."brandId" = ${options.brandId}
         AND s."organizationId" = ${options.organizationId}
         AND s."isDeleted" = false

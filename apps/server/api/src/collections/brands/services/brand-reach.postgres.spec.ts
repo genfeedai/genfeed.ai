@@ -4,7 +4,15 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
@@ -98,13 +106,13 @@ describe.skipIf(!connectionString)(
         `CREATE TABLE "${schema}"."post_analytics" ("id" text PRIMARY KEY, "postId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text NOT NULL, "platform" text NOT NULL, "date" timestamp(3) NOT NULL, "totalViews" integer NOT NULL DEFAULT 0, "totalLikes" integer NOT NULL DEFAULT 0, "totalComments" integer NOT NULL DEFAULT 0, "totalShares" integer NOT NULL DEFAULT 0, "totalSaves" integer NOT NULL DEFAULT 0, "impressions" integer, "isDeleted" boolean NOT NULL DEFAULT false)`,
       );
       await pool.query(
-        `CREATE TABLE "${schema}"."credentials" ("id" text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false, "isConnected" boolean NOT NULL DEFAULT false)`,
+        `CREATE TABLE "${schema}"."credentials" ("id" text PRIMARY KEY, "brandId" text, "isDeleted" boolean NOT NULL DEFAULT false, "isConnected" boolean NOT NULL DEFAULT false)`,
       );
       await pool.query(
         `CREATE TABLE "${schema}"."account_analytics_snapshots" ("id" text PRIMARY KEY, "credentialId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text NOT NULL, "date" timestamp(3) NOT NULL, "followers" integer, "subscribers" integer, "isDeleted" boolean NOT NULL DEFAULT false)`,
       );
       await pool.query(
-        `INSERT INTO "${schema}"."credentials" ("id","isDeleted","isConnected") VALUES ('c-ig',false,true),('c-yt',false,true),('c-x',false,true),('c-off',false,false),('c-gone',true,true)`,
+        `INSERT INTO "${schema}"."credentials" ("id","brandId","isDeleted","isConnected") VALUES ('c-ig','brand-1',false,true),('c-yt','brand-1',false,true),('c-x','brand-1',false,true),('c-off','brand-1',false,false),('c-gone','brand-1',true,true),('c-moved','brand-2',false,true)`,
       );
       await pool.query(
         `INSERT INTO "${schema}"."posts" ("id","isDeleted") VALUES ('p1',false),('p2',false),('p-gone',true)`,
@@ -226,7 +234,8 @@ describe.skipIf(!connectionString)(
       });
     });
 
-    it('sums each connected account once, at its latest count', async () => {
+    /** One brand-1 audience of 1,250: Instagram 1,000 + X 200 + YouTube 50. */
+    async function seedAudience() {
       // Instagram grew over three days: only day 3 counts.
       await audience({
         credentialId: 'c-ig',
@@ -251,13 +260,28 @@ describe.skipIf(!connectionString)(
         date: '2026-11-03',
         subscribers: 50,
       });
+    }
+
+    beforeEach(async () => {
+      await pool.query(`DELETE FROM "${schema}"."account_analytics_snapshots"`);
+    });
+
+    it('sums each connected account once, at its latest count', async () => {
+      await seedAudience();
 
       expect(await service.findForBrand('brand-1', 'org-1')).toMatchObject({
         followers: 1250,
       });
     });
 
-    it('leaves out disconnected and deleted accounts, deleted snapshots and other brands or organizations', async () => {
+    it('leaves out disconnected and deleted accounts, reassigned credentials, deleted snapshots and other brands or organizations', async () => {
+      await seedAudience();
+      // A credential moved to brand-2 keeps its old brand-1 snapshots: they no longer count.
+      await audience({
+        credentialId: 'c-moved',
+        date: '2026-11-03',
+        followers: 6000,
+      });
       await audience({
         credentialId: 'c-off',
         date: '2026-11-03',
