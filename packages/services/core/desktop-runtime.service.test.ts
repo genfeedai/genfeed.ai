@@ -247,9 +247,7 @@ describe('shared authoritative runtime store', () => {
     stop();
   });
   it('exposes the selected server only once a signed-in runtime is ready', () => {
-    expect(
-      getDesktopCreditsVisibility({ status: 'ready', context }),
-    ).toEqual({
+    expect(getDesktopCreditsVisibility({ status: 'ready', context })).toEqual({
       clientSurface: 'desktop',
       selectedServerKind: 'cloud',
     });

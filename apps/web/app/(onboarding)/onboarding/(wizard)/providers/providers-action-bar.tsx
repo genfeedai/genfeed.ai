@@ -44,19 +44,19 @@ export default function ProvidersActionBar({
 
         <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
           <div className="relative w-full md:w-auto">
-              {selectedMode === 'byok' ? <CurrentBadge /> : null}
-              <Link
-                href={APP_ROUTES.CONNECTORS.API_KEYS}
-                onClick={(event) => {
-                  onByokClick(event);
-                }}
-                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
-                  selectedMode === 'byok' ? CURRENT_RING : ''
-                }`}
-              >
-                Add my own API keys
-              </Link>
-            </div>
+            {selectedMode === 'byok' ? <CurrentBadge /> : null}
+            <Link
+              href={APP_ROUTES.CONNECTORS.API_KEYS}
+              onClick={(event) => {
+                onByokClick(event);
+              }}
+              className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
+                selectedMode === 'byok' ? CURRENT_RING : ''
+              }`}
+            >
+              Add my own API keys
+            </Link>
+          </div>
 
           {surface === 'self-hosted' ? (
             <div className="relative w-full md:w-auto">
