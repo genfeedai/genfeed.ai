@@ -905,7 +905,11 @@ describe('SkillRuntimeService generation sections', () => {
       versionId: 'version-cinematic-prompting',
     });
     expect(receipts[1].loadedSections).toContain('Camera movement');
-    expect(receipts[1].omittedSections).toEqual(['Stylistic effects']);
+    expect(receipts[1].omittedSections).toEqual([
+      'Lens and optics',
+      'Color and grade',
+      'Stylistic effects',
+    ]);
   });
 
   it('keeps the whole image skill out of an image prompt without cutting it', () => {
