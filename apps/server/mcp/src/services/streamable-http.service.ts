@@ -20,6 +20,7 @@ import {
   promptForApproval,
   readApprovalPromptRound,
 } from '@mcp/services/mcp-approval-prompt.util';
+import { createCardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
 import { withMcpStructuredContent } from '@mcp/services/mcp-structured-result.util';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -249,6 +250,10 @@ export class StreamableHttpService {
       this.configService,
       mostRestrictiveMcpAccessMode(routeAccessMode, authContext?.accessMode),
       authContext?.canSwitchOrganizations === true,
+      createCardApprovalProofs(this.configService.get('GENFEEDAI_API_KEY'), {
+        token: authContext?.token,
+        userId: authContext?.userId,
+      }) ?? undefined,
     );
   }
 

@@ -1027,6 +1027,7 @@ describe('MCP → API route contract', () => {
         !agentExecutorNames.has(name) &&
         !contractTools.has(name) &&
         name !== 'resolve_approval' &&
+        name !== 'answer_approval' &&
         // The tool discovery meta tool (`find_tools`) is handled entirely
         // in-process against the registry's own catalog — it never calls out
         // to the API, so it has no mounted route to cover.

@@ -83,6 +83,8 @@ export interface McpToolError {
   toolName?: string;
   approvalStatus?: string;
   canResolveApproval?: boolean;
+  /** The approval card offers Approve: this connection can prove a card click (#9754). */
+  canApproveInCard?: boolean;
   /** A scheduled release batch waiting for approval (#10134). */
   batch?: IScheduledReleaseBatchPending;
   /** Releases of a batch left out as invalid, by position in the request. */
@@ -170,6 +172,7 @@ function compactToolError(error: McpToolError): McpToolError {
           toolName: error.toolName,
           approvalStatus: error.approvalStatus,
           canResolveApproval: error.canResolveApproval,
+          ...(error.canApproveInCard ? { canApproveInCard: true } : {}),
         }
       : {}),
     ...(error.brands ? { brands: error.brands } : {}),
@@ -319,6 +322,7 @@ export function approvalPendingToolResult(
   estimate?: McpApprovalCostEstimate,
   canResolveApproval = false,
   batch?: IScheduledReleaseBatchPending,
+  canApproveInCard = false,
 ): McpToolErrorResult {
   // A batch opens on its own review page, where every post is read in full.
   const reviewPath = batch
@@ -335,6 +339,7 @@ export function approvalPendingToolResult(
     toolName: approval.toolName,
     approvalStatus: approval.status,
     canResolveApproval,
+    ...(canApproveInCard ? { canApproveInCard } : {}),
     ...(batch ? { batch } : {}),
     ...(batch?.invalid.length ? { invalidReleases: batch.invalid } : {}),
     ...(estimate?.estimatedCredits !== null &&

@@ -29,6 +29,10 @@ import type {
   SummaryCardProps,
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
+import {
+  CARD_APPROVAL_PROOF_ARGUMENT,
+  CARD_APPROVAL_PROOF_META_KEY,
+} from '@mcp/ui/card-approval-proof';
 import { CardBoundary } from '@mcp/ui/card-boundary';
 import {
   localCalendarDays,
@@ -1228,13 +1232,20 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     if (isSelectingRef.current) return;
     isSelectingRef.current = true;
     setPendingBrandId(action.approvalId);
+    // With the proof from the pending result's `_meta`, both buttons answer
+    // through `answer_approval`, a tool hosts hide from the model (#9754).
+    // Without it, only a connection that lists `resolve_approval` can decline.
+    const proof = text(
+      record(record(result)._meta)[CARD_APPROVAL_PROOF_META_KEY],
+    );
     bridge
       .request('tools/call', {
-        name: 'resolve_approval',
+        name: proof ? 'answer_approval' : 'resolve_approval',
         arguments: {
           approvalId: action.approvalId,
           decision: action.decision,
           organization: action.organization,
+          ...(proof ? { [CARD_APPROVAL_PROOF_ARGUMENT]: proof } : {}),
         },
       })
       .then((outcome) => {
@@ -1250,7 +1261,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
       })
       .catch(() =>
         bridge.notify(
-          `This client could not ${action.decision} the action. Review it in Genfeed instead.`,
+          action.decision === 'approve'
+            ? 'Genfeed did not approve the action. Only the member who asked for it, as an owner or admin, can approve it here. It is still waiting in Genfeed.'
+            : 'This client could not decline the action. Review it in Genfeed instead.',
         ),
       )
       .finally(() => {

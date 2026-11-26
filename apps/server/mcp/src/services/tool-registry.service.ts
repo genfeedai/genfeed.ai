@@ -39,6 +39,7 @@ import { ClientService } from '@mcp/services/client.service';
 import { withAccountOrganizations } from '@mcp/services/mcp-account-organizations.util';
 import {
   pendingApprovalResult,
+  readCardApprovalAnswer,
   settleApprovalAnswer,
 } from '@mcp/services/mcp-approval-answer.util';
 import {
@@ -56,6 +57,7 @@ import {
   brandRequiredToolResult,
 } from '@mcp/services/mcp-brand-required-result.util';
 import { listCallerBrands } from '@mcp/services/mcp-caller-brands.util';
+import type { CardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
 import {
   resolveAuthorizedMcpCatalogCall,
   validateMcpCatalogDispatchCoverage,
@@ -75,6 +77,14 @@ import {
   withOmittedReleases,
 } from '@mcp/services/mcp-scheduled-batch.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
+import {
+  ACCOUNT_MANAGEMENT_TOOL_NAMES,
+  AGENT_CHAT_TOOL_NAMES,
+  AGENT_EXECUTOR_TOOL_NAMES,
+  type ExecutorKind,
+  PRE_DISPATCH_TOOL_NAMES,
+  WORKFLOW_CONTROL_TOOL_NAMES,
+} from '@mcp/services/tool-executor-kinds';
 import type {
   McpApprovalAnswer,
   McpApprovalResource,
@@ -149,6 +159,7 @@ import {
   WORKSPACE_APP_TOOL_NAMES,
 } from '@mcp/tools/workspace-app.tool';
 import { cardResource } from '@mcp/ui/card-app';
+import { CARD_APPROVAL_PROOF_META_KEY } from '@mcp/ui/card-approval-proof';
 import {
   isContentCardsUri,
   MCP_CARD_RESOURCE_HASH,
@@ -168,77 +179,6 @@ interface ToolCallParams {
 interface ResourceReadParams {
   uri: string;
 }
-
-const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
-  getToolsForSurface('agent').map((tool) => tool.name),
-);
-
-const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'create_chat',
-  'send_chat_message',
-]);
-
-const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'duplicate_workflow',
-  'get_system_workflow_catalog',
-  'get_workflow_run',
-  'get_workflow_runs',
-  'inspect_workflow',
-  'install_system_workflow',
-  'set_workflow_schedule',
-]);
-
-/**
- * Tools `handleToolCall` handles BEFORE `executeTool`, so they never flow
- * through classify-based dispatch. `resolve_approval` runs the deferred action
- * via its own path; the coverage guard must not treat it as unroutable.
- */
-const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'resolve_approval',
-]);
-
-const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_job_status',
-  'get_orgs',
-]);
-
-/**
- * Which executor handles a tool name. `'unknown'` means no dispatch path exists
- * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
- * a registry/handler mismatch fails the boot health check instead of surfacing
- * as a runtime "Unknown tool" error. Order mirrors the historical dispatch
- * precedence exactly (tool-discovery → agent-chat → workflow-control →
- * agent-executor → onboarding → catalog REST handlers → ads/external), so classification
- * never changes which handler runs. `tool-discovery` is checked first since
- * its name (`find_tools`) is a meta tool with no other executor to
- * shadow.
- */
-type ExecutorKind =
-  | 'tool-discovery'
-  | 'agent-chat'
-  | 'workflow-control'
-  | 'agent-executor'
-  | 'onboarding'
-  | 'content'
-  | 'analytics'
-  | 'workflow-status'
-  | 'meta-ads'
-  | 'google-ads'
-  | 'tiktok-ads'
-  | 'ads-gateway'
-  | 'account-management'
-  | 'social-messages'
-  | 'clipper-projects'
-  | 'editor'
-  | 'workspace-app'
-  | 'brand-kit'
-  | 'storyboard-capabilities'
-  | 'presets'
-  | 'models3d'
-  | 'remix'
-  | 'scheduler'
-  | 'skills-pro'
-  | 'unknown';
 
 @Injectable()
 export class ToolRegistryService implements OnModuleInit {
@@ -282,6 +222,9 @@ export class ToolRegistryService implements OnModuleInit {
     // the identity check. Only then does a call have to name its organization.
     @Optional()
     private readonly requestCanSwitchOrganizations: boolean = false,
+    // Proofs that a click came from the approval card (#9754); absent where
+    // there is no card or no member to bind them to.
+    @Optional() private readonly cardApprovalProofs?: CardApprovalProofs,
   ) {}
 
   /**
@@ -415,6 +358,9 @@ export class ToolRegistryService implements OnModuleInit {
       if (name === 'resolve_approval') {
         return await this.handleResolveApproval(args ?? {});
       }
+      if (name === 'answer_approval') {
+        return await this.handleAnswerApproval(args ?? {});
+      }
 
       // Rejected before any approval or charge: a generation always names its brand.
       if (isMcpBrandRequiredTool(name) && !readMcpBrandId(args)) {
@@ -439,18 +385,7 @@ export class ToolRegistryService implements OnModuleInit {
       // The requester answered this call's approval prompt (#9647). Settle it
       // against that approval before the current policy, so a decline holds.
       if (params.approvalAnswer) {
-        const settled = await settleApprovalAnswer(
-          this.clientService,
-          this.logger,
-          name,
-          params.approvalAnswer,
-        );
-        if (settled.kind === 'run') {
-          return await this.runApprovedApproval(settled.approval);
-        }
-        return settled.kind === 'pending'
-          ? await this.pendingResult(settled.approval, args ?? {})
-          : this.textResult(settled.message);
+        return await this.answerApproval(params.approvalAnswer, name, args);
       }
 
       // Declared approvals and credit spenders wait for confirmation, unless the
@@ -684,6 +619,41 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   /**
+   * The Approve and Decline buttons on the approval card (#9754). The click
+   * and a model's tool call reach the server as the same request, so only a
+   * call carrying the proof minted for this approval and this member counts as
+   * the person's answer. The API still accepts it only from the member who
+   * asked for the action, as an owner or admin.
+   */
+  private handleAnswerApproval(args: Record<string, unknown>) {
+    const answer = readCardApprovalAnswer(this.cardApprovalProofs, args);
+    return this.answerApproval(answer, undefined, undefined);
+  }
+
+  /** Settle a requester's answer, then run, re-queue or report it. */
+  private async answerApproval(
+    answer: McpApprovalAnswer,
+    toolName: string | undefined,
+    args: Record<string, unknown> | undefined,
+  ) {
+    const settled = await settleApprovalAnswer(
+      this.clientService,
+      this.logger,
+      toolName,
+      answer,
+    );
+    if (settled.kind === 'run') {
+      return await this.runApprovedApproval(settled.approval);
+    }
+    return settled.kind === 'pending'
+      ? await this.pendingResult(
+          settled.approval,
+          args ?? settled.approval.arguments ?? {},
+        )
+      : this.textResult(settled.message);
+  }
+
+  /**
    * Run an APPROVED approval exactly once and persist its outcome. Reached from
    * `resolve_approval` and when the requester repeats a call a reviewer has
    * since approved in the Genfeed review inbox (#7340).
@@ -806,9 +776,26 @@ export class ToolRegistryService implements OnModuleInit {
       invalidReleases,
       this.logger,
     );
-    return withApprovalCard(
-      pendingApprovalResult(approval, args, canResolveApproval, batch),
+    // The card answers through `answer_approval`, which this connection must
+    // list; a connection without it keeps the review-inbox link.
+    const proof = this.getTools().some(
+      (candidate) => candidate.name === 'answer_approval',
+    )
+      ? this.cardApprovalProofs?.mint(approval.id)
+      : undefined;
+    const result = withApprovalCard(
+      pendingApprovalResult(
+        approval,
+        args,
+        canResolveApproval,
+        batch,
+        proof !== undefined,
+      ),
     );
+    // `_meta` reaches the card view and stays out of the model's context.
+    return proof === undefined
+      ? result
+      : { ...result, _meta: { [CARD_APPROVAL_PROOF_META_KEY]: proof } };
   }
 
   private textResult(text: string) {
