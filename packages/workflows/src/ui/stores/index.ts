@@ -15,18 +15,6 @@ export type {
   DefaultModelSettings,
   RecentModel,
 } from '../provider/types';
-export type {
-  AnnotationShape,
-  AnnotationTool,
-  ArrowShape,
-  BaseShape,
-  CircleShape,
-  FreehandShape,
-  RectangleShape,
-  TextShape,
-  ToolOptions,
-} from './annotationStore';
-export { useAnnotationStore } from './annotationStore';
 export { type ContextMenuType, useContextMenuStore } from './contextMenuStore';
 export type { DebugPayload, ExecutionStore, Job } from './execution';
 export { useExecutionStore } from './execution';
