@@ -18,6 +18,7 @@ import {
   scopedWhere,
 } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -33,7 +34,10 @@ import { Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE } from '@workers/services/scheduled-post.constants';
-import { readPostString } from '@workers/services/scheduled-post.utils';
+import {
+  formatAccountHandle,
+  readPostString,
+} from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
@@ -388,7 +392,8 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     try {
       const organizationId = readPostString(post, ['organizationId']);
       const brandId = readPostString(post, ['brandId']);
-      const [brand, organization] = await Promise.all([
+      const credentialId = readPostString(post, ['credentialId', 'credential']);
+      const [brand, organization, credential] = await Promise.all([
         organizationId && brandId
           ? this.prisma.brand.findFirst({
               select: { label: true },
@@ -401,6 +406,12 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
               where: { id: organizationId, isDeleted: false },
             })
           : null,
+        organizationId && credentialId
+          ? this.prisma.credential.findFirst({
+              select: { externalHandle: true, username: true },
+              where: scopedWhere(organizationId, { id: credentialId }),
+            })
+          : null,
       ]);
       await this.activityRecorder.dispatch({
         deduplicationKey: `message.post-published/${postId}`,
@@ -410,8 +421,14 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
             message: {
               action: 'post_published',
               payload: {
+                accountHandle: formatAccountHandle(
+                  credential?.externalHandle ?? credential?.username,
+                ),
                 brandLabel: brand?.label,
-                caption: readPostString(post, ['description']),
+                // The stored description is HTML; the card shows plain text.
+                caption:
+                  htmlToText(readPostString(post, ['description'])) ||
+                  undefined,
                 organizationLabel: organization?.label,
                 platform: result.platform,
                 postId,

@@ -499,6 +499,7 @@ export class DiscordService {
           color: 0x22c55e,
           fields: [
             { name: 'Platform', value: post.platform },
+            { name: 'Account', value: post.accountHandle ?? '' },
             { name: 'Brand', value: post.brandLabel ?? '' },
             { name: 'Organization', value: post.organizationLabel ?? '' },
           ],
