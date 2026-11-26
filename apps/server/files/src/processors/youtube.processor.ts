@@ -82,13 +82,24 @@ export class YoutubeProcessor extends WorkerHost {
    * of this job never uploads a second copy.
    */
   private async uploadAndRecord(job: Job<YoutubeJobData>): Promise<string> {
-    const { credential, ingredientId, title, description, tags, status } =
-      job.data;
+    const {
+      containsSyntheticMedia,
+      credential,
+      ingredientId,
+      title,
+      description,
+      selfDeclaredMadeForKids,
+      tags,
+      status,
+    } = job.data;
     if (!credential) {
       throw new Error('Credential data missing from job');
     }
 
     const externalId = await this.youtubeService.uploadVideo({
+      ...(containsSyntheticMedia === undefined
+        ? {}
+        : { containsSyntheticMedia }),
       credential,
       description: description || '',
       ingredientId,
@@ -98,6 +109,9 @@ export class YoutubeProcessor extends WorkerHost {
       scheduledDate: job.data.scheduledDate
         ? new Date(job.data.scheduledDate)
         : undefined,
+      ...(selfDeclaredMadeForKids === undefined
+        ? {}
+        : { selfDeclaredMadeForKids }),
       status: status || 'private',
       tags: tags || [],
       title: title || 'Untitled',

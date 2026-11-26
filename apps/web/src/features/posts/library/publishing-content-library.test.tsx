@@ -102,10 +102,16 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('next-intl', () => ({
-  useFormatter: () => ({ dateTime: (date: Date) => date.toISOString() }),
-  useTranslations: () => (key: string) => key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useFormatter: () => ({ dateTime: (date: Date) => date.toISOString() }),
+    useTranslations: (namespace: string) =>
+      namespace === 'ui.emptyStates.posts'
+        ? translateFromCatalog(namespace)
+        : (key: string) => key,
+  };
+});
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -575,6 +581,7 @@ describe('PublishingContentLibrary', () => {
 
     expect(screen.getByText('0 posts')).toBeVisible();
     expect(screen.getByText('No matching posts')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeVisible();
   });
 
   it('shows a distinct empty state when the library has no content', () => {
@@ -587,5 +594,8 @@ describe('PublishingContentLibrary', () => {
     render(<PublishingContentLibrary />);
 
     expect(screen.getByText('No posts yet')).toBeVisible();
+    expect(
+      screen.getByText('Posts you create, schedule and publish appear here.'),
+    ).toBeVisible();
   });
 });

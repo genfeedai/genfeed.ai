@@ -99,6 +99,10 @@ export interface IYoutubeUploadData {
   tags?: string[];
   visibility: PostVisibility;
   scheduledDate?: Date;
+  /** The "altered or synthetic content" disclosure (`status.containsSyntheticMedia`). */
+  containsSyntheticMedia?: boolean;
+  /** The audience declaration (`status.selfDeclaredMadeForKids`). */
+  selfDeclaredMadeForKids?: boolean;
   websocketUrl?: string;
 }
 

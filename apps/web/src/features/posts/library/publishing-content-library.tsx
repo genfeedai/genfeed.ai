@@ -41,7 +41,6 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -98,6 +97,7 @@ const EMPTY_COLLECTIONS: PublishingContentCollections = {
 
 export default function PublishingContentLibrary() {
   const translate = useTranslations('pages.posts.list.collection');
+  const emptyT = useTranslations('ui.emptyStates.posts');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { credentials } = useBrand();
   const isFetchReady = isCollectionFetchReady({
@@ -693,14 +693,20 @@ export default function PublishingContentLibrary() {
     return () => setIsRefreshing(false);
   }, [isFetching, setIsRefreshing]);
 
-  const emptyState = error ? (
-    <EmptyState icon={Files} title="Posts unavailable" />
-  ) : (
-    <EmptyState
-      icon={Files}
-      title={hasActiveFilters ? 'No matching posts' : 'No posts yet'}
-    />
-  );
+  const emptyConfig = error
+    ? { icon: Files, title: emptyT('unavailableTitle') }
+    : hasActiveFilters
+      ? {
+          action: { label: emptyT('clearFilters'), onClick: clearFilters },
+          description: emptyT('filteredDescription'),
+          icon: Files,
+          title: emptyT('filteredTitle'),
+        }
+      : {
+          description: emptyT('description'),
+          icon: Files,
+          title: emptyT('title'),
+        };
 
   if (isCapturedView) {
     const capturedPlatform = normalizePostsPlatform(channel);
@@ -762,8 +768,8 @@ export default function PublishingContentLibrary() {
         ) : (
           <AppTable<PublishingContentLibraryItem>
             columns={columns}
-            emptyLabel="No posts found"
-            emptyState={emptyState}
+            emptyLabel={emptyT('title')}
+            empty={emptyConfig}
             getItemId={(item) => item.id}
             getRowKey={(item) => `${item.type}:${item.id}`}
             activeRowId={activeRowId}

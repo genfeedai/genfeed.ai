@@ -52,6 +52,7 @@ export class YoutubeService {
    * Upload video to YouTube with specified privacy status
    */
   async uploadVideo(params: {
+    containsSyntheticMedia?: boolean;
     credential: YoutubeCredential;
     ingredientId: string;
     sourceStorageKey?: string;
@@ -60,6 +61,7 @@ export class YoutubeService {
     tags: string[];
     status: string;
     scheduledDate?: Date;
+    selfDeclaredMadeForKids?: boolean;
   }): Promise<string> {
     const {
       credential,
@@ -115,47 +117,12 @@ export class YoutubeService {
 
       this.logger.log(`Video downloaded to ${filePath}`);
 
-      // Determine YouTube privacy status and handle scheduled uploads
-      // If scheduledDate is in the future, upload as PRIVATE with publishAt
-      // YouTube will automatically publish the video at the specified time
-      const hasFutureScheduledDate =
-        scheduledDate && new Date(scheduledDate) > new Date();
-
-      let privacyStatus: string;
-      let statusConfig: youtube_v3.Schema$VideoStatus;
-
-      if (hasFutureScheduledDate) {
-        // Future scheduled date: upload as private with publishAt
-        // YouTube will automatically make it public at the scheduled time
-        statusConfig = {
-          privacyStatus: 'private',
-          publishAt: scheduledDate.toISOString(),
-        };
-        this.logger.log(
-          `Scheduling video for future publication: ${scheduledDate.toISOString()}`,
-        );
-      } else {
-        // No future date or date has passed: use the provided status
-        switch (status) {
-          case PostStatus.PUBLIC:
-            privacyStatus = 'public';
-            break;
-          case PostStatus.PRIVATE:
-            privacyStatus = 'private';
-            break;
-          case PostStatus.UNLISTED:
-            privacyStatus = 'unlisted';
-            break;
-          case PostStatus.SCHEDULED:
-            // SCHEDULED but no future date means cron picked it up (date passed)
-            privacyStatus = 'public';
-            break;
-          default:
-            // Invalid status, default to private for safety
-            privacyStatus = 'private';
-        }
-        statusConfig = { privacyStatus };
-      }
+      const statusConfig = this.buildStatusConfig({
+        containsSyntheticMedia: params.containsSyntheticMedia,
+        scheduledDate,
+        selfDeclaredMadeForKids: params.selfDeclaredMadeForKids,
+        status,
+      });
 
       // Upload to YouTube
       const insertParams: youtube_v3.Params$Resource$Videos$Insert = {
@@ -195,5 +162,56 @@ export class YoutubeService {
       this.logger.error(`Failed to upload video to YouTube`, error);
       throw error;
     }
+  }
+
+  /**
+   * The `status` part of the upload. A future scheduled date uploads as private
+   * with `publishAt`, so YouTube makes it public at that time. The altered or
+   * synthetic content disclosure and the audience declaration stay off the
+   * request when the caller does not set them.
+   */
+  private buildStatusConfig(params: {
+    containsSyntheticMedia?: boolean;
+    scheduledDate?: Date;
+    selfDeclaredMadeForKids?: boolean;
+    status: string;
+  }): youtube_v3.Schema$VideoStatus {
+    const { scheduledDate, status } = params;
+    const disclosureConfig: youtube_v3.Schema$VideoStatus = {
+      ...(params.containsSyntheticMedia === undefined
+        ? {}
+        : { containsSyntheticMedia: params.containsSyntheticMedia }),
+      ...(params.selfDeclaredMadeForKids === undefined
+        ? {}
+        : { selfDeclaredMadeForKids: params.selfDeclaredMadeForKids }),
+    };
+
+    if (scheduledDate && new Date(scheduledDate) > new Date()) {
+      this.logger.log(
+        `Scheduling video for future publication: ${scheduledDate.toISOString()}`,
+      );
+      return {
+        ...disclosureConfig,
+        privacyStatus: 'private',
+        publishAt: scheduledDate.toISOString(),
+      };
+    }
+
+    // No future date or date has passed: use the provided status. SCHEDULED
+    // without a future date means the cron picked it up, so it goes public.
+    // An invalid status defaults to private for safety.
+    let privacyStatus: string;
+    switch (status) {
+      case PostStatus.PUBLIC:
+      case PostStatus.SCHEDULED:
+        privacyStatus = 'public';
+        break;
+      case PostStatus.UNLISTED:
+        privacyStatus = 'unlisted';
+        break;
+      default:
+        privacyStatus = 'private';
+    }
+    return { ...disclosureConfig, privacyStatus };
   }
 }
