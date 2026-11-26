@@ -187,7 +187,11 @@
       }
     },
     {
-      "includes": ["skills/*/*/**/*.json", "!skills/app/**", "presets/**/*.json"],
+      "includes": [
+        "skills/*/*/**/*.json",
+        "!skills/app/**",
+        "presets/**/*.json"
+      ],
       "formatter": {
         "enabled": false
       }
