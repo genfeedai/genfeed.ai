@@ -39,7 +39,7 @@ const GHOST_SLICES = [46, 28, 16, 10];
 const DONUT_RADIUS = 36;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 const DONUT_SLICE_GAP = 1.5;
-const DONUT_SLICE_OPACITY = [0.9, 0.65, 0.45, 0.3];
+const DONUT_SLICE_OPACITY = [0.5, 0.36, 0.26, 0.18];
 
 function GhostGrid(): ReactElement {
   return (
@@ -119,7 +119,7 @@ export function ChartGhost({
     >
       <GhostGrid />
       {shape === 'bars' ? (
-        <g className="fill-current" opacity={0.45}>
+        <g className="fill-current" opacity={0.25}>
           {GHOST_BARS.map((height, index) => (
             <rect
               key={height}
@@ -137,12 +137,12 @@ export function ChartGhost({
           <path
             className="fill-current"
             d={`${GHOST_AREA_PATH} L100 60 L0 60 Z`}
-            opacity={0.18}
+            opacity={0.12}
           />
           <path
             className="fill-none stroke-current"
             d={GHOST_AREA_PATH}
-            opacity={0.6}
+            opacity={0.35}
             strokeWidth={1.5}
             vectorEffect="non-scaling-stroke"
           />
@@ -153,14 +153,14 @@ export function ChartGhost({
           <path
             className="fill-none stroke-current"
             d={GHOST_AREA_PATH}
-            opacity={0.6}
+            opacity={0.35}
             strokeWidth={1.5}
             vectorEffect="non-scaling-stroke"
           />
           <path
             className="fill-none stroke-current"
             d={GHOST_LINE_PATH}
-            opacity={0.35}
+            opacity={0.2}
             strokeWidth={1.5}
             vectorEffect="non-scaling-stroke"
           />
@@ -196,10 +196,18 @@ export function ChartEmptyState({
           shape === 'donut' ? 'inset-6' : 'inset-x-2 bottom-2 top-4',
         )}
       >
-        <ChartGhost className="size-full opacity-60" shape={shape} />
+        <ChartGhost
+          className={cn(
+            'size-full',
+            // Same bottom fade as the table preview.
+            shape !== 'donut' &&
+              '[mask-image:linear-gradient(to_bottom,black_0%,black_30%,transparent_95%)]',
+          )}
+          shape={shape}
+        />
       </div>
-      {/* Fades the preview behind the copy so the text stays readable. */}
-      <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,hsl(var(--background))_35%,transparent_80%)]">
+      {/* Fades the preview into the card behind the copy so the text stays readable. */}
+      <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,hsl(var(--card))_30%,transparent_75%)]">
         <div className="max-w-xs">
           <EmptyState
             action={

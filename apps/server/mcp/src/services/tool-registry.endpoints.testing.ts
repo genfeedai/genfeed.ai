@@ -5,6 +5,7 @@ import {
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { McpRole } from '@mcp/services/auth.service';
 import type { ClientService } from '@mcp/services/client.service';
+import type { CardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
@@ -18,14 +19,25 @@ export function createEndpointRegistries(
   client: ClientService,
   logger: LoggerService,
   role: McpRole,
+  cardApprovalProofs?: CardApprovalProofs,
 ) {
-  const standard = new ToolRegistryService(client, logger, role);
+  const standard = new ToolRegistryService(
+    client,
+    logger,
+    role,
+    undefined,
+    'standard',
+    false,
+    cardApprovalProofs,
+  );
   const admin = new ToolRegistryService(
     client,
     logger,
     role,
     undefined,
     'admin',
+    false,
+    cardApprovalProofs,
   );
   const isAdminCall = (params: {
     name: string;

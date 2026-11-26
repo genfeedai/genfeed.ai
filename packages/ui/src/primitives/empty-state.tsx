@@ -11,9 +11,15 @@ import {
 } from '@ui/styles/card-surface';
 import type { ReactElement, ReactNode } from 'react';
 import { Button } from './button';
+import {
+  EmptyStatePreview,
+  type EmptyStatePreviewShape,
+} from './empty-state-preview';
 
 export interface EmptyStateAction {
   label: string;
+  /** Leading icon; the CTA reads as a verb, the icon says what kind. */
+  icon?: IconComponent;
   onClick: () => void;
   variant?: ButtonVariant;
   ariaLabel?: string;
@@ -56,6 +62,14 @@ export interface EmptyStateProps {
    * an empty chart or media frame.
    */
   isFill?: boolean;
+  /**
+   * Draw a faded preview of what will fill the space (table rows, a tile
+   * grid) behind the copy. The CTA becomes the primary button. Use it for an
+   * empty table or grid; menus and small panels stay plain.
+   */
+  preview?: EmptyStatePreviewShape;
+  /** Column labels for the `rows` preview, so it matches the real table. */
+  previewColumns?: string[];
   /** Layout classes only (width, margin, position). */
   className?: string;
 }
@@ -89,6 +103,7 @@ const SIZE_CLASSES: Record<
  *   panel; `surface="card"` — standalone with its own card chrome
  * - `size` — sm (panels, menus, modals), default, lg (pages)
  * - `isFill` — fill the positioned parent, for an empty chart or media frame
+ * - `preview` — a faded table or grid preview behind the copy
  * - `action` (one button) or `actions` (custom nodes)
  */
 export function EmptyState({
@@ -101,9 +116,12 @@ export function EmptyState({
   size = CardEmptySize.DEFAULT,
   surface = 'none',
   isFill = false,
+  preview,
+  previewColumns,
   className,
 }: EmptyStateProps): ReactElement {
   const sizeClasses = SIZE_CLASSES[size];
+  const ActionIcon = action?.icon;
 
   const content = (
     <div
@@ -147,7 +165,11 @@ export function EmptyState({
         : action && (
             <Button
               withWrapper={false}
-              variant={action.variant || ButtonVariant.GHOST}
+              variant={
+                action.variant ||
+                (preview ? ButtonVariant.DEFAULT : ButtonVariant.GHOST)
+              }
+              icon={ActionIcon ? <ActionIcon className="size-4" /> : undefined}
               onClick={action.onClick}
               ariaLabel={action.ariaLabel || action.label}
               className="mt-1 h-8 text-xs"
@@ -158,8 +180,23 @@ export function EmptyState({
     </div>
   );
 
+  const previewed = preview ? (
+    <div
+      className="relative min-h-80 w-full overflow-hidden"
+      data-slot="empty-state-previewed"
+    >
+      <EmptyStatePreview columns={previewColumns} shape={preview} />
+      {/* A soft veil behind the copy keeps it readable over the preview. */}
+      <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,hsl(var(--card))_30%,transparent_75%)]">
+        {content}
+      </div>
+    </div>
+  ) : (
+    content
+  );
+
   if (surface === 'none') {
-    return content;
+    return previewed;
   }
 
   return (
@@ -171,7 +208,7 @@ export function EmptyState({
         className,
       )}
     >
-      {content}
+      {previewed}
     </div>
   );
 }

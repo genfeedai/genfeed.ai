@@ -21,11 +21,21 @@ export const optionTileGroupVariants = cva('', {
 export const optionTileVariants = cva(
   'min-w-0 rounded-lg border border-border bg-transparent text-left transition-colors duration-200 hover:bg-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=on]:border-primary data-[state=on]:bg-primary/10',
   {
-    defaultVariants: { layout: 'row', size: 'default' },
+    compoundVariants: [
+      { class: 'items-start', layout: 'row', rowAlign: 'start' },
+      { class: 'items-center', layout: 'row', rowAlign: 'center' },
+    ],
+    defaultVariants: { layout: 'row', rowAlign: 'start', size: 'default' },
     variants: {
       layout: {
-        row: 'flex w-full items-start gap-3',
+        row: 'flex w-full gap-3',
         stack: 'flex w-full flex-col items-stretch gap-1.5',
+      },
+      // A tile with a description keeps its icon on the title line; a title-only
+      // tile centers it, or a short icon rides above the text's midline.
+      rowAlign: {
+        center: '',
+        start: '',
       },
       size: {
         default: 'p-3',

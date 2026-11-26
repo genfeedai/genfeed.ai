@@ -207,7 +207,14 @@ function OptionTile({
       }
       aria-disabled={isUnavailable || undefined}
       aria-label={ariaLabel}
-      className={cn(optionTileVariants({ layout, size }), className)}
+      className={cn(
+        optionTileVariants({
+          layout,
+          rowAlign: description === undefined ? 'center' : 'start',
+          size,
+        }),
+        className,
+      )}
       data-testid={testId}
       disabled={isDisabled}
       onClick={(event) => {
