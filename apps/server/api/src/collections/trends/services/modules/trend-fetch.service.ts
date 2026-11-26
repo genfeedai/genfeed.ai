@@ -510,6 +510,18 @@ export class TrendFetchService {
       return cached;
     }
 
+    if (
+      await this.refreshHealth.isScrapePaused({ dataset: 'trends', platform })
+    ) {
+      // The scrape came back empty three nights running (or its actor is
+      // gone); it is tried again a week after its last run.
+      skipTrendRefreshAttempt();
+      this.loggerService.warn(
+        `Skipping the paused ${platform} Apify trend scrape`,
+      );
+      return [];
+    }
+
     const trends = this.toTrendDataArray(await scrape());
     await this.cacheService.set(cacheKey, trends, {
       tags: ['trends', `trends:${platform}`],

@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { ApifyActorUnavailableException } from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import type {
   TrendRefreshDataset,
   TrendRefreshHealth,
@@ -140,6 +141,8 @@ export function recordTrendRefreshFailure(reason: TrendRefreshReason): void {
 
 /** Classify provider failures without persisting token-bearing error messages. */
 export function classifyTrendProviderError(error: unknown): TrendRefreshReason {
+  if (error instanceof ApifyActorUnavailableException && error.isNotFound)
+    return 'actor_unavailable';
   const record =
     error && typeof error === 'object'
       ? (error as Record<string, unknown>)

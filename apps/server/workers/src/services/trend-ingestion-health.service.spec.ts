@@ -102,7 +102,16 @@ function setup() {
         ),
     },
   };
-  const health = { getHealth: vi.fn().mockResolvedValue([]) };
+  const health = {
+    getHealth: vi.fn().mockResolvedValue([]),
+    getScrapeBreaker: vi.fn().mockResolvedValue({
+      emptyDays: 0,
+      isOpen: false,
+      isPaused: false,
+      lastRunAt: null,
+      reason: null,
+    }),
+  };
   const recorder = {
     afterCommit: vi.fn().mockResolvedValue(undefined),
     dispatchInTransaction: vi
@@ -792,6 +801,120 @@ describe('TrendIngestionHealthService', () => {
           (key) => key.includes('/scoped/') && key.endsWith('/recovered'),
         ),
       ).toHaveLength(1);
+    });
+  });
+
+  describe('a paid scrape that returns nothing', () => {
+    const emptyThreeNights = {
+      emptyDays: 3,
+      isOpen: true,
+      isPaused: true,
+      lastRunAt: '2026-09-29T12:15:00.000Z',
+      reason: 'empty' as const,
+    };
+    const onlyTwitterTrends =
+      (breaker: object) =>
+      async (dataset: { dataset: string; platform: string }) =>
+        dataset.platform === 'twitter' && dataset.dataset === 'trends'
+          ? breaker
+          : {
+              emptyDays: 0,
+              isOpen: false,
+              isPaused: false,
+              lastRunAt: null,
+              reason: null,
+            };
+    const scrapeEvents = (events: Map<string, unknown>) =>
+      [...events.keys()].filter((key) => key.includes('/scrape/missed/'));
+
+    it('raises one incident naming the actor and the dataset, and stays silent while it continues', async () => {
+      const { service, digests, events, health } = setup();
+      health.getScrapeBreaker.mockImplementation(
+        onlyTwitterTrends(emptyThreeNights),
+      );
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+
+      const scrapeCards = digests()
+        .map((digest) => digest.messages[0].message.payload.card)
+        .filter((card) => card.description.includes('twitter trends'));
+      expect(scrapeCards).toHaveLength(1);
+      expect(scrapeCards[0].description).toContain(
+        'automation-lab/twitter-trends-scraper',
+      );
+      expect(scrapeCards[0].description).toContain('3 nights in a row');
+      expect(scrapeEvents(events)).toHaveLength(1);
+
+      await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+      expect(scrapeEvents(events)).toHaveLength(1);
+    });
+
+    it('names an actor Apify no longer finds on its first night', async () => {
+      const { service, digests, health } = setup();
+      health.getScrapeBreaker.mockImplementation(
+        onlyTwitterTrends({
+          emptyDays: 0,
+          isOpen: true,
+          isPaused: true,
+          lastRunAt: '2026-09-29T12:15:00.000Z',
+          reason: 'actor_unavailable',
+        }),
+      );
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+
+      const description = digests()
+        .map((digest) => digest.messages[0].message.payload.card.description)
+        .join('\n');
+      expect(description).toContain(
+        'Apify no longer finds the actor automation-lab/twitter-trends-scraper',
+      );
+    });
+
+    it('closes the incident when the scrape returns items again', async () => {
+      const { service, digests, events, health } = setup();
+      health.getScrapeBreaker.mockImplementation(
+        onlyTwitterTrends(emptyThreeNights),
+      );
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+      health.getScrapeBreaker.mockImplementation(
+        onlyTwitterTrends({
+          emptyDays: 0,
+          isOpen: false,
+          isPaused: false,
+          lastRunAt: '2026-10-06T00:15:00.000Z',
+          reason: null,
+        }),
+      );
+      await service.checkMissedWindows(new Date('2026-10-06T00:15:00.000Z'));
+
+      expect(
+        [...events.keys()].filter(
+          (key) =>
+            key.includes('/scrape/missed/') && key.endsWith('/recovered'),
+        ),
+      ).toHaveLength(1);
+      const last = digests().at(-1)?.messages[0].message.payload.card;
+      expect(last?.description).toContain('returned items again');
+    });
+
+    it('raises nothing when the scrape is not in an incident', async () => {
+      const { service, events } = setup();
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+
+      expect(scrapeEvents(events)).toHaveLength(0);
+    });
+
+    it('does not also report a paused scrape as a refresh that missed its windows', async () => {
+      const { service, events, health } = setup();
+      health.getScrapeBreaker.mockImplementation(
+        onlyTwitterTrends(emptyThreeNights),
+      );
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+
+      expect(
+        [...events.keys()].filter((key) =>
+          key.startsWith('trend-ingestion-health/twitter/trends/missed/'),
+        ),
+      ).toHaveLength(0);
     });
   });
 });
