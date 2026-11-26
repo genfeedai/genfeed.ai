@@ -905,6 +905,8 @@ export default function BrandOsSettingsCard({
   return renderWorkspace({
     content,
     approvedContent,
+    requiredTextContext: selected?.requiredTextContext ?? null,
+    isApproved,
     renderFields: (groups) =>
       content ? (
         <BrandOsRevisionFields

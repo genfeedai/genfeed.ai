@@ -15,6 +15,7 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -84,6 +85,7 @@ export class SkillLibraryController {
   }
 
   @Post('scoped')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async createScopedSkill(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -95,6 +97,7 @@ export class SkillLibraryController {
   }
 
   @Post(':id/fork')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async forkSkill(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -125,6 +128,7 @@ export class SkillLibraryController {
   }
 
   @Post(':id/publish')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async publishSkill(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -136,6 +140,7 @@ export class SkillLibraryController {
   }
 
   @Post(':id/archive')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   archiveSkill(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -151,6 +156,7 @@ export class SkillLibraryController {
   }
 
   @Post(':id/rollback')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async rollbackSkill(
     @Req() request: Request,
     @CurrentUser() user: User,

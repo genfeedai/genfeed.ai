@@ -15,6 +15,7 @@ import { WORKFLOW_ENGINE_ADAPTER } from '@api/collections/workflows/workflows.to
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { ConfigService as ApiConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
 import {
   BullModule,
   BullRegistrar,
@@ -153,6 +154,12 @@ async function createStartupFixture(
       ScheduledPostWorkflowService,
       StartupProcessor,
       { provide: LoggerService, useValue: logger },
+      // main.ts hands the health server this service; the real AppModule
+      // provides it through RedisModule.
+      {
+        provide: RedisService,
+        useValue: { hasClosedConnection: () => false },
+      },
       {
         provide: WORKFLOW_ENGINE_ADAPTER,
         useValue: {

@@ -6,6 +6,7 @@ import type {
   IBrandKitDraft,
   IBrandKitDraftField,
   IBrandKitFieldOwner,
+  IBrandKitRequiredTextContext,
   IBrandOsExportState,
   IBrandOsRevision,
   IBrandPublishPolicy,
@@ -93,6 +94,10 @@ export interface BrandOsPolicyListFieldProps {
 
 export interface BrandKitRevisionWorkspace {
   content: IBrandKitDraft | null;
+  /** The shown revision's saved text count against the shared budget; null until one is loaded. */
+  requiredTextContext: IBrandKitRequiredTextContext | null;
+  /** The shown revision is the approved one. */
+  isApproved: boolean;
   approvedContent: IBrandKitDraft | null;
   /** The revision's fields for the given groups, as editable rows. */
   renderFields: (groups: readonly BrandKitFieldGroup[]) => ReactNode;

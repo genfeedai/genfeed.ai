@@ -6972,7 +6972,7 @@ test('private dual reporters retain a real beforeAll error and cannot qualify it
   }
 });
 
-test('dataset correctness requires all ten ordinary publication and graph cases', () => {
+test('dataset correctness requires all eleven ordinary publication and graph cases', () => {
   const url = 'postgresql://fixture@127.0.0.1:5432/genfeed_dataset_5781_test';
   assert.deepEqual(datasetChildEnvironment(url), {
     LEARNING_DATASET_TEST_DATABASE_URL: url,
@@ -6981,17 +6981,17 @@ test('dataset correctness requires all ten ordinary publication and graph cases'
     LEARNING_DATASET_SMOKE: '',
     LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
   });
-  assert.equal(PG_TITLES.length, 10);
+  assert.equal(PG_TITLES.length, 11);
   const contract = {
     file: 'src/collections/content-learning/services/learning-dataset.postgres.spec.ts',
-    count: 10,
+    count: 11,
     titles: PG_TITLES,
   };
   const positive = report(
     PG_TITLES.map((title) => assertion(title)),
     `/fixture/${contract.file}`,
   );
-  assert.equal(validateReport(positive, [contract], child)[0].passed, 10);
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 11);
   for (const kind of ['missing', 'duplicate', 'unknown', 'pending']) {
     const negative = structuredClone(positive);
     if (kind === 'missing') negative.testResults[0].assertionResults.pop();

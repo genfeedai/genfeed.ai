@@ -11,6 +11,7 @@ import Redis from 'ioredis';
 import {
   buildIoRedisClientOptions,
   parseRedisConnection,
+  redisReconnectBackoff,
 } from './redis-connection.utils';
 
 @Injectable()
@@ -53,7 +54,15 @@ export class RedisService
     const config = parseRedisConnection(this.configService);
     const clientOptions = buildIoRedisClientOptions(config, {
       connectTimeout: RedisService.CONNECT_TIMEOUT_MS,
-      retryStrategy: () => null, // Don't retry - fail fast
+      // Callers fail open: while Redis is down a command errors at once rather
+      // than queueing behind the reconnect.
+      enableOfflineQueue: false,
+      // A failed first connection leaves Redis disabled (see the catch below),
+      // so do not keep retrying then. Once connected, never stop: a stopped
+      // client stays dead until restart, and every cache read fails with
+      // "Connection is closed" long after Redis is back.
+      retryStrategy: (retries) =>
+        this.isInitialized ? redisReconnectBackoff(retries) : null,
     });
 
     try {
@@ -210,6 +219,22 @@ export class RedisService
     await this.subscriber.unsubscribe(channel);
     this.handlers.delete(channel);
     this.logger.log(`Unsubscribed from channel: ${channel}`, this.context);
+  }
+
+  /**
+   * True when Redis was connected and a client has since been closed for good
+   * (ioredis status `end`). Such a client never recovers, so a task in this
+   * state must report unhealthy and be replaced. A client that is only
+   * reconnecting (`reconnecting`) is not closed, and a Redis that was never
+   * reachable keeps the feature disabled instead. Reads in-memory state only.
+   */
+  hasClosedConnection(): boolean {
+    return (
+      this.isInitialized &&
+      [this.publisher, this.subscriber].some(
+        (client) => client?.status === 'end',
+      )
+    );
   }
 
   /**
