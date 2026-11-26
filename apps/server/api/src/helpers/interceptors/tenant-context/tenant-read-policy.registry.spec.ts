@@ -290,7 +290,6 @@ const observedTemplates = [
   '/v1/services/unipile/status',
   '/v1/services/whatsapp/status/{messageSid}',
   '/v1/skills/{slug}',
-  '/v1/sync/desktop/brand-manifest',
   '/v1/sync/status',
   '/v1/tags/library',
   '/v1/tasks/by-identifier/{identifier}',
