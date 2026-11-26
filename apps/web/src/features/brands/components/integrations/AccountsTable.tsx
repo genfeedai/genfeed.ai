@@ -13,7 +13,6 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
 import {
   Link2,
   MessageSquareWarning,
@@ -284,21 +283,16 @@ export default function AccountsTable({
       actions={actions}
       ariaLabel={translate('connectedAccounts')}
       columns={columns}
-      emptyState={
-        <EmptyState
-          actions={
-            <Button
-              onClick={onConnectAccount}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            >
-              <Plus /> {translate('connectAccount')}
-            </Button>
-          }
-          icon={Link2}
-          title={translate('emptyAccountsTitle')}
-        />
-      }
+      empty={{
+        action: {
+          icon: Plus,
+          label: translate('connectAccount'),
+          onClick: onConnectAccount,
+        },
+        description: translate('emptyAccountsDescription'),
+        icon: Link2,
+        title: translate('emptyAccountsTitle'),
+      }}
       getRowKey={(connection) => connection.credentialId}
       items={sortedConnections}
       rowSidebar={rowSidebar}
