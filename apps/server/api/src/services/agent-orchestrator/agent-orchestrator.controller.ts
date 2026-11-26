@@ -10,6 +10,7 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
@@ -57,6 +58,7 @@ export class AgentOrchestratorController {
   ) {}
 
   @Post('threads/turns')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a new or provided thread' })
   async createTurn(@Body() body: AgentChatBodyDto, @CurrentUser() user: User) {
@@ -64,6 +66,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a thread' })
   async createThreadTurn(
@@ -75,6 +78,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/turns/stream')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(202)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
@@ -88,6 +92,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns/stream')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(202)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start a streaming agent turn in a thread' })
