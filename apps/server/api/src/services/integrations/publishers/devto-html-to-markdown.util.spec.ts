@@ -1,5 +1,6 @@
 import {
   htmlToDevtoMarkdown,
+  readDevtoCanonicalUrl,
   readDevtoTags,
 } from '@api/services/integrations/publishers/devto-html-to-markdown.util';
 
@@ -56,4 +57,25 @@ describe('readDevtoTags', () => {
     expect(readDevtoTags(undefined)).toEqual([]);
     expect(readDevtoTags(' , , ')).toEqual([]);
   });
+});
+
+describe('readDevtoCanonicalUrl', () => {
+  it('leaves Dev.to as the original when no URL is set', () => {
+    expect(readDevtoCanonicalUrl(undefined)).toEqual({ url: undefined });
+  });
+
+  it('accepts an https URL and returns it normalized', () => {
+    expect(
+      readDevtoCanonicalUrl(' https://genfeed.ai/articles/my-post '),
+    ).toEqual({ url: 'https://genfeed.ai/articles/my-post' });
+  });
+
+  it.each(['http://genfeed.ai/a', 'genfeed.ai/a', 'javascript:alert(1)'])(
+    'reports %s instead of dropping it',
+    (value) => {
+      expect(readDevtoCanonicalUrl(value)).toEqual({
+        error: 'Dev.to canonical URL must be a valid https URL',
+      });
+    },
+  );
 });

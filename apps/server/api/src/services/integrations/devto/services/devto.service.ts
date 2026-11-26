@@ -43,7 +43,10 @@ interface DevtoArticle {
  */
 export interface DevtoCreateArticleInput {
   bodyMarkdown: string;
+  /** https URL of the original, when the article was first published elsewhere. */
+  canonicalUrl?: string;
   published: boolean;
+  series?: string;
   tags: string[];
   title: string;
 }
@@ -127,7 +130,8 @@ export class DevtoService {
   /**
    * Create a dev.to article for an API key the publisher already decrypted
    * from `PublishContext.credential`. `published: false` stores a draft.
-   * No canonical URL is sent; dev.to self-canonicalizes.
+   * `canonical_url` and `series` are sent only when the caller supplies them;
+   * without a canonical URL dev.to is the original.
    */
   async createArticle(
     apiKey: string,
@@ -141,6 +145,12 @@ export class DevtoService {
     };
     if (input.tags.length > 0) {
       article.tags = input.tags;
+    }
+    if (input.canonicalUrl) {
+      article.canonical_url = input.canonicalUrl;
+    }
+    if (input.series) {
+      article.series = input.series;
     }
 
     try {
