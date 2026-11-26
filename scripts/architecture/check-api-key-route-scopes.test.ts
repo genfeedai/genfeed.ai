@@ -136,4 +136,97 @@ describe('API-key route scope ratchet', () => {
       runApiKeyRouteScopeCheck({ baseline: [], rootDir }).mutatingRouteCount,
     ).toBe(0);
   });
+  describe('@Public() routes', () => {
+    it('skips a handler marked public and still flags its unmarked neighbours', () => {
+      const rootDir = fixture({
+        [CONTROLLER]: `
+          @Controller('things')
+          export class ThingsController {
+            @Public()
+            @Post('hook') receive() {}
+            @Post() create() {}
+            @Delete(':id') remove() {}
+          }
+        `,
+      });
+
+      const result = runApiKeyRouteScopeCheck({ baseline: [], rootDir });
+
+      expect(result.mutatingRouteCount).toBe(3);
+      expect(result.unscopedRoutes.map((route) => route.key)).toEqual([
+        `${CONTROLLER}::ThingsController.create`,
+        `${CONTROLLER}::ThingsController.remove`,
+      ]);
+    });
+
+    it('skips every handler of a public controller', () => {
+      const rootDir = fixture({
+        [CONTROLLER]: `
+          @Controller('hooks')
+          @Public()
+          export class HooksController {
+            @Post() receive() {}
+            @Patch(':id') update() {}
+          }
+        `,
+      });
+
+      const result = runApiKeyRouteScopeCheck({ baseline: [], rootDir });
+
+      expect(result.mutatingRouteCount).toBe(2);
+      expect(result.violations).toEqual([]);
+    });
+
+    it('does not skip a public route that also runs the API-key guard', () => {
+      const rootDir = fixture({
+        [CONTROLLER]: `
+          @Controller('things')
+          export class ThingsController {
+            @Public()
+            @UseGuards(ApiKeyAuthGuard)
+            @Post('keyed') keyed() {}
+            @Public()
+            @Post('open') open() {}
+          }
+
+          @Controller('keyed')
+          @Public()
+          @UseGuards(AdminApiKeyGuard, ApiKeyAuthGuard)
+          export class KeyedController {
+            @Post() create() {}
+          }
+        `,
+      });
+
+      const result = runApiKeyRouteScopeCheck({ baseline: [], rootDir });
+
+      expect(result.unscopedRoutes.map((route) => route.key)).toEqual([
+        `${CONTROLLER}::KeyedController.create`,
+        `${CONTROLLER}::ThingsController.keyed`,
+      ]);
+    });
+
+    it('fails a baseline entry for a route that is now public', () => {
+      const rootDir = fixture({
+        [CONTROLLER]: `
+          @Controller('hooks')
+          export class HooksController {
+            @Public()
+            @Post() receive() {}
+          }
+        `,
+      });
+      const key = `${CONTROLLER}::HooksController.receive`;
+
+      expect(
+        runApiKeyRouteScopeCheck({ baseline: [key], rootDir }).violations,
+      ).toEqual([
+        {
+          entry: key,
+          kind: 'stale-baseline-entry',
+          message: expect.stringContaining('only shrinks'),
+        },
+      ]);
+    });
+  });
 });
