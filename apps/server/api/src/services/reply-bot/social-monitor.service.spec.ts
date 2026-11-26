@@ -36,14 +36,10 @@ describe('SocialMonitorService', () => {
   const mockApifyService = {
     getInstagramPostComments: vi.fn().mockResolvedValue([]),
     getInstagramUserPosts: vi.fn().mockResolvedValue([]),
-    getRedditPostComments: vi.fn().mockResolvedValue([]),
-    getRedditUserPosts: vi.fn().mockResolvedValue([]),
     getTikTokUserVideos: vi.fn().mockResolvedValue([]),
     getTikTokVideoComments: vi.fn().mockResolvedValue([]),
     getYouTubeChannelVideos: vi.fn().mockResolvedValue([]),
-    getYouTubeVideoComments: vi.fn().mockResolvedValue([]),
     searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
-    searchRedditPosts: vi.fn().mockResolvedValue([]),
     searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
     searchYouTubeVideos: vi.fn().mockResolvedValue([]),
   };
@@ -221,6 +217,18 @@ describe('SocialMonitorService', () => {
       'channel1',
     );
     expect(result).toEqual([]);
+  });
+
+  it('reads no comments, mentions, timeline or search results for Reddit, and no YouTube comments, without starting a scraper run', async () => {
+    const reads = await Promise.all([
+      service.getContentComments(ReplyBotPlatform.REDDIT, 'post-1'),
+      service.getUserMentions(ReplyBotPlatform.REDDIT, 'someone'),
+      service.getUserTimeline(ReplyBotPlatform.REDDIT, 'someone'),
+      service.searchContent(ReplyBotPlatform.REDDIT, 'query'),
+      service.getContentComments(ReplyBotPlatform.YOUTUBE, 'video-1'),
+    ]);
+
+    expect(reads).toEqual([[], [], [], [], []]);
   });
 
   it('reads the X timeline through the official API and asks X to drop replies and reposts by default', async () => {

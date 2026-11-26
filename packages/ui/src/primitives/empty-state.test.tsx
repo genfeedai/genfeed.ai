@@ -97,4 +97,33 @@ describe('EmptyState', () => {
       screen.getByRole('heading', { name: 'Nothing here yet' }),
     ).toBeInTheDocument();
   });
+  it('previews the table it stands in for and makes the CTA the primary button', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(
+      <EmptyState
+        title="No posts yet"
+        preview="rows"
+        previewColumns={['Post', 'Platform']}
+        action={{ icon: Inbox, label: 'Create Post', onClick }}
+      />,
+    );
+
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'No posts yet' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Create Post' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the preview out of the accessibility tree', () => {
+    const { container } = render(
+      <EmptyState title="No images yet" preview="tiles" />,
+    );
+
+    expect(
+      container.querySelector('[data-slot="empty-state-preview"]'),
+    ).toHaveAttribute('aria-hidden', 'true');
+  });
 });

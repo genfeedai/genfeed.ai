@@ -9,11 +9,11 @@ import { AgentStrategiesService } from '@services/automation/agent-strategies.se
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
-import { EmptyState } from '@ui/primitives/empty-state';
 import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import BrandRequiredState from '@/components/states/BrandRequiredState';
 import { buildRoleStrategyInput } from '@/features/agents/content-team/content-team-presets';
 import type { ContentTeamHirePageProps } from '@/features/automation/props/content-team-hire-page.props';
 import AgentMarketplace from './AgentMarketplace';
@@ -106,9 +106,7 @@ export default function ContentTeamHirePage({
 
   const content =
     !isBrandReady || !brandId ? (
-      <EmptyState
-        title={translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
-      />
+      <BrandRequiredState isLoading={pageScope !== 'org'} />
     ) : (
       <AgentMarketplace
         category={category}

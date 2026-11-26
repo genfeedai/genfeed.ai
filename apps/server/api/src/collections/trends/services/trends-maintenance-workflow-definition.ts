@@ -53,12 +53,8 @@ export type ScopedTrendRefreshTask = {
 
 const DATASET_TASKS: TrendDatasetTask[] = [
   { dataset: 'videos', platform: 'tiktok' },
-  { dataset: 'videos', platform: 'instagram' },
   { dataset: 'videos', platform: 'youtube' },
-  { dataset: 'videos', platform: 'reddit' },
-  { dataset: 'hashtags', platform: 'tiktok' },
   { dataset: 'hashtags', platform: 'instagram' },
-  { dataset: 'hashtags', platform: 'twitter' },
 ];
 
 function edge(source: string, target: string): WorkflowEdge {

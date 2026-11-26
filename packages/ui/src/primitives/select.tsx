@@ -114,7 +114,7 @@ const selectFieldVariants = cva('', {
   variants: {
     variant: {
       default: '',
-      error: 'border-destructive focus:border-destructive',
+      error: 'border-destructive focus-visible:border-destructive',
     },
   },
 });
@@ -249,7 +249,7 @@ function SelectSearch({
     <SelectInput
       ref={ref}
       className={cn(
-        'mb-1 h-control-sm w-full rounded-md border border-border bg-tertiary px-2 text-xs text-foreground outline-hidden placeholder:text-gray-800 focus-visible:border-border-strong',
+        'mb-1 h-control-sm w-full rounded-md border border-border bg-tertiary px-2 text-xs text-foreground outline-hidden placeholder:text-gray-800 focus-visible:border-foreground/50',
         className,
       )}
       {...props}

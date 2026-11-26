@@ -557,8 +557,6 @@
     },
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
-    "loadingBrand": "Loading the selected brand…",
-    "selectBrand": "Select a brand to continue.",
     "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
@@ -601,6 +599,12 @@
       "selectionRequired": "Select at least one agent for a blank Program.",
       "title": "Start from a template"
     }
+  },
+  "brandRequired": {
+    "description": "Pick one in the top bar to continue.",
+    "loading": "Loading the selected brand…",
+    "manageBrands": "Manage brands",
+    "title": "Select a brand"
   },
   "selectionActions": {
     "count": "{count} selected",
@@ -1521,6 +1525,14 @@
     "resolve": "Resolve",
     "resolved": "Resolved",
     "search": "Search threads",
+    "selection": {
+      "bulkFailed": "{count, plural, one {# thread could not be updated and stays selected.} other {# threads could not be updated and stay selected.}}",
+      "clear": "Clear",
+      "count": "{count, plural, one {# selected} other {# selected}}",
+      "select": "Select {title}",
+      "selectGroup": "Select all in {group}",
+      "toolbar": "Selected threads"
+    },
     "share": {
       "accessBadge": "{owner} · {level}",
       "accessFor": "Access for {name}",
@@ -1818,8 +1830,6 @@
       "description": "Activate a marketplace agent in one click, or describe a custom agent in chat.",
       "emptySearch": "No agents match this search.",
       "featured": "Featured",
-      "loadingBrand": "Loading the selected brand…",
-      "selectBrand": "Select a brand to continue.",
       "moreAgents": "More agents",
       "search": "Search agents",
       "title": "Add agent",
@@ -1977,11 +1987,6 @@
         "workflows": "Workflows"
       }
     },
-    "brandEmpty": {
-      "action": "Manage brands",
-      "description": "Choose a brand from the top bar to open this Automation page. Your current destination will stay selected when you switch brands.",
-      "title": "Select a brand to use Automation"
-    },
     "contentPlans": {
       "badgeColdStart": "Cold-start",
       "badgeGrounded": "Grounded",
@@ -2030,7 +2035,6 @@
       "emptyTitle": "No content runs yet",
       "goToDiscovery": "Go to Discovery",
       "loadError": "Content runs could not be loaded.",
-      "selectBrand": "Select a brand to view content runs.",
       "search": "Search content runs",
       "emptySearchTitle": "No content runs match your search"
     },

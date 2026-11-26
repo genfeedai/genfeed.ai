@@ -460,7 +460,12 @@ when they do not apply; `rate_limited` does not invent a URL. Paths are app
 routes on your instance; sign-in continues into the caller's organization. Fix
 `errors[]` and call the tool again. For `approval_pending`, hand the human
 `nextStepUrl` or, when `canResolveApproval` is true and the user approves, call
-`resolve_approval` with `structuredContent.approvalId`. For
+`resolve_approval` with `structuredContent.approvalId`. When the client renders
+the approval card, the card also has Approve and Decline buttons for the
+member who asked for the action, if they are an owner or admin. They call
+`answer_approval`, which MCP Apps hosts hide from the model and which the
+server accepts only with a short-lived proof returned in the result's `_meta`
+for that one approval; never call it yourself. For
 `brand_required`, retry with one of the listed `brands[].id` values; no brand is
 ever picked for you.
 

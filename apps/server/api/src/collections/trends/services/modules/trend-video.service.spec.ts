@@ -16,8 +16,6 @@ describe('TrendVideoService', () => {
   };
 
   const mockApifyService = {
-    getInstagramVideos: vi.fn(),
-    getRedditVideos: vi.fn(),
     getTikTokSounds: vi.fn(),
     getTikTokVideos: vi.fn(),
     getTrendingHashtags: vi.fn(),
@@ -34,6 +32,7 @@ describe('TrendVideoService', () => {
   };
 
   let mockPrisma: {
+    trend: { findMany: ReturnType<typeof vi.fn> };
     trendingHashtag: MockTrendDelegate;
     trendingSound: MockTrendDelegate;
     trendingVideo: MockTrendDelegate;
@@ -80,12 +79,17 @@ describe('TrendVideoService', () => {
     updatedAt: new Date(),
   });
 
-  const refreshHealth = { record: vi.fn().mockResolvedValue(undefined) };
+  const refreshHealth = {
+    isScrapePaused: vi.fn().mockResolvedValue(false),
+    record: vi.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    refreshHealth.isScrapePaused.mockResolvedValue(false);
 
     mockPrisma = {
+      trend: { findMany: vi.fn().mockResolvedValue([]) },
       trendingHashtag: {
         create: vi.fn().mockResolvedValue({ id: 'created-hashtag' }),
         findMany: vi.fn().mockResolvedValue([]),
@@ -574,6 +578,53 @@ describe('TrendVideoService', () => {
     });
   });
 
+  describe('deriveAndCacheTwitterHashtags', () => {
+    it('stores the hashtags among the stored X trends without buying anything', async () => {
+      mockPrisma.trend.findMany.mockResolvedValue([
+        {
+          data: { growthRate: 12, mentions: 5400 },
+          topic: '#LaunchDay',
+          viralityScore: 90,
+        },
+        { data: { mentions: 10 }, topic: '#launchday', viralityScore: 40 },
+      ]);
+
+      const count = await service.deriveAndCacheTwitterHashtags(12);
+
+      expect(count).toBe(1);
+      expect(mockApifyService.getTrendingHashtags).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingHashtag.create).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({
+            growthRate: 12,
+            hashtag: 'LaunchDay',
+            platform: 'twitter',
+            postCount: 5400,
+            postCountScope: 'platform',
+            viralityScore: 90,
+          }),
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('records a successful empty refresh when no X trend is a hashtag', async () => {
+      mockPrisma.trend.findMany.mockResolvedValue([]);
+
+      await expect(service.deriveAndCacheTwitterHashtags()).resolves.toBe(0);
+
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          dataset: 'hashtags',
+          outcome: 'native_empty',
+          platform: 'twitter',
+          reason: 'native_empty',
+          lastSuccessfulRefreshAt: expect.any(String),
+        }),
+      ]);
+    });
+  });
+
   describe('fetchAndCacheSounds', () => {
     it('reads existing sounds once for the whole batch and updates the match', async () => {
       mockApifyService.getTikTokSounds.mockResolvedValue([
@@ -683,5 +734,44 @@ describe('TrendVideoService', () => {
         }),
       ]);
     }
+  });
+
+  describe('a paused paid scrape', () => {
+    beforeEach(() => {
+      refreshHealth.isScrapePaused.mockResolvedValue(true);
+    });
+
+    it('is not bought and leaves no receipt for TikTok videos, Instagram hashtags and sounds', async () => {
+      await expect(service.fetchAndCacheViralVideos('tiktok')).resolves.toBe(0);
+      await expect(service.fetchAndCacheHashtags('instagram')).resolves.toBe(0);
+      await expect(service.fetchAndCacheSounds()).resolves.toBe(0);
+
+      expect(mockApifyService.getTikTokVideos).not.toHaveBeenCalled();
+      expect(mockApifyService.getTrendingHashtags).not.toHaveBeenCalled();
+      expect(mockApifyService.getTikTokSounds).not.toHaveBeenCalled();
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'videos',
+        platform: 'tiktok',
+      });
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'hashtags',
+        platform: 'instagram',
+      });
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'sounds',
+        platform: 'tiktok',
+      });
+      for (const [, evidence] of refreshHealth.record.mock.calls)
+        expect(evidence).toEqual([]);
+    });
+
+    it('still derives X hashtags, which cost nothing', async () => {
+      await service.deriveAndCacheTwitterHashtags();
+
+      expect(refreshHealth.isScrapePaused).not.toHaveBeenCalled();
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({ dataset: 'hashtags', platform: 'twitter' }),
+      ]);
+    });
   });
 });

@@ -301,6 +301,36 @@ describe('Table', () => {
     expect(screen.getByText('No unread items')).toBeInTheDocument();
   });
 
+  it('names an empty table, previews its own columns and runs the one next step', async () => {
+    const onCreate = vi.fn();
+    render(
+      <Table
+        items={[]}
+        columns={[
+          { header: 'Brand', key: 'name' },
+          { header: 'Posts', key: 'posts' },
+        ]}
+        empty={{
+          action: { label: 'Create Brand', onClick: onCreate },
+          description: 'Create a brand to start tracking its posts.',
+          title: 'No brands yet',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'No brands yet' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Create a brand to start tracking its posts.'),
+    ).toBeInTheDocument();
+    // The faded header repeats the real column labels.
+    expect(screen.getByText('Brand')).toBeInTheDocument();
+    expect(screen.getByText('Posts')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Create Brand' }));
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a delegated empty table frameless', () => {
     render(
       <Table

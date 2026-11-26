@@ -3,6 +3,8 @@
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
+import { useOutputPaneHeader } from '@ui/layout/agent-output-layout/output-pane-header.context';
+import { createPortal } from 'react-dom';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
@@ -35,6 +37,7 @@ export default function SectionTopbar({
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
+  const outputPaneHeader = useOutputPaneHeader();
   const hasVisibleTitle =
     titleVisibility === 'visible'
       ? true
@@ -72,6 +75,59 @@ export default function SectionTopbar({
   }
 
   if (!hasVisibleTitle) {
+    const controls = (
+      <>
+        {hasLeading ? (
+          <div
+            data-testid="section-topbar-leading"
+            className="mr-auto flex min-w-0 shrink-0 items-center"
+          >
+            {leading}
+          </div>
+        ) : null}
+        {hasActions || hasTabs ? (
+          <div
+            data-testid="section-topbar-actions"
+            className={cn(
+              'flex items-center gap-2',
+              actions || hasTabs
+                ? cn(
+                    'min-w-0 flex-wrap justify-end',
+                    hasLeading ? 'flex-auto' : 'flex-1',
+                  )
+                : 'shrink-0',
+            )}
+          >
+            {leadActionsNode}
+            {hasTabs ? (
+              <div
+                data-testid="section-topbar-tabs"
+                className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
+              >
+                {tabs}
+              </div>
+            ) : null}
+            {actions}
+          </div>
+        ) : null}
+      </>
+    );
+
+    // Inside an output pane the controls join the pane's own header, so the
+    // pane has one bar. Until that header mounts there is nothing to paint.
+    if (outputPaneHeader) {
+      return (
+        <>
+          <div className="sr-only" data-testid="section-topbar">
+            <h1>{title}</h1>
+          </div>
+          {outputPaneHeader.slot
+            ? createPortal(controls, outputPaneHeader.slot)
+            : null}
+        </>
+      );
+    }
+
     return (
       <div
         data-testid="section-topbar"
@@ -92,39 +148,7 @@ export default function SectionTopbar({
             !hasLeading && !hasTabs && hasActions && 'justify-end',
           )}
         >
-          {hasLeading ? (
-            <div
-              data-testid="section-topbar-leading"
-              className="mr-auto flex shrink-0 items-center"
-            >
-              {leading}
-            </div>
-          ) : null}
-          {hasActions || hasTabs ? (
-            <div
-              data-testid="section-topbar-actions"
-              className={cn(
-                'flex items-center gap-2',
-                actions || hasTabs
-                  ? cn(
-                      'min-w-0 flex-wrap justify-end',
-                      hasLeading ? 'flex-auto' : 'flex-1',
-                    )
-                  : 'shrink-0',
-              )}
-            >
-              {leadActionsNode}
-              {hasTabs ? (
-                <div
-                  data-testid="section-topbar-tabs"
-                  className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
-                >
-                  {tabs}
-                </div>
-              ) : null}
-              {actions}
-            </div>
-          ) : null}
+          {controls}
         </div>
       </div>
     );

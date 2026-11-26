@@ -11,7 +11,6 @@ import { normalizeTrendSourceClassification } from '@api/collections/trends/util
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
   ApifyInstagramPost,
-  ApifyRedditPost,
   ApifyTikTokVideo,
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
@@ -103,20 +102,19 @@ export class TrendSourceItemsService {
 
     const fetchers: Record<string, () => Promise<TrendSourceItem[]>> = {
       instagram: async () => {
-        const posts = await this.apifyService.searchInstagramByHashtag(
+        // The night's shared Instagram pull may already hold this hashtag.
+        const held = await this.apifyService.getHeldInstagramHashtagPosts(
           searchTerm,
-          { limit },
+          limit,
         );
+        const posts =
+          held.length > 0
+            ? held
+            : await this.apifyService.searchInstagramByHashtag(searchTerm, {
+                limit,
+              });
         return this.normalizeSourceItems(posts, (post) =>
           this.mapInstagramPostToSourceItem(post),
-        );
-      },
-      reddit: async () => {
-        const posts = await this.apifyService.searchRedditPosts(searchTerm, {
-          limit,
-        });
-        return this.normalizeSourceItems(posts, (post) =>
-          this.mapRedditPostToSourceItem(post),
         );
       },
       tiktok: async () => {
@@ -369,36 +367,6 @@ export class TrendSourceItemsService {
       text: video.description,
       thumbnailUrl: video.thumbnailUrl,
       title: video.title,
-    };
-  }
-
-  private mapRedditPostToSourceItem(
-    post: ApifyRedditPost,
-  ): TrendSourceItem | null {
-    const sourceUrl = post.permalink
-      ? `https://reddit.com${post.permalink}`
-      : post.url;
-
-    if (!sourceUrl) {
-      return null;
-    }
-
-    return {
-      authorHandle: post.author || undefined,
-      contentType: post.isVideo ? 'video' : 'post',
-      id: post.id,
-      mediaUrl: post.url,
-      metrics: {
-        comments: post.numComments,
-        likes: post.score,
-      },
-      platform: 'reddit',
-      publishedAt: post.createdUtc
-        ? new Date(post.createdUtc * 1000).toISOString()
-        : undefined,
-      sourceUrl,
-      text: post.title,
-      title: post.title,
     };
   }
 

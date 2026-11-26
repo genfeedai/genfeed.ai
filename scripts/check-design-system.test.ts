@@ -287,6 +287,43 @@ describe('packages/ui design-system guards', () => {
     ).toEqual(expected);
   });
 
+  it.each([
+    [
+      '<input className="focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />',
+      [
+        'focus-visible:ring-2',
+        'focus-visible:ring-offset-2',
+        'focus-visible:ring-ring',
+      ],
+    ],
+    [
+      '<Input className="focus:ring-1 focus-within:ring-2" />',
+      ['focus-within:ring-2', 'focus:ring-1'],
+    ],
+    [
+      '<FormSearchbar inputClassName="focus-visible:ring-ring" />',
+      ['focus-visible:ring-ring'],
+    ],
+    [
+      '<Textarea className={`focus-visible:ring-2 ${x}`} />',
+      ['focus-visible:ring-2'],
+    ],
+    [
+      '<Input className="focus-visible:ring-0 focus-visible:ring-offset-0" />',
+      [],
+    ],
+    ['<Input className="focus-visible:border-foreground/50" />', []],
+    ['<input type="checkbox" className="focus-visible:ring-2" />', []],
+    ['<Button className="focus-visible:ring-2" />', []],
+  ])('in %s flags field focus rings %j', (source, expected) => {
+    expect(
+      findPackageUiGuardFindings(source, 'apps/web/example.tsx')
+        .filter((entry) => entry.kind === 'field-focus-ring')
+        .map((entry) => entry.token)
+        .sort(),
+    ).toEqual(expected);
+  });
+
   it('flags arbitrary text sizes that have a named step', () => {
     const findings = findPackageUiGuardFindings(
       '<div className="text-[11px] md:text-[13px] text-[0.875rem] text-[16px] text-[17px] text-[3.5rem] text-sm" />',

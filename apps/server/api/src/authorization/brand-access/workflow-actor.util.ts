@@ -21,13 +21,23 @@ export type WorkflowActorDenial = (reason?: string) => never;
 
 const denialLogger = new Logger('WorkflowActorDenial');
 
+/** The check that refused each denial, kept beside the exception and never on it or in the response. */
+const denialReasons = new WeakMap<Error, string>();
+
+/** The check that refused a denial raised by {@link denyWorkflowActor}, for a caller that logs it. */
+export function workflowActorDenialReason(error: unknown): string | undefined {
+  return error instanceof Error ? denialReasons.get(error) : undefined;
+}
+
 /**
  * Every denial answers with the same message. The reason names the check that refused, so an
  * operator can tell which one from the log; it never reaches the caller.
  */
 export function denyWorkflowActor(reason?: string): never {
   if (reason) denialLogger.warn(`Workflow actor denied: ${reason}`);
-  throw new ForbiddenException('Brand access denied');
+  const denial = new ForbiddenException('Brand access denied');
+  if (reason) denialReasons.set(denial, reason);
+  throw denial;
 }
 
 function record(value: unknown): Record<string, unknown> {

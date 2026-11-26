@@ -3,7 +3,7 @@ import {
   type ModelsToolbar,
   usePublishModelsToolbar,
 } from '@contexts/models/models-toolbar-context/models-toolbar-context';
-import { ButtonVariant, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
   TableAction,
@@ -11,7 +11,6 @@ import type {
 } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { EmptyState } from '@ui/primitives/empty-state';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -270,22 +269,20 @@ export default function ModelsList({
         rowSidebar={isAdminScope ? undefined : rowSidebar}
         getRowKey={(model: IModel) => model.id}
         emptyLabel={translate('noModelsFound')}
-        emptyState={
-          <EmptyState
-            title={translate('noModelsFound')}
-            icon={Cpu}
-            action={{
-              label: searchTerm
-                ? translate('clearSearch')
-                : translate('refresh'),
-              onClick: () => {
-                if (searchTerm) handleSearchChange('');
-                else void refresh();
-              },
-              variant: ButtonVariant.SECONDARY,
-            }}
-          />
-        }
+        empty={{
+          action: {
+            label: searchTerm ? translate('clearSearch') : translate('refresh'),
+            onClick: () => {
+              if (searchTerm) handleSearchChange('');
+              else void refresh();
+            },
+          },
+          description: searchTerm
+            ? translate('noModelsSearchDescription')
+            : translate('noModelsDescription'),
+          icon: Cpu,
+          title: translate('noModelsFound'),
+        }}
         items={models}
         sortKey={sortKey}
         sortDirection={sortDirection}

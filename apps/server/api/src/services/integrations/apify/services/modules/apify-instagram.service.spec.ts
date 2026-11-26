@@ -17,7 +17,9 @@ describe('ApifyInstagramService', () => {
       error: ReturnType<typeof vi.fn>;
       log: ReturnType<typeof vi.fn>;
     };
+    readSharedRun: ReturnType<typeof vi.fn>;
     runActor: ReturnType<typeof vi.fn>;
+    shareRun: ReturnType<typeof vi.fn>;
   };
 
   const mockPost = {
@@ -54,6 +56,10 @@ describe('ApifyInstagramService', () => {
         INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
       },
       getApiToken: vi.fn().mockReturnValue('test-token'),
+      readSharedRun: vi.fn().mockResolvedValue(null),
+      shareRun: vi.fn((_key: string, scrape: () => Promise<unknown[]>) =>
+        scrape(),
+      ),
       calculateEngagementMetrics: vi.fn().mockReturnValue({
         engagementRate: 2.1,
         velocity: 2083,
@@ -113,10 +119,29 @@ describe('ApifyInstagramService', () => {
     expect(baseService.runActor).toHaveBeenCalledWith(
       'apify/instagram-hashtag-scraper',
       expect.objectContaining({
-        hashtags: ['viral', 'reels'],
-        resultsLimit: 3,
+        hashtags: ['viral', 'reels', 'trending', 'explorepage'],
+        resultsLimit: 5,
       }),
     );
+  });
+
+  it('getHeldHashtagPosts returns only held posts that carry the hashtag, without a run', async () => {
+    baseService.readSharedRun.mockResolvedValue([
+      { ...mockPost, hashtags: ['Viral', 'reels'], id: 'held-1' },
+      { ...mockPost, hashtags: ['#viral'], id: 'held-2' },
+      { ...mockPost, hashtags: ['other'], id: 'held-3' },
+    ]);
+
+    const result = await service.getHeldHashtagPosts('#viral', 5);
+
+    expect(result.map((post) => post.id)).toEqual(['held-1', 'held-2']);
+    expect(baseService.runActor).not.toHaveBeenCalled();
+  });
+
+  it('getHeldHashtagPosts is empty when nothing is held', async () => {
+    baseService.readSharedRun.mockResolvedValue(null);
+
+    await expect(service.getHeldHashtagPosts('viral', 5)).resolves.toEqual([]);
   });
 
   it('getInstagramTrends skips posts with no hashtag instead of emitting an empty topic', async () => {
@@ -151,31 +176,6 @@ describe('ApifyInstagramService', () => {
   it('getInstagramTrends rethrows provider failures', async () => {
     baseService.runActor.mockRejectedValue(new Error('API error'));
     await expect(service.getInstagramTrends()).rejects.toThrow('API error');
-  });
-
-  it('getInstagramVideos normalizes posts with video data', async () => {
-    baseService.runActor.mockResolvedValue([mockPost]);
-    const result = await service.getInstagramVideos(10);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({
-      creatorHandle: 'creator1',
-      platform: 'instagram',
-      videoUrl: 'https://instagram.com/video.mp4',
-      viewCount: 50000,
-    });
-  });
-
-  it('getInstagramVideos filters out posts without video data', async () => {
-    baseService.runActor.mockResolvedValue([
-      { ...mockPost, videoUrl: undefined, videoViewCount: undefined },
-    ]);
-    const result = await service.getInstagramVideos();
-    expect(result).toHaveLength(0);
-  });
-
-  it('getInstagramVideos rethrows provider failures', async () => {
-    baseService.runActor.mockRejectedValue(new Error('fail'));
-    await expect(service.getInstagramVideos()).rejects.toThrow('fail');
   });
 
   it('getInstagramPostComments normalizes comments', async () => {
@@ -242,22 +242,6 @@ describe('ApifyInstagramService', () => {
     expect(result).toEqual([]);
   });
 
-  it('normalizes post with missing optional fields', async () => {
-    baseService.runActor.mockResolvedValue([
-      {
-        id: 'post-minimal',
-        videoUrl: 'https://video.mp4',
-        videoViewCount: 100,
-      },
-    ]);
-    const result = await service.getInstagramVideos(1);
-    expect(result[0]).toMatchObject({
-      commentCount: 0,
-      creatorHandle: 'unknown',
-      likeCount: 0,
-      viewCount: 100,
-    });
-  });
   it('governs hosted timelines before legacy token admission with unchanged input', async () => {
     baseService.getApiToken.mockReturnValue(null);
     researchRunner.run.mockResolvedValue([]);

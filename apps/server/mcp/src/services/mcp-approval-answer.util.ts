@@ -7,6 +7,7 @@ import { McpApprovalStatus } from '@genfeedai/contracts';
 import type { IScheduledReleaseBatchPending } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
+import type { CardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
 import type {
   McpApprovalAnswer,
   McpApprovalAnswerOutcome,
@@ -16,6 +17,7 @@ import {
   approvalPendingToolResult,
   generateApprovalCostEstimate,
 } from '@mcp/tools/mcp-tool-error';
+import { CARD_APPROVAL_PROOF_ARGUMENT } from '@mcp/ui/card-approval-proof';
 
 const NOTHING_RUN =
   'Nothing was run; the action is waiting in the Genfeed review inbox.';
@@ -45,12 +47,14 @@ function settleCancelledPrompt(
  * Settle the requester's in-conversation answer (#9647) against the approval
  * the prompt named, before the current approval policy is applied, so a
  * decline holds even when the policy changed or a reviewer acted meanwhile.
- * Fails closed: an answer that cannot be read or matched runs nothing.
+ * Fails closed: an answer that cannot be read or matched runs nothing. A click
+ * on the approval card (#9754) names no tool, since the approval is its own
+ * match.
  */
 export async function settleApprovalAnswer(
   clientService: Pick<ClientService, 'confirmApproval' | 'getApproval'>,
   logger: Pick<LoggerService, 'warn'>,
-  toolName: string,
+  toolName: string | undefined,
   answer: McpApprovalAnswer,
 ): Promise<McpApprovalAnswerOutcome> {
   let approval: McpApprovalResource | null;
@@ -63,7 +67,7 @@ export async function settleApprovalAnswer(
       message: `Your answer could not be read. ${NOTHING_RUN}`,
     };
   }
-  if (!approval || approval.toolName !== toolName) {
+  if (!approval || (toolName !== undefined && approval.toolName !== toolName)) {
     return {
       kind: 'message',
       message: `Your answer does not match this action. ${NOTHING_RUN}`,
@@ -103,6 +107,28 @@ export async function settleApprovalAnswer(
 }
 
 /**
+ * The person's click on the approval card (#9754), as an answer. Refused unless
+ * it carries the proof minted for this approval and this member, which only
+ * the card view holds, so a model's own call never counts.
+ */
+export function readCardApprovalAnswer(
+  proofs: CardApprovalProofs | undefined,
+  args: Record<string, unknown>,
+): McpApprovalAnswer {
+  const approvalId = String(args.approvalId ?? '');
+  const { decision } = args;
+  if (!approvalId || (decision !== 'approve' && decision !== 'decline')) {
+    throw new Error('approvalId and decision (approve | decline) are required');
+  }
+  if (!proofs?.verify(approvalId, args[CARD_APPROVAL_PROOF_ARGUMENT])) {
+    throw new Error(
+      'Only the Approve and Decline buttons on the approval card can answer this. Nothing was run; review the action in Genfeed.',
+    );
+  }
+  return { approvalId, decision };
+}
+
+/**
  * The pending-approval result for a queued call: its review-inbox link and the
  * credit estimate the person is asked to accept (the frozen model quote for a
  * generation, the catalog estimate otherwise).
@@ -112,6 +138,7 @@ export function pendingApprovalResult(
   args: Record<string, unknown>,
   canResolveApproval: boolean,
   batch?: IScheduledReleaseBatchPending,
+  canApproveInCard = false,
 ) {
   if (batch) {
     return approvalPendingToolResult(
@@ -119,6 +146,7 @@ export function pendingApprovalResult(
       undefined,
       canResolveApproval,
       batch,
+      canApproveInCard,
     );
   }
   const tool = getToolByName(approval.toolName);
@@ -127,10 +155,18 @@ export function pendingApprovalResult(
       approval,
       generateApprovalCostEstimate(approval, args),
       canResolveApproval,
+      undefined,
+      canApproveInCard,
     );
   }
   if (!tool?.creditPricing)
-    return approvalPendingToolResult(approval, undefined, canResolveApproval);
+    return approvalPendingToolResult(
+      approval,
+      undefined,
+      canResolveApproval,
+      undefined,
+      canApproveInCard,
+    );
   const estimatedCredits = estimateToolCreditCost(
     approval.toolName,
     args,
@@ -146,5 +182,7 @@ export function pendingApprovalResult(
           : undefined,
     },
     canResolveApproval,
+    undefined,
+    canApproveInCard,
   );
 }

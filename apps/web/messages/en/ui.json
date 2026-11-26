@@ -83,6 +83,7 @@
       "access_required": "The provider requires additional permission or API access.",
       "budget_exhausted": "Provider credits or the collection budget are exhausted.",
       "rate_limited": "The provider rate limit was reached. Retry later.",
+      "actor_unavailable": "The collection actor no longer exists at the provider. Replace it, then retry.",
       "native_unavailable": "No native provider is available for this dataset.",
       "native_empty": "The native provider returned no observations.",
       "native_failed": "The native provider request failed.",
@@ -509,6 +510,21 @@
     "cancel": "Cancel",
     "generate": "Generate",
     "generateFailed": "Could not start the generation. Please try again."
+  },
+  "emptyStates": {
+    "posts": {
+      "clearFilters": "Clear filters",
+      "description": "Posts you create, schedule and publish appear here.",
+      "filteredDescription": "Try a different filter or clear the search to see more posts.",
+      "filteredTitle": "No matching posts",
+      "title": "No posts yet",
+      "unavailableTitle": "Posts unavailable"
+    },
+    "trainings": {
+      "action": "Create training",
+      "description": "Train a model on your own images so it can generate content in your style.",
+      "title": "No trainings yet"
+    }
   },
   "elementPlatformFields": {
     "activeHelp": "Inactive elements are hidden from pickers.",

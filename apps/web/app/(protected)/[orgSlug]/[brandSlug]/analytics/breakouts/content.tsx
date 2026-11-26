@@ -19,6 +19,7 @@ import { Text } from '@ui/typography/text';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import BrandRequiredState from '@/components/states/BrandRequiredState';
 import type { BreakoutResponsesContentProps } from '@/features/analytics/props/breakout-response-detail.props';
 import BreakoutResponseDetail from './response-detail';
 
@@ -240,7 +241,7 @@ export default function BreakoutsContent() {
       {!isReady ? (
         <BreakoutResponsesSkeleton label={t('loadingBrandContext')} />
       ) : !isScopeReady || !brandId ? (
-        <Text as="p">{t('selectBrand')}</Text>
+        <BrandRequiredState />
       ) : (
         <ScopedBreakoutResponses
           key={scopeKey}

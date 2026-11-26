@@ -18,8 +18,8 @@ import { EditorProjectsService } from '@services/editor/editor-projects.service'
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import { CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME } from '@ui/layout/agent-output-layout/agent-pane.constant';
 import Container from '@ui/layout/container/Container';
-import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
@@ -97,15 +97,6 @@ export default function EditorProjectsList() {
   );
   useCreativeAppAgentContext(creativeApp);
   const hasProjects = projects !== null && projects.length > 0;
-  useCreativeProjectsPresence(
-    !projectsPage || hasError
-      ? 'unknown'
-      : projectsPage.total > 0 || hasProjects
-        ? 'populated'
-        : search
-          ? 'unknown'
-          : 'empty',
-  );
 
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
@@ -269,6 +260,7 @@ export default function EditorProjectsList() {
 
   return (
     <Container
+      bodyClassName={CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME}
       leading={
         <SearchField
           ariaLabel={translate('search')}
@@ -319,6 +311,7 @@ export default function EditorProjectsList() {
       ) : (
         <CreativeProjectsEmptyState
           description={translate('emptyDescription')}
+          hasPreview
           icon={Film}
           title={translate('emptyTitle')}
         />

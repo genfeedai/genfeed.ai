@@ -75,6 +75,10 @@ export interface YoutubeJobData extends BaseJobData {
   title: string;
   description: string;
   tags?: string[];
+  /** The "altered or synthetic content" disclosure, sent as `status.containsSyntheticMedia`. */
+  containsSyntheticMedia?: boolean;
+  /** The audience declaration, sent as `status.selfDeclaredMadeForKids`. */
+  selfDeclaredMadeForKids?: boolean;
   isUnlisted: boolean;
   status?: 'public' | 'private' | 'scheduled' | 'unlisted';
   scheduledDate?: string;

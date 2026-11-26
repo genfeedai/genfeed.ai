@@ -7,6 +7,26 @@ describe('cn.util', () => {
       expect(cn('base', 'additional')).toBe('base additional');
     });
 
+    it.each([
+      ['shadow-dropdown shadow-none', 'shadow-none'],
+      ['shadow-none shadow-dropdown', 'shadow-dropdown'],
+      ['shadow-dialog shadow-md', 'shadow-md'],
+      ['shadow-md shadow-ambient-lg', 'shadow-ambient-lg'],
+      ['shadow-border shadow-border-strong', 'shadow-border-strong'],
+      ['shadow-tooltip shadow-none', 'shadow-none'],
+    ])(
+      'lets the later shadow replace the earlier one: %s',
+      (input, expected) => {
+        expect(cn(input)).toBe(expected);
+      },
+    );
+
+    it('keeps a shadow colour next to a custom shadow', () => {
+      expect(cn('shadow-dropdown shadow-red-500')).toBe(
+        'shadow-dropdown shadow-red-500',
+      );
+    });
+
     it('should handle a single class name', () => {
       expect(cn('single')).toBe('single');
     });

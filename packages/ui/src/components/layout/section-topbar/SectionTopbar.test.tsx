@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import { OutputPaneHeaderContext } from '@ui/layout/agent-output-layout/output-pane-header.context';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -404,5 +405,48 @@ describe('SectionTopbar', () => {
     expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
     expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
     expect(screen.queryByTestId('content-inspector-fallback')).toBeNull();
+  });
+
+  describe('inside an output pane', () => {
+    it('puts its controls in the pane header and adds no bar of its own', () => {
+      const slot = document.createElement('div');
+      document.body.appendChild(slot);
+
+      render(
+        <OutputPaneHeaderContext.Provider value={{ slot }}>
+          <SectionTopbar
+            title="Projects"
+            titleVisibility="sr-only"
+            leading={<input aria-label="Search projects" />}
+            actions={<button type="button">New project</button>}
+          />
+        </OutputPaneHeaderContext.Provider>,
+      );
+
+      expect(
+        within(slot).getByLabelText('Search projects'),
+      ).toBeInTheDocument();
+      expect(
+        within(slot).getByRole('button', { name: 'New project' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'Projects' }),
+      ).toBeInTheDocument();
+      slot.remove();
+    });
+
+    it('paints nothing until the pane header has mounted', () => {
+      render(
+        <OutputPaneHeaderContext.Provider value={{ slot: null }}>
+          <SectionTopbar
+            title="Projects"
+            titleVisibility="sr-only"
+            actions={<button type="button">New project</button>}
+          />
+        </OutputPaneHeaderContext.Provider>,
+      );
+
+      expect(screen.queryByRole('button', { name: 'New project' })).toBeNull();
+    });
   });
 });

@@ -15,6 +15,33 @@ export const MCP_WORKSPACE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      "Approval card buttons only; never call this yourself. Records the person's Approve or Decline click on an approval card. It does nothing without the proof only the card holds.",
+    name: 'answer_approval',
+    parameters: {
+      additionalProperties: false,
+      properties: {
+        approvalId: {
+          description: 'The approval the card shows',
+          type: 'string',
+        },
+        cardProof: {
+          description: 'The proof the card holds for this approval',
+          type: 'string',
+        },
+        decision: {
+          description: 'The button the person pressed',
+          enum: ['approve', 'decline'],
+          type: 'string',
+        },
+      },
+      required: ['approvalId', 'decision', 'cardProof'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'List workspace tasks, newest first. Filter by status or priority. Returns title, status, priority and assignee for each task.',
     name: 'get_tasks',
     parameters: {

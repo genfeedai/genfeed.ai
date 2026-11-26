@@ -38,7 +38,6 @@ export default function AgentOutputShell({
   children,
   headerActions,
   isOutputExpandable,
-  isOutputHidden,
   outputLabel,
   preview,
 }: AgentOutputShellProps) {
@@ -145,7 +144,10 @@ export default function AgentOutputShell({
       agent={hasOwnAgent ? agent : host.agent}
       agentHeader={
         <>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+          <span
+            className="min-w-0 flex-1 truncate text-sm font-medium text-foreground"
+            data-pane-title
+          >
             {resolvedTitle}
           </span>
           {hasOwnAgent ? null : (
@@ -192,8 +194,6 @@ export default function AgentOutputShell({
       }
       headerActions={headerActions}
       isOutputExpandable={isOutputExpandable}
-      // Context opens in the output pane, so it brings the pane back.
-      isOutputHidden={isOutputHidden && !host.isContextOpen}
       labels={{
         agent: translate('agent'),
         collapseOutput: translate('collapseOutput'),
