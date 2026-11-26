@@ -99,6 +99,12 @@ const POST_LIST_INCLUDE = {
         id: true,
         isDeleted: true,
         organizationId: true,
+        // The media response projection only recognises an ingredient row by
+        // its `s3Key` (or `cdnUrl`). Without it the row is served as plain
+        // attributes with no delivery grant, so the list has no URL for the
+        // row thumbnail. The projection nulls the key before the response
+        // leaves the API.
+        s3Key: true,
         status: true,
       },
     }),
