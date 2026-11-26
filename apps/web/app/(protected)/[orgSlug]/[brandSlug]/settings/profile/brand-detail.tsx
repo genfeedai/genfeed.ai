@@ -94,6 +94,15 @@ export default function BrandDetail() {
   );
   const reach = useBrandReach(brandId);
 
+  // Next syncs a pushState URL into useSearchParams, so the tab changes with
+  // no server round trip and the scroll position stays where it is.
+  const selectTab = useCallback((tab: ProfileTab) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    url.searchParams.delete('page');
+    window.history.pushState(null, '', url);
+  }, []);
+
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {
       selectLink(link ?? null);
@@ -204,11 +213,13 @@ export default function BrandDetail() {
                   href: '?tab=articles',
                   isActive: activeTab === 'articles',
                   label: translateOverview('articlesTab'),
+                  onSelect: () => selectTab('articles'),
                 },
                 {
                   href: '?tab=settings',
                   isActive: activeTab === 'settings',
                   label: translateOverview('settingsTab'),
+                  onSelect: () => selectTab('settings'),
                 },
               ]}
             />

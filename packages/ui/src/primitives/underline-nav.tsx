@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from '@genfeedai/helpers';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -8,6 +10,12 @@ export interface UnderlineNavItem {
   href: string;
   isActive: boolean;
   label: string;
+  /**
+   * Switches the section in place. A plain click calls it instead of
+   * navigating, so the page keeps its scroll position and makes no server
+   * round trip; a modified click or a new tab still follows `href`.
+   */
+  onSelect?: () => void;
 }
 
 export interface UnderlineNavProps {
@@ -29,7 +37,7 @@ function UnderlineNav({ ariaLabel, items }: UnderlineNavProps) {
       aria-label={ariaLabel}
       className="flex gap-1 overflow-x-auto border-b border-foreground/10"
     >
-      {items.map(({ badge, href, isActive, label }) => (
+      {items.map(({ badge, href, isActive, label, onSelect }) => (
         <Link
           aria-current={isActive ? 'page' : undefined}
           className={cn(
@@ -40,6 +48,18 @@ function UnderlineNav({ ariaLabel, items }: UnderlineNavProps) {
           )}
           href={href}
           key={href}
+          onClick={(event) => {
+            const isPlainClick =
+              event.button === 0 &&
+              !event.metaKey &&
+              !event.ctrlKey &&
+              !event.shiftKey &&
+              !event.altKey;
+            if (onSelect && isPlainClick) {
+              event.preventDefault();
+              onSelect();
+            }
+          }}
         >
           {label}
           {badge ? <> {badge}</> : null}

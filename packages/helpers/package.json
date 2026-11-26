@@ -94,5 +94,5 @@
   "sideEffects": false,
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "2.2.13"
+  "version": "2.3.0"
 }
