@@ -15,6 +15,7 @@ import { TrendContentIdeasService } from '@api/collections/trends/services/modul
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
+import { TrendPlaybackService } from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendReferenceSyncService } from '@api/collections/trends/services/modules/trend-reference-sync.service';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
@@ -24,6 +25,8 @@ import { TrendVideoService } from '@api/collections/trends/services/modules/tren
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { OrganizationPaidAccessModule } from '@api/common/subscriptions/organization-paid-access.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -52,6 +55,7 @@ import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -76,9 +80,11 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     CreditsModule,
     CredentialsCoreModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     InstagramModule,
     MembersModule,
     LinkedInModule,
+    OrganizationPaidAccessModule,
     ModelsModule,
     PinterestModule,
     RedditModule,
@@ -153,6 +159,7 @@ import { Module } from '@nestjs/common';
     TrendSourcePreviewService,
     TrendBrandNicheVideoService,
     TrendBrandDigestService,
+    TrendPlaybackService,
     TrendVideoService,
     TrendsService,
     CreditsGuard,

@@ -485,6 +485,53 @@ describe('YtDlpService', () => {
     });
   });
 
+  describe('downloadShortVideo', () => {
+    it('asks for a rendition up to 720 wide, capped in length and size', async () => {
+      const outputPath = path.join(FILES_TMP_ROOT, 'trend-playback', 'a.mp4');
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadShortVideo(
+        'https://www.tiktok.com/@a/video/1',
+        outputPath,
+        { maxDurationSeconds: 180, maxFileSizeMb: 80 },
+      );
+      closeProcess(mockProcess, 0);
+
+      await expect(promise).resolves.toBe(outputPath);
+      expect(spawnMock.mock.calls[0]?.[1]).toEqual([
+        '--no-playlist',
+        '--socket-timeout',
+        '30',
+        '--max-filesize',
+        '80M',
+        '--match-filters',
+        'duration<=?180',
+        '-f',
+        'b[width<=720]/b[height<=720]/w',
+        '--remux-video',
+        'mp4',
+        '-o',
+        outputPath,
+        '--',
+        'https://www.tiktok.com/@a/video/1',
+      ]);
+    });
+
+    it('rejects an output path outside the files temp root', () => {
+      expect(() =>
+        service.downloadShortVideo(
+          'https://www.tiktok.com/@a/video/1',
+          '/etc/x.mp4',
+          {
+            maxDurationSeconds: 180,
+            maxFileSizeMb: 80,
+          },
+        ),
+      ).toThrow(BadRequestException);
+    });
+  });
+
   describe('downloadVideo with a duration limit', () => {
     it('asks yt-dlp to skip a longer video before downloading it', async () => {
       const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');

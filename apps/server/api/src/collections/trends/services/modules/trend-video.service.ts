@@ -1,6 +1,11 @@
 import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
+import {
+  readPlaybackFields,
+  TREND_PLAYBACK_RETENTION_MS,
+  type TrendPlaybackFields,
+} from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { isWithinTimeframe } from '@api/collections/trends/utils/brand-niche.util';
 import { logTrendProviderFailure } from '@api/collections/trends/utils/trend-provider-failure-log.util';
@@ -235,6 +240,24 @@ export class TrendVideoService {
                   : null,
             );
 
+            // A saved playback copy survives a re-scrape, and the scrape
+            // restarts its seven days: the video is trending again.
+            const existingPlayback = new Map<string, TrendPlaybackFields>();
+            for (const doc of existingVideoDocs) {
+              const fields = readPlaybackFields(doc.data);
+              const data = doc.data as Record<string, unknown>;
+              if (
+                fields &&
+                typeof data.externalId === 'string' &&
+                typeof data.platform === 'string'
+              ) {
+                const key = trendKey(data.platform, data.externalId);
+                if (!existingPlayback.has(key)) {
+                  existingPlayback.set(key, fields);
+                }
+              }
+            }
+
             for (const video of videos) {
               const externalId = video.externalId as string | undefined;
 
@@ -243,8 +266,16 @@ export class TrendVideoService {
                 const videoKey = trendKey(platform, externalId);
                 const matchId = existingVideoIds.get(videoKey);
 
+                const savedCopy = existingPlayback.get(videoKey);
                 const dataPayload = {
                   ...video,
+                  ...(savedCopy
+                    ? {
+                        ...savedCopy,
+                        playbackExpiresAtMs:
+                          Date.now() + TREND_PLAYBACK_RETENTION_MS,
+                      }
+                    : {}),
                   expiresAt,
                   isCurrent: true,
                   isDeleted: false,

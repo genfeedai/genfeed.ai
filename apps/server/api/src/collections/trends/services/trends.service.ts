@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TrendIdea } from '@api/collections/trends/dto/trend-ideas.dto';
@@ -32,6 +33,7 @@ import {
   type TrendProviderExecutionOptions,
 } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
+import { TrendPlaybackService } from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
@@ -51,6 +53,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
 import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
+import type { ITrendVideoPlayback } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -81,6 +84,7 @@ export class TrendsService {
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
     private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
     private readonly trendBrandDigestService: TrendBrandDigestService,
+    private readonly trendPlaybackService: TrendPlaybackService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -953,10 +957,28 @@ export class TrendsService {
   }
 
   /**
-   * Mark expired videos as historical
+   * Mark expired videos as historical, and delete the saved playback copies
+   * that ran out. A copy that cannot be deleted is retried on the next run and
+   * never fails the expiry itself.
    */
-  markExpiredVideosAsHistorical(): Promise<number> {
-    return this.trendVideoService.markExpiredVideosAsHistorical();
+  async markExpiredVideosAsHistorical(): Promise<number> {
+    const expired =
+      await this.trendVideoService.markExpiredVideosAsHistorical();
+    try {
+      await this.trendPlaybackService.removeExpiredCopies();
+    } catch (error: unknown) {
+      this.loggerService.warn('Expired trend playback sweep failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return expired;
+  }
+
+  getVideoPlayback(
+    videoId: string,
+    user: AuthenticatedUser,
+  ): Promise<ITrendVideoPlayback> {
+    return this.trendPlaybackService.getPlayback(videoId, user);
   }
 
   /**

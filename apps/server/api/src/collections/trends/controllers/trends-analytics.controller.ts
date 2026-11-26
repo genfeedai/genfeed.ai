@@ -18,6 +18,10 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
   Query,
   UseInterceptors,
 } from '@nestjs/common';
@@ -75,6 +79,20 @@ export class TrendsAnalyticsController {
       },
       videos,
     };
+  }
+
+  @Post('videos/:id/playback')
+  @HttpCode(HttpStatus.OK)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'TrendsController.getVideoPlayback',
+    summary: 'getVideoPlayback',
+  })
+  getVideoPlayback(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.trendsService.getVideoPlayback(id, user);
   }
 
   @Get('leaderboard')

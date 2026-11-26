@@ -18,6 +18,7 @@ import { HookRemixService } from '@files/services/hook-remix/hook-remix.service'
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
+import { TrendPlaybackService } from '@files/services/trend-playback/trend-playback.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { IngredientFormat } from '@genfeedai/contracts';
@@ -234,6 +235,11 @@ describe('FilesController', () => {
     }),
   };
 
+  const mockTrendPlaybackService = {
+    prepare: vi.fn(),
+    remove: vi.fn(),
+  };
+
   const mockHookRemixService = {
     processHookRemix: vi.fn(),
   };
@@ -391,6 +397,7 @@ describe('FilesController', () => {
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: S3Service, useValue: mockS3Service },
         { provide: TempFileCleanupCron, useValue: mockTempFileCleanupCron },
+        { provide: TrendPlaybackService, useValue: mockTrendPlaybackService },
         { provide: UploadService, useValue: mockUploadService },
         { provide: VideoQueueService, useValue: mockVideoQueueService },
         { provide: VideoThumbnailService, useValue: mockVideoThumbnailService },
@@ -436,8 +443,12 @@ describe('FilesController', () => {
       processFile: jobsController.processFile.bind(jobsController),
       processHookRemix: jobsController.processHookRemix.bind(jobsController),
       processImage: jobsController.processImage.bind(jobsController),
+      prepareTrendPlayback:
+        jobsController.prepareTrendPlayback.bind(jobsController),
       processVideo: jobsController.processVideo.bind(jobsController),
       processYoutube: jobsController.processYoutube.bind(jobsController),
+      removeTrendPlayback:
+        jobsController.removeTrendPlayback.bind(jobsController),
       resizeImage: processingController.resizeImage.bind(processingController),
       splitImage: processingController.splitImage.bind(processingController),
       storedObjectExists:
@@ -911,6 +922,55 @@ describe('FilesController', () => {
   // ==========================================================================
   // processYoutube
   // ==========================================================================
+  describe('trend playback', () => {
+    it('returns the saved copy for a TikTok clip', async () => {
+      mockTrendPlaybackService.prepare.mockResolvedValue({
+        playbackKey: 'assets/trend-playback/v1-1.mp4',
+        playbackUrl: 'https://cdn.test/assets/trend-playback/v1-1.mp4',
+        size: 10,
+      });
+
+      await expect(
+        controller.prepareTrendPlayback({
+          sourceUrl: 'https://www.tiktok.com/@a/video/1',
+          videoId: 'v1',
+        }),
+      ).resolves.toMatchObject({
+        playbackUrl: 'https://cdn.test/assets/trend-playback/v1-1.mp4',
+      });
+    });
+
+    it('refuses a request without a source url or video id', async () => {
+      await expect(
+        controller.prepareTrendPlayback({ sourceUrl: '', videoId: 'v1' }),
+      ).rejects.toBeInstanceOf(HttpException);
+      await expect(
+        controller.removeTrendPlayback({ playbackKey: '' }),
+      ).rejects.toBeInstanceOf(HttpException);
+    });
+
+    it('answers a failed download with a server error', async () => {
+      mockTrendPlaybackService.prepare.mockRejectedValue(new Error('blocked'));
+
+      await expect(
+        controller.prepareTrendPlayback({
+          sourceUrl: 'https://www.tiktok.com/@a/video/1',
+          videoId: 'v1',
+        }),
+      ).rejects.toMatchObject({ status: 500 });
+    });
+
+    it('removes a saved copy', async () => {
+      mockTrendPlaybackService.remove.mockResolvedValue(undefined);
+
+      await expect(
+        controller.removeTrendPlayback({
+          playbackKey: 'assets/trend-playback/v1-1.mp4',
+        }),
+      ).resolves.toEqual({ removed: true });
+    });
+  });
+
   describe('processYoutube', () => {
     const baseBody = {
       brandId: 'brand_123',

@@ -9,6 +9,7 @@ import { TrendBrandNicheVideoService } from '@api/collections/trends/services/mo
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
+import { TrendPlaybackService } from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
@@ -176,6 +177,13 @@ describe('TrendsService', () => {
         TrendSourceItemsService,
         TrendSourcePreviewService,
         TrendVideoService,
+        {
+          provide: TrendPlaybackService,
+          useValue: {
+            getPlayback: vi.fn(),
+            removeExpiredCopies: vi.fn().mockResolvedValue(0),
+          },
+        },
         TrendBrandNicheVideoService,
         TrendBrandDigestService,
         {
