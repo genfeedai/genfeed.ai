@@ -81,6 +81,7 @@ const rejectedLegacyStepCategories = [
  */
 const postHardCutExecutorIds = [
   'agentEventRun',
+  'annotation',
   'brandCover',
   'motionControl',
 ] as const;
