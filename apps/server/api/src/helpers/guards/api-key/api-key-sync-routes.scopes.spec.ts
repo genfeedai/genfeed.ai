@@ -6,7 +6,6 @@ import {
   keyWithScopes,
   routeContext,
 } from '@api/helpers/guards/api-key/api-key-route-scope.fixture';
-import { DesktopSyncController } from '@api/services/sync/desktop-sync.controller';
 import { SyncController } from '@api/services/sync/sync.controller';
 import { UnauthorizedException } from '@nestjs/common';
 
@@ -26,36 +25,6 @@ const ADMIN_ROUTES: readonly ScopedRoute[] = [
     'POST /auth/desktop/status',
     AuthDesktopController,
     AuthDesktopController.prototype.status,
-  ],
-  [
-    'POST /sync/desktop/threads',
-    DesktopSyncController,
-    DesktopSyncController.prototype.pushThreads,
-  ],
-  [
-    'POST /sync/desktop/assets/metadata',
-    DesktopSyncController,
-    DesktopSyncController.prototype.pushAssets,
-  ],
-  [
-    'POST /sync/desktop/assets/upload-url',
-    DesktopSyncController,
-    DesktopSyncController.prototype.requestAssetUpload,
-  ],
-  [
-    'POST /sync/desktop/assets/:id/uploaded',
-    DesktopSyncController,
-    DesktopSyncController.prototype.confirmAssetUpload,
-  ],
-  [
-    'POST /sync/desktop/assets/:id/upload',
-    DesktopSyncController,
-    DesktopSyncController.prototype.uploadAsset,
-  ],
-  [
-    'POST /sync/desktop/ops',
-    DesktopSyncController,
-    DesktopSyncController.prototype.pushOps,
   ],
   [
     'POST /sync/workflows/push/:id',

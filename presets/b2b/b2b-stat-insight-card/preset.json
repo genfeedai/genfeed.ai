@@ -1,0 +1,35 @@
+{
+  "aspectRatio": "1:1",
+  "allowedModels": [
+    "google/nano-banana-2",
+    "openai/gpt-image-2"
+  ],
+  "description": "One number or insight, large, with room for the figure.",
+  "evaluationCriteria": [
+    "One focal element; the figure is added afterward.",
+    "Brand colors only, no decorative extras.",
+    "Nothing the model draws reads as text, a logo or an interface; on-screen words are added after generation."
+  ],
+  "format": "stat-insight-card",
+  "hookFormula": "State the number first, then the one thing it means for the buyer.",
+  "key": "b2b-stat-insight-card",
+  "label": "Stat or insight card",
+  "mediaType": "image",
+  "referenceSlots": [
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": false,
+      "key": "brand-style",
+      "kind": "image",
+      "label": "Brand style",
+      "role": "brand_style"
+    }
+  ],
+  "shots": [
+    {
+      "direction": "A calm branded surface with a single focal shape and wide empty space for the figure.",
+      "key": "surface",
+      "title": "Surface"
+    }
+  ]
+}

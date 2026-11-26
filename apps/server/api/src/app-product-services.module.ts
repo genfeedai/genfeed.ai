@@ -23,7 +23,6 @@ import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfie
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
-import { DesktopSyncModule } from '@api/services/sync/desktop-sync.module';
 import { SyncModule } from '@api/services/sync/sync.module';
 import { TurboContentModule } from '@api/services/turbo-content/turbo-content.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
@@ -60,7 +59,6 @@ import { Module } from '@nestjs/common';
     AdsGatewayModule,
     QueuesModule,
     SyncModule,
-    DesktopSyncModule,
     SelfHostedSeedModule,
   ],
 })

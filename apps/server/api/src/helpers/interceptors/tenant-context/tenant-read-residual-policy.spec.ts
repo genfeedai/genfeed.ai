@@ -153,9 +153,9 @@ function execution(
 
 describe('nine independent residual tenant read policies', () => {
   it('keeps nine distinct source routes disjoint from the unchanged original247 ledger', () => {
-    expect(originalRoutes).toHaveLength(249);
+    expect(originalRoutes).toHaveLength(248);
     expect(new Set(originalRoutes.map((entry) => entry.controller)).size).toBe(
-      125,
+      124,
     );
     expect(
       new Set(
@@ -574,7 +574,7 @@ const callerRoutes = [
 
 describe('fourteen independent remaining caller policies', () => {
   it('keeps the original247 and prior nine tables disjoint from fourteen caller routes', () => {
-    expect(originalRoutes).toHaveLength(249);
+    expect(originalRoutes).toHaveLength(248);
     expect(residualRoutes).toHaveLength(9);
     expect(callerRoutes).toHaveLength(14);
     expect(new Set(callerRoutes.map((entry) => entry.route)).size).toBe(14);
@@ -701,7 +701,7 @@ const measuredProducerRoutes = [
 ] as const;
 describe('three independently measured tenant guard callers', () => {
   it('keeps the three producer routes unique and disjoint from all prior policy tables', () => {
-    expect(originalRoutes).toHaveLength(249);
+    expect(originalRoutes).toHaveLength(248);
     expect(residualRoutes).toHaveLength(9);
     expect(callerRoutes).toHaveLength(14);
     expect(measuredProducerRoutes).toHaveLength(3);

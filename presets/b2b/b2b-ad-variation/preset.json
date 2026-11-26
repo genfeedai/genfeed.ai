@@ -1,0 +1,50 @@
+{
+  "aspectRatio": "9:16",
+  "allowedModels": [
+    "bytedance/seedance-2.5",
+    "google/veo-3.1"
+  ],
+  "description": "A short paid-social clip built to be varied and tested.",
+  "evaluationCriteria": [
+    "The hook lands inside the first second.",
+    "Only one thing changes between variations.",
+    "Nothing the model draws reads as text, a logo or an interface; on-screen words are added after generation."
+  ],
+  "format": "ad-variation",
+  "hookFormula": "Pick one hook angle per variation: pain, result, or proof. Keep the rest identical.",
+  "key": "b2b-ad-variation",
+  "label": "Ad variation",
+  "mediaType": "video",
+  "referenceSlots": [
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": true,
+      "key": "product-frame",
+      "kind": "image",
+      "label": "Product frame",
+      "role": "product_frame"
+    },
+    {
+      "defaultSource": "library",
+      "isRequired": false,
+      "key": "person",
+      "kind": "image",
+      "label": "Person on screen",
+      "role": "person"
+    }
+  ],
+  "shots": [
+    {
+      "direction": "The hook angle, on a real product frame, immediately.",
+      "durationSeconds": 3,
+      "key": "hook",
+      "title": "Hook"
+    },
+    {
+      "direction": "One camera move that shows the benefit.",
+      "durationSeconds": 5,
+      "key": "benefit",
+      "title": "Benefit"
+    }
+  ]
+}

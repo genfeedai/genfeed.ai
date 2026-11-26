@@ -1,0 +1,15 @@
+{
+  "key": "studio-meme",
+  "label": "Meme",
+  "type": "video",
+  "description": "A short reaction with a quick setup and punchline.",
+  "prompt": "Create a short reaction meme about your topic.",
+  "values": {
+    "aspectRatio": "9:16",
+    "duration": 5,
+    "promptTemplate": "content.video.social",
+    "style": "short reaction meme",
+    "scene": "quick visual setup followed by an expressive punchline",
+    "cameraMovement": "static"
+  }
+}
