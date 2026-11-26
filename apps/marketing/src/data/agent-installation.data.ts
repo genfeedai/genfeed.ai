@@ -30,7 +30,7 @@ export const agentInstallations = {
   },
   'claude-code': {
     instruction:
-      'Run the command below to add Genfeed to Claude Code, then open /mcp, select Genfeed, and complete browser sign-in.',
+      'Run `claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp` in your terminal, then open /mcp in Claude Code, select Genfeed, and complete browser sign-in. The connector URL below is the same address.',
     label: 'Add to Claude Code',
     method: 'Claude Code MCP server',
   },

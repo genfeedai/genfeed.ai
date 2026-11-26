@@ -88,7 +88,7 @@ export function buildGenfeedAgentSetupPrompt(
   const claude = buildConnectGenfeedInstructions('claude-code', mcpEndpoint);
   const codex = buildConnectGenfeedInstructions('codex', mcpEndpoint);
 
-  return `Set up the Genfeed MCP server on this machine, with its agent playbook, for ${clientName}.
+  return `Set up the Genfeed MCP server on this machine for ${clientName}. Install the agent playbook too where the client supports it; Claude clients connect through OAuth only.
 
 Endpoint: ${mcpEndpoint}
 Authentication: browser OAuth (no API key required)
