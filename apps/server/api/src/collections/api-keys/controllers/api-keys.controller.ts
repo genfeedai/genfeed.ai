@@ -18,6 +18,8 @@ import {
 } from '@api/collections/api-keys/utils/api-key-metadata.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
@@ -31,6 +33,7 @@ import {
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
+  ApiKeyScope,
 } from '@genfeedai/contracts';
 import {
   apiKeyAllowedBrandsMetadata,
@@ -122,6 +125,7 @@ export class ApiKeysController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(ApiAccessGuard)
   @RateLimit({ limit: 5, windowMs: 60000 }) // Limit key creation to 5 per minute
   @ApiOperation({ summary: 'Create a new API key' })
@@ -250,6 +254,7 @@ export class ApiKeysController {
   }
 
   @Patch(':apiKeyId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Update an API key' })
   @ApiResponse({
     description: 'API key updated successfully',
@@ -305,6 +310,7 @@ export class ApiKeysController {
   }
 
   @Post(':apiKeyId/rotate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(ApiAccessGuard)
   @RateLimit({ limit: 5, windowMs: 60000 })
   @ApiOperation({ summary: 'Rotate an API key' })
@@ -381,6 +387,7 @@ export class ApiKeysController {
   }
 
   @Post(':apiKeyId/verify-mcp')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(ApiAccessGuard)
   @RateLimit({ limit: 10, windowMs: 60000 })
   @ApiOperation({
@@ -404,6 +411,7 @@ export class ApiKeysController {
   }
 
   @Delete(':apiKeyId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Revoke an API key' })
   @ApiResponse({
     description: 'API key revoked successfully',
@@ -435,6 +443,7 @@ export class ApiKeysController {
   }
 
   @Post('validate')
+  @ApiKeyReadAccess()
   @RateLimit({ limit: 30, windowMs: 60000 }) // 30 requests per minute
   @ApiOperation({ summary: 'Validate an API key (for testing)' })
   @ApiResponse({
