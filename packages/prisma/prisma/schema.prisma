@@ -87,15 +87,6 @@ enum IngredientOrigin {
   UNKNOWN
 }
 
-// How a child asset relates to its parent (#7395). Null means the link was
-// written before relations were recorded: it is never guessed.
-enum IngredientRelationKind {
-  VERSION
-  TRANSFORMATION
-  DERIVATIVE
-  SOURCE
-}
-
 enum TransformationCategory {
   UPSCALED
   RESIZED
@@ -117,6 +108,15 @@ enum TransformationCategory {
   CAPTIONED
   VALIDATED
   REFRAMED
+}
+
+// How a child asset relates to its parent (#7395). Null means the link was
+// written before relations were recorded: it is never guessed.
+enum IngredientRelationKind {
+  VERSION
+  TRANSFORMATION
+  DERIVATIVE
+  SOURCE
 }
 
 enum ContentRating {
