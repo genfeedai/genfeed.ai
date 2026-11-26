@@ -27,6 +27,7 @@ import {
   FileInputType,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -107,6 +108,7 @@ export class VideosResizeController {
         extension: MetadataExtension.MP4,
         organizationId: user.organizationId,
         parentId: videoId,
+        relationKind: IngredientRelationKind.DERIVATIVE,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });
@@ -207,6 +209,7 @@ export class VideosResizeController {
         extension: MetadataExtension.MP4,
         organizationId: user.organizationId,
         parentId: videoId,
+        relationKind: IngredientRelationKind.DERIVATIVE,
         status: IngredientStatus.PROCESSING,
       });
 
