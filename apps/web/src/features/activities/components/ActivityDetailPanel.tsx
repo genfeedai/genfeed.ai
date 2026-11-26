@@ -36,6 +36,7 @@ import {
   getActivityStatus,
   getActivityValueFields,
   getActivityVideoUrl,
+  getPostGroupLink,
   humanizeActivityToken,
 } from '@/features/activities/activities-list.utils';
 import ActivityPostPreviewCard from '@/features/activities/components/ActivityPostPreviewCard';
@@ -58,9 +59,25 @@ interface DetailFact {
   isBookkeeping?: boolean;
 }
 
+const PAST_YEAR_TIMESTAMP = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  month: 'short',
+  timeZone: 'UTC',
+  year: 'numeric',
+});
+
+/** Always carries the clock time, and the year once it is not this year. */
 function formatTimestamp(value: string | undefined | null): string | undefined {
   if (!value || !Number.isFinite(new Date(value).getTime())) return undefined;
-  return `${formatShortDate(value, { timeZone: 'UTC' })} UTC`;
+  const isCurrentYear =
+    new Date(value).getUTCFullYear() === new Date().getUTCFullYear();
+  return `${
+    isCurrentYear
+      ? formatShortDate(value, { timeZone: 'UTC' })
+      : PAST_YEAR_TIMESTAMP.format(new Date(value))
+  } UTC`;
 }
 
 function FactList({ facts }: { facts: DetailFact[] }) {
@@ -100,6 +117,11 @@ export default function ActivityDetailPanel({
   const [failedPreviewSrc, setFailedPreviewSrc] = useState<string | null>(null);
 
   const fields = getActivityValueFields(activity);
+  // A post row reads its network link from the post it stands for; its own
+  // value only carries the state change.
+  const postLink = activity.postGroup
+    ? getPostGroupLink(activity)
+    : fields.post;
   const status = getActivityStatus(activity);
   const markReadLabel = activity.isRead
     ? translate('markUnread')
@@ -285,7 +307,7 @@ export default function ActivityDetailPanel({
           }
         />
 
-        {openHref || fields.post ? (
+        {openHref || postLink ? (
           <div className="flex flex-wrap gap-2">
             {openHref ? (
               <Button
@@ -297,21 +319,21 @@ export default function ActivityDetailPanel({
                 <Link href={openHref}>{translate('detailOpen')}</Link>
               </Button>
             ) : null}
-            {fields.post ? (
+            {postLink ? (
               <Button
                 asChild
                 ariaLabel={translate('detailViewOnNetwork', {
-                  platform: getPostsPlatformLabel(fields.post.platform),
+                  platform: getPostsPlatformLabel(postLink.platform),
                 })}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
               >
                 <a
-                  href={fields.post.url}
+                  href={postLink.url}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  {getPlatformIcon(fields.post.platform, 'size-4') ?? (
+                  {getPlatformIcon(postLink.platform, 'size-4') ?? (
                     <ExternalLink className="size-4" />
                   )}
                   {translate('detailView')}

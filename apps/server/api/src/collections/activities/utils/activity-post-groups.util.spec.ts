@@ -4,6 +4,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/contracts';
 
 interface Where {
+  AND?: Array<Where & { userId?: string }>;
   action?: { in: string[] };
   entityId?: { in: string[] };
   id?: { in: string[] };
@@ -113,8 +114,14 @@ const POSTS = [
 ];
 
 function prismaWith(events: ActivityDocument[]) {
-  const matches = (where: Where, row: Record<string, unknown>) =>
-    row.organizationId === where.organizationId &&
+  const matches = (
+    where: Where & { userId?: string },
+    row: Record<string, unknown>,
+  ): boolean =>
+    (!where.AND || where.AND.every((part) => matches(part, row))) &&
+    (where.organizationId === undefined ||
+      row.organizationId === where.organizationId) &&
+    (where.userId === undefined || row.userId === where.userId) &&
     row.isDeleted !== true &&
     (!where.entityId || where.entityId.in.includes(String(row.entityId))) &&
     (!where.action || where.action.in.includes(String(row.action))) &&
@@ -209,20 +216,75 @@ describe('collapsePostActivities', () => {
     expect(olderPage).toEqual([]);
   });
 
-  it('reads the post as unread until every event is read', async () => {
-    const allRead = POST_ONE_EVENTS.map((row) => ({ ...row, isRead: true }));
-    const someRead = POST_ONE_EVENTS.map((row, index) => ({
+  it.each([
+    { name: 'every event read', isRead: [true, true, true], expected: true },
+    {
+      name: 'the newest event read, an older one not',
+      isRead: [true, false, true],
+      expected: false,
+    },
+    {
+      name: 'only the newest event unread',
+      isRead: [false, true, true],
+      expected: false,
+    },
+  ])('reads the post as $expected when $name', async ({ isRead, expected }) => {
+    const events = POST_ONE_EVENTS.map((row, index) => ({
       ...row,
-      isRead: index > 0,
+      isRead: isRead[index],
     }));
 
-    const [read] = await collapsePostActivities(prismaWith(allRead), allRead);
-    const [unread] = await collapsePostActivities(
-      prismaWith(someRead),
-      someRead,
+    const [row] = await collapsePostActivities(prismaWith(events), events);
+
+    expect(row.isRead).toBe(expected);
+  });
+
+  it('keeps the whole trail and read state of a post with more than twenty events', async () => {
+    const transitions = Array.from({ length: 21 }, (_, index) =>
+      transition(
+        `many-${String(index).padStart(2, '0')}`,
+        'post-1',
+        'scheduled',
+        'publishing',
+        `2026-11-26T08:${String(10 + index).padStart(2, '0')}:00Z`,
+        { isRead: index !== 0 } as Partial<ActivityDocument>,
+      ),
     );
 
-    expect([read.isRead, unread.isRead]).toEqual([true, false]);
+    const [row] = await collapsePostActivities(prismaWith(transitions), [
+      transitions[20],
+    ]);
+
+    expect(row.postGroup?.eventIds).toHaveLength(21);
+    expect(row.isRead).toBe(false);
+  });
+
+  it('keeps a filtered list on its own event of a post that another user finished', async () => {
+    const alicesTransition = transition(
+      'alice-1',
+      'post-1',
+      'scheduled',
+      'publishing',
+      '2026-11-26T08:45:03Z',
+      { userId: 'alice' } as Partial<ActivityDocument>,
+    );
+    const bobsPublish = {
+      ...published('bob-1', 'post-1', '2026-11-26T08:45:33Z', 'https://ig/p/1'),
+      userId: 'bob',
+    } as ActivityDocument;
+    const db = prismaWith([alicesTransition, bobsPublish]);
+
+    const aliceList = await collapsePostActivities(db, [alicesTransition], {
+      userId: 'alice',
+    });
+    const fullList = await collapsePostActivities(db, [
+      bobsPublish,
+      alicesTransition,
+    ]);
+
+    expect(aliceList.map((row) => row.id)).toEqual(['alice-1']);
+    expect(aliceList[0].postGroup?.eventIds).toEqual(['bob-1', 'alice-1']);
+    expect(fullList.map((row) => row.id)).toEqual(['bob-1']);
   });
 
   it('carries the failure of a post that did not go out', async () => {

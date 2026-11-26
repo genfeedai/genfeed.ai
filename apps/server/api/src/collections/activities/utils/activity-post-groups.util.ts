@@ -17,8 +17,11 @@ const POST_EVENT_KEYS: readonly string[] = [
   ActivityKey.POST_PUBLISHED,
 ];
 
-/** A post goes through a handful of states; this bounds the read for a page. */
-const MAX_EVENTS_PER_POST = 20;
+/**
+ * A post writes a handful of events; this only bounds the read against a
+ * runaway one. It is far above any real trail, so a group is never cut short.
+ */
+const MAX_EVENTS_PER_POST = 500;
 
 const LEADING_AT_PATTERN = /^@/u;
 const PUBLISHED_VALUE_PATTERN = /^Published to ([\w-]+):\s*(https?:\/\/\S+)/iu;
@@ -66,15 +69,19 @@ function toStep(event: ActivityDocument): IActivityPostStep | undefined {
 }
 
 interface PostEvents {
-  /** The newest event: the one row the feed keeps for the post. */
-  representative: ActivityDocument;
+  /** The newest listed event: the one row the feed keeps for the post. */
+  representative?: ActivityDocument;
   /** Newest first. */
   events: ActivityDocument[];
   group: IActivityPostGroup;
   publishedUrl?: string;
 }
 
-function summarizePost(postId: string, events: ActivityDocument[]): PostEvents {
+function summarizePost(
+  postId: string,
+  events: ActivityDocument[],
+  listedIds: ReadonlySet<string>,
+): PostEvents {
   const steps = events
     .map(toStep)
     .filter((step): step is IActivityPostStep => Boolean(step))
@@ -97,7 +104,9 @@ function summarizePost(postId: string, events: ActivityDocument[]): PostEvents {
       steps,
     },
     publishedUrl,
-    representative: events[0],
+    // The newest event the list itself can return: a filtered list keeps its
+    // own events of the post, never one that only the full trail holds.
+    representative: events.find((event) => listedIds.has(event.id)),
   };
 }
 
@@ -157,6 +166,7 @@ export const collapsePostActivities = traced(
   async (
     prisma: PrismaService,
     activities: ActivityDocument[],
+    listWhere: Record<string, unknown> = {},
   ): Promise<ActivityDocument[]> => {
     const candidates = activities.filter(isPostEvent);
     if (!candidates.length) return activities;
@@ -176,6 +186,8 @@ export const collapsePostActivities = traced(
     >();
     for (const [organizationId, ids] of postIdsByOrganization) {
       const postIds = [...ids];
+      // The whole trail of each post: its length and its read state must not
+      // depend on how many events the page happens to hold.
       const [rows, posts] = await Promise.all([
         prisma.activity.findMany({
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -187,6 +199,18 @@ export const collapsePostActivities = traced(
         }),
         loadPosts(prisma, organizationId, postIds),
       ]);
+      const listedIds = new Set(
+        (
+          await prisma.activity.findMany({
+            select: { id: true },
+            take: rows.length,
+            where: scopedWhere(organizationId, {
+              AND: [listWhere],
+              id: { in: rows.map((row) => row.id) },
+            }),
+          })
+        ).map((row) => row.id),
+      );
       const eventsByPost = new Map<string, ActivityDocument[]>();
       for (const row of rows) {
         const event = normalizeActivityDocument(row as ActivityDocument);
@@ -197,7 +221,7 @@ export const collapsePostActivities = traced(
       for (const [postId, events] of eventsByPost) {
         summaries.set(
           `${organizationId}:${postId}`,
-          summarizePost(postId, events.sort(compareNewestFirst)),
+          summarizePost(postId, events.sort(compareNewestFirst), listedIds),
         );
       }
       for (const post of posts)
@@ -211,7 +235,7 @@ export const collapsePostActivities = traced(
       // Without the post's own events the row stands as it is.
       if (!summary) return [activity];
       // An older event of a post whose newest event sorts elsewhere.
-      if (summary.representative.id !== activity.id) return [];
+      if (summary.representative?.id !== activity.id) return [];
       const post = postRows.get(key);
       const preview = post ? previewFor(post, summary.publishedUrl) : undefined;
       const ingredient = post?.ingredientLinks[0]?.ingredient;

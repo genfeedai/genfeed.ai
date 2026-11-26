@@ -305,6 +305,84 @@ describe('useActivities', () => {
       });
       expect(mockPatch).not.toHaveBeenCalled();
     });
+
+    it('toggles a row of more than a hundred activities in API-sized chunks', async () => {
+      const eventIds = Array.from(
+        { length: 150 },
+        (_, index) => `event-${index}`,
+      );
+      serveRows([
+        {
+          ...postRow,
+          postGroup: { ...postRow.postGroup, eventIds },
+        } as IActivity,
+      ]);
+      const { result } = renderHook(() => useActivities(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.toggleActivityRead('post-row');
+      });
+
+      expect(mockBulkPatch.mock.calls.map(([body]) => body.ids.length)).toEqual(
+        [100, 50],
+      );
+    });
+
+    it('refreshes the list when a later chunk fails after an earlier one saved', async () => {
+      const eventIds = Array.from(
+        { length: 150 },
+        (_, index) => `event-${index}`,
+      );
+      const page = paginatedResponse(
+        [{ ...postRow, postGroup: { ...postRow.postGroup, eventIds } }],
+        { totalDocs: 1, totalPages: 1 },
+      );
+      const findAllPage = vi.fn().mockResolvedValue(page);
+      const findBrandActivities = vi.fn().mockResolvedValue(page);
+      const findOrganizationActivities = vi.fn().mockResolvedValue(page);
+      mockGetActivitiesService.mockResolvedValue({
+        bulkPatch: mockBulkPatch,
+        findAllPage,
+        patch: mockPatch,
+      });
+      mockGetBrandsService.mockResolvedValue({ findBrandActivities });
+      mockGetOrganizationsService.mockResolvedValue({
+        findOrganizationActivities,
+      });
+      // The real helper reports a failure and resolves; the shared mock rethrows.
+      mockWithSilentOperation.mockImplementation(
+        async ({ operation }: { operation: () => Promise<unknown> }) => {
+          await operation().catch(() => undefined);
+        },
+      );
+      mockBulkPatch
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(new Error('second chunk failed'));
+      const { result } = renderHook(() => useActivities(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      const loads = () =>
+        findAllPage.mock.calls.length +
+        findBrandActivities.mock.calls.length +
+        findOrganizationActivities.mock.calls.length;
+      const loadsBefore = loads();
+
+      await act(async () => {
+        await result.current.toggleActivityRead('post-row');
+      });
+
+      await waitFor(() => {
+        expect(loads()).toBeGreaterThan(loadsBefore);
+      });
+    });
   });
 
   it('toggles activity read status', async () => {

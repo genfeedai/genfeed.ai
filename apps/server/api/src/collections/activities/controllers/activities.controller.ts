@@ -187,7 +187,10 @@ export class ActivitiesController {
     > => {
       const page = await this.activitiesService.findAll(aggregate, options);
       page.docs = await this.activitiesService.attachDisplayContext(
-        await this.activitiesService.collapsePostActivities(page.docs),
+        await this.activitiesService.collapsePostActivities(
+          page.docs,
+          aggregate.where,
+        ),
       );
       return page;
     };

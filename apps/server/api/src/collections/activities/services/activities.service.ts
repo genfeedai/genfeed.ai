@@ -76,8 +76,9 @@ export class ActivitiesService extends BaseService<
    */
   async collapsePostActivities(
     activities: ActivityDocument[],
+    listWhere?: Record<string, unknown>,
   ): Promise<ActivityDocument[]> {
-    return await collapsePostActivities(this.prisma, activities);
+    return await collapsePostActivities(this.prisma, activities, listWhere);
   }
 
   /**
