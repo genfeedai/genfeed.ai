@@ -141,6 +141,12 @@ describe('BrandPerformanceChart', () => {
       expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     });
 
+    it('gives the chart the full height of its frame', () => {
+      render(<BrandPerformanceChart data={mockData} />);
+      // The chart's own height is 100%, which is 0 unless the wrapper fills the frame.
+      expect(screen.getByTestId('responsive-container')).toHaveClass('h-full');
+    });
+
     it('renders the bar chart', () => {
       render(<BrandPerformanceChart data={mockData} />);
       expect(screen.getByTestId('bar-chart')).toBeInTheDocument();

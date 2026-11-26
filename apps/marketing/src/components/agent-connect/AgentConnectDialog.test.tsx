@@ -158,10 +158,8 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('tab', { name: 'Claude Code' }),
     );
     expect(
-      within(dialog).getByText(
-        '/plugin install genfeed --marketplace genfeedai/agent',
-      ),
-    ).toBeInTheDocument();
+      within(dialog).queryByText(/\/plugin install/),
+    ).not.toBeInTheDocument();
     expect(
       within(dialog).queryByRole('link', { name: 'Open Claude Customize' }),
     ).not.toBeInTheDocument();
