@@ -7,8 +7,10 @@ import {
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
 import {
   Body,
@@ -32,6 +34,7 @@ export class AuthDesktopController {
   constructor(private readonly authDesktopService: AuthDesktopService) {}
 
   @Post('authorize')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiBearerAuth()
   @UseGuards(BetterAuthGuard)
   @RateLimit({ limit: 8, scope: 'ip', windowMs: 60000 })
@@ -52,6 +55,7 @@ export class AuthDesktopController {
   }
 
   @Post('status')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiBearerAuth()
   @UseGuards(BetterAuthGuard)
   @RateLimit({ limit: 90, scope: 'ip', windowMs: 60000 })

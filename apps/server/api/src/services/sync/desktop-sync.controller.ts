@@ -1,9 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { DesktopSyncService } from './desktop-sync.service';
 import { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
@@ -35,6 +37,7 @@ export class DesktopSyncController {
   }
 
   @Post('threads')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async pushThreads(
@@ -60,6 +63,7 @@ export class DesktopSyncController {
   }
 
   @Post('assets/metadata')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async pushAssets(
@@ -70,6 +74,7 @@ export class DesktopSyncController {
   }
 
   @Post('assets/upload-url')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async requestAssetUpload(
@@ -80,6 +85,7 @@ export class DesktopSyncController {
   }
 
   @Post('assets/:id/uploaded')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async confirmAssetUpload(@CurrentUser() user: User, @Param('id') id: string) {
@@ -87,6 +93,7 @@ export class DesktopSyncController {
   }
 
   @Post('assets/:id/upload')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async uploadAsset(
@@ -98,6 +105,7 @@ export class DesktopSyncController {
   }
 
   @Post('ops')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async pushOps(
