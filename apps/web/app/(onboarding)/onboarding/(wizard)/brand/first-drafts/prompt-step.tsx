@@ -22,12 +22,7 @@ export default function PromptStep({
   const { balance, isLoading } = useOnboardingCreditBalance();
   const [isCopied, setIsCopied] = useState(false);
   const [hasCopyFailed, setHasCopyFailed] = useState(false);
-  // The Claude connector drafts and schedules but has no image tools, so its
-  // prompt never asks for media.
-  const prompt = t(
-    client === 'claude-code' ? 'prompt.textDrafts' : 'prompt.textWithImages',
-    { brand: brandName },
-  );
+  const prompt = t('prompt.textWithImages', { brand: brandName });
 
   async function copyPrompt() {
     const didCopy = await ClipboardService.getInstance().copyToClipboard(

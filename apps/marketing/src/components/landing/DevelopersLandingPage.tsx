@@ -158,10 +158,8 @@ export default function DevelopersLandingPage(): React.ReactElement {
               </Code>
             </Pre>
             <p className="border-t border-foreground/5 bg-background/90 px-4 py-3 text-xs text-foreground/60">
-              Claude connects at mcp.genfeed.ai/mcp/claude for drafts,
-              scheduling and analytics. Add the standard URL above as a second
-              connector to generate images, video and audio. Cursor and other
-              MCP clients generate assets through the standard connector.
+              Claude, Cursor and other MCP clients all connect at the URL above
+              to draft, schedule, generate and measure content.
             </p>
           </div>
         }

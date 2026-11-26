@@ -36,18 +36,11 @@ then connect a client.
 
 ### Claude Code
 
-Register the dedicated content connector, then open `/mcp` inside Claude Code,
-select `genfeed`, and complete browser OAuth:
+Register the server, then open `/mcp` inside Claude Code, select `genfeed`, and
+complete browser OAuth:
 
 ```bash
-claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
-```
-
-This connector does not generate media. To generate images, video and audio
-from Claude Code, add the standard endpoint as a second server:
-
-```bash
-claude mcp add --transport http genfeed-media --scope user http://localhost:3014/mcp
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp
 ```
 
 Configure your deployment's public app, API, and MCP URLs so OAuth discovery
@@ -140,9 +133,7 @@ What a spec-compliant client can rely on:
   `http://localhost:3010/.well-known/oauth-authorization-server`. Both documents
   are readable cross-origin.
 - **Resource identifier (RFC 8707).** The `resource` is your MCP URL ending in
-  `/mcp` for the standard connector, or `/mcp/claude` for Claude. Claude
-  discovery is at `/.well-known/oauth-protected-resource/mcp/claude`. Send it on
-  the authorize and token requests.
+  `/mcp`. Send it on the authorize and token requests.
 - **Client metadata documents (CIMD).** A public client can use its HTTPS
   metadata-document URL as `client_id`, without registering first. The document
   must have a path and contain the exact `client_id`, `client_name` and
@@ -182,7 +173,7 @@ Genfeed connector without a consent screen. The client sends a signed identity
 assertion (an ID-JAG, `typ` `oauth-id-jag+jwt`) to the token endpoint with the
 RFC 7523 `jwt-bearer` grant and gets an access token back. It is available
 only to clients whose metadata document declares the `jwt-bearer` grant, such
-as the Claude connector; dynamically registered clients cannot use it.
+as the Claude directory connector; dynamically registered clients cannot use it.
 
 Set it up as the organization owner:
 
@@ -502,7 +493,7 @@ With `deleteOnPlatform: true` `remove_post` deletes the post on its network
 first, on X and Mastodon; any other platform is refused, and when the network
 refuses nothing is deleted at all. The result also
 reads the post and media back, and the agent confirms with `get_content` and
-`get_assets`. The Claude connector at `/mcp/claude` does not list them. The CLI
+`get_assets`. The CLI
 has `genfeed posts delete <id> [--with-media] [--on-platform]` and `genfeed asset delete <id>`,
 each asking for confirmation unless `--force` is given.
 
@@ -524,8 +515,7 @@ Generation tools call the model providers whose keys you configured; see
 Every connection lists the same tools, at most 30 for an ordinary user (the
 list is checked in CI). Nothing needs selecting: `?toolsets=`, `?profile=` and
 `?app=` are no longer read, and an old URL that still carries them connects and
-gets the same list. The Claude connector at `/mcp/claude` keeps its fixed,
-smaller list.
+gets the same list.
 
 Most tools take an `action` and one `input` object, so one tool covers a family
 of operations. Permissions and approvals are checked on the call, whatever is
@@ -735,17 +725,9 @@ account cookies.
 
 ## Claude, Claude Code and Cowork
 
-Connect to `http://localhost:3014/mcp/claude` with browser OAuth (see
-[Claude Code](#claude-code) above). This connector supports brands, drafts,
-existing assets, scheduling and analytics. It does not generate media. To
-generate images, video and audio from a Claude client, add the standard
-endpoint (`http://localhost:3014/mcp`) as a second custom connector; it
-authorizes separately and carries the generation tools.
-
-This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory.
-Existing connections to `/mcp` retain their original capabilities.
-
-The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Using the Claude token on `/mcp` does not enable generation; a separate connection to `/mcp` has its own grant. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
+Connect to `http://localhost:3014/mcp` with browser OAuth, the same URL every
+other client uses (see [Claude Code](#claude-code) above). In Claude and Cowork,
+add it as a custom connector.
 
 ## Troubleshooting
 

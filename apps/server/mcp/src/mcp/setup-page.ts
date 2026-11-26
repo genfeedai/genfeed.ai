@@ -6,7 +6,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import {
-  buildClaudeCodeStandardMcpCommand,
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
@@ -197,7 +196,7 @@ function buildAgentSetupPrompt(params: {
 }): string {
   const { apiKeysUrl, mcpUrl } = params;
 
-  return `${buildGenfeedAgentSetupPrompt(mcpUrl, undefined, { claudeUsesStandardEndpoint: true })}
+  return `${buildGenfeedAgentSetupPrompt(mcpUrl)}
 
 Guided connection flow: ${apiKeysUrl}
 For the Genfeed CLI, only if requested separately, run genfeed login with no flags. The human approves in the browser. Do not paste a secret into this chat.`;
@@ -351,13 +350,12 @@ export function renderSetupPage(
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
 
+  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
   const generic = buildConnectGenfeedInstructions('generic', mcpUrl);
   const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
 
-  const claudeCommandSafe = escapeHtml(
-    buildClaudeCodeStandardMcpCommand(mcpUrl),
-  );
+  const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
   const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
   const genericConfigSafe = escapeHtml(generic.configuration);
   const genericAuthSafe = escapeHtml(generic.authorizationInstruction);
