@@ -66,6 +66,7 @@ export class AdminModelPricingController {
    * explicit step.
    */
   @Post('sync')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(202)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   async sync(@Body() body: unknown) {
@@ -85,6 +86,7 @@ export class AdminModelPricingController {
    * the provider price import for models that have no rates loaded yet.
    */
   @Post('fix')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   async fix(@Req() request: Request, @Body() body: unknown) {

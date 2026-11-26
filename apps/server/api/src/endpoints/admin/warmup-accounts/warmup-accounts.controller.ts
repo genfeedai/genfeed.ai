@@ -57,6 +57,7 @@ export class WarmupAccountsController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Provision a lead warm-up account' })
   async create(
