@@ -160,14 +160,14 @@ Used together, the agent plans with the skill and executes with the tools: the
 `x-thread` skill shapes the thread, then the MCP `save_post(action=post)` tool
 schedules it.
 
-Connect Claude Code to your instance's dedicated content connector, then open
-`/mcp` and complete browser authorization:
+Connect Claude Code to your instance, then open `/mcp` and complete browser
+authorization:
 
 ```bash
-claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp
 ```
 
-Other clients use `http://localhost:3014/mcp`. See
+Other clients use the same `http://localhost:3014/mcp`. See
 [MCP server](/api-reference/mcp#connect-to-your-instance) for every client and for
 API-key setup.
 

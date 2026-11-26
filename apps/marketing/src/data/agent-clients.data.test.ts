@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AGENT_CLIENT_CAPABILITIES,
+  AGENT_CLIENT_EXAMPLE_PROMPTS,
   AGENT_CLIENT_FAMILIES,
   AGENT_CLIENT_SLUGS,
   agentClients,
   buildAgentClientJsonLd,
-  GENFEED_CLAUDE_MCP_URL,
   GENFEED_PUBLIC_MCP_URL,
   getAgentClient,
   getAgentClientCommandBlocks,
@@ -95,20 +96,17 @@ describe('agent clients', () => {
   });
 });
 
-describe('Claude content connector copy', () => {
+describe('Claude connects to the full-access URL', () => {
   it.each(['claude', 'claude-code', 'claude-cowork'] as const)(
-    'uses the restricted endpoint and the second-connector handoff for %s',
+    'gives %s the same URL and capabilities as every other client',
     (slug) => {
       const client = getAgentClient(slug);
-      expect(client.connectUrl).toBe(GENFEED_CLAUDE_MCP_URL);
-      expect(client.oauth.configuration).toContain(GENFEED_CLAUDE_MCP_URL);
-      expect(client.description).toContain('second connector');
-      expect(client.capabilities.join(' ')).toContain('second connector');
-      expect(client.examplePrompts.join(' ')).not.toMatch(
-        /generate a|execute.*workflow/i,
-      );
-      expect(client.examplePrompts.join(' ')).toContain(
-        'full Genfeed connector',
+      expect(client.connectUrl).toBe(GENFEED_PUBLIC_MCP_URL);
+      expect(client.oauth.configuration).toContain(GENFEED_PUBLIC_MCP_URL);
+      expect(client.capabilities).toBe(AGENT_CLIENT_CAPABILITIES);
+      expect(client.examplePrompts).toBe(AGENT_CLIENT_EXAMPLE_PROMPTS);
+      expect(JSON.stringify(client)).not.toMatch(
+        /\/mcp\/claude|second connector|full Genfeed/,
       );
     },
   );

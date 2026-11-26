@@ -425,7 +425,7 @@ describe('ConnectGenfeedFlow', () => {
     ).toBeInTheDocument();
   });
 
-  it('switches Claude from manual keys to its dedicated OAuth resource', async () => {
+  it('switches Claude from manual keys to browser OAuth on the full MCP URL', async () => {
     render(<ConnectGenfeedFlow />);
     await userEvent.click(
       screen.getByRole('tab', { name: 'Advanced: manual API key' }),
@@ -436,7 +436,7 @@ describe('ConnectGenfeedFlow', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
       ),
     ).toBeInTheDocument();
     expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
@@ -445,18 +445,21 @@ describe('ConnectGenfeedFlow', () => {
   });
 
   it.each([
-    'https://custom.example/',
-    'https://custom.example/?toolsets=generation#setup',
-    'https://custom.example/mcp/claude/',
+    ['https://custom.example/mcp', 'https://custom.example/mcp'],
+    [
+      'https://custom.example/mcp?toolsets=generation#setup',
+      'https://custom.example/mcp',
+    ],
+    ['https://custom.example/mcp/claude/', 'https://custom.example/mcp'],
   ])(
     'connects Claude Code using the configured endpoint %s',
-    async (endpoint) => {
+    async (endpoint, expected) => {
       mocks.mcpEndpoint = endpoint;
       render(<ConnectGenfeedFlow />);
       await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
       expect(
         screen.getByText(
-          'claude mcp add --transport http genfeed --scope user https://custom.example/mcp/claude',
+          `claude mcp add --transport http genfeed --scope user ${expected}`,
         ),
       ).toBeInTheDocument();
     },

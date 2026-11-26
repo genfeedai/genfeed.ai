@@ -578,7 +578,7 @@ describe('FirstDraftsOnboarding', () => {
     await waitFor(() => expect(mocks.completeOnboarding).toHaveBeenCalled());
   });
 
-  it('gives a first prompt that names the brand and asks for no media from the Claude connector', async () => {
+  it('gives Claude Code a first prompt that names the brand and asks for an image with each post', async () => {
     mocks.readDrafts.mockResolvedValue(savedRun());
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
@@ -588,7 +588,7 @@ describe('FirstDraftsOnboarding', () => {
     render(<FirstDraftsOnboarding />);
     await goToPrompt();
     const prompt =
-      'Look at my Genfeed brand and this week’s trends. Draft three posts for Your brand and save them for my review. Do not publish them.';
+      'Look at my Genfeed brand and this week’s trends. Draft three posts for Your brand, generate an image for each, and save them for my review. Do not publish them.';
     expect(screen.getByText(prompt)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Copy first prompt' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(prompt));

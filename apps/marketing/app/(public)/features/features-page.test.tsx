@@ -19,12 +19,12 @@ vi.mock('@web-components/PageLayout', () => ({
 }));
 
 describe('FeaturesPage', () => {
-  it('places image and video generation on the full Genfeed connector', () => {
+  it('puts image and video generation in the agent flow', () => {
     render(<FeaturesPage />);
 
     expect(
       screen.getByText(
-        /draft and schedule posts, make video and images on the full Genfeed connector/,
+        /draft and schedule posts, make video and images, then publish/,
       ),
     ).toBeInTheDocument();
   });
