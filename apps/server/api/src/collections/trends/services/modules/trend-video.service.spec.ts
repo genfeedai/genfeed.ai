@@ -15,6 +15,10 @@ describe('TrendVideoService', () => {
     set: vi.fn(),
   };
 
+  const mockPlaybackService = {
+    removeExpiredCopies: vi.fn(),
+  };
+
   const mockApifyService = {
     getTikTokSounds: vi.fn(),
     getTikTokVideos: vi.fn(),
@@ -32,6 +36,7 @@ describe('TrendVideoService', () => {
   };
 
   let mockPrisma: {
+    $executeRaw: ReturnType<typeof vi.fn>;
     trend: { findMany: ReturnType<typeof vi.fn> };
     trendingHashtag: MockTrendDelegate;
     trendingSound: MockTrendDelegate;
@@ -89,6 +94,7 @@ describe('TrendVideoService', () => {
     refreshHealth.isScrapePaused.mockResolvedValue(false);
 
     mockPrisma = {
+      $executeRaw: vi.fn(),
       trend: { findMany: vi.fn().mockResolvedValue([]) },
       trendingHashtag: {
         create: vi.fn().mockResolvedValue({ id: 'created-hashtag' }),
@@ -107,6 +113,7 @@ describe('TrendVideoService', () => {
       },
     };
 
+    mockPlaybackService.removeExpiredCopies.mockResolvedValue(0);
     mockCacheService.get.mockResolvedValue(null);
     mockCacheService.set.mockResolvedValue(undefined);
     mockYoutubeService.getTrends.mockResolvedValue([]);
@@ -118,6 +125,7 @@ describe('TrendVideoService', () => {
       mockApifyService as never,
       mockYoutubeService as never,
       refreshHealth as never,
+      mockPlaybackService as never,
     );
   });
 
@@ -772,6 +780,28 @@ describe('TrendVideoService', () => {
       expect(refreshHealth.record).toHaveBeenCalledWith(null, [
         expect.objectContaining({ dataset: 'hashtags', platform: 'twitter' }),
       ]);
+    });
+  });
+
+  describe('markExpiredVideosAsHistorical', () => {
+    it('returns the expired count after deleting the lapsed playback copies', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(4);
+
+      await expect(service.markExpiredVideosAsHistorical()).resolves.toBe(4);
+      expect(mockPlaybackService.removeExpiredCopies).toHaveBeenCalledTimes(1);
+    });
+
+    it('still returns the expired count when the copy sweep fails', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(4);
+      mockPlaybackService.removeExpiredCopies.mockRejectedValue(
+        new Error('files service down'),
+      );
+
+      await expect(service.markExpiredVideosAsHistorical()).resolves.toBe(4);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'Expired trend playback sweep failed',
+        { error: 'files service down' },
+      );
     });
   });
 });

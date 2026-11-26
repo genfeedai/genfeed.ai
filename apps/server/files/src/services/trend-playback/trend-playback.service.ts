@@ -12,8 +12,8 @@ import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import { Injectable } from '@nestjs/common';
 
-export const TREND_PLAYBACK_FOLDER = 'trend-playback';
-export const TREND_PLAYBACK_KEY_PREFIX = `assets/${TREND_PLAYBACK_FOLDER}/`;
+const TREND_PLAYBACK_FOLDER = 'trend-playback';
+const TREND_PLAYBACK_KEY_PREFIX = `assets/${TREND_PLAYBACK_FOLDER}/`;
 
 /** Social shorts run under three minutes; anything longer is not a card clip. */
 const MAX_DURATION_SECONDS = 180;

@@ -148,6 +148,7 @@ export class TrendPlaybackService {
    * stored video. Returns how many copies were removed.
    */
   async removeExpiredCopies(): Promise<number> {
+    // sql-risk-audit: ignore raw-sql-review -- Daily expiry cron only, LIMIT-bounded batch over the global trending_videos catalog (no tenant data); the playback keys live in the JSON `data` blob, so there is no column to index.
     const rows = await this.prisma.$queryRaw<
       Array<{ id: string; playbackKey: string }>
     >`SELECT "id", "data"->>'playbackKey' AS "playbackKey"
@@ -176,6 +177,7 @@ export class TrendPlaybackService {
             retryPolicy: FilesRetryPolicy.IDEMPOTENT,
           },
         );
+        // sql-risk-audit: ignore raw-sql-review -- Primary-key update of one global trending_videos row; no tenant data.
         await this.prisma.$executeRaw`UPDATE "trending_videos"
           SET "data" = "data" - 'playbackKey' - 'playbackUrl' - 'playbackExpiresAtMs',
             "updatedAt" = CURRENT_TIMESTAMP
@@ -262,6 +264,7 @@ export class TrendPlaybackService {
     videoId: string,
     fields: TrendPlaybackFields,
   ): Promise<void> {
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key update of one global trending_videos row; no tenant data.
     await this.prisma.$executeRaw`UPDATE "trending_videos"
       SET "data" = "data" || ${JSON.stringify(fields)}::jsonb,
         "updatedAt" = CURRENT_TIMESTAMP

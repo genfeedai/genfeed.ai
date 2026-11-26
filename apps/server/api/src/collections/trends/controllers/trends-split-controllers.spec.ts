@@ -43,6 +43,7 @@ describe('Trends split controllers', () => {
   };
   const analyticsController = new TrendsAnalyticsController(
     trendsService as unknown as TrendsService,
+    {} as never,
   );
 
   beforeEach(() => {

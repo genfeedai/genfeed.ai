@@ -73,6 +73,7 @@ describe('a paid scrape that returns nothing night after night', () => {
       { getTikTokSounds } as never,
       { getTrends: vi.fn() } as never,
       health as never,
+      { removeExpiredCopies: vi.fn().mockResolvedValue(0) } as never,
     );
   });
 

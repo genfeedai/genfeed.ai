@@ -5,6 +5,7 @@ import {
   readPlaybackFields,
   TREND_PLAYBACK_RETENTION_MS,
   type TrendPlaybackFields,
+  TrendPlaybackService,
 } from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { isWithinTimeframe } from '@api/collections/trends/utils/brand-niche.util';
@@ -41,6 +42,39 @@ function trendKey(...parts: string[]): string {
   return parts.join(TREND_KEY_SEPARATOR);
 }
 
+/**
+ * A saved playback copy survives a re-scrape, and the scrape restarts its
+ * seven days: the video is trending again.
+ */
+function indexSavedCopies(
+  docs: ReadonlyArray<{ data: unknown }>,
+): Map<string, TrendPlaybackFields> {
+  const copies = new Map<string, TrendPlaybackFields>();
+  for (const doc of docs) {
+    const fields = readPlaybackFields(doc.data);
+    const data = doc.data as Record<string, unknown>;
+    if (
+      fields &&
+      typeof data.externalId === 'string' &&
+      typeof data.platform === 'string'
+    ) {
+      const key = trendKey(data.platform, data.externalId);
+      if (!copies.has(key)) {
+        copies.set(key, fields);
+      }
+    }
+  }
+  return copies;
+}
+
+function renewedCopy(
+  copy: TrendPlaybackFields | undefined,
+): TrendPlaybackFields | Record<string, never> {
+  return copy
+    ? { ...copy, playbackExpiresAtMs: Date.now() + TREND_PLAYBACK_RETENTION_MS }
+    : {};
+}
+
 @Traced()
 @Injectable()
 export class TrendVideoService {
@@ -55,6 +89,7 @@ export class TrendVideoService {
     private readonly apifyService: ApifyService,
     private readonly youtubeService: YoutubeService,
     private readonly refreshHealth: TrendRefreshHealthService,
+    private readonly playback: TrendPlaybackService,
   ) {}
 
   /**
@@ -246,23 +281,7 @@ export class TrendVideoService {
                   : null,
             );
 
-            // A saved playback copy survives a re-scrape, and the scrape
-            // restarts its seven days: the video is trending again.
-            const existingPlayback = new Map<string, TrendPlaybackFields>();
-            for (const doc of existingVideoDocs) {
-              const fields = readPlaybackFields(doc.data);
-              const data = doc.data as Record<string, unknown>;
-              if (
-                fields &&
-                typeof data.externalId === 'string' &&
-                typeof data.platform === 'string'
-              ) {
-                const key = trendKey(data.platform, data.externalId);
-                if (!existingPlayback.has(key)) {
-                  existingPlayback.set(key, fields);
-                }
-              }
-            }
+            const existingPlayback = indexSavedCopies(existingVideoDocs);
 
             for (const video of videos) {
               const externalId = video.externalId as string | undefined;
@@ -275,13 +294,7 @@ export class TrendVideoService {
                 const savedCopy = existingPlayback.get(videoKey);
                 const dataPayload = {
                   ...video,
-                  ...(savedCopy
-                    ? {
-                        ...savedCopy,
-                        playbackExpiresAtMs:
-                          Date.now() + TREND_PLAYBACK_RETENTION_MS,
-                      }
-                    : {}),
+                  ...renewedCopy(savedCopy),
                   expiresAt,
                   isCurrent: true,
                   isDeleted: false,
@@ -891,10 +904,20 @@ export class TrendVideoService {
   // ==================== Mark Expired Items ====================
 
   /**
-   * Mark expired videos as historical
+   * Mark expired videos as historical, and delete the saved playback copies
+   * that ran out. A copy that cannot be deleted is retried on the next run and
+   * never fails the expiry itself.
    */
   async markExpiredVideosAsHistorical(): Promise<number> {
-    return this.markExpiredAsHistoricalForModel('video');
+    const expired = await this.markExpiredAsHistoricalForModel('video');
+    try {
+      await this.playback.removeExpiredCopies();
+    } catch (error: unknown) {
+      this.loggerService.warn('Expired trend playback sweep failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return expired;
   }
 
   /**

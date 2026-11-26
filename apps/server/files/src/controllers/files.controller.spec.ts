@@ -7,6 +7,7 @@ import { FilesController } from '@files/controllers/files.controller';
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
+import { FilesTrendPlaybackController } from '@files/controllers/files-trend-playback.controller';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FileQueueService } from '@files/queues/file-queue.service';
 import { ImageQueueService } from '@files/queues/image-queue.service';
@@ -85,7 +86,8 @@ describe('FilesController', () => {
   type TestFilesController = PublicController<FilesController> &
     PublicController<FilesMetadataController> &
     PublicController<FilesProcessingController> &
-    PublicController<FilesStorageController>;
+    PublicController<FilesStorageController> &
+    PublicController<FilesTrendPlaybackController>;
 
   let controller: TestFilesController;
   let videoQueueService: VideoQueueService;
@@ -385,6 +387,7 @@ describe('FilesController', () => {
         FilesMetadataController,
         FilesProcessingController,
         FilesStorageController,
+        FilesTrendPlaybackController,
       ],
       providers: [
         { provide: ConfigService, useValue: mockConfigService },
@@ -411,6 +414,9 @@ describe('FilesController', () => {
     );
     const processingController = module.get<FilesProcessingController>(
       FilesProcessingController,
+    );
+    const trendPlaybackController = module.get<FilesTrendPlaybackController>(
+      FilesTrendPlaybackController,
     );
     const storageController = module.get<FilesStorageController>(
       FilesStorageController,
@@ -443,12 +449,14 @@ describe('FilesController', () => {
       processFile: jobsController.processFile.bind(jobsController),
       processHookRemix: jobsController.processHookRemix.bind(jobsController),
       processImage: jobsController.processImage.bind(jobsController),
-      prepareTrendPlayback:
-        jobsController.prepareTrendPlayback.bind(jobsController),
+      prepareTrendPlayback: trendPlaybackController.prepareTrendPlayback.bind(
+        trendPlaybackController,
+      ),
       processVideo: jobsController.processVideo.bind(jobsController),
       processYoutube: jobsController.processYoutube.bind(jobsController),
-      removeTrendPlayback:
-        jobsController.removeTrendPlayback.bind(jobsController),
+      removeTrendPlayback: trendPlaybackController.removeTrendPlayback.bind(
+        trendPlaybackController,
+      ),
       resizeImage: processingController.resizeImage.bind(processingController),
       splitImage: processingController.splitImage.bind(processingController),
       storedObjectExists:

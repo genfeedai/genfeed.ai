@@ -12,11 +12,6 @@ import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import type {
-  TrendPlaybackRequest,
-  TrendPlaybackResult,
-} from '@files/services/trend-playback/trend-playback.interfaces';
-import { TrendPlaybackService } from '@files/services/trend-playback/trend-playback.service';
-import type {
   FileJobData,
   ImageJobData,
   VideoJobData,
@@ -50,8 +45,6 @@ export class FilesController {
     @Inject(ImageQueueService)
     private readonly imageQueueService: ImageQueueService,
     private readonly logger: LoggerService,
-    @Inject(TrendPlaybackService)
-    private readonly trendPlaybackService: TrendPlaybackService,
     @Inject(VideoQueueService)
     private readonly videoQueueService: VideoQueueService,
     @Inject(YoutubeQueueService)
@@ -383,59 +376,6 @@ export class FilesController {
         getErrorMessage(error, {
           emptyMessage: 'fallback',
           fallback: () => 'Failed to process hook remix',
-        }),
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('process/trend-playback')
-  async prepareTrendPlayback(
-    @Body() body: TrendPlaybackRequest,
-  ): Promise<TrendPlaybackResult> {
-    try {
-      if (!body.sourceUrl || !body.videoId) {
-        throw new HttpException(
-          'sourceUrl and videoId are required',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      return await this.trendPlaybackService.prepare(body);
-    } catch (error: unknown) {
-      this.logger.error('Failed to prepare trend playback:', error);
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException(
-        getErrorMessage(error, {
-          emptyMessage: 'fallback',
-          fallback: () => 'Failed to prepare trend playback',
-        }),
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('process/trend-playback/delete')
-  async removeTrendPlayback(@Body() body: { playbackKey: string }) {
-    if (!body.playbackKey) {
-      throw new HttpException(
-        'playbackKey is required',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    try {
-      await this.trendPlaybackService.remove(body.playbackKey);
-      return { removed: true };
-    } catch (error: unknown) {
-      this.logger.error('Failed to remove trend playback:', error);
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException(
-        getErrorMessage(error, {
-          emptyMessage: 'fallback',
-          fallback: () => 'Failed to remove trend playback',
         }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );

@@ -96,7 +96,6 @@ function serviceFor(sim: Simulation, world: World): TrendsService {
       { warn: vi.fn() } as never,
       niche,
     ),
-    {} as never,
   );
 }
 
