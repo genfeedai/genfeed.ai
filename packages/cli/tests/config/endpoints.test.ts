@@ -50,13 +50,12 @@ describe('config/endpoints', () => {
       expect(parseMarketplaceApiUrl(value)).toBe(expected);
     });
 
-    it.each([
-      'http://api.shop.genfeed.ai',
-      'ftp://localhost:3200',
-      'api.shop.genfeed.ai',
-    ])('refuses %s, which would send the admin token over an unsafe channel', (value) => {
-      expect(parseMarketplaceApiUrl(value)).toBeUndefined();
-    });
+    it.each(['http://api.shop.genfeed.ai', 'ftp://localhost:3200', 'api.shop.genfeed.ai'])(
+      'refuses %s, which would send the admin token over an unsafe channel',
+      (value) => {
+        expect(parseMarketplaceApiUrl(value)).toBeUndefined();
+      }
+    );
   });
 
   describe('deriveAppUrl', () => {
