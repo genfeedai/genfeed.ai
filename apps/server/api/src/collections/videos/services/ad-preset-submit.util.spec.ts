@@ -1,5 +1,8 @@
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
+import {
+  compileSubmittedAdPreset,
+  pendingAdDialogue,
+} from '@api/collections/videos/services/ad-preset-submit.util';
 import { MINIMAX_H3_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
 import {
   AD_PRESETS,
@@ -155,4 +158,45 @@ describe('ad preset submit', () => {
       expect(ingredients.prisma.preset.findFirst).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('pending ad dialogue check (#7927)', () => {
+  const adPreset = (dialogue: string, isDialogueCheckEnabled?: boolean) => ({
+    isDialogueCheckEnabled,
+    params: {
+      aspectRatio: '9:16',
+      dialogue,
+      lensMm: 24,
+      qualityLook: 'Phone selfie',
+      referenceRoles: [],
+    },
+    presetId: 'ad-ugc-selfie',
+  });
+
+  it.each([
+    ['locked audio and a script', ['audio-1'], adPreset('Try this.'), true],
+    ['no audio reference', [], adPreset('Try this.'), false],
+    ['the check turned off', ['audio-1'], adPreset('Try this.', false), false],
+    ['a blank script', ['audio-1'], adPreset('   '), false],
+    ['no ad preset', ['audio-1'], undefined, false],
+  ])(
+    'checks the take only with %s',
+    (_name, audioReferences, preset, isChecked) => {
+      expect(pendingAdDialogue({ adPreset: preset, audioReferences })).toEqual(
+        isChecked ? { script: 'Try this.', status: 'pending' } : undefined,
+      );
+    },
+  );
+
+  it('keeps the script verbatim', () => {
+    expect(
+      pendingAdDialogue({
+        adPreset: adPreset('  Try this.\nKeep "every" word  '),
+        audioReferences: ['audio-1'],
+      }),
+    ).toEqual({
+      script: '  Try this.\nKeep "every" word  ',
+      status: 'pending',
+    });
+  });
 });

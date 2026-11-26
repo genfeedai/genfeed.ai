@@ -12,7 +12,10 @@ import {
   promptSlotColumns,
 } from '@api/collections/prompts/utils/prompt-slots.util';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
+import {
+  compileSubmittedAdPreset,
+  pendingAdDialogue,
+} from '@api/collections/videos/services/ad-preset-submit.util';
 import { assertAudioReferencesSupported } from '@api/collections/videos/services/minimax-h3-reference.util';
 import {
   assertSeedanceReferenceBinding,
@@ -323,6 +326,8 @@ export class VideoGenerationPreparationService {
       generationHarness.enhancedPrompt = promptParams.prompt;
     }
     promptParams.prompt = generationHarness.enhancedPrompt;
+    const adDialogue = pendingAdDialogue(createVideoDto);
+    if (adDialogue) generationHarness.adDialogue = adDialogue;
     assertReferenceMentionInvariant({
       originalText: promptText,
       preparedText: generationHarness.enhancedPrompt,
