@@ -181,12 +181,12 @@ describe('TrendIngestionHealthService', () => {
     await service.checkMissedWindows(new Date('2026-09-30T00:14:59.998Z'));
     expect(recorder.dispatchInTransaction).not.toHaveBeenCalled();
     await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
-    expect(events.size).toBe(15);
+    expect(events.size).toBe(11);
     expect(digests()).toHaveLength(1);
     const [card] = digests()[0].messages.map(
       (entry) => entry.message.payload.card,
     );
-    expect(card.title).toBe('Trend ingestion: 15 missed two scheduled windows');
+    expect(card.title).toBe('Trend ingestion: 11 missed two scheduled windows');
     expect(card.description).toContain('Inspect the trend maintenance queue');
     expect(card.description).not.toContain('more');
     const keys = [...events.keys()];
@@ -207,7 +207,7 @@ describe('TrendIngestionHealthService', () => {
     expect(
       (keyLookups[0][0] as { where: { deduplicationKey: { in: string[] } } })
         .where.deduplicationKey.in,
-    ).toHaveLength(15);
+    ).toHaveLength(11);
     expect(prisma.$transaction).toHaveBeenLastCalledWith(expect.any(Function), {
       timeout: 30_000,
     });
@@ -217,7 +217,7 @@ describe('TrendIngestionHealthService', () => {
     const { service, digests, events, health, recorder } = setup();
     await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     expect(digests()).toHaveLength(1);
-    expect(events.size).toBe(15);
+    expect(events.size).toBe(11);
     const recovered: TrendRefreshHealth[] = ['instagram', 'pinterest'].map(
       (platform) => ({
         completedAt: '2026-09-30T01:45:00.000Z',

@@ -13,6 +13,7 @@ import {
   withTrendRefreshAttempt,
 } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { CacheService } from '@api/services/cache/cache.service';
+import type { ApifyHashtagData } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-scoring.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
@@ -21,8 +22,11 @@ import { Timeframe } from '@genfeedai/contracts';
 import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_HASH_PATTERN = /^#/;
 
 /** Separator that cannot appear in a platform id or external id. */
 const TREND_KEY_SEPARATOR = '\u0000';
@@ -179,10 +183,6 @@ export class TrendVideoService {
       string,
       () => Promise<Record<string, unknown>[]>
     > = {
-      // @ts-expect-error TS2322
-      instagram: () => this.apifyService.getInstagramVideos(limit),
-      // @ts-expect-error TS2322
-      reddit: () => this.apifyService.getRedditVideos(limit),
       // @ts-expect-error TS2322
       tiktok: () => this.apifyService.getTikTokVideos(limit),
       youtube: () => this.fetchYoutubeVideosNativeFirst(limit),
@@ -446,24 +446,83 @@ export class TrendVideoService {
   /**
    * Fetch and store trending hashtags from Apify
    */
-  async fetchAndCacheHashtags(
+  fetchAndCacheHashtags(platform: string, limit: number = 12): Promise<number> {
+    return this.cacheHashtags(platform, async () => {
+      const hashtags = await this.apifyService.getTrendingHashtags(
+        platform,
+        limit,
+      );
+      recordTrendProviderOutcome(
+        hashtags.length ? 'fallback_available' : 'fallback_empty',
+        'native_unavailable',
+      );
+      return hashtags;
+    });
+  }
+
+  /**
+   * Store the hashtags among the X trends the global refresh already holds.
+   * Nothing is bought: the rows come from `trends`, which the X API (or its
+   * fallback) filled earlier in the same refresh.
+   */
+  deriveAndCacheTwitterHashtags(limit: number = 12): Promise<number> {
+    return this.cacheHashtags('twitter', async () => {
+      recordTrendProviderOutcome('native_failed', 'provider_failed');
+      // tenant-scope-ignore: platform trends: organizationId null with the tenant proof from withPlatformTenantArm; isDeleted is false
+      const rows = await this.prisma.trend.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: { data: true, topic: true, viralityScore: true },
+        take: limit * 5,
+        where: withPlatformTenantArm({
+          AND: [
+            { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+          ],
+          brandId: null,
+          isCurrent: true,
+          isDeleted: false,
+          organizationId: null,
+          platform: 'twitter',
+          topic: { startsWith: '#' },
+        }),
+      });
+      const byHashtag = new Map<string, ApifyHashtagData>();
+      for (const row of rows) {
+        const hashtag = (row.topic ?? '')
+          .replace(LEADING_HASH_PATTERN, '')
+          .trim();
+        if (!hashtag || byHashtag.has(hashtag.toLowerCase())) continue;
+        const data = (row.data ?? {}) as Record<string, unknown>;
+        byHashtag.set(hashtag.toLowerCase(), {
+          growthMeasured: false,
+          growthRate: typeof data.growthRate === 'number' ? data.growthRate : 0,
+          hashtag,
+          platform: 'twitter',
+          postCount: typeof data.mentions === 'number' ? data.mentions : 0,
+          postCountScope: 'platform',
+          relatedHashtags: [],
+          viewCount: 0,
+          viralityScore: row.viralityScore ?? 0,
+        });
+      }
+      const hashtags = [...byHashtag.values()].slice(0, limit);
+      recordTrendProviderOutcome(
+        hashtags.length ? 'native_available' : 'native_empty',
+        hashtags.length ? null : 'native_empty',
+      );
+      return hashtags;
+    });
+  }
+
+  private async cacheHashtags(
     platform: string,
-    limit: number = 12,
+    load: () => Promise<ApifyHashtagData[]>,
   ): Promise<number> {
     const captured = await captureTrendRefreshEvidence(
       () =>
         withTrendRefreshAttempt(platform, 'hashtags', 'global', async () => {
           let isFetched = false;
           try {
-            const hashtags = await this.apifyService.getTrendingHashtags(
-              platform,
-              limit,
-            );
-
-            recordTrendProviderOutcome(
-              hashtags.length ? 'fallback_available' : 'fallback_empty',
-              'native_unavailable',
-            );
+            const hashtags = await load();
             isFetched = true;
             if (hashtags.length === 0) {
               return 0;

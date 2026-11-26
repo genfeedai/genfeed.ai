@@ -334,7 +334,6 @@ export class TrendFetchService {
   private async fetchRedditTrends(
     organizationId?: string,
     brandId?: string,
-    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     return this.fetchNativeFirst(
       'reddit',
@@ -361,11 +360,8 @@ export class TrendFetchService {
           topic: trend.title,
         }));
       },
-      async () =>
-        this.getSharedApifyTrends('reddit', () =>
-          this.apifyService.getRedditTrends({ limit: 20 }),
-        ),
-      allowApifyFallback,
+      null,
+      false,
     );
   }
 
@@ -467,7 +463,6 @@ export class TrendFetchService {
   private async fetchPinterestTrends(
     organizationId?: string,
     brandId?: string,
-    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     return this.fetchNativeFirst(
       'pinterest',
@@ -493,11 +488,8 @@ export class TrendFetchService {
           topic: trend.keyword,
         }));
       },
-      async () =>
-        this.getSharedApifyTrends('pinterest', () =>
-          this.apifyService.getPinterestTrends({ limit: 20 }),
-        ),
-      allowApifyFallback,
+      null,
+      false,
     );
   }
 
@@ -532,7 +524,7 @@ export class TrendFetchService {
   private async fetchNativeFirst(
     platform: string,
     nativeFetch: () => Promise<TrendData[]>,
-    fallbackFetch: () => Promise<TrendData[]>,
+    fallbackFetch: (() => Promise<TrendData[]>) | null,
     allowApifyFallback: boolean,
   ): Promise<TrendData[]> {
     let reason: TrendRefreshReason = 'native_empty';
@@ -547,7 +539,7 @@ export class TrendFetchService {
       const classified = classifyTrendProviderError(error);
       reason = classified === 'provider_failed' ? 'native_failed' : classified;
     }
-    if (!allowApifyFallback) {
+    if (!allowApifyFallback || !fallbackFetch) {
       recordTrendProviderOutcome(
         reason === 'native_unavailable' || reason === 'native_empty'
           ? 'native_empty'
@@ -642,32 +634,12 @@ export class TrendFetchService {
   private async fetchTikTokTrends(
     organizationId?: string,
     brandId?: string,
-    allowApifyFallback = true,
   ): Promise<TrendData[]> {
-    const fallback = () =>
-      this.getSharedApifyTrends('tiktok', () =>
-        this.apifyService.getTikTokTrends({ limit: 20 }),
-      );
-
+    // TikTok has no public trend feed to read and no Apify trend actor that
+    // returns rows, so only a brand's own account can be read.
     if (!organizationId || !brandId) {
-      if (!allowApifyFallback) {
-        recordTrendProviderOutcome('native_empty', 'native_unavailable');
-        return [];
-      }
-      try {
-        const trends = await fallback();
-        recordTrendProviderOutcome(
-          trends.length ? 'fallback_available' : 'fallback_empty',
-          'native_unavailable',
-        );
-        return trends;
-      } catch (error: unknown) {
-        recordTrendProviderOutcome(
-          'fallback_failed',
-          classifyTrendProviderError(error),
-        );
-        return [];
-      }
+      recordTrendProviderOutcome('native_empty', 'native_unavailable');
+      return [];
     }
 
     return this.fetchNativeFirst(
@@ -686,8 +658,8 @@ export class TrendFetchService {
             topic: trend.topic,
           }),
         ),
-      fallback,
-      allowApifyFallback,
+      null,
+      false,
     );
   }
 
@@ -748,24 +720,9 @@ export class TrendFetchService {
                 allowApifyFallback,
               ),
             linkedin: () => this.fetchLinkedInTrends(organizationId, brandId),
-            pinterest: () =>
-              this.fetchPinterestTrends(
-                organizationId,
-                brandId,
-                allowApifyFallback,
-              ),
-            reddit: () =>
-              this.fetchRedditTrends(
-                organizationId,
-                brandId,
-                allowApifyFallback,
-              ),
-            tiktok: () =>
-              this.fetchTikTokTrends(
-                organizationId,
-                brandId,
-                allowApifyFallback,
-              ),
+            pinterest: () => this.fetchPinterestTrends(organizationId, brandId),
+            reddit: () => this.fetchRedditTrends(organizationId, brandId),
+            tiktok: () => this.fetchTikTokTrends(organizationId, brandId),
             twitter: () =>
               this.fetchTwitterTrends(
                 organizationId,

@@ -153,31 +153,6 @@ describe('ApifyInstagramService', () => {
     await expect(service.getInstagramTrends()).rejects.toThrow('API error');
   });
 
-  it('getInstagramVideos normalizes posts with video data', async () => {
-    baseService.runActor.mockResolvedValue([mockPost]);
-    const result = await service.getInstagramVideos(10);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({
-      creatorHandle: 'creator1',
-      platform: 'instagram',
-      videoUrl: 'https://instagram.com/video.mp4',
-      viewCount: 50000,
-    });
-  });
-
-  it('getInstagramVideos filters out posts without video data', async () => {
-    baseService.runActor.mockResolvedValue([
-      { ...mockPost, videoUrl: undefined, videoViewCount: undefined },
-    ]);
-    const result = await service.getInstagramVideos();
-    expect(result).toHaveLength(0);
-  });
-
-  it('getInstagramVideos rethrows provider failures', async () => {
-    baseService.runActor.mockRejectedValue(new Error('fail'));
-    await expect(service.getInstagramVideos()).rejects.toThrow('fail');
-  });
-
   it('getInstagramPostComments normalizes comments', async () => {
     baseService.runActor.mockResolvedValue([mockComment]);
     const result = await service.getInstagramPostComments(
@@ -242,22 +217,6 @@ describe('ApifyInstagramService', () => {
     expect(result).toEqual([]);
   });
 
-  it('normalizes post with missing optional fields', async () => {
-    baseService.runActor.mockResolvedValue([
-      {
-        id: 'post-minimal',
-        videoUrl: 'https://video.mp4',
-        videoViewCount: 100,
-      },
-    ]);
-    const result = await service.getInstagramVideos(1);
-    expect(result[0]).toMatchObject({
-      commentCount: 0,
-      creatorHandle: 'unknown',
-      likeCount: 0,
-      viewCount: 100,
-    });
-  });
   it('governs hosted timelines before legacy token admission with unchanged input', async () => {
     baseService.getApiToken.mockReturnValue(null);
     researchRunner.run.mockResolvedValue([]);

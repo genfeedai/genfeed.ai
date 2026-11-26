@@ -2,11 +2,8 @@ import type {
   ApifyNormalizedTikTokComment,
   ApifySoundData,
   ApifyTikTokComment,
-  ApifyTikTokTrend,
   ApifyTikTokVideo,
-  ApifyTrendData,
   ApifyVideoData,
-  TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
@@ -31,32 +28,6 @@ export class ApifyTikTokService {
     private readonly baseService: ApifyBaseService,
     private readonly runner: ResearchCollectionRunner,
   ) {}
-
-  /**
-   * Get TikTok trending topics/hashtags
-   */
-  async getTikTokTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
-    try {
-      const input = {
-        resultsPerPage: options?.limit || 20,
-        adsCountryCode: options?.region || 'US',
-        adsScrapeHashtags: true,
-      };
-
-      const rawTrends = await this.baseService.runActor<ApifyTikTokTrend>(
-        this.baseService.ACTORS.TIKTOK_TRENDS,
-        input,
-      );
-
-      return this.normalizeTikTokTrends(rawTrends);
-    } catch (error: unknown) {
-      this.baseService.logFailure(
-        `${this.constructorName}.getTikTokTrends failed`,
-        error,
-      );
-      throw error;
-    }
-  }
 
   /**
    * Get TikTok trending videos
@@ -333,35 +304,6 @@ export class ApifyTikTokService {
       );
       throw error;
     }
-  }
-
-  private normalizeTikTokTrends(trends: ApifyTikTokTrend[]): ApifyTrendData[] {
-    return trends
-      .filter((trend) => Boolean(trend.name || trend.hashtag || trend.title))
-      .map((trend) => ({
-        growthRate: 0,
-        mentions: trend.videoCount || 0,
-        metadata: {
-          hashtags:
-            trend.type === 'hashtag' || !trend.type
-              ? [trend.name || trend.hashtag || ''].filter(Boolean)
-              : [],
-          rank: trend.rank,
-          growthMeasured: false,
-          urls: trend.url ? [trend.url] : [],
-          source: 'apify' as const,
-          thumbnailUrl: trend.coverUrl,
-          trendType: trend.type || 'hashtag',
-          videoCount: trend.videoCount,
-          viewCount: trend.viewCount,
-        },
-        platform: 'tiktok',
-        topic: trend.name || trend.hashtag || trend.title || 'Unknown',
-        viralityScore: this.baseService.calculateViralityScore(
-          trend.viewCount || 0,
-          trend.videoCount || 0,
-        ),
-      }));
   }
 
   private normalizeTikTokVideos(videos: ApifyTikTokVideo[]): ApifyVideoData[] {

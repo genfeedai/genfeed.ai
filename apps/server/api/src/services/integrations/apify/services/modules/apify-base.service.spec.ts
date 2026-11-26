@@ -254,38 +254,15 @@ describe('ApifyBaseService', () => {
     );
   });
 
-  it('runActorForOrg uses byok key when available', async () => {
+  it('resolveCollectionToken prefers the byok key when available', async () => {
     byokFactory.resolveProvider.mockResolvedValue({
       apiKey: 'byok-key',
       source: 'byok',
     });
 
-    httpService.post.mockReturnValue(
-      of({
-        data: {
-          data: { defaultDatasetId: 'ds-1', id: 'run-1', status: 'RUNNING' },
-        },
-      }),
-    );
-    httpService.get
-      .mockReturnValueOnce(
-        of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
-      )
-      .mockReturnValueOnce(of({ data: [{ id: '1' }] }));
-
-    const result = await service.runActorForOrg('org-1', 'test/actor', {});
-    expect(result.source).toBe('byok');
-    expect(httpService.post).toHaveBeenCalledWith(
-      'https://api.apify.com/v2/acts/test~actor/runs',
-      {},
-      {
-        headers: {
-          Authorization: 'Bearer byok-key',
-          'Content-Type': 'application/json',
-        },
-        validateStatus: expect.any(Function),
-      },
-    );
+    await expect(
+      service.resolveCollectionToken('org-1', 'prefer-byok'),
+    ).resolves.toEqual({ source: 'byok', token: 'byok-key' });
   });
 
   it('runActor preserves already-normalized owner actor identifiers', async () => {
@@ -342,15 +319,16 @@ describe('ApifyBaseService', () => {
     );
   });
 
-  it('runActorForOrg returns empty when no token from any source', async () => {
+  it('resolveCollectionToken returns nothing when no token from any source', async () => {
     configService.get.mockReturnValue(undefined);
     byokFactory.resolveProvider.mockResolvedValue({
       apiKey: null,
       source: 'hosted',
     });
 
-    const result = await service.runActorForOrg('org-1', 'test/actor', {});
-    expect(result).toEqual({ data: [], source: 'hosted' });
+    await expect(
+      service.resolveCollectionToken('org-1', 'prefer-byok'),
+    ).resolves.toBeNull();
   });
 
   it('calculateEngagementMetrics computes correct values', () => {
@@ -613,30 +591,18 @@ describe('ApifyBaseService', () => {
     });
 
     it('scopes a byok account limit to that organization only', async () => {
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: 'byok-key',
-        source: 'byok',
-      });
-      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+      service.recordCollectionFailure(
+        'byok:org-1',
+        'test/actor',
+        ACCOUNT_LIMIT_ERROR,
+      );
 
       await expect(
-        service.runActorForOrg('org-1', 'test/actor', {}),
-      ).rejects.toBeDefined();
-      expect(httpService.post).toHaveBeenCalledTimes(1);
-
-      await expect(
-        service.runActorForOrg('org-1', 'test/actor', {}),
+        service.assertCollectionAdmission('byok:org-1'),
       ).rejects.toThrow(/Apify/i);
-      expect(httpService.post).toHaveBeenCalledTimes(1);
-
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: 'byok-key-2',
-        source: 'byok',
-      });
       await expect(
-        service.runActorForOrg('org-2', 'test/actor', {}),
-      ).rejects.toBeDefined();
-      expect(httpService.post).toHaveBeenCalledTimes(2);
+        service.assertCollectionAdmission('byok:org-2'),
+      ).resolves.toBeUndefined();
     });
 
     it('keeps byok organizations running when the hosted token hits its limit', async () => {
@@ -645,32 +611,22 @@ describe('ApifyBaseService', () => {
       await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
       expect(httpService.post).toHaveBeenCalledTimes(1);
 
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: 'byok-key',
-        source: 'byok',
-      });
       await expect(
-        service.runActorForOrg('org-1', 'test/actor', {}),
-      ).rejects.toBeDefined();
-      expect(httpService.post).toHaveBeenCalledTimes(2);
+        service.assertCollectionAdmission('byok:org-1'),
+      ).resolves.toBeUndefined();
     });
 
-    it('suspends the hosted scope when an organization falls back to the hosted token', async () => {
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: null,
-        source: 'hosted',
-      });
-      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
-
-      await expect(
-        service.runActorForOrg('org-1', 'test/actor', {}),
-      ).rejects.toBeDefined();
-      expect(httpService.post).toHaveBeenCalledTimes(1);
+    it('suspends the hosted scope when a collection on the hosted token hits its limit', async () => {
+      service.recordCollectionFailure(
+        'hosted',
+        'test/actor',
+        ACCOUNT_LIMIT_ERROR,
+      );
 
       await expect(service.runActor('test/actor', {})).rejects.toThrow(
         /Apify/i,
       );
-      expect(httpService.post).toHaveBeenCalledTimes(1);
+      expect(httpService.post).not.toHaveBeenCalled();
     });
   });
 
@@ -775,15 +731,12 @@ describe('ApifyBaseService', () => {
     it('does not page operators for an exhausted byok account', async () => {
       const recorder = { dispatch: vi.fn().mockResolvedValue(undefined) };
       const alerting = createService(createSharedCache(), recorder);
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: 'byok-key',
-        source: 'byok',
-      });
-      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
 
-      await expect(
-        alerting.runActorForOrg('org-1', 'test/actor', {}),
-      ).rejects.toBeDefined();
+      alerting.recordCollectionFailure(
+        'byok:org-1',
+        'test/actor',
+        ACCOUNT_LIMIT_ERROR,
+      );
 
       expect(recorder.dispatch).not.toHaveBeenCalled();
     });
@@ -924,13 +877,13 @@ describe('ApifyBaseService', () => {
 
     it('names the caller and the run id for a run started inside a named caller', async () => {
       await runWithApifyCaller('trends.fetch-global', () =>
-        service.runActor('clockworks/tiktok-trends-scraper', {}),
+        service.runActor('automation-lab/twitter-trends-scraper', {}),
       );
 
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('started Apify run run-42'),
         expect.objectContaining({
-          actorId: 'clockworks/tiktok-trends-scraper',
+          actorId: 'automation-lab/twitter-trends-scraper',
           caller: 'trends.fetch-global',
           runId: 'run-42',
         }),
@@ -938,7 +891,7 @@ describe('ApifyBaseService', () => {
     });
 
     it('marks a run from an entry point that never named itself as unattributed', async () => {
-      await service.runActor('clockworks/tiktok-trends-scraper', {});
+      await service.runActor('automation-lab/twitter-trends-scraper', {});
 
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('started Apify run run-42'),

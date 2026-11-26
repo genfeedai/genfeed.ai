@@ -3,7 +3,6 @@ import type {
   ApifyInstagramPost,
   ApifyNormalizedInstagramComment,
   ApifyTrendData,
-  ApifyVideoData,
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
@@ -67,32 +66,6 @@ export class ApifyInstagramService {
     } catch (error: unknown) {
       this.baseService.logFailure(
         `${this.constructorName}.getInstagramTrends failed`,
-        error,
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Get Instagram trending posts/reels
-   */
-  async getInstagramVideos(limit: number = 50): Promise<ApifyVideoData[]> {
-    try {
-      const input = {
-        hashtags: ['reels', 'viral', 'trending'],
-        resultsLimit: limit,
-        resultsType: 'posts',
-      };
-
-      const rawPosts = await this.baseService.runActor<ApifyInstagramPost>(
-        this.baseService.ACTORS.INSTAGRAM_SCRAPER,
-        input,
-      );
-
-      return this.normalizeInstagramVideos(rawPosts);
-    } catch (error: unknown) {
-      this.baseService.logFailure(
-        `${this.constructorName}.getInstagramVideos failed`,
         error,
       );
       throw error;
@@ -313,49 +286,6 @@ export class ApifyInstagramService {
           stats.engagement,
         ),
       }));
-  }
-
-  private normalizeInstagramVideos(
-    posts: ApifyInstagramPost[],
-  ): ApifyVideoData[] {
-    return posts
-      .filter((post) => post.videoUrl || post.videoViewCount)
-      .map((post) => {
-        const viewCount = post.videoViewCount || 0;
-        const likeCount = post.likesCount || 0;
-        const commentCount = post.commentsCount || 0;
-        const publishedAt = post.timestamp
-          ? new Date(post.timestamp)
-          : undefined;
-
-        const metrics = this.baseService.calculateEngagementMetrics(
-          viewCount,
-          likeCount,
-          commentCount,
-          0, // Instagram doesn't expose shares
-          publishedAt,
-        );
-
-        return {
-          commentCount,
-          creatorHandle: post.ownerUsername || 'unknown',
-          description: post.caption,
-          engagementRate: metrics.engagementRate,
-          externalId: post.id,
-          hashtags: post.hashtags || [],
-          likeCount,
-          platform: 'instagram',
-          publishedAt,
-          shareCount: 0,
-          thumbnailUrl: post.imageUrl,
-          title: post.caption?.substring(0, 100),
-          velocity: metrics.velocity,
-          videoUrl: post.url || post.videoUrl,
-          playUrl: post.videoUrl,
-          viewCount,
-          viralScore: metrics.viralScore,
-        };
-      });
   }
 
   private normalizeInstagramComments(

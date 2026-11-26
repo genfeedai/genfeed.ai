@@ -1,8 +1,4 @@
-import type {
-  ApifyNormalizedYouTubeComment,
-  ApifyYouTubeComment,
-  ApifyYouTubeVideo,
-} from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import type { ApifyYouTubeVideo } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
@@ -13,7 +9,7 @@ import { Injectable } from '@nestjs/common';
  * ApifyYouTubeService
  *
  * Handles all YouTube-related Apify scraping operations:
- * comments, channel videos, and search.
+ * channel videos and search.
  */
 @Traced()
 @Injectable()
@@ -24,35 +20,6 @@ export class ApifyYouTubeService {
     private readonly baseService: ApifyBaseService,
     private readonly runner: ResearchCollectionRunner,
   ) {}
-
-  /**
-   * Get comments on a YouTube video
-   * Used to find comments to reply to
-   */
-  async getYouTubeVideoComments(
-    videoUrl: string,
-    options?: { limit?: number },
-  ): Promise<ApifyNormalizedYouTubeComment[]> {
-    try {
-      const input = {
-        maxComments: options?.limit || 50,
-        startUrls: [{ url: videoUrl }],
-      };
-
-      const rawComments = await this.baseService.runActor<ApifyYouTubeComment>(
-        this.baseService.ACTORS.YOUTUBE_COMMENT_SCRAPER,
-        input,
-      );
-
-      return this.normalizeYouTubeComments(rawComments);
-    } catch (error: unknown) {
-      this.baseService.logFailure(
-        `${this.constructorName}.getYouTubeVideoComments failed`,
-        error,
-      );
-      return [];
-    }
-  }
 
   /**
    * Get recent videos from a YouTube channel
@@ -156,26 +123,5 @@ export class ApifyYouTubeService {
       );
       return [];
     }
-  }
-
-  private normalizeYouTubeComments(
-    comments: ApifyYouTubeComment[],
-  ): ApifyNormalizedYouTubeComment[] {
-    return comments.map((comment) => ({
-      authorAvatarUrl: comment.authorProfileImageUrl,
-      authorDisplayName: comment.authorDisplayName || '',
-      authorId: comment.authorChannelId || '',
-      createdAt: comment.publishedAt
-        ? new Date(comment.publishedAt)
-        : new Date(),
-      id: comment.id || comment.commentId || '',
-      metrics: {
-        likes: comment.likeCount || 0,
-        replies: comment.replyCount || 0,
-      },
-      text: comment.text,
-      videoId: comment.videoId || '',
-      videoTitle: comment.videoTitle,
-    }));
   }
 }

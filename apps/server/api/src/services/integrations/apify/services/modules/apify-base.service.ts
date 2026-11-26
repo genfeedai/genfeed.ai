@@ -24,7 +24,6 @@ import {
 } from '@api/services/integrations/apify/utils/apify-error.util';
 import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-scoring.util';
 import { ByokProvider } from '@genfeedai/contracts';
-import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -75,10 +74,6 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'x.public-trend-discovery',
     mode: 'fallback_only',
   },
-  'bernardo/youtube-comment-scraper': {
-    capability: 'youtube.comments',
-    mode: 'fallback_only',
-  },
   'lexis-solutions/tiktok-ads-scraper': {
     capability: 'tiktok.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
@@ -95,17 +90,9 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'tiktok.public-and-scoped-social-read',
     mode: 'temporarily_apify_primary',
   },
-  'clockworks/tiktok-trends-scraper': {
-    capability: 'tiktok.public-trend-discovery',
-    mode: 'temporarily_apify_primary',
-  },
   'curious_coder/linkedin-profile-scraper': {
     capability: 'linkedin.public-creator-ingestion',
     mode: 'temporarily_apify_primary',
-  },
-  'fatihtahta/pinterest-scraper-search': {
-    capability: 'pinterest.public-and-scoped-discovery',
-    mode: 'fallback_only',
   },
   'lexis-solutions/google-ads-scraper': {
     capability: 'google.paid-creative-discovery',
@@ -117,14 +104,6 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
   },
   'streamers/youtube-scraper': {
     capability: 'youtube.video-discovery',
-    mode: 'fallback_only',
-  },
-  'trudax/reddit-comments-scraper': {
-    capability: 'reddit.comments',
-    mode: 'fallback_only',
-  },
-  'trudax/reddit-scraper': {
-    capability: 'reddit.social-read',
     mode: 'fallback_only',
   },
 };
@@ -184,24 +163,14 @@ export class ApifyBaseService {
     // LinkedIn scrapers
     LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
 
-    // Pinterest scrapers
-    PINTEREST_SCRAPER: 'fatihtahta/pinterest-scraper-search',
-    REDDIT_COMMENT_SCRAPER: 'trudax/reddit-comments-scraper',
-
-    // Reddit scrapers
-    REDDIT_SCRAPER: 'trudax/reddit-scraper',
-
     // TikTok scrapers
     TIKTOK_COMMENT_SCRAPER: 'clockworks/tiktok-comments-scraper',
     TIKTOK_SCRAPER: 'clockworks/tiktok-scraper',
-    // TikTok scrapers
-    TIKTOK_TRENDS: 'clockworks/tiktok-trends-scraper',
     TIKTOK_USER_SCRAPER: 'clockworks/tiktok-profile-scraper',
 
     // Twitter/X scrapers
     TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
     YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
-    YOUTUBE_COMMENT_SCRAPER: 'bernardo/youtube-comment-scraper',
 
     // YouTube scrapers
     YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
@@ -283,34 +252,6 @@ export class ApifyBaseService {
     throw new ServiceUnavailableException(
       `Apify actor ${actorId} is not registered for hosted production execution`,
     );
-  }
-
-  /**
-   * Run an Apify actor for a specific organization.
-   * Resolves BYOK key first, falls back to global token.
-   * Returns empty array if no token is available from either source.
-   */
-  async runActorForOrg<T>(
-    orgId: string,
-    actorId: string,
-    input: object,
-  ): Promise<{ data: T[]; source: ByokResolutionResult['source'] }> {
-    const resolved = await this.resolveCollectionToken(orgId, 'prefer-byok');
-    if (!resolved) {
-      return { data: [], source: 'hosted' };
-    }
-    const { source, token } = resolved;
-
-    const data = await this.executeActor<T>({
-      actorId,
-      failureLabel: `${this.constructorName}.runActorForOrg failed for ${actorId} (org: ${orgId}, source: ${source})`,
-      input,
-      scope:
-        source === 'byok' ? `byok:${orgId}` : ApifyBaseService.HOSTED_SCOPE,
-      token,
-    });
-
-    return { data, source };
   }
 
   /**

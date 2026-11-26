@@ -2,8 +2,6 @@ import { ApifyService } from '@api/services/integrations/apify/services/apify.se
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
 import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
-import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
-import { ApifyRedditService } from '@api/services/integrations/apify/services/modules/apify-reddit.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
@@ -15,7 +13,6 @@ describe('ApifyService', () => {
     runActor: ReturnType<typeof vi.fn>;
   };
   let tiktokService: {
-    getTikTokTrends: ReturnType<typeof vi.fn>;
     getTikTokVideoComments: ReturnType<typeof vi.fn>;
     getTikTokVideoByUrl: ReturnType<typeof vi.fn>;
     getTikTokUserVideos: ReturnType<typeof vi.fn>;
@@ -23,6 +20,7 @@ describe('ApifyService', () => {
   };
   let instagramService: {
     getInstagramPostComments: ReturnType<typeof vi.fn>;
+    getInstagramTrends: ReturnType<typeof vi.fn>;
     getInstagramPostByUrl: ReturnType<typeof vi.fn>;
     getInstagramUserPosts: ReturnType<typeof vi.fn>;
     searchInstagramByHashtag: ReturnType<typeof vi.fn>;
@@ -33,17 +31,7 @@ describe('ApifyService', () => {
   let youtubeService: {
     getYouTubeChannelUploads: ReturnType<typeof vi.fn>;
     getYouTubeChannelVideos: ReturnType<typeof vi.fn>;
-    getYouTubeVideoComments: ReturnType<typeof vi.fn>;
     searchYouTubeVideos: ReturnType<typeof vi.fn>;
-  };
-  let redditService: {
-    getRedditPostComments: ReturnType<typeof vi.fn>;
-    getRedditUserPosts: ReturnType<typeof vi.fn>;
-    getSubredditPosts: ReturnType<typeof vi.fn>;
-    searchRedditPosts: ReturnType<typeof vi.fn>;
-  };
-  let pinterestService: {
-    getPinterestTrends: ReturnType<typeof vi.fn>;
   };
   let linkedinService: {
     getLinkedInProfilePosts: ReturnType<typeof vi.fn>;
@@ -72,7 +60,6 @@ describe('ApifyService', () => {
           provide: ApifyTikTokService,
           useValue: {
             getTikTokSounds: vi.fn(),
-            getTikTokTrends: vi.fn(),
             getTikTokVideoByUrl: vi.fn(),
             getTikTokUserVideos: vi.fn(),
             getTikTokVideoComments: vi.fn(),
@@ -87,7 +74,6 @@ describe('ApifyService', () => {
             getInstagramTrends: vi.fn(),
             getInstagramPostByUrl: vi.fn(),
             getInstagramUserPosts: vi.fn(),
-            getInstagramVideos: vi.fn(),
             searchInstagramByHashtag: vi.fn(),
           },
         },
@@ -102,25 +88,7 @@ describe('ApifyService', () => {
           useValue: {
             getYouTubeChannelUploads: vi.fn(),
             getYouTubeChannelVideos: vi.fn(),
-            getYouTubeVideoComments: vi.fn(),
             searchYouTubeVideos: vi.fn(),
-          },
-        },
-        {
-          provide: ApifyRedditService,
-          useValue: {
-            getRedditPostComments: vi.fn(),
-            getRedditTrends: vi.fn(),
-            getRedditUserPosts: vi.fn(),
-            getRedditVideos: vi.fn(),
-            getSubredditPosts: vi.fn(),
-            searchRedditPosts: vi.fn(),
-          },
-        },
-        {
-          provide: ApifyPinterestService,
-          useValue: {
-            getPinterestTrends: vi.fn(),
           },
         },
         {
@@ -146,12 +114,6 @@ describe('ApifyService', () => {
     youtubeService = module.get(
       ApifyYouTubeService,
     ) as unknown as typeof youtubeService;
-    redditService = module.get(
-      ApifyRedditService,
-    ) as unknown as typeof redditService;
-    pinterestService = module.get(
-      ApifyPinterestService,
-    ) as unknown as typeof pinterestService;
     linkedinService = module.get(
       ApifyLinkedInService,
     ) as unknown as typeof linkedinService;
@@ -184,14 +146,10 @@ describe('ApifyService', () => {
         Promise.resolve(args);
 
     it('forwards TikTok calls and returns their results', async () => {
-      tiktokService.getTikTokTrends.mockImplementation(echo());
       tiktokService.getTikTokVideoComments.mockImplementation(echo());
       tiktokService.getTikTokUserVideos.mockImplementation(echo());
       tiktokService.searchTikTokByHashtag.mockImplementation(echo());
 
-      await expect(service.getTikTokTrends({ limit: 10 })).resolves.toEqual([
-        { limit: 10 },
-      ]);
       await expect(
         service.getTikTokVideoComments('video-url', { limit: 5 }),
       ).resolves.toEqual(['video-url', { limit: 5 }]);
@@ -224,14 +182,10 @@ describe('ApifyService', () => {
     });
 
     it('forwards YouTube calls and returns their results', async () => {
-      youtubeService.getYouTubeVideoComments.mockImplementation(echo());
       youtubeService.getYouTubeChannelVideos.mockImplementation(echo());
       youtubeService.searchYouTubeVideos.mockImplementation(echo());
       youtubeService.getYouTubeChannelUploads.mockImplementation(echo());
 
-      await expect(
-        service.getYouTubeVideoComments('video-url', { limit: 25 }),
-      ).resolves.toEqual(['video-url', { limit: 25 }]);
       await expect(
         service.getYouTubeChannelVideos('channel-url'),
       ).resolves.toEqual(['channel-url', undefined]);
@@ -249,35 +203,6 @@ describe('ApifyService', () => {
       await expect(
         service.getLinkedInProfilePosts('profile-url', { limit: 20 }),
       ).resolves.toEqual(['profile-url', { limit: 20 }, undefined]);
-    });
-
-    it('forwards Reddit calls and returns their results', async () => {
-      redditService.getRedditPostComments.mockImplementation(echo());
-      redditService.getRedditUserPosts.mockImplementation(echo());
-      redditService.searchRedditPosts.mockImplementation(echo());
-      redditService.getSubredditPosts.mockImplementation(echo());
-
-      await expect(service.getRedditPostComments('post-url')).resolves.toEqual([
-        'post-url',
-        undefined,
-      ]);
-      await expect(
-        service.getRedditUserPosts('user', { limit: 10 }),
-      ).resolves.toEqual(['user', { limit: 10 }]);
-      await expect(
-        service.searchRedditPosts('query', { subreddit: 'test' }),
-      ).resolves.toEqual(['query', { subreddit: 'test' }]);
-      await expect(
-        service.getSubredditPosts('programming', { sort: 'hot' }),
-      ).resolves.toEqual(['programming', { sort: 'hot' }]);
-    });
-
-    it('forwards Pinterest calls and returns their results', async () => {
-      pinterestService.getPinterestTrends.mockImplementation(echo());
-
-      await expect(service.getPinterestTrends({ limit: 5 })).resolves.toEqual([
-        { limit: 5 },
-      ]);
     });
   });
 
@@ -330,10 +255,18 @@ describe('ApifyService', () => {
       });
     });
 
-    it('should rethrow when the trend fetcher throws', async () => {
-      tiktokService.getTikTokTrends.mockRejectedValue(new Error('API error'));
+    it('should return empty array for TikTok, which has no trend actor', async () => {
+      const result = await service.getTrendingHashtags('tiktok');
 
-      await expect(service.getTrendingHashtags('tiktok')).rejects.toThrow(
+      expect(result).toEqual([]);
+    });
+
+    it('should rethrow when the trend fetcher throws', async () => {
+      instagramService.getInstagramTrends.mockRejectedValue(
+        new Error('API error'),
+      );
+
+      await expect(service.getTrendingHashtags('instagram')).rejects.toThrow(
         'API error',
       );
     });

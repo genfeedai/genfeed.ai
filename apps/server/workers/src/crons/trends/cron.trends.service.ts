@@ -115,9 +115,12 @@ export class CronTrendsService implements OnModuleInit {
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_GLOBAL,
       () =>
-        runWithApifyCaller('trends.fetch-global', async () => ({
-          count: (await this.trendsService.fetchAndCacheTrends()).length,
-        })),
+        runWithApifyCaller('trends.fetch-global', async () => {
+          const trends = await this.trendsService.fetchAndCacheTrends();
+          // X hashtags come from the X trends just stored; nothing is bought.
+          await this.trendsService.deriveAndCacheTwitterHashtags();
+          return { count: trends.length };
+        }),
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_DATASET,
