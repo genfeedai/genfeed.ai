@@ -190,6 +190,18 @@ export function planPreflight(input: PreflightPlanInput): PreflightStep[] {
       stage: 'static',
     },
     {
+      command: [
+        'node',
+        'scripts/npm-release-plan.mjs',
+        '--check-bumps',
+        '--base',
+        input.base,
+      ],
+      id: 'npm-versions',
+      label: 'Published package versions moved',
+      stage: 'static',
+    },
+    {
       command: ['bun', 'run', 'check:skills-catalog'],
       id: 'skills-catalog',
       label: 'Pinned product skill catalog',
