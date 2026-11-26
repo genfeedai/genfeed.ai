@@ -11,6 +11,10 @@ import type {
   SchedulerPostTarget,
   SchedulerTx,
 } from '@api/collections/post-groups/services/post-group.types';
+import {
+  buildAttachmentPostData,
+  planAttachmentPosts,
+} from '@api/collections/post-groups/services/post-group-attachment-posts.util';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import {
@@ -30,7 +34,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   PostCategory,
   PostEntityModel,
-  ReleaseAttachmentKind,
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import type { ChannelTargetValidationResult } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
@@ -749,37 +752,23 @@ export class PostGroupPersistenceService {
     tx: Pick<SchedulerTx, 'post'>,
     params: CreateAttachmentPostsParams,
   ): Promise<void> {
-    const attachments = [
-      ...(params.input.attachments ?? []).filter(
-        (attachment) =>
-          !attachment.platform ||
-          attachment.platform === params.target.platform,
-      ),
-      ...(params.target.attachments ?? []),
-    ].filter(
-      (attachment) =>
-        attachment.kind === ReleaseAttachmentKind.COMMENT ||
-        attachment.kind === ReleaseAttachmentKind.THREAD,
-    );
+    const attachments = planAttachmentPosts({
+      platform: params.target.platform,
+      releaseAttachments: params.input.attachments ?? [],
+      targetAttachments: params.target.attachments ?? [],
+    });
 
-    for (const [index, attachment] of attachments.entries()) {
+    for (const attachment of attachments) {
       await tx.post.create({
-        data: {
+        data: buildAttachmentPostData({
+          attachment,
           brandId: params.brandId,
-          credentialId: params.target.credentialId,
-          description: attachment.body,
           groupId: params.group.id,
-          label: `${params.group.title} ${attachment.kind}`,
-          order: attachment.order ?? index,
           organizationId: params.group.organizationId,
-          parentId: params.parent.id,
-          platform: params.target.platform,
-          scheduledDate: params.parent.scheduledDate,
-          targetExecutionState: params.parent.targetExecutionState,
-          visibility: params.parent.visibility,
-          timezone: params.parent.timezone,
+          parent: params.parent,
+          releaseTitle: params.group.title,
           userId: params.userId,
-        },
+        }),
       });
     }
   }

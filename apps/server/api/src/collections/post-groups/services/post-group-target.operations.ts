@@ -4,6 +4,7 @@ import type {
   SchedulerPostTarget,
   SchedulerTx,
 } from '@api/collections/post-groups/services/post-group.types';
+import { syncReleaseAttachmentPosts } from '@api/collections/post-groups/services/post-group-attachment-sync';
 import type { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
@@ -857,6 +858,9 @@ export async function applyReleaseTargetUpdates(
         data: targetUpdate,
         where: scopedWhere(context.organizationId, {
           groupId: context.groupId,
+          // Targets only: a comment shares the group and must keep its own
+          // text when the caption is edited.
+          parentId: null,
           targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
         }),
       });
@@ -881,6 +885,47 @@ export async function applyReleaseTargetUpdates(
       }
     }
   }
+
+  await syncAttachmentPostsAfterUpdate(tx, context, dependencies);
+}
+
+/**
+ * The publish worker sends child posts, not the release's attachment JSON, so
+ * an edit that adds a first comment, or moves the post to SCHEDULED, has to
+ * reach the child posts too.
+ */
+async function syncAttachmentPostsAfterUpdate(
+  tx: SchedulerTx,
+  context: ReleaseTargetUpdateContext,
+  dependencies: PostGroupTargetOperationDependencies,
+): Promise<void> {
+  const { input, organizationId } = context;
+  if (
+    input.attachments === undefined &&
+    input.scheduledDate === undefined &&
+    input.status === undefined &&
+    input.timezone === undefined
+  ) {
+    return;
+  }
+
+  const group = await dependencies.persistenceService.getGroupOrThrow(
+    tx,
+    organizationId,
+    context.groupId,
+  );
+  const targets = await dependencies.persistenceService.getTargets(
+    tx,
+    organizationId,
+    context.groupId,
+  );
+  await syncReleaseAttachmentPosts(tx, {
+    editableStates: GROUP_ACTION_STATES,
+    group,
+    organizationId,
+    targets,
+    userId: context.userId,
+  });
 }
 
 /**
