@@ -261,7 +261,21 @@ export default function CampaignsListPage({
             ? translate('emptyArchived')
             : search
               ? translate('emptySearch')
-              : translate('empty')
+              : translate('emptyTitle')
+        }
+        empty={
+          status === ContentCampaignStatus.ARCHIVED || search
+            ? undefined
+            : {
+                action: {
+                  icon: Plus,
+                  label: translate('newCampaign'),
+                  onClick: () => setIsCreating(true),
+                },
+                description: translate('emptyDescription'),
+                icon: Flag,
+                title: translate('emptyTitle'),
+              }
         }
         getRowKey={(campaign) => campaign.id}
         getRowLink={getRowLink}

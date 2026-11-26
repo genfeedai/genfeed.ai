@@ -507,6 +507,7 @@ export class FileQueueService {
           `${this.filesServiceUrl}/v1/files/process/youtube`,
           {
             brandId: data.brandId,
+            containsSyntheticMedia: data.containsSyntheticMedia,
             credential: {
               accessToken: decryptedAccessToken,
               clientId: this.configService.get('GOOGLE_OAUTH_CLIENT_ID'),
@@ -527,6 +528,7 @@ export class FileQueueService {
             postId: data.postId,
             room: data.room,
             scheduledDate: data.scheduledDate,
+            selfDeclaredMadeForKids: data.selfDeclaredMadeForKids,
             // The Files service names its provider-facing YouTube privacy
             // field `status`; the value is visibility, never lifecycle.
             status: data.visibility,
