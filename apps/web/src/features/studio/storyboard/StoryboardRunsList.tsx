@@ -119,6 +119,7 @@ export default function StoryboardRunsList(): ReactElement {
         {isEmpty && !isSearching ? (
           <CreativeProjectsEmptyState
             description={translate('emptyDescription')}
+            hasPreview
             icon={Clapperboard}
             title={translate('emptyTitle')}
           />

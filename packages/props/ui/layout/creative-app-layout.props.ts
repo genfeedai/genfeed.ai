@@ -37,6 +37,8 @@ export interface CreativeAppPromptBarProps {
 
 export interface CreativeProjectsEmptyStateProps {
   description?: string;
+  /** Draw the faded tile grid behind the copy; for "no projects yet", not for "nothing matches". */
+  hasPreview?: boolean;
   icon: IconComponent;
   title: string;
 }
