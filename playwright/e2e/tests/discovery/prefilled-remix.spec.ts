@@ -216,14 +216,9 @@ async function routeTikTokTrend(page: Page): Promise<void> {
 }
 
 async function openTikTokTrendFeed(page: Page): Promise<void> {
-  await page.goto(`${BRAND_BASE}/discovery/trends/platforms/tiktok`);
-  await page
-    .getByTestId('section-topbar')
-    .filter({
-      has: page.getByRole('heading', { name: 'TikTok Trends', exact: true }),
-    })
-    .getByRole('button', { name: 'Refresh', exact: true })
-    .click();
+  // Platforms are a Filters facet on the feed now, so the TikTok trend arrives
+  // through the Signal Desk's own trend content request.
+  await page.goto(`${BRAND_BASE}/discovery/feed`);
   await expect(page.getByRole('button', { name: 'Remix' })).toBeVisible();
 }
 
@@ -778,7 +773,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     ).toBeVisible();
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(`${BRAND_BASE}/discovery/trends/platforms/tiktok`);
+      .toBe(`${BRAND_BASE}/discovery/feed`);
   });
 
   test('restores grouped processing outputs and reconciles completion', async ({

@@ -18,6 +18,13 @@ import { MASONRY_MEDIA_HOVER_CLASS } from '@ui/masonry/shared/masonry-hover-moti
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   hoverConcealClassName,
@@ -27,12 +34,14 @@ import { SELECTED_CARD_CLASS } from '@ui/styles/selected-card';
 import { ExternalLink, Sparkles, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import SocialMediaPlayer from '@/components/analytics/trends/social-media-player';
 import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import DeskMediaPreview from '@/features/trends/desk/desk-media-preview';
 import { hasDeskMedia } from '@/features/trends/desk/desk-media-source';
 import type {
   DeskLightCardProps,
   DeskLightTableViewProps,
+  DiscoveryDeskItem,
 } from '@/features/trends/props/discovery-desk.props';
 import { getSafeExternalUrl } from '@/features/trends/shared/safe-external-url';
 
@@ -44,6 +53,7 @@ function DeskLightCard({
   isSelectionActive,
   item,
   onCursor,
+  onOpenVideo,
   onSelectFinding,
   onToggleSelect,
 }: DeskLightCardProps) {
@@ -138,7 +148,10 @@ function DeskLightCard({
       <Button
         aria-current={isCursored || undefined}
         className="block w-full text-left"
-        onClick={() => onCursor(item.key)}
+        onClick={() => {
+          onCursor(item.key);
+          if (isVideo) onOpenVideo(item);
+        }}
         onPointerEnter={() => onPreviewChange(item.key)}
         onPointerLeave={() => onPreviewChange(null)}
         onFocus={() => onPreviewChange(item.key)}
@@ -313,6 +326,9 @@ export default function DeskLightTableView({
   selection,
 }: DeskLightTableViewProps) {
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [openedVideo, setOpenedVideo] = useState<DiscoveryDeskItem | null>(
+    null,
+  );
   return (
     <div data-testid="desk-light-table-grid">
       <OrderedMasonry>
@@ -326,11 +342,43 @@ export default function DeskLightTableView({
             isSelectionActive={selection.size > 0}
             item={item}
             onCursor={onCursor}
+            onOpenVideo={setOpenedVideo}
             onSelectFinding={onSelectFinding}
             onToggleSelect={onToggleSelect}
           />
         ))}
       </OrderedMasonry>
+      <Dialog
+        open={openedVideo !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setOpenedVideo(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {openedVideo?.title || openedVideo?.text || openedVideo?.platform}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {openedVideo ? (
+              <SocialMediaPlayer
+                contentType="video"
+                mediaUrl={openedVideo.mediaUrl}
+                playbackUrl={openedVideo.playbackUrl}
+                sourceUrl={openedVideo.sourceUrl}
+                thumbnailUrl={openedVideo.thumbnailUrl}
+                title={
+                  openedVideo.title || openedVideo.text || openedVideo.platform
+                }
+                trendVideoId={
+                  openedVideo.kind === 'viral_video' ? openedVideo.id : null
+                }
+              />
+            ) : null}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

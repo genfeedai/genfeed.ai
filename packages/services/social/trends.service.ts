@@ -8,6 +8,7 @@ import type {
   ITrendPreferences,
   ITrendSound,
   ITrendVideo,
+  ITrendVideoPlayback,
   IViralVideoOptions,
 } from '@genfeedai/contracts/interfaces';
 import { Trend } from '@genfeedai/models/analytics/trend.model';
@@ -26,6 +27,25 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
+
+function readErrorStatus(error: unknown): number | undefined {
+  const member = getJsonApiErrorMember(error)?.status;
+  if (member !== undefined) {
+    return member;
+  }
+  const { response, status } = (error ?? {}) as {
+    response?: { status?: unknown };
+    status?: unknown;
+  };
+  const raw = response?.status ?? status;
+  return typeof raw === 'number' ? raw : undefined;
+}
+
+export type TrendVideoPlaybackResult =
+  | ({ status: 'ready' } & ITrendVideoPlayback)
+  | { status: 'upgrade' }
+  | { status: 'unavailable' };
 
 export class TrendsService extends BaseService<Trend> {
   constructor(token: string) {
@@ -83,6 +103,34 @@ export class TrendsService extends BaseService<Trend> {
       { params, signal: options.signal },
     );
     return response.data?.videos || [];
+  }
+
+  /**
+   * Asks for a playable copy of a TikTok or Instagram trend video. The server
+   * saves the clip on first play for paid plans; every refusal is an answer the
+   * player shows, so none of them throws.
+   */
+  async getVideoPlayback(
+    videoId: string,
+    signal?: AbortSignal,
+  ): Promise<TrendVideoPlaybackResult> {
+    try {
+      const response = await this.instance.post<ITrendVideoPlayback>(
+        `/videos/${encodeURIComponent(videoId)}/playback`,
+        undefined,
+        { signal },
+      );
+      return { status: 'ready', ...response.data };
+    } catch (error: unknown) {
+      const status = readErrorStatus(error);
+      if (status === 403) {
+        return { status: 'upgrade' };
+      }
+      if (typeof status === 'number' && status < 500) {
+        return { status: 'unavailable' };
+      }
+      throw error;
+    }
   }
 
   /**

@@ -322,7 +322,11 @@ export class TrendSourceItemsService {
         : undefined,
       sourceUrl: video.webVideoUrl,
       text: video.text,
-      thumbnailUrl: video.authorMeta?.avatar || video.musicMeta?.coverUrl,
+      thumbnailUrl:
+        video.videoMeta?.coverUrl ||
+        video.videoMeta?.originalCoverUrl ||
+        video.authorMeta?.avatar ||
+        video.musicMeta?.coverUrl,
       title: this.truncateText(video.text, 100),
     };
   }

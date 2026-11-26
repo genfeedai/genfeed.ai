@@ -76,9 +76,11 @@ export default function TrendVideoGallery({
               <SocialMediaPlayer
                 contentType="video"
                 mediaUrl={video.playUrl || video.videoUrl}
+                playbackUrl={video.playbackUrl}
                 sourceUrl={video.videoUrl}
                 thumbnailUrl={video.thumbnailUrl}
                 title={video.title || video.hook || 'Trending video'}
+                trendVideoId={video.id}
               />
               <div className="space-y-1">
                 <p className="line-clamp-2 text-sm font-medium">

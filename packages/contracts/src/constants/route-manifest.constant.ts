@@ -881,11 +881,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
         scopes: ['brand'],
         title: 'Trend Detail',
       },
-      {
-        path: '/discovery/trends/platforms/:platform',
-        scopes: ['brand'],
-        title: ':platform Trends',
-      },
     ],
   },
   {

@@ -105,6 +105,40 @@ export class UploadService {
     await this.storage.delete(safeStorageKey);
   }
 
+  /**
+   * Stores one file under a public `assets/` key and returns its public URL.
+   * For content that is not tenant data (a copy of a public social video),
+   * which a visitor's browser must be able to play without a signed grant.
+   */
+  async uploadPublicFile(
+    folder: string,
+    key: string,
+    filePath: string,
+    contentType: string,
+  ): Promise<{ publicUrl: string; s3Key: string; size: number }> {
+    const storagePath = resolveContainedObjectKey(
+      `assets/${folder}`,
+      key,
+      createBadRequest,
+    );
+    const containedFilePath = resolveContainedPath(
+      FILES_TMP_ROOT,
+      filePath,
+      createBadRequest,
+    );
+    const storedPath = await this.storage.uploadFromFile(
+      storagePath,
+      containedFilePath,
+      FILES_TMP_ROOT,
+      contentType,
+    );
+    return {
+      publicUrl: this.storage.getUrl(storedPath),
+      s3Key: storedPath,
+      size: fs.statSync(containedFilePath).size,
+    };
+  }
+
   /** Whether one full storage key names an object in the configured provider. */
   async storedObjectExists(storageKey: string): Promise<boolean> {
     const safeStorageKey = assertSafeObjectKey(storageKey, createBadRequest);
