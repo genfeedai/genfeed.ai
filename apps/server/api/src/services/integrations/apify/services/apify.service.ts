@@ -4,8 +4,6 @@ import type {
   ApifyLinkedInPost,
   ApifyNormalizedInstagramComment,
   ApifyNormalizedTikTokComment,
-  ApifyNormalizedYouTubeComment,
-  ApifyRedditPost,
   ApifySoundData,
   ApifyTikTokVideo,
   ApifyTrendData,
@@ -16,8 +14,6 @@ import type {
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
 import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
-import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
-import { ApifyRedditService } from '@api/services/integrations/apify/services/modules/apify-reddit.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
@@ -35,12 +31,10 @@ const LEADING_HASH_PATTERN = /^#/;
  *
  * Sub-services:
  * - ApifyBaseService: Shared actor execution, metrics, helpers
- * - ApifyTikTokService: TikTok trends, videos, sounds, comments
- * - ApifyInstagramService: Instagram trends, videos, comments
+ * - ApifyTikTokService: TikTok videos, sounds, comments
+ * - ApifyInstagramService: Instagram trends, comments
  * - ApifyTwitterService: Twitter/X trends
- * - ApifyYouTubeService: YouTube trends, videos, comments
- * - ApifyRedditService: Reddit trends, videos, comments, posts
- * - ApifyPinterestService: Pinterest trends
+ * - ApifyYouTubeService: YouTube channel videos and search
  * - ApifyLinkedInService: LinkedIn public profile posts
  */
 @Traced()
@@ -54,8 +48,6 @@ export class ApifyService {
     private readonly instagramService: ApifyInstagramService,
     private readonly twitterService: ApifyTwitterService,
     private readonly youtubeService: ApifyYouTubeService,
-    private readonly redditService: ApifyRedditService,
-    private readonly pinterestService: ApifyPinterestService,
     private readonly linkedinService: ApifyLinkedInService,
   ) {}
 
@@ -64,10 +56,6 @@ export class ApifyService {
    */
   runActor<T>(actorId: string, input: object): Promise<T[]> {
     return this.baseService.runActor<T>(actorId, input);
-  }
-
-  getTikTokTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
-    return this.tiktokService.getTikTokTrends(options);
   }
 
   getTikTokVideos(limit: number = 50): Promise<ApifyVideoData[]> {
@@ -127,10 +115,6 @@ export class ApifyService {
     return this.instagramService.getInstagramTrends(options);
   }
 
-  getInstagramVideos(limit: number = 50): Promise<ApifyVideoData[]> {
-    return this.instagramService.getInstagramVideos(limit);
-  }
-
   getInstagramPostComments(
     postUrl: string,
     options?: { limit?: number },
@@ -171,13 +155,6 @@ export class ApifyService {
     return this.twitterService.getTwitterTrends(options);
   }
 
-  getYouTubeVideoComments(
-    videoUrl: string,
-    options?: { limit?: number },
-  ): Promise<ApifyNormalizedYouTubeComment[]> {
-    return this.youtubeService.getYouTubeVideoComments(videoUrl, options);
-  }
-
   getYouTubeChannelVideos(
     channelUrl: string,
     options?: { limit?: number },
@@ -204,42 +181,6 @@ export class ApifyService {
     return this.youtubeService.searchYouTubeVideos(query, options);
   }
 
-  getRedditTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
-    return this.redditService.getRedditTrends(options);
-  }
-
-  getRedditVideos(limit: number = 50): Promise<ApifyVideoData[]> {
-    return this.redditService.getRedditVideos(limit);
-  }
-
-  getRedditPostComments(
-    postUrl: string,
-    options?: { limit?: number },
-  ): Promise<ApifyRedditPost[]> {
-    return this.redditService.getRedditPostComments(postUrl, options);
-  }
-
-  getSubredditPosts(
-    subreddit: string,
-    options?: { limit?: number; sort?: 'hot' | 'new' | 'top' },
-  ): Promise<ApifyRedditPost[]> {
-    return this.redditService.getSubredditPosts(subreddit, options);
-  }
-
-  getRedditUserPosts(
-    username: string,
-    options?: { limit?: number },
-  ): Promise<ApifyRedditPost[]> {
-    return this.redditService.getRedditUserPosts(username, options);
-  }
-
-  searchRedditPosts(
-    query: string,
-    options?: { limit?: number; subreddit?: string },
-  ): Promise<ApifyRedditPost[]> {
-    return this.redditService.searchRedditPosts(query, options);
-  }
-
   getLinkedInProfilePosts(
     profileUrl: string,
     options?: { limit?: number },
@@ -250,10 +191,6 @@ export class ApifyService {
       options,
       researchContext,
     );
-  }
-
-  getPinterestTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
-    return this.pinterestService.getPinterestTrends(options);
   }
 
   /**
@@ -268,7 +205,6 @@ export class ApifyService {
       (options: TrendOptions) => Promise<ApifyTrendData[]>
     > = {
       instagram: (options) => this.getInstagramTrends(options),
-      tiktok: (options) => this.getTikTokTrends(options),
       twitter: (options) => this.getTwitterTrends(options),
     };
 

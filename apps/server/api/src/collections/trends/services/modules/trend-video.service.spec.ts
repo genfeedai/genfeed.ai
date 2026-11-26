@@ -16,8 +16,6 @@ describe('TrendVideoService', () => {
   };
 
   const mockApifyService = {
-    getInstagramVideos: vi.fn(),
-    getRedditVideos: vi.fn(),
     getTikTokSounds: vi.fn(),
     getTikTokVideos: vi.fn(),
     getTrendingHashtags: vi.fn(),
@@ -34,6 +32,7 @@ describe('TrendVideoService', () => {
   };
 
   let mockPrisma: {
+    trend: { findMany: ReturnType<typeof vi.fn> };
     trendingHashtag: MockTrendDelegate;
     trendingSound: MockTrendDelegate;
     trendingVideo: MockTrendDelegate;
@@ -86,6 +85,7 @@ describe('TrendVideoService', () => {
     vi.clearAllMocks();
 
     mockPrisma = {
+      trend: { findMany: vi.fn().mockResolvedValue([]) },
       trendingHashtag: {
         create: vi.fn().mockResolvedValue({ id: 'created-hashtag' }),
         findMany: vi.fn().mockResolvedValue([]),
@@ -521,6 +521,53 @@ describe('TrendVideoService', () => {
 
       expect(mockPrisma.trendingHashtag.update).not.toHaveBeenCalled();
       expect(mockPrisma.trendingHashtag.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('deriveAndCacheTwitterHashtags', () => {
+    it('stores the hashtags among the stored X trends without buying anything', async () => {
+      mockPrisma.trend.findMany.mockResolvedValue([
+        {
+          data: { growthRate: 12, mentions: 5400 },
+          topic: '#LaunchDay',
+          viralityScore: 90,
+        },
+        { data: { mentions: 10 }, topic: '#launchday', viralityScore: 40 },
+      ]);
+
+      const count = await service.deriveAndCacheTwitterHashtags(12);
+
+      expect(count).toBe(1);
+      expect(mockApifyService.getTrendingHashtags).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingHashtag.create).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({
+            growthRate: 12,
+            hashtag: 'LaunchDay',
+            platform: 'twitter',
+            postCount: 5400,
+            postCountScope: 'platform',
+            viralityScore: 90,
+          }),
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('records a successful empty refresh when no X trend is a hashtag', async () => {
+      mockPrisma.trend.findMany.mockResolvedValue([]);
+
+      await expect(service.deriveAndCacheTwitterHashtags()).resolves.toBe(0);
+
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          dataset: 'hashtags',
+          outcome: 'native_empty',
+          platform: 'twitter',
+          reason: 'native_empty',
+          lastSuccessfulRefreshAt: expect.any(String),
+        }),
+      ]);
     });
   });
 

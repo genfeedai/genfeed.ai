@@ -9,20 +9,14 @@ import { Injectable } from '@nestjs/common';
 const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
 export const TREND_REFRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const TREND_REFRESH_DATASETS = [
-  ...[
-    'instagram',
-    'linkedin',
-    'pinterest',
-    'reddit',
-    'tiktok',
-    'twitter',
-    'youtube',
-  ].map((platform) => ({ dataset: 'trends' as const, platform })),
-  ...['instagram', 'reddit', 'tiktok', 'youtube'].map((platform) => ({
+  ...['instagram', 'linkedin', 'pinterest', 'reddit', 'twitter', 'youtube'].map(
+    (platform) => ({ dataset: 'trends' as const, platform }),
+  ),
+  ...['tiktok', 'youtube'].map((platform) => ({
     dataset: 'videos' as const,
     platform,
   })),
-  ...['instagram', 'tiktok', 'twitter'].map((platform) => ({
+  ...['instagram', 'twitter'].map((platform) => ({
     dataset: 'hashtags' as const,
     platform,
   })),

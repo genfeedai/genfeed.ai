@@ -7,7 +7,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 type ApifyMock = {
   searchInstagramByHashtag: ReturnType<typeof vi.fn>;
-  searchRedditPosts: ReturnType<typeof vi.fn>;
   searchTikTokByHashtag: ReturnType<typeof vi.fn>;
   searchYouTubeVideos: ReturnType<typeof vi.fn>;
 };
@@ -37,7 +36,6 @@ describe('TrendSourceItemsService', () => {
   beforeEach(async () => {
     apify = {
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
-      searchRedditPosts: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
@@ -255,13 +253,13 @@ describe('TrendSourceItemsService', () => {
       await service.fetchTrendSourceItems(
         makeTrend({
           metadata: {},
-          platform: 'reddit',
+          platform: 'youtube',
           topic: 'creator stacks',
         }),
         5,
       );
 
-      expect(apify.searchRedditPosts).toHaveBeenCalledWith('creator stacks', {
+      expect(apify.searchYouTubeVideos).toHaveBeenCalledWith('creator stacks', {
         limit: 5,
       });
     });
@@ -316,31 +314,13 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
-    it('maps Reddit posts via permalink and drops urless posts', async () => {
-      apify.searchRedditPosts.mockResolvedValue([
-        {
-          author: 'redditor',
-          id: 'rd-1',
-          isVideo: false,
-          numComments: 3,
-          permalink: '/r/x/abc',
-          score: 12,
-          title: 'A thread',
-        },
-        { id: 'rd-2', title: 'no url' }, // no permalink/url -> null -> filtered
-      ]);
-
+    it('returns no live source items for Reddit, which has no scraper behind it', async () => {
       const result = await service.fetchTrendSourceItems(
         makeTrend({ platform: 'reddit' }),
         5,
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        contentType: 'post',
-        platform: 'reddit',
-        sourceUrl: 'https://reddit.com/r/x/abc',
-      });
+      expect(result).toEqual([]);
     });
   });
 

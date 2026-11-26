@@ -938,6 +938,10 @@ export class TrendsService {
   /**
    * Fetch and store trending sounds
    */
+  deriveAndCacheTwitterHashtags(): Promise<number> {
+    return this.trendVideoService.deriveAndCacheTwitterHashtags();
+  }
+
   fetchAndCacheSounds(): Promise<number> {
     return this.trendVideoService.fetchAndCacheSounds();
   }

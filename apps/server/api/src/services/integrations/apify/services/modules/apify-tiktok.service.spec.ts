@@ -4,25 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   ApifyTikTokComment,
-  ApifyTikTokTrend,
   ApifyTikTokVideo,
 } from '../../interfaces/apify.interfaces';
 import { ApifyBaseService } from './apify-base.service';
 import { ApifyTikTokService } from './apify-tiktok.service';
 
 vi.mock('./apify-base.service');
-
-const makeTikTokTrend = (
-  overrides: Partial<ApifyTikTokTrend> = {},
-): ApifyTikTokTrend =>
-  ({
-    coverUrl: 'https://p16.tiktokcdn.com/cover.jpg',
-    hashtag: '#trending',
-    title: 'Trending Challenge',
-    videoCount: 50000,
-    viewCount: 10000000,
-    ...overrides,
-  }) as ApifyTikTokTrend;
 
 const makeTikTokVideo = (
   overrides: Partial<ApifyTikTokVideo> = {},
@@ -72,7 +59,6 @@ describe('ApifyTikTokService', () => {
     ACTORS: {
       TIKTOK_COMMENT_SCRAPER: 'clockworks/tiktok-comments-scraper',
       TIKTOK_SCRAPER: 'clockworks/tiktok-scraper',
-      TIKTOK_TRENDS: 'clockworks/tiktok-trends-scraper',
     },
     calculateEngagementMetrics: vi.fn().mockReturnValue({
       engagementRate: 0.06,
@@ -114,104 +100,6 @@ describe('ApifyTikTokService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getTikTokTrends()', () => {
-    it('should return normalized trend data', async () => {
-      const trends = [
-        makeTikTokTrend(),
-        makeTikTokTrend({ hashtag: '#dance' }),
-      ];
-      mockBaseService.runActor.mockResolvedValue(trends);
-
-      const result = await service.getTikTokTrends();
-
-      expect(result).toHaveLength(2);
-      expect(result[0]).toMatchObject({
-        growthRate: 0,
-        mentions: 50000,
-        platform: 'tiktok',
-        topic: '#trending',
-        viralityScore: 85,
-      });
-    });
-
-    it('should use default limit of 20 and region US', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.getTikTokTrends();
-
-      expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'clockworks/tiktok-trends-scraper',
-        expect.objectContaining({
-          resultsPerPage: 20,
-          adsCountryCode: 'US',
-          adsScrapeHashtags: true,
-        }),
-      );
-    });
-
-    it('should respect custom limit and region', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.getTikTokTrends({ limit: 5, region: 'GB' });
-
-      expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'clockworks/tiktok-trends-scraper',
-        expect.objectContaining({
-          resultsPerPage: 5,
-          adsCountryCode: 'GB',
-          adsScrapeHashtags: true,
-        }),
-      );
-    });
-
-    it('rethrows provider failures instead of returning an empty list', async () => {
-      mockBaseService.runActor.mockRejectedValue(new Error('API error'));
-
-      await expect(service.getTikTokTrends()).rejects.toThrow('API error');
-      expect(mockBaseService.logFailure).toHaveBeenCalled();
-    });
-
-    it('should normalize metadata with hashtags and view counts', async () => {
-      const trend = makeTikTokTrend({
-        hashtag: '#cooking',
-        videoCount: 10000,
-        viewCount: 5000000,
-      });
-      mockBaseService.runActor.mockResolvedValue([trend]);
-
-      const result = await service.getTikTokTrends();
-
-      expect(result[0].metadata).toMatchObject({
-        hashtags: ['#cooking'],
-        source: 'apify',
-        trendType: 'hashtag',
-        videoCount: 10000,
-        viewCount: 5000000,
-      });
-    });
-
-    it('should handle trends with missing hashtag using title fallback', async () => {
-      const trend = makeTikTokTrend({
-        hashtag: undefined,
-        title: 'Dance Trend',
-      });
-      mockBaseService.runActor.mockResolvedValue([trend]);
-
-      const result = await service.getTikTokTrends();
-
-      expect(result[0].topic).toBe('Dance Trend');
-    });
-
-    it('rejects rows without an observed topic', async () => {
-      const trend = makeTikTokTrend({ hashtag: undefined, title: undefined });
-      mockBaseService.runActor.mockResolvedValue([trend]);
-
-      const result = await service.getTikTokTrends();
-
-      expect(result).toEqual([]);
-    });
-  });
-
   it('retains actual music playback, cover, author and example videos while counting unique observations', async () => {
     const video = makeTikTokVideo({
       musicMeta: {
@@ -241,28 +129,6 @@ describe('ApifyTikTokService', () => {
       externalId: 'video123',
       videoUrl: video.webVideoUrl,
       thumbnailUrl: 'https://cdn.example.com/video.jpg',
-    });
-  });
-
-  it('normalizes the documented Creative Center output instead of inventing Unknown topics', async () => {
-    mockBaseService.runActor.mockResolvedValue([
-      {
-        name: '#realtrend',
-        type: 'hashtag',
-        rank: 2,
-        videoCount: 300,
-        viewCount: 1000,
-        url: 'https://www.tiktok.com/tag/realtrend',
-      },
-    ]);
-    expect((await service.getTikTokTrends())[0]).toMatchObject({
-      topic: '#realtrend',
-      mentions: 300,
-      growthRate: 0,
-      metadata: {
-        urls: ['https://www.tiktok.com/tag/realtrend'],
-        growthMeasured: false,
-      },
     });
   });
 
