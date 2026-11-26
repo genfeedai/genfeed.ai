@@ -22,7 +22,6 @@ export default function ConnectorsShell({ children }: LayoutProps) {
 
   return (
     <Container
-      bodyClassName="py-5 sm:py-6"
       icon={Plug}
       label={translate('title')}
       moduleChrome={false}
