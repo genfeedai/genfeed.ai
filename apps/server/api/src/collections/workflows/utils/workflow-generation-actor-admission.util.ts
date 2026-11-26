@@ -44,7 +44,9 @@ function hasWorkflowGenerationBrandSource(
 function isMediaGenerationNode(node: ExecutableNode): boolean {
   if (node.type !== 'genfeedAction') return false;
   const action = unwrapExecutableActionNode(node).type;
-  return action === 'imageGen' || action === 'videoGen';
+  return (
+    action === 'imageGen' || action === 'motionControl' || action === 'videoGen'
+  );
 }
 
 /**
@@ -124,7 +126,7 @@ export async function assertWorkflowGenerationActorAdmission(
       nodes.flatMap((node) => {
         if (node.type !== 'genfeedAction') return [];
         const action = unwrapExecutableActionNode(node).type;
-        return action === 'videoGen'
+        return action === 'videoGen' || action === 'motionControl'
           ? [ApiKeyScope.VIDEOS_CREATE]
           : action === 'imageGen'
             ? [ApiKeyScope.IMAGES_CREATE]

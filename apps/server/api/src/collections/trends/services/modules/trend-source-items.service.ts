@@ -15,6 +15,7 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
@@ -110,17 +111,19 @@ export class TrendSourceItemsService {
         const posts =
           held.length > 0
             ? held
-            : await this.apifyService.searchInstagramByHashtag(searchTerm, {
-                limit,
-              });
+            : await runWithDefaultApifyCaller('trends.source-preview', () =>
+                this.apifyService.searchInstagramByHashtag(searchTerm, {
+                  limit,
+                }),
+              );
         return this.normalizeSourceItems(posts, (post) =>
           this.mapInstagramPostToSourceItem(post),
         );
       },
       tiktok: async () => {
-        const videos = await this.apifyService.searchTikTokByHashtag(
-          searchTerm,
-          { limit },
+        const videos = await runWithDefaultApifyCaller(
+          'trends.source-preview',
+          () => this.apifyService.searchTikTokByHashtag(searchTerm, { limit }),
         );
         return this.normalizeSourceItems(videos, (video) =>
           this.mapTikTokVideoToSourceItem(video),
@@ -137,9 +140,13 @@ export class TrendSourceItemsService {
         );
       },
       youtube: async () => {
-        const videos = await this.apifyService.searchYouTubeVideos(searchTerm, {
-          limit,
-        });
+        const videos = await runWithDefaultApifyCaller(
+          'trends.source-preview',
+          () =>
+            this.apifyService.searchYouTubeVideos(searchTerm, {
+              limit,
+            }),
+        );
         return this.normalizeSourceItems(videos, (video) =>
           this.mapYouTubeVideoToSourceItem(video),
         );

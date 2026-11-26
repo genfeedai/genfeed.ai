@@ -22,24 +22,11 @@ describe('Desktop preload packaging', () => {
     expect(preload).toContain('`${appOrigin}/v1`');
   });
 
-  it('guards local IPC, explicit retries and delegated generation before bootstrap reads', () => {
+  it('blocks cloud data calls while a server switch is in flight', () => {
     const main = fs.readFileSync(mainSourcePath, 'utf8');
     expect(main).toMatch(
-      /const requireLocalRuntime = \(\): void => \{\s*assertDesktopRuntimeAvailable\(runtimeContextStatus\)/,
+      /const runDataService = async <T>\([\s\S]*?\): Promise<T> => \{\s*assertDesktopRuntimeAvailable\(runtimeContextStatus\)/,
     );
-    expect(main).toMatch(
-      /function getDataService\(\): IDesktopDataService \{\s*return selectDesktopRuntimeDataService/,
-    );
-    for (const channel of [
-      'appEnableOfflineMode',
-      'appUseCloudMode',
-      'cloudGenerateContent',
-    ])
-      expect(main).toMatch(
-        new RegExp(
-          `DESKTOP_IPC_CHANNELS\\.${channel},[\\s\\S]*?async[^\\{]*\\{\\s*assertDesktopRuntimeAvailable\\(runtimeContextStatus\\)`,
-        ),
-      );
   });
 
   it('builds a CommonJS preload for the sandboxed renderer', () => {

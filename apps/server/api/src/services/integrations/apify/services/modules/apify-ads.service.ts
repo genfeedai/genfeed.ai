@@ -1,3 +1,4 @@
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import {
   type NormalizedPaidCreativeRecord,
@@ -212,10 +213,8 @@ export class ApifyAdsService {
     organizationId?: string,
   ): Promise<unknown[]> {
     try {
-      return await this.researchCollectionRunner.run(
-        organizationId,
-        actor,
-        input,
+      return await runWithDefaultApifyCaller('paid-creative-research', () =>
+        this.researchCollectionRunner.run(organizationId, actor, input),
       );
     } catch (error: unknown) {
       if (error instanceof ServiceUnavailableException) {

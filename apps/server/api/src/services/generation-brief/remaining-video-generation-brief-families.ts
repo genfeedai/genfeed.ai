@@ -58,7 +58,8 @@ interface RemainingVideoFamilyDispatchSpec {
   videoReferenceField?:
     | 'reference_video'
     | 'reference_video_urls'
-    | 'reference_videos';
+    | 'reference_videos'
+    | 'video';
 }
 
 export interface RemainingVideoGenerationBriefFamily {
@@ -357,6 +358,34 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         firstFrameField: 'image',
         modelLabel: 'Kling Avatar',
         resolutionField: 'mode',
+      },
+    },
+    {
+      // Motion control takes the character image as `image` and the motion
+      // reference as `video`. Its length follows the reference video, so there
+      // is no duration or aspect ratio. Preparation adds `character_orientation`
+      // and `keep_original_sound` after compile.
+      compilerId: KLING_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'kling-v3-motion-control-capability',
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_MOTION_CONTROL,
+          {
+            aspectRatioSupported: false,
+            durationSupported: false,
+            maxVideoReferences: 1,
+            nativeFields: ['image', 'video'],
+            requireImageToVideo: true,
+            seedSupported: false,
+          },
+        ),
+      ],
+      spec: {
+        firstFrameField: 'image',
+        modelLabel: 'Kling Motion Control',
+        resolutionField: 'mode',
+        videoReferenceField: 'video',
       },
     },
     {

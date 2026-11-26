@@ -5,7 +5,6 @@ import type {
 import { buildDefaultServerProfile } from './server-profile.util';
 
 const DEFAULT_GENFEED_CLOUD_CDN_URL = 'https://cdn.genfeed.ai';
-const DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS = 8_000;
 
 function readEnv(name: string): string | undefined {
   const value = process.env[name]?.trim();
@@ -14,18 +13,8 @@ function readEnv(name: string): string | undefined {
 
 export class DesktopConfigService {
   private readonly defaultServerProfile: IDesktopServerProfile;
-  private readonly localProviderTimeoutMs: number;
 
   constructor() {
-    const configuredProviderTimeout = Number(
-      process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS,
-    );
-    this.localProviderTimeoutMs =
-      Number.isFinite(configuredProviderTimeout) &&
-      configuredProviderTimeout > 0
-        ? configuredProviderTimeout
-        : DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS;
-
     // `GENFEED_DESKTOP_*_URL` still decide the default server; an explicit
     // in-app server selection (DesktopServerService) takes precedence.
     this.defaultServerProfile = buildDefaultServerProfile({
@@ -57,7 +46,6 @@ export class DesktopConfigService {
       mcpEndpoint: serverProfile.mcpEndpoint,
       serverId: serverProfile.id,
       serverKind: serverProfile.kind,
-      sessionDbPath: process.env.GENFEED_DESKTOP_SESSION_DB_PATH || undefined,
       sentryDsn: process.env.GENFEED_DESKTOP_SENTRY_DSN || undefined,
       sentryEnvironment:
         process.env.GENFEED_DESKTOP_SENTRY_ENVIRONMENT ||
@@ -66,9 +54,5 @@ export class DesktopConfigService {
       sentryRelease: process.env.GENFEED_DESKTOP_RELEASE || undefined,
       wsEndpoint: serverProfile.wsEndpoint,
     };
-  }
-
-  getLocalProviderTimeoutMs(): number {
-    return this.localProviderTimeoutMs;
   }
 }

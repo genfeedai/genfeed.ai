@@ -23,6 +23,7 @@ export * from './lip-sync-executor';
 export * from './localize-speech-executor';
 export * from './media-generation-resolver-request';
 export * from './mention-trigger-executor';
+export * from './motion-control-executor';
 export * from './music-source-executor';
 export * from './new-follower-trigger-executor';
 export * from './new-like-trigger-executor';

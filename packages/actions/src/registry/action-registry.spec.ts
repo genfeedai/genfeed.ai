@@ -604,6 +604,7 @@ describe('Genfeed action registry', () => {
       'aiAvatarVideo',
       'imageGen',
       'lipSync',
+      'motionControl',
       'reframe',
       'upscale',
       'videoGen',

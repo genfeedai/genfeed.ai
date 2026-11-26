@@ -24,6 +24,7 @@ import { getKnowledgeSourceActionContract } from './knowledge-source-action-cont
 import { getKnowledgeToolActionContract } from './knowledge-tool-action-contracts';
 import { getLifecycleEmailActionContract } from './lifecycle-email-action-contracts';
 import { getMaintenanceActionContract } from './maintenance-action-contracts';
+import { getMotionControlActionContract } from './motion-control-action-contracts';
 import { getNewsletterActionContract } from './newsletter-action-contracts';
 import { getPatternExtractionActionContract } from './pattern-extraction-action-contracts';
 import { getRemotionActionContract } from './remotion-action-contracts';
@@ -75,6 +76,7 @@ const CONTRACT_RESOLVERS = [
   getSocialSourceActionContract,
   getSystemActionContract,
   getMaintenanceActionContract,
+  getMotionControlActionContract,
   getNewsletterActionContract,
   getPatternExtractionActionContract,
   getScheduledPostActionContract,

@@ -20,10 +20,16 @@ function unavailable(detail: string): never {
   throw new BusinessLogicException(detail);
 }
 
-function mediaActionId(node: ExecutableNode): 'imageGen' | 'videoGen' | null {
+function mediaActionId(
+  node: ExecutableNode,
+): 'imageGen' | 'motionControl' | 'videoGen' | null {
   try {
     const actionId = getExecutableNodeOperationId(node);
-    return actionId === 'imageGen' || actionId === 'videoGen' ? actionId : null;
+    return actionId === 'imageGen' ||
+      actionId === 'motionControl' ||
+      actionId === 'videoGen'
+      ? actionId
+      : null;
   } catch {
     return null;
   }

@@ -109,7 +109,7 @@ describe('desktop window close lifecycle', () => {
     const failureFnStart = mainSource.indexOf(
       'const showDesktopStartupFailure',
     );
-    const nextFnStart = mainSource.indexOf('const openAndActivateWorkspace');
+    const nextFnStart = mainSource.indexOf('const waitForVisualQaPaint');
     const failureFn = mainSource.slice(failureFnStart, nextFnStart);
 
     expect(failureFnStart).toBeGreaterThan(-1);
