@@ -598,4 +598,78 @@ describe('AgentThreadsPanel', () => {
       expect(onReopenThread).toHaveBeenCalledWith('done');
     });
   });
+
+  describe('selecting threads', () => {
+    it('resolves every selected thread from one bar, then clears the selection', async () => {
+      const onResolveThread = vi.fn();
+      const user = userEvent.setup();
+      renderPanel({ onResolveThread });
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Pick a hook' }),
+      );
+      expect(
+        screen.getByRole('toolbar', { name: 'Selected threads' }),
+      ).toHaveTextContent('1 selected');
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Cut the trailer' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Resolve' }));
+
+      await waitFor(() => expect(onResolveThread).toHaveBeenCalledTimes(2));
+      expect(onResolveThread).toHaveBeenCalledWith('needs');
+      expect(onResolveThread).toHaveBeenCalledWith('running');
+      await waitFor(() =>
+        expect(screen.queryByRole('toolbar')).not.toBeInTheDocument(),
+      );
+      expect(screen.getByLabelText('Search threads')).toBeInTheDocument();
+    });
+
+    it('selects a range with Shift-click and a whole group with its select-all', async () => {
+      const user = userEvent.setup();
+      renderPanel();
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Pick a hook' }),
+      );
+      await user.keyboard('{Shift>}');
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Spring captions' }),
+      );
+      await user.keyboard('{/Shift}');
+
+      expect(screen.getByRole('toolbar')).toHaveTextContent('4 selected');
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select all in Working' }),
+      );
+      expect(screen.getByRole('toolbar')).toHaveTextContent('2 selected');
+    });
+
+    it('offers Reopen when every selected thread is resolved', async () => {
+      const onReopenThread = vi.fn();
+      const user = userEvent.setup();
+      renderPanel({ onReopenThread, onResolveThread: vi.fn() });
+
+      await user.click(section('Earlier'));
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Shipped reel' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Reopen' }));
+
+      await waitFor(() => expect(onReopenThread).toHaveBeenCalledWith('done'));
+    });
+
+    it('clears the selection with Escape', async () => {
+      const user = userEvent.setup();
+      renderPanel();
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Pick a hook' }),
+      );
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+    });
+  });
 });

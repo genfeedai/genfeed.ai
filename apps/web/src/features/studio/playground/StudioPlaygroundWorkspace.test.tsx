@@ -1231,11 +1231,12 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     render(<StudioPlaygroundWorkspace />);
 
-    const topbar = screen.getByTestId('section-topbar');
+    // Inside the output pane the bar's controls join the pane's own header.
+    const header = screen.getByTestId('agent-output-header-slot');
     const leading = screen.getByTestId('section-topbar-leading');
     const search = screen.getByPlaceholderText('searchPlaceholder');
     expect(leading).toContainElement(search);
-    expect(topbar).toContainElement(search);
+    expect(header).toContainElement(search);
     // Type and sort live in the Filters menu inside the search field, not as
     // loose dropdowns on the bar.
     expect(screen.queryByRole('combobox')).toBeNull();
@@ -1764,7 +1765,7 @@ describe('StudioPlaygroundWorkspace', () => {
     await user.click(
       within(screen.getByTestId('agent-output-output-pane')).getByRole(
         'button',
-        { name: /^(View|label): / },
+        { name: 'label: viewGrid' },
       ),
     );
     await user.click(

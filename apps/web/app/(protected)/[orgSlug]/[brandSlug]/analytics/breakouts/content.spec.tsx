@@ -437,9 +437,7 @@ describe('brand-scoped Breakouts read page', () => {
   it('does not fetch without a ready selected brand', () => {
     mocks.scope = { ...mocks.scope, pageScope: 'org' };
     render(<BreakoutsContent />);
-    expect(
-      screen.getByText('Select a brand to inspect its breakout responses.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Select a brand')).toBeInTheDocument();
     expect(mocks.getService).not.toHaveBeenCalled();
   });
 });

@@ -7,8 +7,8 @@ import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.pro
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import SearchField from '@ui/content/search-field/SearchField';
+import { CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME } from '@ui/layout/agent-output-layout/agent-pane.constant';
 import Container from '@ui/layout/container/Container';
-import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
@@ -48,14 +48,10 @@ export default function MotionProjectList(): ReactElement {
     ? loaded.filter((item) => item.label.toLowerCase().includes(query))
     : loaded;
   const isEmpty = !projects.isLoading && !projects.error && !visible.length;
-  const isLoaded = projects.isSuccess;
-  // The list filters on the client, so what loaded is every project there is.
-  useCreativeProjectsPresence(
-    loaded.length > 0 ? 'populated' : isLoaded ? 'empty' : 'unknown',
-  );
 
   return (
     <Container
+      bodyClassName={CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME}
       label={t('title')}
       leading={
         <SearchField

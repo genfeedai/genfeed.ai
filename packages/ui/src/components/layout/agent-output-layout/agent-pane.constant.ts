@@ -7,3 +7,8 @@ export const AGENT_PANE_HEADER_CLASS_NAME =
 // under one key, so every app that puts the agent beside its output opens at
 // the split the operator last chose.
 export const AGENT_OUTPUT_SPLIT_STORAGE_KEY = 'genfeed:agent-output-split';
+
+// A creative app's projects list sits in the output pane, beside the agent. It
+// keeps a small inset so the thread rows, not the page margin, carry the eye.
+export const CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME =
+  'px-2 py-2 sm:px-2 sm:py-2';
