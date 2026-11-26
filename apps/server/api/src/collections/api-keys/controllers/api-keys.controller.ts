@@ -359,6 +359,16 @@ export class ApiKeysController {
       user.organizationId,
       existingKey,
     );
+    await this.assertNoKeyPrivilegeEscalation(
+      user,
+      {
+        allowedBrandIds: brandReach.allowedBrandIds,
+        allowedIps: existingKey.allowedIps,
+        expiresAt: existingKey.expiresAt?.toISOString(),
+        scopes: existingKey.scopes,
+      },
+      true,
+    );
     const replacementInput = {
       ...brandReach,
       allowedIps: existingKey.allowedIps,

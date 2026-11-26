@@ -877,6 +877,72 @@ describe('ApiKeysController', () => {
       expect(mockApiKeysService.createWithKey).toHaveBeenCalled();
     });
 
+    describe('rotate', () => {
+      const target = (overrides: Record<string, unknown> = {}) => ({
+        ...mockApiKey,
+        allowedIps: [],
+        expiresAt: null,
+        metadata: {},
+        scopes: ['images:read'],
+        ...overrides,
+      });
+      const rotateAs = (targetKey: unknown, callerKey: unknown) => {
+        mockApiKeysService.findOne
+          .mockResolvedValueOnce(targetKey)
+          .mockResolvedValueOnce(callerKey);
+        mockApiKeysService.rotateWithKey.mockResolvedValue({
+          apiKey: mockApiKey,
+          plainKey: 'gf_rotated',
+        });
+        return controller.rotate(mockRequest, callerUser, apiKeyId);
+      };
+      const callerKey = (overrides: Record<string, unknown> = {}) => ({
+        allowedIps: [],
+        expiresAt: null,
+        id: callerKeyId,
+        metadata: {},
+        scopes: ['images:read', 'videos:read'],
+        ...overrides,
+      });
+
+      it('rejects rotating a key with a scope the caller does not hold', async () => {
+        await expect(
+          rotateAs(target({ scopes: ['posts:publish'] }), callerKey()),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(mockApiKeysService.rotateWithKey).not.toHaveBeenCalled();
+      });
+
+      it('rejects returning a secret that reaches brands the caller is limited from', async () => {
+        await expect(
+          rotateAs(
+            target({ metadata: {} }),
+            callerKey({ metadata: { allowedBrandIds: ['brand-own'] } }),
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+        await expect(
+          rotateAs(
+            target({ metadata: { allowedBrandIds: ['brand-own', 'brand-x'] } }),
+            callerKey({ metadata: { allowedBrandIds: ['brand-own'] } }),
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(mockApiKeysService.rotateWithKey).not.toHaveBeenCalled();
+      });
+
+      it('allows rotating a key within the caller reach', async () => {
+        const result = await rotateAs(
+          target({ metadata: { allowedBrandIds: ['brand-own'] } }),
+          callerKey({
+            metadata: { allowedBrandIds: ['brand-own', 'brand-b'] },
+          }),
+        );
+
+        expect(result.data).toMatchObject({
+          attributes: { key: 'gf_rotated' },
+        });
+        expect(mockApiKeysService.rotateWithKey).toHaveBeenCalled();
+      });
+    });
+
     it('rejects widening scopes or clearing the IP allowlist on update', async () => {
       mockCallerKey({ allowedIps: ['203.0.113.7'] });
 
