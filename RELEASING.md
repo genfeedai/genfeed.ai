@@ -21,9 +21,15 @@ Upgrade note).
   bundle, and the GitHub release. `v1.0.0` marks Launch.
 - **Independent surfaces.** `desktop-v*`, `mobile-v*`, and
   `extension-browser-v*` version independently, as do the published npm
-  packages (`@genfeedai/cli`, `@genfeedai/create`) — each has its own
-  `package.json` version bumped in a normal PR. Matching numbers across
-  surfaces are a convenience, not a requirement.
+  packages (`@genfeedai/cli`, `@genfeedai/create`, and the shared design layer
+  `styles`, `ui`, `helpers`, `contracts`) — each has its own `package.json`
+  version bumped in the normal PR that changes what the package ships. Static
+  Checks fails a pull request that changes a published package's source while
+  its version is already on npm (`node scripts/npm-release-plan.mjs --check-bumps`,
+  also in `bun run preflight`), and names the package. A package version that is
+  bumped but not yet published already covers later changes, so only the first
+  pull request after a publish moves it. Matching numbers across surfaces are a
+  convenience, not a requirement.
 - **`0.x` semantics.** Before `v1.0.0`, minor releases may contain breaking
   changes for self-hosters. Every such release carries an **Upgrade note**
   section at the top of the release body that names the breaking change, the

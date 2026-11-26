@@ -52,6 +52,7 @@ describe('CronTrendsService', () => {
       fetchAndCacheSounds: vi.fn().mockResolvedValue(0),
       fetchAndCacheTrends: vi.fn().mockResolvedValue([{ id: 'trend-1' }]),
       fetchAndCacheViralVideos: vi.fn().mockResolvedValue(0),
+      hasBrandReadRecently: vi.fn().mockResolvedValue(true),
       getGlobalCorpusStats: vi
         .fn()
         .mockResolvedValue({ activeTrends: 0, referenceRecords: 0 }),
@@ -187,6 +188,40 @@ describe('CronTrendsService', () => {
           brandId: 'brand-2',
           dataset: 'niche-videos',
           organizationId: 'org-2',
+          platform: 'tiktok',
+        },
+      ],
+    });
+  });
+
+  it('schedules no niche video search for a brand that did not read its trends this week', async () => {
+    prisma.credential.findMany.mockResolvedValue([
+      { brandId: 'brand-1', organizationId: 'org-1', platform: 'TIKTOK' },
+    ]);
+    prisma.trendPreferences.findMany.mockResolvedValue([
+      {
+        brandId: 'brand-2',
+        config: { keywords: ['ai influencers'] },
+        organizationId: 'org-2',
+      },
+      {
+        brandId: 'brand-4',
+        config: { hashtags: ['#ai'] },
+        organizationId: 'org-4',
+      },
+    ]);
+    trends.hasBrandReadRecently.mockImplementation(
+      async (_organizationId: string, brandId: string) => brandId === 'brand-4',
+    );
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.DISCOVER_SCOPED);
+
+    await expect(action?.({ input: {} })).resolves.toEqual({
+      items: [
+        { brandId: 'brand-1', organizationId: 'org-1', platform: 'tiktok' },
+        {
+          brandId: 'brand-4',
+          dataset: 'niche-videos',
+          organizationId: 'org-4',
           platform: 'tiktok',
         },
       ],

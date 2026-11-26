@@ -13,7 +13,6 @@ import type {
 import type { IDisposable, IPty } from 'node-pty';
 import { spawn } from 'node-pty';
 import { resolveGenfeedCliLaunch } from './genfeed-cli-launch.util';
-import type { DesktopWorkspaceService } from './workspace.service';
 
 interface DesktopTerminalProcess {
   dataSubscription: IDisposable;
@@ -42,16 +41,10 @@ const nodeRequire = createRequire(import.meta.url);
 
 /**
  * Local PTY sessions (shell, Genfeed CLI, Claude Code, Codex) for the agent
- * panel terminal. Available in cloud and local mode: it only needs the local
- * machine, never the PGlite runtime. A workspace, when one is open, is the
- * default working directory.
+ * panel terminal. They only need this machine.
  */
 export class DesktopTerminalService {
   private readonly sessions = new Map<string, DesktopTerminalProcess>();
-
-  constructor(
-    private readonly getWorkspaceService: () => DesktopWorkspaceService | null,
-  ) {}
 
   async createSession(
     options: IDesktopTerminalCreateOptions | undefined,
@@ -59,10 +52,7 @@ export class DesktopTerminalService {
     onExit: TerminalExitCallback,
   ): Promise<IDesktopTerminalSession> {
     const kind = options?.kind ?? 'shell';
-    const cwd = await this.resolveWorkingDirectory(
-      options?.workspaceId,
-      options?.cwd,
-    );
+    const cwd = this.resolveWorkingDirectory(options?.cwd);
     const { args, command } = this.resolveCommand(kind, options?.prompt);
     const sessionId = randomUUID();
 
@@ -175,17 +165,7 @@ export class DesktopTerminalService {
     fs.chmodSync(helperPath, stat.mode | 0o755);
   }
 
-  private async resolveWorkingDirectory(
-    workspaceId: string | null | undefined,
-    requestedCwd: string | undefined,
-  ): Promise<string> {
-    const workspaceService = this.getWorkspaceService();
-
-    if (workspaceId && workspaceService) {
-      const workspace = await workspaceService.getWorkspace(workspaceId);
-      return workspace.path;
-    }
-
+  private resolveWorkingDirectory(requestedCwd: string | undefined): string {
     const cwd = requestedCwd?.trim();
     if (cwd) {
       const expanded =

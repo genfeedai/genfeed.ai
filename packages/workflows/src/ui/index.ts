@@ -15,6 +15,13 @@ export { GlobalImageHistory } from './components/GlobalImageHistory';
 export { SmallGraphViewportGuard } from './components/SmallGraphViewportGuard';
 export type { WorkflowEditorShellProps } from './components/WorkflowEditorShell';
 export { WorkflowEditorShell } from './components/WorkflowEditorShell';
+// Geometry controls (annotation and motion-trajectory editors)
+export {
+  GeometryEditorDialog,
+  GeometryNodeInspector,
+  GroupedControls,
+  useGeometryRunGuard,
+} from './controls';
 export type { CommentNavigation } from './hooks';
 // Hooks
 export {
@@ -52,7 +59,6 @@ export type {
 } from './provider';
 // Provider
 export { useWorkflowUIConfig, WorkflowUIProvider } from './provider';
-export { useAnnotationStore } from './stores/annotationStore';
 export { useExecutionStore } from './stores/execution';
 export {
   configureExecutionApiBaseUrl,

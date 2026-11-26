@@ -25,6 +25,7 @@ import {
   TrendBrandDigestService,
 } from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
+import { TrendBrandReadService } from '@api/collections/trends/services/modules/trend-brand-read.service';
 import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import {
@@ -51,6 +52,7 @@ import {
 } from '@api/collections/trends/utils/observed-trends.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { Timeframe } from '@genfeedai/contracts';
 import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
 import type { ITrendVideoPlayback } from '@genfeedai/contracts/interfaces';
@@ -84,6 +86,7 @@ export class TrendsService {
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
     private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
     private readonly trendBrandDigestService: TrendBrandDigestService,
+    private readonly trendBrandReadService: TrendBrandReadService,
     private readonly trendPlaybackService: TrendPlaybackService,
   ) {}
 
@@ -159,11 +162,13 @@ export class TrendsService {
     brandId?: string,
     options: TrendFetchBatchOptions = {},
   ): Promise<TrendEntity[]> {
-    const trends = await this.trendFetchService.fetchAndCacheTrends(
-      organizationId,
-      brandId,
-      (trend) => this.trendFilteringService.calculateViralityScore(trend),
-      options,
+    const trends = await runWithDefaultApifyCaller('trends.fetch', () =>
+      this.trendFetchService.fetchAndCacheTrends(
+        organizationId,
+        brandId,
+        (trend) => this.trendFilteringService.calculateViralityScore(trend),
+        options,
+      ),
     );
     const hydratedTrends =
       await this.trendSourcePreviewService.precomputeTrendSourcePreview(
@@ -505,7 +510,9 @@ export class TrendsService {
       organizationId,
       brandId,
     );
-    return this.fetchAndHydrateTrends(organizationId, brandId);
+    return runWithDefaultApifyCaller('trends.refresh-manual', () =>
+      this.fetchAndHydrateTrends(organizationId, brandId),
+    );
   }
 
   async precomputeGlobalTrendSourcePreview(): Promise<{ processed: number }> {
@@ -832,9 +839,23 @@ export class TrendsService {
     };
   }
 
+  /** A read of this brand's Trends: remembers it and may start one niche search. */
+  noteBrandRead(organizationId?: string, brandId?: string): Promise<void> {
+    return this.trendBrandReadService.noteRead(
+      organizationId,
+      brandId,
+      (org, brand) => this.fetchAndCacheBrandNicheVideos(org, brand),
+    );
+  }
+
+  hasBrandReadRecently(organizationId: string, brandId: string) {
+    return this.trendBrandReadService.hasReadRecently(organizationId, brandId);
+  }
+
   /**
    * Refresh the niche videos for one brand from its keywords, hashtags and
-   * categories. Runs from the scheduled scoped refresh, never from a read.
+   * categories. Runs from the scheduled scoped refresh for brands that read
+   * their trends, and once from the first read of a brand with none.
    */
   async fetchAndCacheBrandNicheVideos(
     organizationId: string,

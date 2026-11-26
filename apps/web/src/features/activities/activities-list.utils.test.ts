@@ -21,12 +21,15 @@ import {
   getActivityIngredientPreviewUrl,
   getActivityLifecycleText,
   getActivityMediaPreviewUrl,
+  getActivityResultType,
   getActivityRunDuration,
   getActivitySourceLabel,
   getActivityStatus,
   getActivityValueFields,
   getActivityVideoUrl,
   getGenerationCreditAmount,
+  getPostGroupLink,
+  getPostTrail,
   humanizeActivityToken,
 } from './activities-list.utils';
 
@@ -441,7 +444,7 @@ describe('getActivityRunDuration', () => {
 
 describe('activity time formatting', () => {
   it('reads the clock and day in UTC', () => {
-    expect(formatActivityClock('2026-11-02T23:59:07.000Z')).toBe('23:59:07');
+    expect(formatActivityClock('2026-11-02T23:59:07.000Z')).toBe('23:59');
     expect(getActivityDayKey('2026-11-02T23:59:07.000Z')).toBe('2026-11-02');
     expect(formatActivityClock(undefined)).toBe('—');
     expect(getActivityDayKey(undefined)).toBe('unknown');
@@ -477,5 +480,60 @@ describe('humanizeActivityToken', () => {
   it('has nothing to say for an empty token', () => {
     expect(humanizeActivityToken('')).toBeUndefined();
     expect(humanizeActivityToken(null)).toBeUndefined();
+  });
+});
+
+describe('a post folded from its lifecycle activities', () => {
+  const postRow = {
+    entityId: 'post-1',
+    entityModel: 'post',
+    ingredient: { category: 'VIDEO', id: 'media-1' },
+    key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+    postGroup: {
+      eventIds: ['a', 'b'],
+      postId: 'post-1',
+      status: 'published',
+      steps: [
+        { at: '2026-11-26T08:45:03Z', from: 'scheduled', to: 'publishing' },
+        { at: '2026-11-26T08:45:33Z', from: 'publishing', to: 'published' },
+      ],
+    },
+    preview: {
+      kind: 'post',
+      platform: 'instagram',
+      text: 'Cold brew season is here.\nThree new roasts.',
+      url: 'https://instagram.com/p/1',
+    },
+    value: JSON.stringify({ from: 'publishing', to: 'published' }),
+  } as unknown as IActivity;
+
+  it('reads as the post, by the first line of its text', () => {
+    expect(getActivityDescription(postRow)).toBe('Cold brew season is here.');
+  });
+
+  it('shows the state the post is in now', () => {
+    expect(getActivityStatus(postRow)).toBe('published');
+  });
+
+  it('names every state the post went through, in order', () => {
+    expect(getPostTrail(postRow)).toBe('Scheduled → Publishing → Published');
+    expect(getPostTrail({ key: 'alpha' } as IActivity)).toBeUndefined();
+  });
+
+  it('shows the kind of the first media of the post', () => {
+    expect(getActivityResultType(postRow)).toBe(IngredientCategory.VIDEO);
+  });
+
+  it('links to the network only once the post is out', () => {
+    expect(getPostGroupLink(postRow)).toEqual({
+      platform: 'instagram',
+      url: 'https://instagram.com/p/1',
+    });
+    expect(
+      getPostGroupLink({
+        ...postRow,
+        postGroup: { ...postRow.postGroup, status: 'publishing' },
+      } as IActivity),
+    ).toBeUndefined();
   });
 });

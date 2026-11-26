@@ -108,7 +108,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'activity:Activity': [
     'brandLabel',
     'organizationLabel',
-    'preview',
     'totalFailed',
     'totalRequested',
     'totalUpdated',

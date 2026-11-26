@@ -4,6 +4,10 @@ import type {
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/contracts';
+import type {
+  IActivityPostGroup,
+  IActivityPostPreview,
+} from '@genfeedai/contracts/interfaces';
 import type { Activity } from '@genfeedai/prisma';
 
 export type { Activity } from '@genfeedai/prisma';
@@ -16,6 +20,10 @@ export interface ActivityDocument extends Activity {
   actorUserId?: string | null;
   apiKeyId?: string | null;
   value?: string | null;
+  /** The post behind a post row, attached to the listed page only. */
+  preview?: IActivityPostPreview;
+  /** Set on the one row that stands for a whole post. */
+  postGroup?: IActivityPostGroup;
   entityId: string | null;
   entityModel: ActivityEntityModel | string | null;
   [key: string]: unknown;

@@ -38,7 +38,9 @@ export async function createWorkflowMediaCostIntent(
   const isSelfFundedUpscale = input.actionId === 'upscale';
   const isDirectPlatformMedia =
     input.provider === 'replicate' &&
-    ['imageGen', 'videoGen', 'reframe'].includes(input.actionId);
+    ['imageGen', 'videoGen', 'motionControl', 'reframe'].includes(
+      input.actionId,
+    );
   const isByok = input.isByok ?? false;
   const model = modelKey
     ? await transaction.model.findFirst({

@@ -9,6 +9,7 @@ import {
   getCreditActivityMessageDescriptor,
   getCreditActivitySourceLabel,
   IngredientCategory,
+  isPlatform,
   Platform,
   parseActivityKey,
   parseCreditActivityValue,
@@ -159,6 +160,43 @@ export function getResultTypeFromActivityKey(
     default:
       return undefined;
   }
+}
+
+/**
+ * What kind of media an activity's thumbnail shows: the kind its key names,
+ * or, for a post folded into one row, the kind of the post's first media.
+ */
+export function getActivityResultType(
+  activity: IActivity,
+): IngredientCategory | undefined {
+  const fromKey = getResultTypeFromActivityKey(activity.key);
+  if (fromKey || !activity.postGroup) return fromKey;
+  const category = (
+    (activity as IActivityPopulated).ingredient?.category ?? ''
+  ).toLowerCase();
+  if (category === 'video') return IngredientCategory.VIDEO;
+  if (category === 'image') return IngredientCategory.IMAGE;
+  return undefined;
+}
+
+/** "Scheduled → Publishing → Published": the states a post went through. */
+export function getPostTrail(activity: IActivity): string | undefined {
+  const steps = activity.postGroup?.steps;
+  if (!steps?.length) return undefined;
+  return [steps[0].from, ...steps.map((step) => step.to)]
+    .map((state) => humanizeActivityToken(state) ?? state)
+    .join(' → ');
+}
+
+/** The live post behind a post row that has gone out, when the API knows it. */
+export function getPostGroupLink(
+  activity: IActivity,
+): { platform: Platform; url: string } | undefined {
+  const { preview, postGroup } = activity;
+  if (postGroup?.status !== 'published' || !preview?.url) return undefined;
+  return isPlatform(preview.platform)
+    ? { platform: preview.platform, url: preview.url }
+    : undefined;
 }
 
 export function getActivityAssetId(
@@ -343,6 +381,12 @@ export function getActivityDescription(
 ): string {
   const key = activity.key?.trim() ?? '';
 
+  // A post's events are folded into one row; it reads as the post itself.
+  const postText = activity.postGroup ? activity.preview?.text : undefined;
+  if (postText?.trim()) {
+    return postText.trim().split('\n')[0];
+  }
+
   if (key === ActivityKey.POST_GENERATED) {
     const parsed = parseActivityValue(activity.value ?? '');
     const fromValue =
@@ -520,6 +564,9 @@ export function parsePostActivityValue(
  * returns an empty string, so the cell shows a dash instead of "pending".
  */
 export function getActivityStatus(activity: IActivity): string {
+  if (activity.postGroup) {
+    return activity.postGroup.status.toLowerCase();
+  }
   if (isBackgroundTask(activity)) {
     return getBackgroundTaskStatus(activity.key);
   }
@@ -549,11 +596,11 @@ export function getActivityRunDuration(activity: IActivity): string | null {
   return `${seconds}s`;
 }
 
-/** HH:MM:SS in UTC, the clock every admin row is read against. */
+/** HH:MM in UTC, the clock every admin row is read against. */
 export function formatActivityClock(createdAt: string | undefined): string {
   const date = new Date(createdAt ?? '');
   return Number.isFinite(date.getTime())
-    ? date.toISOString().slice(11, 19)
+    ? date.toISOString().slice(11, 16)
     : '—';
 }
 

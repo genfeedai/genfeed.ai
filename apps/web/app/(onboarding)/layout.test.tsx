@@ -220,7 +220,7 @@ describe('app/(onboarding)/layout.tsx', () => {
   });
 
   it.each(['/onboarding/brand', '/onboarding/providers'])(
-    'lets desktop local %s render without the auth gate',
+    'gates desktop %s when signed out',
     (pathname) => {
       isSignedIn = false;
       process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
@@ -232,12 +232,8 @@ describe('app/(onboarding)/layout.tsx', () => {
         </OnboardingSetupLayout>,
       );
 
-      expect(
-        screen.queryByTestId('protected-auth-gate'),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByTestId('auth-gated')).not.toBeInTheDocument();
-      expect(protectedAuthGateMock).not.toHaveBeenCalled();
-      expect(screen.getByTestId('child')).toHaveTextContent('hello');
+      expect(screen.getByTestId('auth-gated')).toBeInTheDocument();
+      expect(screen.queryByTestId('child')).not.toBeInTheDocument();
     },
   );
 

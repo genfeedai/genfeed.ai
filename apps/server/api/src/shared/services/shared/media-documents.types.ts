@@ -3,6 +3,7 @@ import type {
   AssetScope,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/contracts';
@@ -51,6 +52,8 @@ export interface MediaDocumentsInput {
   origin: IngredientOrigin;
   organizationId?: string;
   parentId?: string;
+  /** How this asset relates to `parentId` (#7395); only meaningful with a parent. */
+  relationKind?: IngredientRelationKind;
   /** Character this output was generated with (#6040). */
   personaId?: string | null;
   promptId?: string;

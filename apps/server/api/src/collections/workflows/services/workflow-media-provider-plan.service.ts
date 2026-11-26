@@ -13,9 +13,15 @@ import type {
   WorkflowImageProviderPlan,
   WorkflowMediaProviderPlan,
   WorkflowMediaProviderPlanInput,
+  WorkflowMotionControlProviderPlan,
   WorkflowVideoProviderPlan,
 } from '@api/collections/workflows/services/workflow-media-provider-plan.interface';
+import { planMotionControl } from '@api/collections/workflows/utils/motion-control-plan.util';
 import { assertWorkflowExtensionSourceEvidence } from '@api/collections/workflows/utils/workflow-extension-source-evidence.util';
+import {
+  readStrings,
+  replaceReferenceTokens,
+} from '@api/collections/workflows/utils/workflow-media-plan-values.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import {
@@ -48,6 +54,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   buildImageGenerationResolverRequest,
+  buildMotionControlResolverRequest,
   buildVideoGenerationResolverRequest,
   type ExecutableNode,
   type ExecutionContext,
@@ -101,33 +108,6 @@ function readIdentityReferences(value: unknown): ClipChainIdentityReference[] {
   });
 }
 
-function readStrings(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : [];
-}
-
-function replaceReferenceTokens(
-  value: unknown,
-  replacements: ReadonlyMap<string, string>,
-): unknown {
-  if (typeof value === 'string') {
-    return replacements.get(value) ?? value;
-  }
-  if (Array.isArray(value)) {
-    return value.map((entry) => replaceReferenceTokens(entry, replacements));
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [
-        key,
-        replaceReferenceTokens(entry, replacements),
-      ]),
-    );
-  }
-  return value;
-}
-
 @Traced()
 @Injectable()
 export class WorkflowMediaProviderPlanService {
@@ -160,6 +140,14 @@ export class WorkflowMediaProviderPlanService {
     if (executable.type === 'videoGen') {
       const request = buildVideoGenerationResolverRequest(executable, inputs);
       return this.prepareVideo({ ...request, context, node: executable });
+    }
+    if (executable.type === 'motionControl') {
+      const request = buildMotionControlResolverRequest(executable, inputs);
+      return this.prepareMotionControl({
+        ...request,
+        context,
+        node: executable,
+      });
     }
     throw new Error(
       `No direct media preparation contract for ${executable.type}`,
@@ -605,6 +593,20 @@ export class WorkflowMediaProviderPlanService {
         userId: context.userId,
       },
     };
+  }
+
+  /** Image plus reference video on Kling v3 motion control; see the util for the admission order. */
+  prepareMotionControl(
+    input: WorkflowMediaProviderPlanInput,
+  ): Promise<WorkflowMotionControlProviderPlan> {
+    return planMotionControl(
+      {
+        admitCharacters: (args) => this.admitCharacters(args),
+        files: () => this.requireReferenceFiles(),
+        helper: this.helper,
+      },
+      input,
+    );
   }
 
   /** Use the published provider adapter and exact reviewed schema; no funding or provider effects. */

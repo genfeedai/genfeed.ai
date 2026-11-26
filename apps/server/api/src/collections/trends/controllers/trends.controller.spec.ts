@@ -88,6 +88,7 @@ describe('TrendsController', () => {
     getReferenceCorpus: vi.fn(),
     getTopReferenceAccounts: vi.fn(),
     getTrendContent: vi.fn(),
+    noteBrandRead: vi.fn(),
     getTrendingHashtags: vi.fn(),
     getTrendingSounds: vi.fn(),
     getTrendSourceItems: vi.fn(),
@@ -329,6 +330,10 @@ describe('TrendsController', () => {
         'false',
       );
 
+      expect(trendsService.noteBrandRead).toHaveBeenCalledWith(
+        mockUser.organizationId,
+        mockUser.brandId,
+      );
       expect(trendsService.getTrendsWithAccessControl).toHaveBeenCalledWith(
         mockUser.organizationId,
         mockUser.brandId,

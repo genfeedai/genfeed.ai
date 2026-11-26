@@ -10,12 +10,18 @@
 //   --plan      repo-version-vs-registry drift -> packages_json for
 //               scripts/publish-packages-from-json.mjs; `--lane dedicated`
 //               plans the packages that publish from their own workflow
-import { spawnSync } from 'node:child_process';
+//   --check-bumps --base <sha>
+//               a PR that changes what a published package ships must move
+//               its version, so the plan above always has something to
+//               publish (#11467)
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 import { readPackageInventory } from './publish-packages-from-json.mjs';
 
+const COMMIT_SHA_PATTERN = /^[0-9a-f]{7,40}$/;
 const NPM_NOT_FOUND_ERROR_PATTERN = /E404|No match found|Not Found/i;
 
 const ENROLLMENT_FILE = 'scripts/npm-release-enrollment.json';
@@ -277,6 +283,133 @@ export function assertPublishable(plan) {
   );
 }
 
+// A path the published tarball is not built from. Everything else under a
+// published package counts as source: the tarball is built from `src` (or the
+// CSS files themselves), so a change there reaches npm users only through a
+// new version.
+const NON_SHIPPED_PATH_PATTERN =
+  /(?:\.(?:spec|test|stories)\.[cm]?[jt]sx?$|\.mdx?$|(?:^|\/)(?:__tests__|__mocks__|__fixtures__|fixtures|tests?|coverage|node_modules|dist)\/|(?:^|\/)(?:tsconfig[^/]*\.json|vitest\.config\.[cm]?[jt]s|biome\.jsonc?)$)/;
+// Manifest fields that never reach a consumer's install.
+const UNSHIPPED_MANIFEST_FIELDS = ['version', 'scripts', 'devDependencies'];
+
+export function isShippedSourcePath(relativePath) {
+  return !NON_SHIPPED_PATH_PATTERN.test(relativePath);
+}
+
+function shippedManifestFields(manifest) {
+  const copy = { ...manifest };
+  for (const field of UNSHIPPED_MANIFEST_FIELDS) delete copy[field];
+  return copy;
+}
+
+export function manifestShipsChange(baseManifest, headManifest) {
+  return !isDeepStrictEqual(
+    shippedManifestFields(baseManifest),
+    shippedManifestFields(headManifest),
+  );
+}
+
+// packages: [{ name, path, baseVersion, headVersion, shippedFiles }] for every
+// published package whose shipped files changed in the pull request.
+// publishedVersions: Map<packageName, Set<version> | null>.
+//
+// A package only needs a bump when the version its base already carries is on
+// npm. When the base carries a version nobody published yet, an earlier merge
+// has already moved it and this change rides that publish; asking every pull
+// request for its own bump would make two pull requests that touch the same
+// package conflict on one line.
+export function findStalePackageVersions({ packages, publishedVersions }) {
+  const violations = [];
+  for (const entry of packages) {
+    if (entry.shippedFiles.length === 0) continue;
+    const versions = publishedVersions.get(entry.name);
+    if (versions == null) continue;
+
+    const changed = `${entry.shippedFiles.length} shipped file(s), such as ${entry.shippedFiles[0]}`;
+    if (entry.headVersion === entry.baseVersion) {
+      if (!versions.has(entry.baseVersion)) continue;
+      violations.push(
+        `${entry.name} (${entry.path}): ${changed} changed, but version ${entry.headVersion} is already on npm. Bump "version" in ${entry.path}/package.json (a patch for a fix, a minor for a feature) so the next publish carries this change.`,
+      );
+    } else if (versions.has(entry.headVersion)) {
+      violations.push(
+        `${entry.name} (${entry.path}): version ${entry.headVersion} is already on npm, so it cannot carry the ${changed}. Move "version" in ${entry.path}/package.json past it.`,
+      );
+    }
+  }
+  return violations;
+}
+
+function git(root, args) {
+  return execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 100 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function readManifestAt(root, ref, packagePath) {
+  try {
+    return JSON.parse(
+      git(root, ['show', `${ref}:${packagePath}/package.json`]),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function collectChangedPackages({ base, enrollment, root }) {
+  const packages = [];
+  const packagePaths = [
+    ...lanePackagePaths(enrollment, 'release'),
+    ...lanePackagePaths(enrollment, 'dedicated'),
+  ];
+  for (const packagePath of packagePaths) {
+    const baseManifest = readManifestAt(root, base, packagePath);
+    // A package that did not exist at the base has no published version to
+    // compare against; the enrollment check covers its first publish.
+    if (!baseManifest) continue;
+    const headManifest = JSON.parse(
+      fs.readFileSync(path.join(root, packagePath, 'package.json'), 'utf8'),
+    );
+    // The base against the working tree, so a local run also sees staged,
+    // unstaged and untracked edits; in CI the working tree is the head.
+    const changedFiles = [
+      ...git(root, [
+        'diff',
+        '--name-only',
+        base,
+        '--',
+        `${packagePath}/`,
+      ]).split('\n'),
+      ...git(root, [
+        'ls-files',
+        '--others',
+        '--exclude-standard',
+        '--',
+        `${packagePath}/`,
+      ]).split('\n'),
+    ]
+      .filter(Boolean)
+      .map((file) => file.slice(packagePath.length + 1));
+
+    const shippedFiles = changedFiles.filter((file) =>
+      file === 'package.json'
+        ? manifestShipsChange(baseManifest, headManifest)
+        : isShippedSourcePath(file),
+    );
+    packages.push({
+      baseVersion: baseManifest.version,
+      headVersion: headManifest.version,
+      name: headManifest.name,
+      path: packagePath,
+      shippedFiles,
+    });
+  }
+  return packages;
+}
+
 function npmPublishedVersions(packageName) {
   const result = spawnSync('npm', ['view', packageName, 'versions', '--json'], {
     encoding: 'utf8',
@@ -371,6 +504,44 @@ function runCli() {
     }
     console.log(
       `npm release enrollment check passed for ${checked} public package directories.`,
+    );
+    return;
+  }
+
+  if (args.includes('--check-bumps')) {
+    const baseFlag = args.indexOf('--base');
+    const base = baseFlag === -1 ? '' : (args[baseFlag + 1] ?? '');
+    if (!COMMIT_SHA_PATTERN.test(base)) {
+      fail('--check-bumps needs --base <commit sha>');
+    }
+    const validation = validateEnrollment({ enrollment, inventory });
+    if (validation.violations.length > 0) {
+      fail(
+        `npm release enrollment is invalid:\n- ${validation.violations.join('\n- ')}`,
+      );
+    }
+    const packages = collectChangedPackages({ base, enrollment, root });
+    const publishedVersions = new Map();
+    for (const entry of packages) {
+      if (entry.shippedFiles.length > 0) {
+        publishedVersions.set(entry.name, npmPublishedVersions(entry.name));
+      }
+    }
+    const violations = findStalePackageVersions({
+      packages,
+      publishedVersions,
+    });
+    if (violations.length > 0) {
+      console.error('Published packages changed without a new version:\n');
+      for (const violation of violations) console.error(`- ${violation}`);
+      process.exitCode = 1;
+      return;
+    }
+    const checked = packages.filter((entry) => entry.shippedFiles.length > 0);
+    console.log(
+      checked.length === 0
+        ? 'No published package ships a change in this diff.'
+        : `Published package versions cover this diff: ${checked.map((entry) => entry.name).join(', ')}.`,
     );
     return;
   }

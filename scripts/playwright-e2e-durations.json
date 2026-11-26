@@ -70,7 +70,6 @@
     "playwright/e2e/tests/dashboard/analytics.spec.ts": 70.3,
     "playwright/e2e/tests/dashboard/connect-card.spec.ts": 5.9,
     "playwright/e2e/tests/dashboard/navigation.spec.ts": 61.1,
-    "playwright/e2e/tests/desktop/desktop-local.spec.ts": 2.6,
     "playwright/e2e/tests/discovery/discovery-interactions.spec.ts": 41.9,
     "playwright/e2e/tests/discovery/discovery.spec.ts": 60.2,
     "playwright/e2e/tests/discovery/prefilled-remix.spec.ts": 51.5,

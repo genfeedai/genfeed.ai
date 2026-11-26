@@ -11,18 +11,21 @@ import { UnknownWorkflowNode } from '@/features/workflows/nodes/UnknownWorkflowN
  * Merged node types for Genfeed Cloud workflow canvas
  *
  * Product behavior always renders through `genfeedAction`. Only workflow-engine
- * primitives retain their own React Flow node type.
+ * primitives retain their own React Flow node type, and so do the annotation and
+ * motion-control nodes, which carry geometry that has its own editor.
  */
 const fallbackNodeType = UnknownWorkflowNode;
 
 export const cloudNodeTypes: NodeTypes = Object.fromEntries(
   Object.entries({
     genfeedAction: CloudGenfeedActionNode,
+    annotation: coreNodeTypes.annotation,
     commentTrigger: RegisteredWorkflowNode,
     engagementTrigger: RegisteredWorkflowNode,
     'input-image': CloudImageInputNode,
     'input-video': CloudVideoInputNode,
     keywordTrigger: RegisteredWorkflowNode,
+    motionControl: coreNodeTypes.motionControl,
     reviewGate: ReviewGateNode,
     workflowInput: coreNodeTypes.workflowInput,
     unknown: fallbackNodeType,

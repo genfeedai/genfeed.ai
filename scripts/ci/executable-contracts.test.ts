@@ -107,10 +107,6 @@ const REPOSITORY_CONTRACTS = [
     name: 'nested node_modules',
   },
   {
-    command: ['bun', 'run', 'check:desktop-schema-drift'],
-    name: 'desktop schema drift',
-  },
-  {
     command: ['bun', 'run', 'check:generated-source'],
     name: 'generated source artifacts',
   },

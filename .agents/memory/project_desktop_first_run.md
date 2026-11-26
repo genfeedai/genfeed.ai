@@ -4,7 +4,7 @@ description: The Electron shell serves apps/web and signs in through system-brow
 type: project
 status: active
 last_verified: 2026-09-25
-topics: [desktop, auth, shell, sync, privacy]
+topics: [desktop, auth, shell, privacy]
 ---
 
 **Rule:** Genfeed Desktop is the canonical app in an Electron shell. The shell
@@ -46,16 +46,7 @@ Electron — hence the system browser, not an in-window login.
 - Gate every login mode on desktop — `/login`, `/login/password`,
   `/login/magic-link`, and the onboarding gate — to the desktop sign-in surface.
   Navigate only after the session is confirmed, not merely on the login event.
-- The login surface offers Genfeed Connect and an explicit local workspace.
-  Cloud startup does not construct PGlite. Selecting local mode starts the
-  Electron-main PGlite/BYOK/workspace services and opens the canonical
-  `apps/web` local surface; switching back to Cloud relaunches without PGlite.
-- Keep the local user/device IDs stable when a cloud account is connected.
-- Persist sync consent per cloud user; a different cloud account requires a new
-  decision. Carry the initiating cloud user ID through sync mutation IPC and
-  reject stale writes after the active account changes.
-- Sync threads and metadata only after consent is granted.
-- Upload full asset bytes only when consent allows it and the asset has
-  `uploadPolicy=full`; never upload `uploadPolicy=never` assets.
+- The login surface offers Genfeed Connect only. Desktop has no local mode
+  ([decisions-desktop-local-mode-removed](decisions-desktop-local-mode-removed.md)).
 - Do not queue generic cloud actions with copy promising they will complete
   after sign-in unless a real processor and end-to-end coverage exist.

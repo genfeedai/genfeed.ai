@@ -46,5 +46,6 @@
   "previewReposts": "{count, plural, one {# repost} other {# reposts}}",
   "previewLikes": "{count, plural, one {# like} other {# likes}}",
   "previewViews": "{count, plural, one {# view} other {# views}}",
-  "detailKeyRaw": "Activity key"
+  "detailKeyRaw": "Activity key",
+  "detailPostStep": "{from} → {to}"
 }

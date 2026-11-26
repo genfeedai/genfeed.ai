@@ -398,6 +398,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'libraryElement',
+    table: 'library_elements',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'agentMessage',
     table: 'agent_messages',
     brandField: 'brandId',
@@ -940,6 +946,13 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   // A character's ordered reference images carry the character's
   // organization; the row has no brand key, so it follows its persona (not the
   // image, which a shared character may take from another brand).
+  // An element's reference files carry the element's organization, like a
+  // character's (the file link has no brand key; the element is its parent).
+  secondOrderChild('libraryElementReference', 'library_element_references', {
+    fkField: 'elementId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'libraryElement',
+  }),
   secondOrderChild('personaReference', 'persona_references', {
     fkField: 'personaId',
     parentBrandField: 'brandId',

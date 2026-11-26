@@ -34,3 +34,17 @@ describe('ingredient alt text', () => {
     });
   });
 });
+
+describe('ingredient relation kind', () => {
+  it('is written with the parent link when the row is created', () => {
+    expect(
+      toIngredientCreateData({ parentId: 'asset-1', relationKind: 'VERSION' }),
+    ).toMatchObject({ parentId: 'asset-1', relationKind: 'VERSION' });
+  });
+
+  it('can never be set or changed by an update', () => {
+    expect(
+      toIngredientUpdateData({ relationKind: 'VERSION' }),
+    ).not.toHaveProperty('relationKind');
+  });
+});

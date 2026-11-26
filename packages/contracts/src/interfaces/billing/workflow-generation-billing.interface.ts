@@ -41,7 +41,7 @@ export type WorkflowReviewedOutputContract =
 export interface WorkflowMediaPreparationContract {
   version: 1;
   preparationVersion: 1;
-  actionId: 'imageGen' | 'videoGen';
+  actionId: 'imageGen' | 'videoGen' | 'motionControl';
   brief:
     | {
         briefVersion: number;

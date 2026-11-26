@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { describe, expect, it } from 'vitest';
 import { createProgram, resolveLaunchMode } from '@/program';
+import cliPackage from '../package.json';
 
 describe('terminal program', () => {
   it('registers the canonical terminal content namespaces', () => {
@@ -71,6 +72,6 @@ describe('terminal program', () => {
     await expect(program.parseAsync(['--version'], { from: 'user' })).rejects.toMatchObject({
       code: 'commander.version',
     });
-    expect(writes).toEqual(['0.6.0\n']);
+    expect(writes).toEqual([`${cliPackage.version}\n`]);
   });
 });

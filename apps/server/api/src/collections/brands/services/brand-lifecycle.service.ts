@@ -151,6 +151,14 @@ export class BrandLifecycleService {
           where: { id, isDeleted: false, organizationId },
         });
 
+        // Library elements leave with their brand. Unlike characters they are
+        // not a reason to block the delete: a shared element would otherwise
+        // stay visible to the other brands with no owning brand to edit it.
+        await tx.libraryElement.updateMany({
+          data: { isDeleted: true },
+          where: scopedWhere(organizationId, { brandId: id }),
+        });
+
         await finishBrandLearningMutation(tx, scope, deleted);
         return {
           brand: deleted as unknown as BrandDocument,

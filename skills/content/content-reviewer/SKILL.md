@@ -164,7 +164,7 @@ Evaluate whether the content is optimized for the specific platform's constraint
 | Platform | Max Length | Ideal Length | Format | Tone | Key Feature |
 |----------|-----------|-------------|--------|------|-------------|
 | X/Twitter | 280 chars | 100-200 chars | Short, punchy | Conversational | Threads for depth |
-| Instagram Feed | 2,200 chars | 150-300 chars | Visual-first | Aspirational/authentic | Hashtags (5-15) |
+| Instagram Feed | 2,200 chars | 150-300 chars | Visual-first | Aspirational/authentic | Hashtags (3-5, max 5) |
 | Instagram Stories | Minimal text | 1-2 sentences | Full-screen vertical | Casual, ephemeral | Polls, questions, stickers |
 | Instagram Reels | Caption 2,200 | 50-150 chars | Vertical video | Trending, entertaining | Hook in first 1.5s |
 | LinkedIn | 3,000 chars | 800-1,500 chars | Professional narrative | Thought leadership | Line breaks for readability |
@@ -187,7 +187,7 @@ Evaluate whether the content is optimized for the specific platform's constraint
 **Instagram checklist:**
 
 - [ ] Visual asset is the star, not the caption
-- [ ] Hashtags relevant and mixed (big + niche)
+- [ ] 3-5 hashtags, none more than 5 (Instagram's limit), each naming something in the post
 - [ ] First line hooks before "...more" truncation
 - [ ] Location tagged if relevant
 

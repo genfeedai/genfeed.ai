@@ -58,7 +58,7 @@ const preparationContract = z
   .object({
     version: z.literal(1),
     preparationVersion: z.literal(1),
-    actionId: z.enum(['imageGen', 'videoGen']),
+    actionId: z.enum(['imageGen', 'videoGen', 'motionControl']),
     brief: z.union([
       z
         .object({

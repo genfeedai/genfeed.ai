@@ -4,6 +4,7 @@ import { toArticlePublishError } from '@api/services/integrations/publishers/art
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import {
   htmlToDevtoMarkdown,
+  readDevtoCanonicalUrl,
   readDevtoTags,
 } from '@api/services/integrations/publishers/devto-html-to-markdown.util';
 import type {
@@ -13,6 +14,11 @@ import type {
 import { verifyTitlePublish } from '@api/services/integrations/publishers/publisher-title-verification.util';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  DEVTO_CANONICAL_URL_SETTING_KEY,
+  DEVTO_SERIES_SETTING_KEY,
+  DEVTO_TAGS_SETTING_KEY,
+} from '@genfeedai/contracts/api-types/contracts/devto-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -126,14 +132,34 @@ export class DevtoPublisherService extends BasePublisherService {
         );
       }
 
+      const canonical = readDevtoCanonicalUrl(
+        readChannelSettingString(
+          context.settings,
+          DEVTO_CANONICAL_URL_SETTING_KEY,
+        ),
+      );
+      if ('error' in canonical) {
+        return this.createFailedResult(
+          this.platform,
+          canonical.error,
+          undefined,
+          PublishErrorKind.CONTENT_REJECTED,
+        );
+      }
+
       const published = context.isDraft !== true;
       const article = await this.devtoService.createArticle(
         EncryptionUtil.decrypt(credential.accessToken),
         {
           bodyMarkdown,
+          canonicalUrl: canonical.url,
           published,
+          series: readChannelSettingString(
+            context.settings,
+            DEVTO_SERIES_SETTING_KEY,
+          )?.trim(),
           tags: readDevtoTags(
-            readChannelSettingString(context.settings, 'tags'),
+            readChannelSettingString(context.settings, DEVTO_TAGS_SETTING_KEY),
           ),
           title: post.label ?? 'Untitled',
         },
