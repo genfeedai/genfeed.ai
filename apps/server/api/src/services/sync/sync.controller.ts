@@ -1,9 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -23,6 +25,7 @@ export class SyncController {
   }
 
   @Post('workflows/push/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async pushWorkflow(
@@ -38,6 +41,7 @@ export class SyncController {
   }
 
   @Post('workflows/pull/:cloudId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RequiresCloudAuth()
   @LogMethod()
   async pullWorkflow(
