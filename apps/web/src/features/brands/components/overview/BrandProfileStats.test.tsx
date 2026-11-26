@@ -21,7 +21,12 @@ describe('BrandProfileStats', () => {
     render(
       <BrandProfileStats
         accounts={[]}
-        reach={{ engagements: 0, impressions: 52_000, views: 1_200 }}
+        reach={{
+          engagements: 0,
+          followers: null,
+          impressions: 52_000,
+          views: 1_200,
+        }}
       />,
     );
 
@@ -54,7 +59,12 @@ describe('BrandProfileStats', () => {
     const { container } = render(
       <BrandProfileStats
         accounts={[]}
-        reach={{ engagements: 0, impressions: null, views: null }}
+        reach={{
+          engagements: 0,
+          followers: null,
+          impressions: null,
+          views: null,
+        }}
       />,
     );
 
