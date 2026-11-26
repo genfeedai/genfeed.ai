@@ -8,6 +8,7 @@ import { ImageQueueService } from '@files/queues/image-queue.service';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
+import { TrendPlaybackService } from '@files/services/trend-playback/trend-playback.service';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -46,6 +47,7 @@ describe('files job status over HTTP', () => {
         { provide: FilesFileQueueService, useValue: queueWith({}) },
         { provide: HookRemixService, useValue: {} },
         { provide: ImageQueueService, useValue: queueWith({}) },
+        { provide: TrendPlaybackService, useValue: {} },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
