@@ -312,6 +312,22 @@
         "retry": "Try again",
         "title": "Choose accounts"
       },
+      "selectAdsAccount": {
+        "alreadyConnected": "Already connected",
+        "back": "Go back",
+        "cancel": "Cancel",
+        "confirm": "Connect account",
+        "confirmError": "Failed to connect this account. Please try again.",
+        "confirming": "Connecting…",
+        "description": "Google shared more than one Google Ads account with Genfeed. Pick the account this brand should read campaigns from. Manager accounts group other accounts and have no campaigns of their own, so their client accounts are listed instead.",
+        "empty": "No Google Ads accounts were found for this Google login.",
+        "error": "Failed to load accounts. Please try again.",
+        "loading": "Loading accounts…",
+        "managerBadge": "Manager",
+        "ownAccounts": "Your accounts",
+        "retry": "Try again",
+        "title": "Choose an ads account"
+      },
       "selectLocation": {
         "alreadyConnected": "Already connected",
         "back": "Go back",

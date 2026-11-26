@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleAdsAccountsService } from '@api/services/integrations/google-ads/services/google-ads-accounts.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -53,12 +54,14 @@ describe('GoogleAdsController', () => {
       | 'findOne'
       | 'findOneSelect'
       | 'claimPendingOAuthCredential'
+      | 'findConnectedAccounts'
       | 'patch'
     >
   >;
   let googleAdsService: vi.Mocked<
     Pick<
       GoogleAdsService,
+      | 'executeGaql'
       | 'listAccessibleCustomers'
       | 'listCampaigns'
       | 'getCampaignMetrics'
@@ -74,8 +77,17 @@ describe('GoogleAdsController', () => {
     >
   >;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
+  // What the credential store ends up holding, asserted instead of call order.
+  let connectedAccounts: Array<{
+    account: unknown;
+    connection: Record<string, unknown>;
+    credentialId: string;
+  }>;
+  let pendingPatches: Array<Record<string, unknown>>;
 
   beforeEach(async () => {
+    connectedAccounts = [];
+    pendingPatches = [];
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
         id: 'test-object-id',
@@ -89,11 +101,25 @@ describe('GoogleAdsController', () => {
         credential: MOCK_CREDENTIAL,
         state: 'opaque-oauth-state',
       }),
-      connectAccount: vi.fn().mockResolvedValue({ id: 'cred-1' }),
+      connectAccount: vi.fn(
+        async (
+          credentialId: string,
+          _organizationId: string,
+          account: unknown,
+          connection: Record<string, unknown>,
+        ) => {
+          connectedAccounts.push({ account, connection, credentialId });
+          return { id: credentialId };
+        },
+      ),
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       findOneSelect: delegateFindOneSelect(),
       claimPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
-      patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
+      findConnectedAccounts: vi.fn().mockResolvedValue([]),
+      patch: vi.fn(async (id: string, data: Record<string, unknown>) => {
+        pendingPatches.push(data);
+        return { id };
+      }),
     };
     googleAdsService = {
       getAdGroupInsights: vi.fn().mockResolvedValue({ clicks: 50 }),
@@ -104,6 +130,7 @@ describe('GoogleAdsController', () => {
       getSearchTermsReport: vi
         .fn()
         .mockResolvedValue([{ searchTerm: 'genfeed ai' }]),
+      executeGaql: vi.fn().mockResolvedValue([]),
       listAccessibleCustomers: vi.fn().mockResolvedValue([{ id: 'cust-1' }]),
       listCampaigns: vi.fn().mockResolvedValue([{ id: 'camp-1' }]),
     };
@@ -126,6 +153,7 @@ describe('GoogleAdsController', () => {
       providers: [
         { provide: BrandsService, useValue: brandsService },
         { provide: CredentialsService, useValue: credentialsService },
+        GoogleAdsAccountsService,
         { provide: GoogleAdsService, useValue: googleAdsService },
         { provide: GoogleAdsOAuthService, useValue: googleAdsOAuthService },
         { provide: LoggerService, useValue: loggerService },
@@ -153,13 +181,7 @@ describe('GoogleAdsController', () => {
 
     it('persists verified credential using access token', async () => {
       googleAdsService.listAccessibleCustomers.mockResolvedValue([
-        {
-          currencyCode: 'USD',
-          descriptiveName: 'Primary Account',
-          id: '123',
-          isManager: false,
-          timeZone: 'UTC',
-        },
+        { descriptiveName: 'Primary Account', id: '123', isManager: false },
       ] as never);
 
       const result = await controller.verify({} as never, mockUser, {
@@ -180,13 +202,86 @@ describe('GoogleAdsController', () => {
       expect(
         googleAdsOAuthService.exchangeAuthCodeForAccessToken,
       ).toHaveBeenCalledWith('auth-code');
-      expect(credentialsService.connectAccount).toHaveBeenCalledWith(
-        'cred-1',
-        'test-object-id',
-        expect.objectContaining({ id: '123' }),
-        expect.objectContaining({ accessToken: expect.any(String) }),
-      );
+      expect(connectedAccounts).toEqual([
+        {
+          account: {
+            handle: 'Primary Account',
+            id: '123',
+            name: 'Primary Account',
+          },
+          connection: {
+            accessToken: 'tok',
+            accessTokenExpiry: expect.any(Date),
+            externalParentId: null,
+            refreshToken: 'ref',
+          },
+          credentialId: 'cred-1',
+        },
+      ]);
       expect(result).toBeDefined();
+    });
+
+    it('connects a client reached through a manager with the manager as its parent', async () => {
+      googleAdsService.listAccessibleCustomers.mockResolvedValue([
+        { descriptiveName: 'Agency', id: '220-767-1117', isManager: true },
+      ] as never);
+      googleAdsService.executeGaql.mockResolvedValue([
+        {
+          customerClient: { descriptiveName: 'Client', id: '318-402-9951' },
+        },
+      ] as never);
+
+      await controller.verify({} as never, mockUser, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(connectedAccounts).toHaveLength(1);
+      expect(connectedAccounts[0]?.account).toMatchObject({
+        id: '318-402-9951',
+      });
+      expect(connectedAccounts[0]?.connection).toMatchObject({
+        externalParentId: '220-767-1117',
+      });
+    });
+
+    it('keeps the token and connects nothing when several accounts are reachable', async () => {
+      googleAdsService.listAccessibleCustomers.mockResolvedValue([
+        { descriptiveName: 'First', id: '111-111-1111', isManager: false },
+        { descriptiveName: 'Second', id: '222-222-2222', isManager: false },
+      ] as never);
+
+      await controller.verify({} as never, mockUser, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(connectedAccounts).toEqual([]);
+      expect(pendingPatches).toEqual([
+        expect.objectContaining({
+          accessToken: 'tok',
+          isConnected: false,
+          refreshToken: 'ref',
+        }),
+      ]);
+    });
+
+    it('refuses a login with no account that has campaigns', async () => {
+      googleAdsService.listAccessibleCustomers.mockResolvedValue([]);
+
+      const error = await controller
+        .verify({} as never, mockUser, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        })
+        .catch((e: unknown) => e);
+
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        title: 'No Google Ads account to connect',
+      });
+      expect(connectedAccounts).toEqual([]);
+      expect(pendingPatches).toEqual([]);
     });
 
     it('throws when code or state is missing', async () => {
@@ -243,7 +338,7 @@ describe('GoogleAdsController', () => {
         expect((error as HttpException).getResponse()).toMatchObject({
           title: 'Token exchange failed',
         });
-        expect(credentialsService.connectAccount).not.toHaveBeenCalled();
+        expect(connectedAccounts).toEqual([]);
       },
     );
 
@@ -264,7 +359,7 @@ describe('GoogleAdsController', () => {
       expect((error as HttpException).getResponse()).toMatchObject({
         title: 'Customer lookup failed',
       });
-      expect(credentialsService.connectAccount).not.toHaveBeenCalled();
+      expect(connectedAccounts).toEqual([]);
     });
 
     it('passes an HttpException from the exchange through unchanged', async () => {
