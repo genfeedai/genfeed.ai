@@ -466,7 +466,7 @@ describe('schedulePostGroupTarget legacy group ids', () => {
         scheduledDate: new Date('2026-07-09T10:00:00.000Z'),
         targetId: 'target-1',
         userId: 'user-1',
-        workflowSource: 'schedule',
+        workflowSource: 'scheduled_sweep',
       },
       dependencies,
     );
