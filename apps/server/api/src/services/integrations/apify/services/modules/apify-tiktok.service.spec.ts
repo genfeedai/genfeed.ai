@@ -73,6 +73,9 @@ describe('ApifyTikTokService', () => {
       error: vi.fn(),
     },
     runActor: vi.fn(),
+    shareRun: vi.fn((_key: string, scrape: () => Promise<unknown[]>) =>
+      scrape(),
+    ),
   };
 
   beforeEach(async () => {
@@ -152,26 +155,27 @@ describe('ApifyTikTokService', () => {
       });
     });
 
-    it('should use default limit of 50', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.getTikTokVideos();
-
-      expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'clockworks/tiktok-scraper',
-        expect.objectContaining({ resultsPerPage: 17 }),
-      );
-    });
-
-    it('should respect custom limit', async () => {
+    it('pulls eight videos per tag whatever limit is asked for', async () => {
       mockBaseService.runActor.mockResolvedValue([]);
 
       await service.getTikTokVideos(10);
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
         'clockworks/tiktok-scraper',
-        expect.objectContaining({ resultsPerPage: 4 }),
+        expect.objectContaining({ resultsPerPage: 8 }),
       );
+    });
+
+    it('returns the most viewed videos up to the limit', async () => {
+      mockBaseService.runActor.mockResolvedValue([
+        makeTikTokVideo({ id: 'low', playCount: 10 }),
+        makeTikTokVideo({ id: 'high', playCount: 900 }),
+        makeTikTokVideo({ id: 'mid', playCount: 500 }),
+      ]);
+
+      const result = await service.getTikTokVideos(2);
+
+      expect(result.map((video) => video.viewCount)).toEqual([900, 500]);
     });
 
     it('should extract hashtags from video', async () => {

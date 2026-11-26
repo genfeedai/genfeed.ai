@@ -115,6 +115,13 @@ export class ApifyService {
     return this.instagramService.getInstagramTrends(options);
   }
 
+  getHeldInstagramHashtagPosts(
+    hashtag: string,
+    limit: number,
+  ): Promise<ApifyInstagramPost[]> {
+    return this.instagramService.getHeldHashtagPosts(hashtag, limit);
+  }
+
   getInstagramPostComments(
     postUrl: string,
     options?: { limit?: number },

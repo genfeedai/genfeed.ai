@@ -133,6 +133,16 @@ export class ApifyBaseService {
 
   private static readonly HOSTED_SCOPE = 'hosted';
 
+  /**
+   * One billed pull feeds every dataset built from the same source. A refresh
+   * runs at 00:15 and 12:15, so six hours keeps each tick on its own pull.
+   */
+  private static readonly SHARED_RUN_CACHE_PREFIX = 'apify:shared-run:';
+  private static readonly SHARED_RUN_TTL_SECONDS = 6 * 60 * 60;
+  private static readonly SHARED_EMPTY_RUN_TTL_SECONDS = 60 * 60;
+
+  private readonly sharedRuns = new Map<string, Promise<unknown[]>>();
+
   private readonly apiUrl = 'https://api.apify.com/v2';
   private readonly constructorName: string = String(this.constructor.name);
   private readonly actorPathPattern = ACTOR_PATH_PATTERN;
@@ -199,6 +209,47 @@ export class ApifyBaseService {
       return null;
     }
     return token;
+  }
+
+  /**
+   * Run one scrape and let every caller in the same refresh reuse its items.
+   * Concurrent callers join the run in flight; later ones read the cached
+   * items. A scrape that throws is not cached, so the caller's failure
+   * handling and the account-limit breaker still see the error.
+   */
+  async shareRun<T>(key: string, scrape: () => Promise<T[]>): Promise<T[]> {
+    const held = await this.readSharedRun<T>(key);
+    if (held) return held;
+
+    const inFlight = this.sharedRuns.get(key) as Promise<T[]> | undefined;
+    if (inFlight) return inFlight;
+
+    const run = (async () => {
+      const items = await scrape();
+      await this.cacheService?.set(
+        `${ApifyBaseService.SHARED_RUN_CACHE_PREFIX}${key}`,
+        items,
+        {
+          tags: ['trends', 'apify-shared-run'],
+          ttl: items.length
+            ? ApifyBaseService.SHARED_RUN_TTL_SECONDS
+            : ApifyBaseService.SHARED_EMPTY_RUN_TTL_SECONDS,
+        },
+      );
+      return items;
+    })().finally(() => this.sharedRuns.delete(key));
+    this.sharedRuns.set(key, run);
+    return run;
+  }
+
+  /** The items a shared run already holds, or null. Never starts a run. */
+  async readSharedRun<T>(key: string): Promise<T[] | null> {
+    if (!this.cacheService) return null;
+    return (
+      (await this.cacheService.get<T[]>(
+        `${ApifyBaseService.SHARED_RUN_CACHE_PREFIX}${key}`,
+      )) ?? null
+    );
   }
 
   /**
