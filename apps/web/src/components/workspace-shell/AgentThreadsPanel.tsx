@@ -429,7 +429,7 @@ export default function AgentThreadsPanel({
           <span className="min-w-0 flex-1 truncate text-sm text-foreground">
             {translate('selection.count', { count: selectedIds.size })}
           </span>
-          {onResolveThread || onReopenThread ? (
+          {(areAllSelectedResolved ? onReopenThread : onResolveThread) ? (
             <Button
               isLoading={isBulkPending}
               onClick={() => void runBulk()}
