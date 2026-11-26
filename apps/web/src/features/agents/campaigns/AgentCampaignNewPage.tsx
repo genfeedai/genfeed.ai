@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import BrandRequiredState from '@/components/states/BrandRequiredState';
 import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 
 interface FormState {
@@ -276,9 +277,7 @@ export default function AgentCampaignNewPage() {
   if (!isBrandReady || !brandId) {
     return (
       <Container icon={LayoutDashboard} label="New Program">
-        <p className="text-sm text-muted-foreground">
-          {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
-        </p>
+        <BrandRequiredState isLoading={pageScope !== 'org'} />
       </Container>
     );
   }

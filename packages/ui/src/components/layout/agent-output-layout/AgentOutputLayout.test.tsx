@@ -27,13 +27,11 @@ function Harness({
   hasAgentHeader = true,
   hasPageActions = true,
   isOutputExpandable,
-  isOutputHidden,
 }: {
   activeTabId?: string;
   hasAgentHeader?: boolean;
   hasPageActions?: boolean;
   isOutputExpandable?: boolean;
-  isOutputHidden?: boolean;
 }) {
   return (
     <AgentOutputLayout
@@ -42,7 +40,6 @@ function Harness({
       agentHeader={hasAgentHeader ? <span>Run thread</span> : undefined}
       headerActions={hasPageActions ? <span>Page action</span> : undefined}
       isOutputExpandable={isOutputExpandable}
-      isOutputHidden={isOutputHidden}
       labels={labels}
       tabs={[
         { content: <p>Board content</p>, id: 'board', label: 'Board' },
@@ -53,16 +50,6 @@ function Harness({
 }
 
 describe('AgentOutputLayout', () => {
-  it('gives the agent the whole page while the output is hidden', () => {
-    render(<Harness isOutputHidden />);
-
-    expect(screen.getByTestId('agent-output-agent-pane')).toBeVisible();
-    expect(screen.getByTestId('agent-output-output-pane')).not.toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: /View: / }),
-    ).not.toBeInTheDocument();
-  });
-
   it('puts the agent on the left and the output on the right', () => {
     render(<Harness />);
 
@@ -118,8 +105,13 @@ describe('AgentOutputLayout', () => {
     const layout = screen.getByTestId('agent-output-layout');
     expect(layout).toHaveAttribute('data-mobile-view', 'agent');
 
+    // The switch sits in each pane's header, in place of the pane title; the
+    // agent pane's is the one showing.
     await user.click(
-      within(layout).getByRole('button', { name: 'View: Agent' }),
+      within(screen.getByTestId('agent-output-agent-pane')).getByRole(
+        'button',
+        { name: 'View: Agent' },
+      ),
     );
     await user.click(
       await screen.findByRole('menuitemradio', { name: 'Output' }),
@@ -130,6 +122,46 @@ describe('AgentOutputLayout', () => {
       'max-xl:hidden',
     );
     expect(screen.getByText('Agent transcript')).toBeInTheDocument();
+  });
+
+  it('puts the Agent / Output switch in the pane headers, not in a row above them', () => {
+    render(<Harness />);
+    const layout = screen.getByTestId('agent-output-layout');
+
+    expect(
+      within(screen.getByTestId('agent-output-agent-pane')).getByRole(
+        'button',
+        { name: 'View: Agent' },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('agent-output-output-pane')).getByRole(
+        'button',
+        { name: 'View: Agent' },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the Agent / Output switch for a layout with no pane headers', async () => {
+    const user = userEvent.setup();
+    render(
+      <AgentOutputLayout
+        agent={<p>Agent transcript</p>}
+        labels={labels}
+        tabs={[{ content: <p>Board content</p>, id: 'board', label: 'Board' }]}
+        activeTabId="board"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'View: Agent' }));
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Output' }),
+    );
+
+    expect(screen.getByTestId('agent-output-layout')).toHaveAttribute(
+      'data-mobile-view',
+      'output',
+    );
   });
 
   it('hides the agent for a full-size output without unmounting it', () => {
@@ -185,13 +217,8 @@ describe('AgentOutputLayout', () => {
       window.localStorage.removeItem(AGENT_OUTPUT_SPLIT_STORAGE_KEY);
     });
 
-    it('has no divider while the output is hidden or the agent is', () => {
-      const { rerender } = render(<Harness isOutputHidden />);
-      expect(
-        screen.queryByRole('separator', { name: 'Resize panes' }),
-      ).not.toBeInTheDocument();
-
-      rerender(<Harness isOutputExpandable />);
+    it('has no divider while the agent is hidden', () => {
+      render(<Harness isOutputExpandable />);
       fireEvent.click(screen.getByRole('button', { name: 'Full size' }));
       expect(
         screen.queryByRole('separator', { name: 'Resize panes' }),

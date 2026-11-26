@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/props/ui/lists/thread-list.props';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import Spinner from '@ui/primitives/spinner';
 import {
   hoverConcealClassName,
@@ -54,6 +55,7 @@ export function ThreadListSection({
   children,
   isDefaultCollapsed = false,
   itemCount,
+  selection,
   title,
   'data-testid': dataTestId,
 }: ThreadListSectionProps): ReactElement | null {
@@ -66,11 +68,11 @@ export function ThreadListSection({
 
   return (
     <section className="flex flex-col" data-testid={dataTestId}>
-      <h3 className="m-0 text-xs font-normal">
+      <h3 className="relative m-0 text-xs font-normal">
         <Button
           aria-controls={listId}
           aria-expanded={isOpen}
-          className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setIsOpen((current) => !current)}
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
@@ -86,6 +88,20 @@ export function ThreadListSection({
             )}
           />
         </Button>
+        {selection ? (
+          <Checkbox
+            aria-label={selection.label}
+            checked={
+              selection.isAllSelected
+                ? true
+                : selection.isSomeSelected
+                  ? 'indeterminate'
+                  : false
+            }
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            onClick={selection.onToggle}
+          />
+        ) : null}
       </h3>
       <ul
         className={cn('flex flex-col', !isOpen && 'hidden')}
@@ -142,6 +158,7 @@ export function ThreadListRow({
   href,
   leading,
   onSelect,
+  selection,
   status = 'idle',
   statusLabel,
   subtitle,
@@ -149,15 +166,23 @@ export function ThreadListRow({
   title,
 }: ThreadListRowProps): ReactElement {
   const hasActions = actions !== undefined && actions.length > 0;
+  const isChecked = selection?.isSelected === true;
+  // While something is selected every row offers its checkbox, so the next
+  // pick is one click. Otherwise it appears over the status icon on hover or
+  // focus and the icon yields to it.
+  const isCheckboxPinned = selection?.isSelecting === true;
 
   return (
     <li
-      className="group relative rounded-lg transition-colors focus-within:bg-hover hover:bg-hover"
+      className={cn(
+        'group relative rounded-lg transition-colors focus-within:bg-hover hover:bg-hover',
+        isChecked && 'bg-hover',
+      )}
       data-testid={dataTestId}
     >
       <Link
         className={cn(
-          'flex items-start gap-2.5 rounded-lg px-2.5 py-2 outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'flex items-start gap-2 rounded-lg px-2 py-1.5 outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           hasActions && 'pr-10',
         )}
         href={href}
@@ -181,7 +206,11 @@ export function ThreadListRow({
         }
       >
         <span
-          className="mt-0.5 shrink-0"
+          className={cn(
+            'mt-0.5 shrink-0',
+            selection &&
+              (isCheckboxPinned ? 'opacity-0' : hoverConcealClassName()),
+          )}
           {...(statusLabel
             ? { 'aria-label': statusLabel, role: 'img' }
             : { 'aria-hidden': true })}
@@ -208,6 +237,19 @@ export function ThreadListRow({
           </span>
         ) : null}
       </Link>
+      {selection ? (
+        <Checkbox
+          aria-label={selection.label}
+          checked={isChecked}
+          className={cn(
+            'absolute left-2 top-2 transition-opacity',
+            isCheckboxPinned
+              ? 'opacity-100'
+              : hoverRevealClassName({ focus: 'group' }),
+          )}
+          onClick={(event) => selection.onToggle({ isRange: event.shiftKey })}
+        />
+      ) : null}
       {hasActions ? (
         <div
           className={cn(

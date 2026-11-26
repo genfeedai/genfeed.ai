@@ -1,4 +1,3 @@
-import OrganizationAutomationBrandEmptyState from '@app/(protected)/[orgSlug]/~/automation/OrganizationAutomationBrandEmptyState';
 import type { GlobalModalKind } from '@genfeedai/props/modals/global-modals.props';
 import { cleanup, render, screen } from '@testing-library/react';
 import AnalyticsMetricInfo from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -10,6 +9,7 @@ import {
 } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import BrandRequiredState from '@/components/states/BrandRequiredState';
 import common from '../messages/en/common.json';
 import pages from '../messages/en/pages';
 import AppGlobalModalIntlBoundary, {
@@ -143,7 +143,7 @@ describe('host global modal catalog boundary', () => {
       hostTree(
         <>
           <UnavailableShellProbe />
-          <OrganizationAutomationBrandEmptyState orgSlug="acme" />
+          <BrandRequiredState />
           <AnalyticsMetricInfo metric="views" />
         </>,
         onError,
@@ -158,7 +158,7 @@ describe('host global modal catalog boundary', () => {
     expect(
       screen.getByText(pages.organizationRouting.failure.title),
     ).toBeTruthy();
-    expect(screen.getByText(common.automation.brandEmpty.title)).toBeTruthy();
+    expect(screen.getByText(common.brandRequired.title)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'About Views' })).toBeTruthy();
     expect(onError).not.toHaveBeenCalled();
   });

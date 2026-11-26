@@ -35,6 +35,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import BrandRequiredState from '@/components/states/BrandRequiredState';
 
 const ALL_STATUSES = 'all';
 
@@ -171,11 +172,7 @@ export default function ContentRunListPage() {
 
   return (
     <Container label="Content Runs" icon={CirclePlay} leading={searchField}>
-      {pageScope === 'org' && !isBrandReady ? (
-        <p className="mt-6 text-sm text-muted-foreground">
-          {translate('selectBrand')}
-        </p>
-      ) : null}
+      {pageScope === 'org' && !isBrandReady ? <BrandRequiredState /> : null}
       {isError ? (
         <ErrorFallback
           compact={data.length > 0}

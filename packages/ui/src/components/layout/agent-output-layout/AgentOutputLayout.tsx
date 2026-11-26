@@ -7,6 +7,7 @@ import {
   AGENT_OUTPUT_SPLIT_STORAGE_KEY,
   AGENT_PANE_HEADER_CLASS_NAME as HEADER_CLASS_NAME,
 } from '@ui/layout/agent-output-layout/agent-pane.constant';
+import { OutputPaneHeaderContext } from '@ui/layout/agent-output-layout/output-pane-header.context';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { Maximize2, Minimize2 } from 'lucide-react';
@@ -21,6 +22,10 @@ import {
 } from 'react';
 
 type MobileView = 'agent' | 'output';
+
+// A pane title marked `data-pane-title` gives way to the Agent / Output switch
+// below `xl`, where the switch names the pane.
+const PANE_TITLE_HIDDEN_BELOW_XL = 'max-xl:[&_[data-pane-title]]:hidden';
 
 // The agent pane's share of the two-pane width when the divider is draggable.
 const AGENT_SHARE_DEFAULT = 0.5;
@@ -72,7 +77,6 @@ export default function AgentOutputLayout({
   className,
   headerActions,
   isOutputExpandable = false,
-  isOutputHidden = false,
   labels,
   preview,
   resizeStorageKey = AGENT_OUTPUT_SPLIT_STORAGE_KEY,
@@ -81,11 +85,11 @@ export default function AgentOutputLayout({
   const [mobileView, setMobileView] = useState<MobileView>('agent');
   const [isOutputExpanded, setIsOutputExpanded] = useState(false);
   const [agentShare, setAgentShare] = useState(AGENT_SHARE_DEFAULT);
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const panesRef = useRef<HTMLDivElement>(null);
   const isAgentHidden = isOutputExpandable && isOutputExpanded;
-  const isOutputCollapsed = isOutputHidden && !isAgentHidden;
-  const isResizable = !isAgentHidden && !isOutputCollapsed;
+  const isResizable = !isAgentHidden;
 
   // The stored split is read after mount: the server render has no storage.
   // use-effect-audit: ignore reads browser storage after mount so server and client markup match
@@ -172,6 +176,21 @@ export default function AgentOutputLayout({
         '--output-pane-share': `${1 - agentShare}fr`,
       } as CSSProperties)
     : undefined;
+  // Below `xl` one pane shows at a time. The switch lives in that pane's
+  // header, in place of its title, so there is one bar, not a row above it.
+  const viewSwitch = (
+    <div className="xl:hidden">
+      <ViewMenu
+        activeView={mobileView}
+        onChange={setMobileView}
+        options={[
+          { icon: null, label: labels.agent, type: 'agent' },
+          { icon: null, label: labels.output, type: 'output' },
+        ]}
+        trigger="label"
+      />
+    </div>
+  );
   const hasHeaders =
     agentHeader !== undefined ||
     Boolean(headerActions) ||
@@ -187,28 +206,18 @@ export default function AgentOutputLayout({
       data-mobile-view={mobileView}
       data-testid="agent-output-layout"
     >
-      <div
-        className="shrink-0 border-b border-border px-3 py-2 xl:hidden"
-        hidden={isOutputCollapsed}
-      >
-        <ViewMenu
-          activeView={mobileView}
-          onChange={setMobileView}
-          options={[
-            { icon: null, label: labels.agent, type: 'agent' },
-            { icon: null, label: labels.output, type: 'output' },
-          ]}
-          trigger="label"
-        />
-      </div>
-
+      {hasHeaders ? null : (
+        // A bare conversation has no pane header to hold the switch, so below
+        // `xl` it keeps a row of its own.
+        <div className="shrink-0 border-b border-border px-3 py-2 xl:hidden">
+          {viewSwitch}
+        </div>
+      )}
       <div
         className={cn(
           'grid min-h-0 flex-1 grid-cols-1',
-          (isAgentHidden || isOutputCollapsed) &&
-            'xl:grid-cols-[minmax(0,1fr)]',
+          isAgentHidden && 'xl:grid-cols-[minmax(0,1fr)]',
           !isAgentHidden &&
-            !isOutputCollapsed &&
             // A draggable divider sets the two shares; otherwise half each.
             'xl:grid-cols-[minmax(0,var(--agent-pane-share,1fr))_minmax(0,var(--output-pane-share,1fr))]',
           // The preview docks as a third column only where all three fit; the
@@ -227,14 +236,17 @@ export default function AgentOutputLayout({
           aria-label={labels.agent}
           className={cn(
             'relative flex min-h-0 min-w-0 flex-col border-border',
-            !isOutputCollapsed && 'xl:border-r',
-            mobileView === 'output' && !isOutputCollapsed && 'max-xl:hidden',
+            'xl:border-r',
+            mobileView === 'output' && 'max-xl:hidden',
             isAgentHidden && 'xl:hidden',
           )}
           data-testid="agent-output-agent-pane"
         >
           {hasHeaders ? (
-            <header className={HEADER_CLASS_NAME}>
+            <header
+              className={cn(HEADER_CLASS_NAME, PANE_TITLE_HIDDEN_BELOW_XL)}
+            >
+              {viewSwitch}
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 {agentHeader}
               </div>
@@ -280,14 +292,24 @@ export default function AgentOutputLayout({
           className={cn(
             'flex min-h-0 min-w-0 flex-col',
             mobileView === 'agent' && 'max-xl:hidden',
-            isOutputCollapsed && 'hidden',
           )}
           data-testid="agent-output-output-pane"
-          hidden={isOutputCollapsed}
         >
           {hasHeaders ? (
-            <header className={cn(HEADER_CLASS_NAME, 'justify-end')}>
+            <header
+              className={cn(
+                HEADER_CLASS_NAME,
+                PANE_TITLE_HIDDEN_BELOW_XL,
+                'justify-end',
+              )}
+            >
+              {viewSwitch}
               {headerActions}
+              <div
+                className="flex min-w-0 flex-1 items-center gap-2 empty:hidden"
+                data-testid="agent-output-header-slot"
+                ref={setHeaderSlot}
+              />
               {isOutputExpandable ? (
                 <Button
                   ariaLabel={
@@ -328,7 +350,15 @@ export default function AgentOutputLayout({
               key={tab.id}
               role="tabpanel"
             >
-              {tab.content}
+              <OutputPaneHeaderContext.Provider
+                value={
+                  hasHeaders && tab.id === activeTabId
+                    ? { slot: headerSlot }
+                    : null
+                }
+              >
+                {tab.content}
+              </OutputPaneHeaderContext.Provider>
             </div>
           ))}
         </section>

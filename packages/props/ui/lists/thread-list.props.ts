@@ -18,6 +18,14 @@ export interface ThreadListSectionProps {
   /** Starts folded, for sections the operator rarely needs (done, resolved). */
   isDefaultCollapsed?: boolean;
   itemCount: number;
+  /** Adds a select-all to the header while a selection is under way. */
+  selection?: {
+    isAllSelected: boolean;
+    isSomeSelected: boolean;
+    /** Spoken name of the checkbox, e.g. "Select all in Working". */
+    label: string;
+    onToggle: () => void;
+  };
   title: string;
   'data-testid'?: string;
 }
@@ -35,6 +43,16 @@ export interface ThreadListRowProps {
    * modified click (new tab, new window) still follows the link.
    */
   onSelect?: () => void;
+  /** Makes the row selectable: a checkbox takes the status icon's place. */
+  selection?: {
+    isSelected: boolean;
+    /** Some row is selected, so every row shows its checkbox, not its status. */
+    isSelecting: boolean;
+    /** Spoken name of the checkbox, e.g. "Select {title}". */
+    label: string;
+    /** `isRange` is set by a Shift-click, which selects from the last pick. */
+    onToggle: (options: { isRange: boolean }) => void;
+  };
   status?: ThreadListStatus;
   /** Spoken name of the status icon, so the state is not colour alone. */
   statusLabel?: string | null;
