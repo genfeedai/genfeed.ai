@@ -27,6 +27,7 @@ import { TeammateMentionsService } from '@api/collections/mentions/services/team
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   PaginationQueryDto,
@@ -34,6 +35,7 @@ import {
 } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -42,7 +44,7 @@ import {
 import { AgentScopeContextService } from '@api/index';
 import { setRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus, ApiKeyScope } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
@@ -290,6 +292,7 @@ export class AgentThreadsController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Create a new agent thread' })
   async createThread(
@@ -329,6 +332,7 @@ export class AgentThreadsController {
   }
 
   @Patch(':threadId/context')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({ summary: 'Compare-and-swap the thread brand context' })
   async updateThreadContext(
     @Req() req: Request,
@@ -361,6 +365,7 @@ export class AgentThreadsController {
   }
 
   @Patch()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     summary:
       "Bulk-update the current user's threads by filter (currently archives all active threads)",
@@ -399,6 +404,7 @@ export class AgentThreadsController {
   }
 
   @Patch(':threadId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({ summary: 'Update thread metadata or status' })
   async updateThread(
     @Req() req: Request,
