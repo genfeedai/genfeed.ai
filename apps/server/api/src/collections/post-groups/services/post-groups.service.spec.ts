@@ -1908,7 +1908,11 @@ describe('PostGroupsService', () => {
       makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
     );
     prisma.post.findFirst.mockResolvedValue(target);
-    prisma.post.findMany.mockResolvedValue([target]);
+    // A comment child (`parentId` set) is not the target itself; there are none.
+    prisma.post.findMany.mockImplementation(
+      ({ where }: { where: { parentId?: string } }) =>
+        Promise.resolve(where.parentId ? [] : [target]),
+    );
     prisma.postGroup.update.mockImplementation(({ data }) =>
       Promise.resolve(
         makeGroup({
