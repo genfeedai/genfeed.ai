@@ -1,0 +1,52 @@
+{
+  "aspectRatio": "9:16",
+  "allowedModels": [
+    "bytedance/seedance-2.5",
+    "google/veo-3.1"
+  ],
+  "description": "A founder speaking to camera in their own setting.",
+  "evaluationCriteria": [
+    "The person stays recognizable from the reference.",
+    "Natural, restrained gestures; no invented backdrop text.",
+    "Nothing the model draws reads as text, a logo or an interface; on-screen words are added after generation."
+  ],
+  "format": "founder-talking-clip",
+  "hookFormula": "Start with the single claim the founder would say out loud to a buyer.",
+  "key": "b2b-founder-talking-clip",
+  "label": "Founder talking clip",
+  "mediaType": "video",
+  "referenceSlots": [
+    {
+      "defaultSource": "library",
+      "isRequired": true,
+      "key": "person",
+      "kind": "image",
+      "label": "Person on screen",
+      "role": "person"
+    },
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": false,
+      "key": "brand-logo",
+      "kind": "image",
+      "label": "Logo",
+      "role": "brand_logo"
+    },
+    {
+      "defaultSource": "library",
+      "isRequired": false,
+      "key": "voice",
+      "kind": "audio",
+      "label": "Voice sample",
+      "role": "voiceover"
+    }
+  ],
+  "shots": [
+    {
+      "direction": "Direct to camera, eye level, a real working space behind.",
+      "durationSeconds": 8,
+      "key": "to-camera",
+      "title": "To camera"
+    }
+  ]
+}

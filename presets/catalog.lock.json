@@ -1,0 +1,92 @@
+{
+  "files": [
+    {
+      "path": "ad/ad-screen-demo/preset.json",
+      "sha256": "3d70a59864a145e69506290cdfc585e2867501b5c50ddef4c3e06968785f92d1"
+    },
+    {
+      "path": "ad/ad-talking-head/preset.json",
+      "sha256": "e04f3decd05d0cefd18faec15e7494c47ee7ce7897f275c7d41ed74d69c9d575"
+    },
+    {
+      "path": "ad/ad-ugc-selfie/preset.json",
+      "sha256": "158d40abbe74eeedbdbd25ad775878881d1fc3d0c873ce7b17a2c615c523122a"
+    },
+    {
+      "path": "b2b/b2b-ad-variation/preset.json",
+      "sha256": "185a56a9ab73a8b18e35eb6477dc106138f4bf6d22de4213593f59b359e010f8"
+    },
+    {
+      "path": "b2b/b2b-case-study-slide/preset.json",
+      "sha256": "26b434dbb66539f25a8061a67f9e1c8782dda9fae46d3e89b27fea272b8a3d43"
+    },
+    {
+      "path": "b2b/b2b-customer-quote-card/preset.json",
+      "sha256": "5e008f93abfd5107162ccaec6b2a7df3351027b62d7d1aa9d283d8187a10fa61"
+    },
+    {
+      "path": "b2b/b2b-founder-talking-clip/preset.json",
+      "sha256": "f09a84812a90f622e369c50c9c17d94014d7aede0186a10381f7f028aea6f0ed"
+    },
+    {
+      "path": "b2b/b2b-product-explainer-clip/preset.json",
+      "sha256": "4a508b348d91f437662f1c6452b45c82400619033edcb2668eb8124cf73010f4"
+    },
+    {
+      "path": "b2b/b2b-stat-insight-card/preset.json",
+      "sha256": "eaef63d2328bef319f0e755e6b76a7bfb77534e9a7ae19df576e05bb0d951f5c"
+    },
+    {
+      "path": "catalog.json",
+      "sha256": "04a3d6daa12cafe1ab1d029d23c8c8f96bc4649e3931355e0b1811ec3f3303d5"
+    },
+    {
+      "path": "cinematic/cinematic-anime-short/preset.json",
+      "sha256": "10a7d64539e3ee4c6a19d9f294f397f1da0166c76beeb491a12b8b68bf2aebb8"
+    },
+    {
+      "path": "studio/studio-animation/preset.json",
+      "sha256": "401b75da97a6766e91ce6aa5e1e4a8dc263519e5450b1930de19430874e5a69e"
+    },
+    {
+      "path": "studio/studio-banner/preset.json",
+      "sha256": "2491cfc503030ada2998bbc6fce7291ad20315eb02cc44b2432e83cc67f36e1e"
+    },
+    {
+      "path": "studio/studio-dance/preset.json",
+      "sha256": "f9c02323ab8875f7749c7eed456150f8759f432827a56ba1e40dd5b6d95093f0"
+    },
+    {
+      "path": "studio/studio-edit-enhance/preset.json",
+      "sha256": "8820c02a96f93f207d11c5c987fc79bbf35a95c19267a761897f2a11dde8126c"
+    },
+    {
+      "path": "studio/studio-edit-remove-background/preset.json",
+      "sha256": "fe496d7b4c0c6337f941f8974b17a4b0299e0010908cc3ecff8db71d71b18810"
+    },
+    {
+      "path": "studio/studio-edit-restyle/preset.json",
+      "sha256": "fb5d8d03c99127f6eacfd6a346711ddbea183a1e17c5d2cd3f2ee9850f53715e"
+    },
+    {
+      "path": "studio/studio-edit-retouch/preset.json",
+      "sha256": "c37830b8aea88d1b8074a84b41ef31a8f0951a326d905531c6813b5cc969adef"
+    },
+    {
+      "path": "studio/studio-meme/preset.json",
+      "sha256": "6c1145f60dea8cf0afc886e7ad91db487a7a4ffba7dc671384cc289c73de4193"
+    },
+    {
+      "path": "studio/studio-profile-picture/preset.json",
+      "sha256": "cb2799b49e1b441c6fd607bdf9dc73098f31a95568d8ffdc55cf9a6c89c47c7d"
+    },
+    {
+      "path": "studio/studio-youtube-thumbnail/preset.json",
+      "sha256": "159a55fa8154a646d5945aaa629b1b8ff769dbbdda140a8f30c06fd86d81ce42"
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceCommit": "e8b1307d1699e73a7df12bc106be82c100169ee9",
+  "sourceCommittedAt": "2026-11-26T16:23:13.000Z",
+  "sourceRepository": "https://github.com/genfeedai/presets"
+}
