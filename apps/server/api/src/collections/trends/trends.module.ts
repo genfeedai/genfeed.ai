@@ -11,6 +11,7 @@ import { TrendsDiscoveryController } from '@api/collections/trends/controllers/t
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendBrandDigestService } from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
+import { TrendBrandReadService } from '@api/collections/trends/services/modules/trend-brand-read.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
@@ -152,6 +153,7 @@ import { Module } from '@nestjs/common';
     TrendSourceItemsService,
     TrendSourcePreviewService,
     TrendBrandNicheVideoService,
+    TrendBrandReadService,
     TrendBrandDigestService,
     TrendVideoService,
     TrendsService,
