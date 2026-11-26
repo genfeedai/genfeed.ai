@@ -1,0 +1,43 @@
+{
+  "aspectRatio": "4:5",
+  "allowedModels": [
+    "google/nano-banana-2",
+    "openai/gpt-image-2"
+  ],
+  "description": "One slide of a case-study carousel, built around a result.",
+  "evaluationCriteria": [
+    "The slide shows the result, not a generic office.",
+    "Consistent with the other slides of the same story.",
+    "Nothing the model draws reads as text, a logo or an interface; on-screen words are added after generation."
+  ],
+  "format": "case-study-slide",
+  "hookFormula": "Before, change, after: the slide carries one of the three, never all of them.",
+  "key": "b2b-case-study-slide",
+  "label": "Case-study slide",
+  "mediaType": "image",
+  "referenceSlots": [
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": true,
+      "key": "product-frame",
+      "kind": "image",
+      "label": "Product frame",
+      "role": "product_frame"
+    },
+    {
+      "defaultSource": "library",
+      "isRequired": false,
+      "key": "person",
+      "kind": "image",
+      "label": "Person on screen",
+      "role": "person"
+    }
+  ],
+  "shots": [
+    {
+      "direction": "The real product screen or the customer in context, with clear space for the slide text.",
+      "key": "result",
+      "title": "Result"
+    }
+  ]
+}

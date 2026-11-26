@@ -18,8 +18,8 @@ import {
 } from '@/operations/admin-marketplace';
 import { GenfeedError } from '@/utils/errors';
 
-/** The monorepo's own preset catalogue, the source of every preset listing. */
-export const PRESET_LISTING_SOURCE = 'genfeedai/genfeed.ai';
+/** The public presets repository, the source of every preset listing. */
+export const PRESET_LISTING_SOURCE = 'genfeedai/presets';
 /** The public skills repository, the source of every free skill listing. */
 export const SKILL_LISTING_SOURCE = 'genfeedai/skills';
 export const OFFICIAL_SELLER_NAME = 'Genfeed Official';

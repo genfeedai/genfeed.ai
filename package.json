@@ -53,6 +53,8 @@
     "skills:sync": "bun run scripts/sync-product-skills.ts",
     "check:mcp-tool-references": "bun run scripts/architecture/check-mcp-tool-references.ts",
     "check:skills-catalog": "bun run scripts/sync-product-skills.ts --check",
+    "presets:sync": "bun run scripts/sync-product-presets.ts",
+    "check:presets-pin": "bun run scripts/sync-product-presets.ts --check",
     "check:skill-trusted-builtin-allowlist": "bun run scripts/architecture/check-skill-trusted-builtin-allowlist.ts",
     "check:skills-readme": "bun run scripts/check-skills-readme-drift.ts",
     "posthog:app-usage": "bun run scripts/posthog/setup-app-usage-dashboard.ts",

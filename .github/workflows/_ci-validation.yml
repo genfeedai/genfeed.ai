@@ -551,6 +551,8 @@ jobs:
         run: node scripts/ci/e2e-spec-impact.mjs --base "${CI_BASE_SHA}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog
+      - name: Check pinned presets catalog
+        run: bun run check:presets-pin
       - name: Check skill trusted-builtin allowlist
         run: bun run check:skill-trusted-builtin-allowlist
       - name: Check env files and .env.example drift
