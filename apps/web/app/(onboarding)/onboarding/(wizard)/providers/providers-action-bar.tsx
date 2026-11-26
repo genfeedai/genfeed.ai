@@ -25,15 +25,12 @@ export default function ProvidersActionBar({
   onByokClick,
   onServerContinue,
   onCloudContinue,
-  onDesktopContinue,
   onBack,
 }: ProvidersActionBarProps) {
   const guidance =
     surface === 'saas'
       ? 'Use Genfeed Cloud for hosted generation, or add your own provider keys with a Scale plan.'
-      : surface === 'desktop-local'
-        ? 'Local agent CLIs are detected on this Mac. Continue to pick a workspace folder when you are ready.'
-        : 'Keep the default server access, open Organization API Keys if you want BYOK, or switch to Genfeed Cloud now if you want a managed setup with brand handoff.';
+      : 'Keep the default server access, open Organization API Keys if you want BYOK, or switch to Genfeed Cloud now if you want a managed setup with brand handoff.';
 
   return (
     <>
@@ -46,36 +43,20 @@ export default function ProvidersActionBar({
         <div className="text-sm text-muted-foreground">{guidance}</div>
 
         <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
-          {surface === 'desktop-local' ? (
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.SM}
-              onClick={() => {
-                onDesktopContinue();
+          <div className="relative w-full md:w-auto">
+            {selectedMode === 'byok' ? <CurrentBadge /> : null}
+            <Link
+              href={APP_ROUTES.CONNECTORS.API_KEYS}
+              onClick={(event) => {
+                onByokClick(event);
               }}
-              label={loading ? 'Checking CLIs...' : 'Continue to workspace'}
-              disabled={loading || pendingMode !== null}
-              wrapperClassName="w-full md:w-auto"
-              className="w-full md:w-auto"
-            />
-          ) : null}
-
-          {surface !== 'desktop-local' ? (
-            <div className="relative w-full md:w-auto">
-              {selectedMode === 'byok' ? <CurrentBadge /> : null}
-              <Link
-                href={APP_ROUTES.CONNECTORS.API_KEYS}
-                onClick={(event) => {
-                  onByokClick(event);
-                }}
-                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
-                  selectedMode === 'byok' ? CURRENT_RING : ''
-                }`}
-              >
-                Add my own API keys
-              </Link>
-            </div>
-          ) : null}
+              className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
+                selectedMode === 'byok' ? CURRENT_RING : ''
+              }`}
+            >
+              Add my own API keys
+            </Link>
+          </div>
 
           {surface === 'self-hosted' ? (
             <div className="relative w-full md:w-auto">

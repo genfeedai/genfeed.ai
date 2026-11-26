@@ -19,9 +19,6 @@ export const APP_ROUTES = {
   },
   /** Organization page an external client opens to finish connecting an account. */
   CONNECT_SOCIAL: '/connect/social',
-  DESKTOP: {
-    LOCAL: '/desktop/local',
-  },
   LOGIN: '/login',
   LOGOUT: '/logout',
   MANAGED_CREDITS_SUCCESS: '/managed-credits/success',
@@ -582,7 +579,6 @@ const AUTH_CONTINUATION_ROUTE_PREFIXES = [
   APP_ROUTES.OAUTH,
   APP_ROUTES.ONBOARDING.ROOT,
   '/agent-auth',
-  APP_ROUTES.DESKTOP.LOCAL,
   '/managed-credits',
   '/request-access',
 ] as const;

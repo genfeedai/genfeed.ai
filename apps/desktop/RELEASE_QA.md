@@ -29,14 +29,8 @@ packaged Electron shell.
   recovers to the login surface.
 - Sign-out removes the cookie and API key together before emitting signed-out
   state.
-- Workspace selection, recent workspaces, drafts, and content-run handoff survive
-  app restart.
-- Local generation provider setup keeps the API key out of renderer-visible
-  state and shows a recoverable error before a provider is configured.
 - Genfeed Cloud generation is available after sign-in when the API is reachable.
-- Cloud smoke confirms the canonical shell renders without creating a PGlite
-  directory. Local mode explicitly initializes workspace/files/drafts, sync,
-  terminal, and BYOK generation services.
+- Cloud smoke confirms the canonical shell renders.
 - Packaged artifacts include `Genfeed-*.dmg`, `Genfeed-*.zip`, and
   `genfeed-desktop-release.json`.
 

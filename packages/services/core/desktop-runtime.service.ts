@@ -26,14 +26,6 @@ const UNAVAILABLE: DesktopRuntimeSnapshot = Object.freeze({
   status: 'unavailable',
   context: null,
 });
-const PROVIDERS = [
-  'fal',
-  'lm-studio',
-  'ollama',
-  'openai-compatible',
-  'replicate',
-];
-
 export function isDesktopRuntimeShell(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -61,15 +53,12 @@ function decodeContext(value: unknown): IDesktopRuntimeContext | null {
     !data.runtimeId ||
     !Number.isInteger(data.revision) ||
     Number(data.revision) < 0 ||
-    !['ready', 'switching', 'unavailable'].includes(String(data.status)) ||
+    !['ready', 'switching'].includes(String(data.status)) ||
     typeof data.selectedServerId !== 'string' ||
     !data.selectedServerId ||
     !['cloud', 'self-hosted'].includes(String(data.selectedServerKind)) ||
     typeof data.selectedApiEndpoint !== 'string' ||
-    !['cloud', 'local'].includes(String(data.runtimeMode)) ||
-    !['remote', 'local-byok', 'unknown'].includes(
-      String(data.generationExecution),
-    )
+    !['remote', 'unknown'].includes(String(data.generationExecution))
   )
     return null;
   try {
@@ -85,36 +74,8 @@ function decodeContext(value: unknown): IDesktopRuntimeContext | null {
   } catch {
     return null;
   }
-  let localProvider: IDesktopRuntimeContext['localProvider'] = null;
-  if (data.localProvider !== null) {
-    if (!data.localProvider || typeof data.localProvider !== 'object')
-      return null;
-    const provider = data.localProvider as Record<string, unknown>;
-    if (
-      !PROVIDERS.includes(String(provider.provider)) ||
-      !['local', 'remote', 'unknown'].includes(String(provider.networkAccess))
-    )
-      return null;
-    localProvider = {
-      provider: provider.provider as NonNullable<
-        IDesktopRuntimeContext['localProvider']
-      >['provider'],
-      networkAccess: provider.networkAccess as NonNullable<
-        IDesktopRuntimeContext['localProvider']
-      >['networkAccess'],
-    };
-  }
-  if (
-    data.generationExecution === 'local-byok' &&
-    (data.status !== 'ready' || data.runtimeMode !== 'local' || !localProvider)
-  )
+  if (data.generationExecution === 'remote' && data.status !== 'ready')
     return null;
-  if (
-    data.generationExecution === 'remote' &&
-    (data.runtimeMode !== 'cloud' || data.status !== 'ready')
-  )
-    return null;
-  if (localProvider && data.runtimeMode !== 'local') return null;
   return {
     version: 1,
     runtimeId: data.runtimeId,
@@ -124,10 +85,8 @@ function decodeContext(value: unknown): IDesktopRuntimeContext | null {
     selectedServerKind:
       data.selectedServerKind as IDesktopRuntimeContext['selectedServerKind'],
     selectedApiEndpoint: data.selectedApiEndpoint,
-    runtimeMode: data.runtimeMode as IDesktopRuntimeContext['runtimeMode'],
     generationExecution:
       data.generationExecution as IDesktopRuntimeContext['generationExecution'],
-    localProvider,
   };
 }
 
@@ -246,8 +205,7 @@ export function getDesktopCreditsVisibility(
 ): CreditsVisibilityContext {
   const isReady =
     snapshot.status === 'ready' &&
-    (snapshot.context?.runtimeMode === 'local' ||
-      snapshot.context?.generationExecution === 'remote');
+    snapshot.context?.generationExecution === 'remote';
   return snapshot.status === 'web'
     ? { clientSurface: 'web' }
     : {
@@ -255,8 +213,6 @@ export function getDesktopCreditsVisibility(
         selectedServerKind: isReady
           ? snapshot.context?.selectedServerKind
           : null,
-        runtimeMode: isReady ? snapshot.context?.runtimeMode : 'unknown',
-        generationExecution: snapshot.context?.generationExecution ?? 'unknown',
       };
 }
 
@@ -266,19 +222,6 @@ export function canSubmitStudioGeneration(
   return (
     snapshot.status === 'web' ||
     (snapshot.status === 'ready' &&
-      snapshot.context?.runtimeMode === 'cloud' &&
-      snapshot.context.generationExecution === 'remote')
+      snapshot.context?.generationExecution === 'remote')
   );
-}
-
-export function getDesktopLocalCostState(
-  snapshot: DesktopRuntimeSnapshot,
-): 'unknown' | 'missing' | 'local' | 'remote' {
-  if (snapshot.status !== 'ready' || snapshot.context?.runtimeMode !== 'local')
-    return 'unknown';
-  const provider = snapshot.context.localProvider;
-  if (!provider) return 'missing';
-  if (provider.networkAccess === 'local') return 'local';
-  if (provider.networkAccess === 'remote') return 'remote';
-  return 'unknown';
 }

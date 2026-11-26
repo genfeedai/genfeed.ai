@@ -2,8 +2,6 @@
 
 The PostgreSQL schema, generated client and migrations for Genfeed (`@genfeedai/prisma`). The API, workers and scripts all read and write the database through this package.
 
-For the desktop app's local database see [`../desktop-prisma`](../desktop-prisma/README.md); this package is the server schema.
-
 ## Layout
 
 - `prisma/schema.prisma`: the schema (PostgreSQL with the `vector` extension). The client is generated into `generated/prisma/` (git-ignored).
