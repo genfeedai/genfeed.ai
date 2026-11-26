@@ -6,7 +6,7 @@ import { generateMockBrand } from '../../utils/api-interceptor';
 import { brandPath } from '../../utils/app-chrome';
 import { exactUrlPattern } from '../../utils/exact-url';
 
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
+const CONNECTED_ACCOUNTS_ROUTE = `${brandPath(APP_ROUTES.SETTINGS.PROFILE)}?tab=settings`;
 
 async function mockBrandWithXAccount(page: Page): Promise<void> {
   const brand = generateMockBrand({
