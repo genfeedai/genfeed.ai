@@ -1,19 +1,21 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
-import { PostCategory } from '@genfeedai/contracts';
+import { ApiKeyScope, PostCategory } from '@genfeedai/contracts';
 import { PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -68,6 +70,7 @@ export class PersonasContentController {
   }
 
   @Post(':id/content-plan')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   async generateContentPlan(
     @Param('id') id: string,
@@ -120,6 +123,11 @@ export class PersonasContentController {
   }
 
   @Post(':id/publish')
+  @RequiredScopes(
+    ApiKeyScope.POSTS_SCHEDULE,
+    ApiKeyScope.POSTS_PUBLISH,
+    ApiKeyScope.ADMIN,
+  )
   @OrganizationModule('publishing')
   @HttpCode(HttpStatus.OK)
   async publish(

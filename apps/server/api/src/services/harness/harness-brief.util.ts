@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import { readBrandPalette } from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import { parseBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type {
   BrandKitFieldKey,
@@ -15,12 +16,15 @@ import type {
   ContentHarnessContribution,
   ContentHarnessInput,
   ContentHarnessIntent,
+  HarnessPaletteColor,
   HarnessPersonaProfile,
   HarnessSourceRecord,
   HarnessVoiceProfile,
 } from '@genfeedai/harness';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/;
 
 type BrandSource = Pick<
   Brand,
@@ -198,6 +202,23 @@ function readBrandOsString(
   return toOptionalString(readBrandOsValue(revision, key));
 }
 
+const MAX_VISUAL_DIRECTION_SENTENCES = 12;
+const MAX_VISUAL_DIRECTION_SENTENCE_LENGTH = 240;
+
+/**
+ * The owner's art direction as one entry per sentence, so a media prompt keeps
+ * or drops a sentence on its own and one stray word never removes the rest.
+ */
+function splitVisualDirection(text: string | undefined): string[] {
+  if (!text) return [];
+  return text
+    .split(LINE_BREAK_PATTERN)
+    .flatMap((line) => line.split(SENTENCE_BOUNDARY_PATTERN))
+    .map((sentence) => trimLine(sentence, MAX_VISUAL_DIRECTION_SENTENCE_LENGTH))
+    .filter(Boolean)
+    .slice(0, MAX_VISUAL_DIRECTION_SENTENCES);
+}
+
 function buildApprovedBrandOsVoice(
   revision: IBrandOsRevision,
 ): HarnessVoiceProfile {
@@ -265,11 +286,40 @@ function buildApprovedBrandOsIdentity(
         ...policy.bannedPhrases.map((phrase) => `Never write: ${phrase}`),
       ]
     : [];
+  const visualDirections = music
+    ? []
+    : splitVisualDirection(readBrandOsString(revision, 'visualDirection'));
+  const palette = music ? [] : readApprovedPalette(revision);
   return {
     systemDirectives,
     styleDirectives,
+    ...(visualDirections.length > 0 ? { visualDirections } : {}),
+    ...(palette.length > 0 ? { palette } : {}),
     ...(guardrails.length > 0 ? { guardrails } : {}),
   };
+}
+
+const PALETTE_HEX = /^#[0-9A-F]{6}$/i;
+
+/** Primary, secondary and background first, then the named colours. */
+function readApprovedPalette(
+  revision: IBrandOsRevision,
+): HarnessPaletteColor[] {
+  const colors: HarnessPaletteColor[] = [];
+  for (const [key, usage] of [
+    ['primaryColor', 'Primary'],
+    ['secondaryColor', 'Secondary'],
+    ['backgroundColor', 'Background'],
+  ] as const) {
+    const hex = readBrandOsString(revision, key)?.trim();
+    if (hex && PALETTE_HEX.test(hex)) colors.push({ hex, usage });
+  }
+  for (const color of readBrandPalette(
+    readBrandOsValue(revision, 'colorPalette'),
+  )) {
+    colors.push({ hex: color.hex, usage: color.usage ?? color.name });
+  }
+  return colors;
 }
 
 export const buildHarnessInput = (params: {

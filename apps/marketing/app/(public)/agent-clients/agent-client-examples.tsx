@@ -1,4 +1,3 @@
-import { isClaudeClient } from '@data/agent-clients.data';
 import { MARKETING_ASSETS } from '@data/marketing-assets.data';
 import type { AgentClientVisualProps } from '@props/agent-client.props';
 import { ArrowRight } from 'lucide-react';
@@ -7,7 +6,6 @@ import Image from 'next/image';
 export default function AgentClientExamples({
   client,
 }: AgentClientVisualProps): React.ReactElement {
-  const isClaude = isClaudeClient(client.slug);
   return (
     <section className="container mx-auto px-6 py-12 sm:py-20">
       <div className="mb-10 max-w-2xl">
@@ -29,16 +27,12 @@ export default function AgentClientExamples({
             [
               'campaign',
               'A campaign with your visual identity',
-              isClaude
-                ? 'Write a product-image brief from my brand guidelines that I can run on the full Genfeed connector.'
-                : 'Generate product imagery from my brand guidelines and prepare three creative directions for review.',
+              'Generate product imagery from my brand guidelines and prepare three creative directions for review.',
             ],
             [
               'creator',
               'A story built for the screen',
-              isClaude
-                ? 'Turn my launch brief into a video script and a shot list to run on the full Genfeed connector.'
-                : 'Turn my launch brief into a vertical video concept, with a script and matching visuals.',
+              'Turn my launch brief into a vertical video concept, with a script and matching visuals.',
             ],
           ] as const
         ).map(([asset, title, prompt]) => (
@@ -57,9 +51,7 @@ export default function AgentClientExamples({
             </div>
             <figcaption className="p-6">
               <p className="text-xs text-foreground/70">
-                {isClaude
-                  ? 'Illustrative output from the full Genfeed connector'
-                  : 'Illustrative generated output'}
+                Illustrative generated output
               </p>
               <h3 className="mt-2 text-xl font-semibold">{title}</h3>
               <p className="mt-4 text-base leading-7 text-foreground/80">

@@ -249,10 +249,10 @@ describe('ActivitiesList', () => {
 
     expect(screen.getByText('Fri, Jan 2 · UTC')).toBeInTheDocument();
     expect(screen.getByText('Thu, Jan 1 · UTC')).toBeInTheDocument();
-    expect(screen.getByText('09:30:15')).toBeInTheDocument();
+    expect(screen.getByText('09:30')).toBeInTheDocument();
     expect(screen.getByText('ran 1m 42s')).toBeInTheDocument();
     expect(screen.queryByText(/ago$/)).not.toBeInTheDocument();
-    expect(screen.getByText('00:00:00')).toBeInTheDocument();
+    expect(screen.getByText('00:00')).toBeInTheDocument();
   });
 
   it('offers no sort controls on any column header', () => {
@@ -429,6 +429,58 @@ describe('ActivitiesList', () => {
       'src',
       `${EnvironmentService.ingredientsEndpoint}/images/ing-42`,
     );
+  });
+
+  it('shows a post once, with its image, account and the states it went through', () => {
+    mockActivities = [
+      buildActivity({
+        entityId: 'post-1',
+        entityModel: 'post',
+        id: 'post-row',
+        ingredient: {
+          category: 'IMAGE',
+          id: 'media-1',
+          ingredientUrl: 'https://cdn.example/media-1.png',
+        },
+        key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+        postGroup: {
+          eventIds: ['post-row', 'older-1', 'older-2'],
+          postId: 'post-1',
+          status: 'published',
+          steps: [
+            { at: '2026-01-01T08:45:03Z', from: 'scheduled', to: 'publishing' },
+            { at: '2026-01-01T08:45:33Z', from: 'publishing', to: 'published' },
+          ],
+        },
+        preview: {
+          authorHandle: 'northwind.coffee',
+          kind: 'post',
+          platform: 'instagram',
+          text: 'Cold brew season is here.',
+          url: 'https://instagram.com/p/1',
+        },
+        value: JSON.stringify({ from: 'publishing', to: 'published' }),
+      } as Partial<IActivity>),
+    ];
+
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(screen.getByText('Cold brew season is here.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Instagram @northwind.coffee · Scheduled → Publishing → Published',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /activity asset/i }),
+    ).toHaveAttribute('src', 'https://cdn.example/media-1.png');
+    expect(screen.queryByText(/Post moved from/)).not.toBeInTheDocument();
   });
 
   it('opens a failed generation from the row and the explicit link', () => {

@@ -7,9 +7,9 @@ import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 // The Profile page mirrors the public profile and adds what only the owner
-// needs: the brand's social accounts (a Connect account button in the page
-// header) and its website links, in one column under the articles, accounts
-// above the website links. Like every other section, the website links title
+// needs on its Settings tab: the brand's social accounts (a Connect account
+// button in the Accounts header) and its website links, accounts above the
+// website links. Like every other section, the website links title
 // and action sit above the card.
 test.describe('Brand accounts and website links', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -20,10 +20,10 @@ test.describe('Brand accounts and website links', () => {
     await mockBrandWithMedia(authenticatedPage);
   });
 
-  test('connects accounts from the header and keeps the links title and action outside the card', async ({
+  test('connects accounts from the Accounts header and keeps the links title and action outside the card', async ({
     authenticatedPage,
   }) => {
-    const route = brandPath('/settings/profile');
+    const route = brandPath('/settings/profile?tab=settings');
     await authenticatedPage.goto(route, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
@@ -64,7 +64,7 @@ test.describe('Brand accounts and website links', () => {
   test('lists the connected accounts above the website links', async ({
     authenticatedPage,
   }) => {
-    const route = brandPath('/settings/profile');
+    const route = brandPath('/settings/profile?tab=settings');
     await authenticatedPage.goto(route, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
@@ -122,8 +122,8 @@ test.describe('Brand accounts and website links', () => {
       authenticatedPage.getByRole('link', { name: /^Articles 1$/ }),
     ).toBeVisible();
 
-    // Copy link and View public sit in the same group as the switch, and stay
-    // off while the profile is private.
+    // Copy link and View public profile sit in the same group as the switch,
+    // and stay off while the profile is private.
     const visibility = authenticatedPage.getByRole('group', {
       name: 'Profile visibility',
     });
@@ -134,7 +134,59 @@ test.describe('Brand accounts and website links', () => {
       visibility.getByRole('button', { name: 'Copy public profile link' }),
     ).toBeDisabled();
     await expect(
-      visibility.getByRole('button', { name: 'View public' }),
+      visibility.getByRole('button', { name: 'View public profile' }),
     ).toBeDisabled();
+  });
+
+  test('shows the reach line and two tabs, with Connect account only under Settings', async ({
+    authenticatedPage,
+  }) => {
+    const route = brandPath('/settings/profile');
+    await authenticatedPage.goto(route, {
+      timeout: 60000,
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+
+    await expect(authenticatedPage.getByTestId('metric-summary')).toContainText(
+      '1.2K',
+      { timeout: 30000 },
+    );
+    const tabs = authenticatedPage.getByRole('navigation', {
+      name: 'Profile sections',
+    });
+    await expect(tabs.getByRole('link')).toHaveText([/^Articles/, 'Settings']);
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Connect account' }),
+    ).toHaveCount(0);
+
+    await tabs.getByRole('link', { name: 'Settings' }).click();
+    // With no accounts the table's empty state repeats the same action.
+    await expect(
+      authenticatedPage
+        .getByRole('button', { name: 'Connect account' })
+        .first(),
+    ).toBeVisible({ timeout: 30000 });
+  });
+
+  test('turns Public analytics off from Settings', async ({
+    authenticatedPage,
+  }) => {
+    const route = brandPath('/settings/profile?tab=settings');
+    await authenticatedPage.goto(route, {
+      timeout: 60000,
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+
+    const toggle = authenticatedPage.getByRole('switch', {
+      name: 'Public analytics',
+    });
+    await expect(toggle).toBeChecked({ timeout: 30000 });
+
+    await toggle.click();
+
+    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toBeEnabled();
   });
 });

@@ -2,10 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { Timeframe } from '@genfeedai/contracts';
+import { ApiKeyScope, Timeframe } from '@genfeedai/contracts';
 import { SubscriptionAttributionSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -23,6 +24,7 @@ export class SubscriptionAttributionsController {
    * Track subscription attribution
    */
   @Post('subscription-attribution')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async trackSubscription(
     @Req() req: Request,

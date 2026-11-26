@@ -157,7 +157,7 @@ export function hiddenExecutionRef(
       (provenance.executionId !== executionId ||
         provenance.workflowId !== context.workflowId))
   )
-    return deny();
+    return deny('execution-ref-incomplete-or-mismatched');
   return {
     executionId,
     organizationId: context.organizationId,
@@ -244,7 +244,9 @@ export async function validateHiddenExecutionChain(
     (ref.workflowVersionId !== undefined &&
       row.workflowVersionId !== ref.workflowVersionId)
   )
-    return deny();
+    return deny(
+      `execution-not-found-or-mismatched execution=${ref.executionId}`,
+    );
   return validateLevel(tx, row, rule, options, deny);
 }
 
@@ -265,13 +267,15 @@ async function validateLevel(
     !rule.matches(canonicalId) ||
     (rule.accepts !== undefined && !rule.accepts(holder, row.organizationId))
   )
-    return deny();
+    return deny(
+      `${canonicalId === undefined ? 'not-code-owned-hidden-workflow' : !rule.matches(canonicalId) ? 'rule-does-not-match-workflow' : 'rule-rejected-holder'} execution=${row.id}`,
+    );
   if (
     captured !== undefined &&
     (options.bindActorToExecutionUser ?? true) &&
     parseWorkflowActor(captured, row.organizationId, deny).userId !== row.userId
   )
-    return deny();
+    return deny(`actor-user-differs-from-execution-user execution=${row.id}`);
 
   if (metadata.parentExecutionId === undefined) {
     if (
@@ -280,7 +284,7 @@ async function validateLevel(
       typeof metadata.source !== 'string' ||
       !rule.rootSources.includes(metadata.source)
     )
-      return deny();
+      return deny(`root-source-not-admitted execution=${row.id}`);
     return { actor: captured, holder };
   }
 
@@ -291,13 +295,16 @@ async function validateLevel(
     !nonempty(metadata.parentWorkflowId) ||
     !nonempty(metadata.parentNodeId)
   )
-    return deny();
+    return deny(`parent-link-metadata-missing execution=${row.id}`);
   const parentNodeId = metadata.parentNodeId;
   const link = rule.parents.find(
     (candidate) =>
       candidate.kind === 'scheduled-tenant' || candidate.nodeId(parentNodeId),
   );
-  if (!link) return deny();
+  if (!link)
+    return deny(
+      `parent-node-not-admitted execution=${row.id} parentNode=${parentNodeId}`,
+    );
   if (link.kind === 'hidden-single-child') {
     if (
       index !== undefined ||
@@ -305,13 +312,15 @@ async function validateLevel(
       metadata.source !==
         `workflow.run-child:${metadata.parentExecutionId}:${parentNodeId}`
     )
-      return deny();
+      return deny(
+        `single-child-trigger-or-source-mismatch execution=${row.id}`,
+      );
   } else if (
     typeof index !== 'number' ||
     !Number.isInteger(index) ||
     index < 0
   ) {
-    return deny();
+    return deny(`for-each-index-invalid execution=${row.id}`);
   }
   const parent = await findExecution(tx, {
     executionId: metadata.parentExecutionId,
@@ -324,7 +333,7 @@ async function validateLevel(
     parent.userId !== row.userId ||
     parent.workflowId !== metadata.parentWorkflowId
   )
-    return deny();
+    return deny(`parent-execution-not-found-or-mismatched execution=${row.id}`);
 
   if (link.kind === 'scheduled-tenant') {
     const bound = scheduledTenantActor(parent, row.organizationId, deny);
@@ -332,7 +341,9 @@ async function validateLevel(
       captured !== undefined &&
       !sameActor(bound, captured, row.organizationId, deny)
     )
-      return deny();
+      return deny(
+        `schedule-actor-differs-from-captured-actor execution=${row.id}`,
+      );
     return { actor: captured ?? bound, holder };
   }
 
@@ -341,7 +352,7 @@ async function validateLevel(
   }
   const ancestor = await validateLevel(tx, parent, link.rule, options, deny);
   if (!sameActor(ancestor.actor, captured, row.organizationId, deny))
-    return deny();
+    return deny(`ancestor-actor-differs execution=${row.id}`);
   if (link.kind !== 'hidden-single-child' && link.discovery) {
     const discovered = await tx.workflowExecutionNodeResult.findFirst({
       where: {
@@ -361,7 +372,7 @@ async function validateLevel(
       !link.discovery.matches(item, holder) ||
       !sameActor(item.initiatingActor, captured, row.organizationId, deny)
     )
-      return deny();
+      return deny(`discovery-item-mismatch execution=${row.id}`);
   }
   return { actor: captured, holder };
 }
@@ -387,7 +398,7 @@ function assertSingleChild(
     !Array.isArray(graph.edges) ||
     graph.edges.length !== 0
   )
-    deny();
+    deny(`single-child-graph-mismatch node=${nodeId}`);
   const parentInputs = record(record(parent.result).inputValues);
   const childInputs = record(record(child.result).inputValues);
   // This frozen node has only its canonical child id in configuration; no dynamic input edges.
@@ -396,7 +407,7 @@ function assertSingleChild(
     Object.hasOwn(parentInputs, 'actionId') ||
     stableStringify(parentInputs) !== stableStringify(childInputs)
   )
-    deny();
+    deny(`single-child-inputs-mismatch node=${nodeId}`);
 }
 
 /**
@@ -414,7 +425,7 @@ function scheduledTenantActor(
     parent.workflowVersion.workflowId !== parent.workflowId ||
     parent.workflowVersion.organizationId !== organizationId
   )
-    return deny();
+    return deny(`scheduled-parent-not-live-or-pinned execution=${parent.id}`);
   if (
     parent.trigger !== WorkflowExecutionTrigger.SCHEDULED ||
     record(record(parent.result).metadata).triggeredBy !== 'schedule'

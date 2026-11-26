@@ -6,9 +6,11 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
@@ -21,6 +23,7 @@ import {
   isAuthorizedAnalyticsQueryReference,
 } from '@api/services/agent-orchestrator/utils/agent-page-context-authorization.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { IAgentCreditsInfo } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -55,6 +58,7 @@ export class AgentOrchestratorController {
   ) {}
 
   @Post('threads/turns')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a new or provided thread' })
   async createTurn(@Body() body: AgentChatBodyDto, @CurrentUser() user: User) {
@@ -62,6 +66,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a thread' })
   async createThreadTurn(
@@ -73,6 +78,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/turns/stream')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(202)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
@@ -86,6 +92,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns/stream')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(202)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start a streaming agent turn in a thread' })
@@ -311,6 +318,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('goals')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     summary: 'Create an agent goal for the current organization',
   })
@@ -340,6 +348,7 @@ export class AgentOrchestratorController {
   }
 
   @Patch('goals/:goalId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Update an agent goal' })
   async updateGoal(
     @Param('goalId') goalId: string,

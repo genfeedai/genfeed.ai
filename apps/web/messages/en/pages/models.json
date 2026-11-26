@@ -64,6 +64,8 @@
   "deleteConfirmation": "Are you sure you want to delete \"{label}\"? This action cannot be undone.",
   "searchModels": "Search models",
   "editModel": "Edit model",
+  "noModelsDescription": "Models available to your organization appear here. Refresh to check again.",
+  "noModelsSearchDescription": "No model matches your search. Clear it to see every model.",
   "noModelsFound": "No models found",
   "clearSearch": "Clear search",
   "refresh": "Refresh",

@@ -6,7 +6,7 @@ import type {
 } from '@api/authorization/brand-access/brand-access.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import type { Prisma } from '@genfeedai/prisma';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Logger } from '@nestjs/common';
 
 /** The authenticated identity a queued or scheduled workflow acts as. Never inferred from a creator or owner id. */
 export type WorkflowInitiatingActor = {
@@ -17,10 +17,27 @@ export type WorkflowInitiatingActor = {
   userId: string;
 };
 
-export type WorkflowActorDenial = () => never;
+export type WorkflowActorDenial = (reason?: string) => never;
 
-export function denyWorkflowActor(): never {
-  throw new ForbiddenException('Brand access denied');
+const denialLogger = new Logger('WorkflowActorDenial');
+
+/** The check that refused each denial, kept beside the exception and never on it or in the response. */
+const denialReasons = new WeakMap<Error, string>();
+
+/** The check that refused a denial raised by {@link denyWorkflowActor}, for a caller that logs it. */
+export function workflowActorDenialReason(error: unknown): string | undefined {
+  return error instanceof Error ? denialReasons.get(error) : undefined;
+}
+
+/**
+ * Every denial answers with the same message. The reason names the check that refused, so an
+ * operator can tell which one from the log; it never reaches the caller.
+ */
+export function denyWorkflowActor(reason?: string): never {
+  if (reason) denialLogger.warn(`Workflow actor denied: ${reason}`);
+  const denial = new ForbiddenException('Brand access denied');
+  if (reason) denialReasons.set(denial, reason);
+  throw denial;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -52,7 +69,7 @@ export function parseWorkflowActor(
     (actor.apiKeyId !== undefined && !nonempty(actor.apiKeyId)) ||
     (isCloudDeployment() && actor.isApiKey && !nonempty(actor.apiKeyId))
   )
-    deny();
+    deny('actor-record-invalid');
   return {
     organizationId,
     userId: actor.userId,
@@ -105,7 +122,7 @@ export async function refreshWorkflowActor(
   const actor = parseWorkflowActor(value, organizationId, deny);
   if (actor.isApiKey && isCloudDeployment()) {
     const key = await findActorApiKey(tx, { ...actor, organizationId });
-    if (!key) deny();
+    if (!key) deny('actor-api-key-not-live');
     actor.scopes = actor.scopes.filter((scope) => key.scopes.includes(scope));
   }
   await policy.resolve(actor, tx);

@@ -690,6 +690,89 @@ describe('MCP Apps card contract', () => {
     ]);
   });
 
+  it('adds Approve before Decline when the connection can prove a click on the card', () => {
+    const result = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-1',
+        canApproveInCard: true,
+        canResolveApproval: true,
+        code: 'approval_pending',
+        toolName: 'create_post',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(view.cards[0].actions).toEqual([
+      {
+        approvalId: 'apr-1',
+        decision: 'approve',
+        kind: 'resolve_approval',
+        label: 'Approve',
+      },
+      {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        kind: 'resolve_approval',
+        label: 'Decline',
+      },
+    ]);
+  });
+
+  it('offers no buttons to a connection that can neither answer nor resolve approvals', () => {
+    const result = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-1',
+        canResolveApproval: false,
+        code: 'approval_pending',
+        toolName: 'create_post',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(view.cards[0].actions).toBeUndefined();
+  });
+
+  it.each([
+    ['three posts or fewer', true, ['Approve', 'Decline']],
+    ['more than three posts', false, []],
+  ])(
+    'puts Approve on a batch card only for %s',
+    (_label, isApprovableHere, labels) => {
+      const posts = [0, 1, 2].map((index) => ({
+        accountHandle: 'brand',
+        accountLabel: 'Brand account',
+        index,
+        media: [],
+        platform: 'instagram',
+        scheduledAt: `2026-11-1${5 + index}T08:00:00.000Z`,
+        text: `Post ${index + 1}`,
+        title: `Post ${index + 1}`,
+      }));
+      const result = withApprovalCard({
+        content: [],
+        isError: true,
+        structuredContent: {
+          approvalId: 'apr-9',
+          batch: { invalid: [], isApprovableHere, posts, total: 3 },
+          canApproveInCard: true,
+          canResolveApproval: true,
+          code: 'approval_pending',
+          toolName: 'create_scheduled_release',
+        },
+      });
+
+      const view = result.structuredContent?.genfeedCards as McpCardView;
+      const closing = view.cards[view.cards.length - 1];
+      expect(closing.actions?.map((action) => action.label) ?? []).toEqual(
+        labels,
+      );
+    },
+  );
+
   it('shows three posts of a queued batch in full, then the rest as a count with one link to the web review', () => {
     const posts = Array.from({ length: 3 }, (_, index) => ({
       accountHandle: 'brand',

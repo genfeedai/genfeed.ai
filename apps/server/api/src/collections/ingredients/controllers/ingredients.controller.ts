@@ -21,11 +21,13 @@ import {
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -401,6 +403,7 @@ export class IngredientsController {
   }
 
   @Patch(':ingredientId')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @UseGuards(AssetAccessGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
@@ -409,12 +412,9 @@ export class IngredientsController {
     @CurrentUser() user: User,
     @Body() updateIngredientDto: UpdateIngredientDto,
   ): Promise<JsonApiSingleResponse> {
-    const processedDto = {
-      ...(updateIngredientDto as unknown as Record<string, unknown>),
-    };
+    const processedDto: Record<string, unknown> = { ...updateIngredientDto };
 
-    // Load only an active ingredient in the caller organization, then enforce
-    // current-brand or organization-shared access below.
+    // Load only an active ingredient in the caller organization; brand access is checked below.
     const ingredient = await this.ingredientsService.findOne(
       scopedWhere(user.organizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull],
@@ -466,8 +466,7 @@ export class IngredientsController {
       user.organizationId,
     );
 
-    // Fetch the updated document with populated fields
-    // Only populate metadata fully and brand minimally (id, label, handle)
+    // Re-read with metadata fully populated and the brand minimal (id, label, handle)
     const data = await this.ingredientsService.findOne(
       scopedWhere(user.organizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull, PopulatePatterns.brandMinimal],
@@ -477,6 +476,7 @@ export class IngredientsController {
   }
 
   @Post(':ingredientId/cancellations')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     operationId: 'IngredientsController.cancelGeneration',

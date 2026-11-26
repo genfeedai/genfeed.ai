@@ -13,6 +13,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -29,7 +30,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  ByokProvider,
+} from '@genfeedai/contracts';
 import { ProfileSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -63,6 +68,7 @@ export class ProfilesController {
    * Create a new profile
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() req: Request,
@@ -119,6 +125,7 @@ export class ProfilesController {
    * Update profile
    */
   @Patch(':profileId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() req: Request,
@@ -139,6 +146,7 @@ export class ProfilesController {
    * Delete profile
    */
   @Delete(':profileId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Param('profileId') profileId: string,
@@ -153,6 +161,7 @@ export class ProfilesController {
    * Apply profile to prompt
    */
   @Post(':profileId/apply')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,
@@ -196,6 +205,7 @@ export class ProfilesController {
    * Analyze content for tone compliance
    */
   @Post(':profileId/analyze')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,
@@ -239,6 +249,7 @@ export class ProfilesController {
    * Generate profile from examples
    */
   @Post('generate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,

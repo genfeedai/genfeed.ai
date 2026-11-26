@@ -4,7 +4,7 @@ import {
   mergeMoodBoardLayout,
   toMoodBoardLayout,
 } from '@genfeedai/utils/moodboard/mood-board-layout.util';
-import { applyNodeChanges, type NodeChange } from '@xyflow/react';
+import type { NodeChangeset } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   LibraryCanvasFlowNode,
@@ -78,8 +78,8 @@ export function useLibraryCanvasNodes({
   }
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<LibraryCanvasFlowNode>[]) => {
-      setNodes((current) => applyNodeChanges(changes, current));
+    (changes: NodeChangeset<LibraryCanvasFlowNode>) => {
+      setNodes((current) => changes.applyTo(current));
     },
     [],
   );

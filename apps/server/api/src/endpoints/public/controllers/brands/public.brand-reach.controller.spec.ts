@@ -1,6 +1,6 @@
+import { BrandReachService } from '@api/collections/brands/services/brand-reach.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { PublicBrandReachController } from '@api/endpoints/public/controllers/brands/public.brand-reach.controller';
-import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,12 +19,22 @@ describe('PublicBrandReachController', () => {
         { provide: BrandsService, useValue: { findOne } },
         {
           // Totals exist only for the one organization the brand belongs to.
-          provide: PublicBrandReachService,
+          provide: BrandReachService,
           useValue: {
             findForBrand: async (_brandId: string, organizationId: string) =>
               organizationId === 'org_profile'
-                ? { engagements: 12, impressions: null, views: 345 }
-                : { engagements: 0, impressions: null, views: 0 },
+                ? {
+                    engagements: 12,
+                    followers: 6789,
+                    impressions: null,
+                    views: 345,
+                  }
+                : {
+                    engagements: 0,
+                    followers: null,
+                    impressions: null,
+                    views: 0,
+                  },
           },
         },
       ],
@@ -36,12 +46,24 @@ describe('PublicBrandReachController', () => {
     findOne.mockResolvedValue({ id: BRAND_ID, organizationId: 'org_profile' });
 
     await expect(controller.findBrandReach(BRAND_ID)).resolves.toEqual({
-      data: { engagements: 12, impressions: null, views: 345 },
+      data: { engagements: 12, followers: 6789, impressions: null, views: 345 },
     });
   });
 
   it('answers nothing for a brand that is missing or not public', async () => {
     findOne.mockResolvedValue(null);
+
+    await expect(controller.findBrandReach(BRAND_ID)).resolves.toEqual({
+      data: null,
+    });
+  });
+
+  it('answers nothing for a public brand whose owner turned Public analytics off', async () => {
+    findOne.mockResolvedValue({
+      id: BRAND_ID,
+      isPublicAnalyticsEnabled: false,
+      organizationId: 'org_profile',
+    });
 
     await expect(controller.findBrandReach(BRAND_ID)).resolves.toEqual({
       data: null,

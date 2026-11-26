@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   formatActivityMessage,
   type IngredientCategory,
+  isPlatform,
   PageScope,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -48,10 +49,12 @@ import {
   getActivityDetailText,
   getActivityIngredientPreviewUrl,
   getActivityLifecycleText,
+  getActivityResultType,
   getActivityRunDuration,
   getActivityStatus,
   getBackgroundTaskStatus,
-  getResultTypeFromActivityKey,
+  getPostGroupLink,
+  getPostTrail,
   isBackgroundTask,
   parseActivityValue,
   parsePostActivityValue,
@@ -63,6 +66,9 @@ import ActivityThumbnailCell from './components/ActivityThumbnailCell';
 
 /** The live post behind a published-post activity, when it carries one. */
 function getPublishedPostLink(activity: IActivity) {
+  if (activity.postGroup) {
+    return getPostGroupLink(activity);
+  }
   if (activity.key !== ActivityKey.POST_PUBLISHED || !activity.value) {
     return undefined;
   }
@@ -70,6 +76,18 @@ function getPublishedPostLink(activity: IActivity) {
   return postInfo?.url && postInfo.platform
     ? { platform: postInfo.platform, url: postInfo.url }
     : undefined;
+}
+
+/** "Instagram @account", the network and the account a post went to. */
+function getPostAccountText(activity: IActivity): string | undefined {
+  const { preview } = activity;
+  if (!preview) return undefined;
+  const platform = isPlatform(preview.platform)
+    ? getPostsPlatformLabel(preview.platform)
+    : preview.platform;
+  return [platform, preview.authorHandle ? `@${preview.authorHandle}` : '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 export default function ActivitiesList({
@@ -185,7 +203,7 @@ export default function ActivitiesList({
         header: translate('columnWhen'),
         key: 'when',
         sortable: false,
-        className: 'w-44',
+        className: 'w-20',
         render: (a: IActivity) => formatActivityClock(a.createdAt),
         // The day heading above already says when; only a run's length adds to it.
         subtext: (a: IActivity) => {
@@ -242,7 +260,7 @@ export default function ActivitiesList({
                 resultId={resultId}
                 resultType={
                   (parsed?.resultType as IngredientCategory) ||
-                  getResultTypeFromActivityKey(a.key)
+                  getActivityResultType(a)
                 }
                 status={getBackgroundTaskStatus(a.key)}
                 isBackgroundTask={isBackgroundTask(a)}
@@ -270,12 +288,16 @@ export default function ActivitiesList({
           );
         },
         subtext: (a: IActivity) =>
-          [
-            getActivityLifecycleText(a),
-            getActivityDetailText(a, translateGenerationFailure),
-          ]
-            .filter(Boolean)
-            .join(' · '),
+          a.postGroup
+            ? [getPostAccountText(a), getPostTrail(a), a.postGroup.error]
+                .filter(Boolean)
+                .join(' · ')
+            : [
+                getActivityLifecycleText(a),
+                getActivityDetailText(a, translateGenerationFailure),
+              ]
+                .filter(Boolean)
+                .join(' · '),
       },
       {
         header: translate('columnStatus'),

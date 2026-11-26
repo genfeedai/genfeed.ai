@@ -113,6 +113,9 @@ export default function AppProtectedLayoutSidebar({
     onToggleCollapse,
   };
 
+  // The desktop menu has these in the strip above it (`SidebarStripActions`).
+  // Only the mobile drawer, which has no strip, keeps them as rows; it is the
+  // copy the shell hands an `onClose`.
   const renderQuickActions = () => (
     <>
       <SidebarActionTrigger
@@ -220,7 +223,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
-        renderTopSlot={renderQuickActions}
+        renderTopSlot={onClose ? renderQuickActions : undefined}
       />
     );
   }
@@ -233,7 +236,7 @@ export default function AppProtectedLayoutSidebar({
       sectionLabel={translate('workspace')}
       collapsedSidebarWidth={0}
       mobileSidebarWidth={304}
-      renderTopSlot={renderQuickActions}
+      renderTopSlot={onClose ? renderQuickActions : undefined}
       secondaryItems={secondaryMenuItems}
       showPrimaryItems
       sidebarWidth={sidebarWidth}

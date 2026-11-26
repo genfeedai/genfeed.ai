@@ -4,6 +4,7 @@ import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import * as PageModule from './page';
+import PublishingApprovalContent from './publishing-approval-content';
 
 assertSourceHasExport(
   'app/(protected)/[orgSlug]/[brandSlug]/publishing/batches/[approvalId]/page.tsx',
@@ -21,7 +22,7 @@ vi.mock(
 describe('publishing batch review page', () => {
   it('awaits the route params and opens that approval', async () => {
     render(
-      await PageModule.default({
+      await PublishingApprovalContent({
         params: Promise.resolve({ approvalId: 'apr-week' }),
       }),
     );
@@ -37,7 +38,7 @@ describe('publishing batch review page', () => {
     const failure = new Error('params failed');
 
     await expect(
-      PageModule.default({ params: Promise.reject(failure) }),
+      PublishingApprovalContent({ params: Promise.reject(failure) }),
     ).rejects.toBe(failure);
   });
 });

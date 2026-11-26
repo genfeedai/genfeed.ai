@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
@@ -8,6 +9,7 @@ import {
   TwitterPipelineSearchDto,
 } from '@api/services/twitter-pipeline/dto/twitter-pipeline.dto';
 import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   Body,
   Controller,
@@ -24,6 +26,7 @@ export class TwitterPipelineController {
   constructor(private readonly twitterqueryService: TwitterPipelineService) {}
 
   @Post('search')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('discovery')
   @HttpCode(HttpStatus.OK)
   search(
@@ -41,6 +44,7 @@ export class TwitterPipelineController {
   }
 
   @Post('draft')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('discovery')
   @HttpCode(HttpStatus.OK)
   draft(
@@ -58,6 +62,7 @@ export class TwitterPipelineController {
   }
 
   @Post('publish')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('publishing')
   @HttpCode(HttpStatus.OK)
   publish(

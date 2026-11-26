@@ -130,12 +130,7 @@ export default function ServiceLandingPage({
   );
 
   return (
-    <PublicShell
-      overlay={
-        <div className="pointer-events-none fixed inset-0 z-0 bg-dots opacity-40" />
-      }
-      topbar={topbar}
-    >
+    <PublicShell topbar={topbar}>
       <MarketingEntrance cards={false}>
         <PageLayout
           isHeroVisualStacked={config.isAgentFirst}

@@ -90,7 +90,7 @@ const FAQ_ITEMS_BEFORE_LAUNCH = [
 
 const FAQ_ITEMS_AFTER_LAUNCH = [
   {
-    answer: `Videos you have not posted are kept for ${videoRetentionDays(false)} days on pay-as-you-go and ${videoRetentionDays(true)} days on a subscription. A video attached to a post you scheduled or published is kept, and images are not affected. Download a video before it expires to keep it.`,
+    answer: `Videos you have not posted are kept for ${videoRetentionDays(false)} days on pay-as-you-go and ${videoRetentionDays(true)} days on a subscription. A video attached to a scheduled, paused, publishing, published, or failed post is kept. A video attached only to a draft, cancelled, or skipped post is not kept. Images are not affected. Download a video before it expires to keep it.`,
     question: 'How long are my videos stored?',
   },
   {
@@ -100,7 +100,7 @@ const FAQ_ITEMS_AFTER_LAUNCH = [
   },
   {
     answer:
-      'Yes. Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and you review and publish in the dashboard. What an agent can do depends on its client; the Claude connector cannot create images or video, so add the full Genfeed server as a second connector to generate images, video and audio.',
+      'Yes. Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and you review and publish in the dashboard. Your agent can also generate images, video and audio.',
     question: 'Can I use my own agent?',
   },
   {

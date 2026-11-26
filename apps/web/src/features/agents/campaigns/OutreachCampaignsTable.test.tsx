@@ -44,7 +44,6 @@ function renderTable() {
         campaigns={[campaign]}
         isLoading={false}
         onComplete={vi.fn()}
-        onConfigure={vi.fn()}
         onDelete={vi.fn()}
         onPause={vi.fn()}
         onStart={vi.fn()}
@@ -61,6 +60,15 @@ describe('OutreachCampaignsTable', () => {
     expect(
       screen.getByRole('link', { name: 'Open Launch DMs' }),
     ).toHaveAttribute('href', '/acme/brand/messages/outreach/camp-1');
+  });
+
+  it('opens the configure action as a link to the sequence page', () => {
+    renderTable();
+
+    expect(screen.getByRole('link', { name: 'Configure' })).toHaveAttribute(
+      'href',
+      '/acme/brand/messages/outreach/camp-1',
+    );
   });
 
   it('opens the sequence summary in the sidebar on row click', () => {

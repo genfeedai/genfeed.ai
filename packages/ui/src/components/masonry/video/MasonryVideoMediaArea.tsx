@@ -131,7 +131,9 @@ export default function MasonryVideoMediaArea({
             />
           )}
 
-          {isExpired && <ExpiredVideoNotice ingredientId={video.id} />}
+          {isExpired && (
+            <ExpiredVideoNotice className="z-10" ingredientId={video.id} />
+          )}
 
           {posterImageUrl ? (
             <Image

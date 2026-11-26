@@ -13,6 +13,7 @@ import {
 import { buildTrainingOrderBy } from '@api/collections/trainings/utils/training-list-order.util';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -38,6 +39,7 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ActivitySource,
+  ApiKeyScope,
   IngredientStatus,
   TrainingStage,
 } from '@genfeedai/contracts';
@@ -248,6 +250,7 @@ export class TrainingsController extends BaseCRUDController<
    * Override create method to handle training creation, archive generation, and Replicate submission
    */
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseGuards(SubscriptionGuard, TrainingAccessGuard, CreditsGuard)
   @Credits({
     description: 'Model training',

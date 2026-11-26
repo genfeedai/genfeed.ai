@@ -194,7 +194,6 @@ describe('MCP setup page', () => {
         );
         expect(html).toContain(`codex mcp add genfeed --url ${identifier}`);
         expect(html).not.toContain(`${identifier}/mcp`);
-        expect(html).toContain(`${identifier}/claude`);
       },
     );
 
@@ -239,7 +238,7 @@ describe('MCP setup page', () => {
     expect(html).toContain('id="agent-setup-prompt"');
     expect(html).toContain('data-copy-source="agent-setup-prompt"');
     expect(promptHtml).toContain(
-      'Set up the Genfeed MCP server on this machine,',
+      'Set up the Genfeed MCP server on this machine for the local agent I am using.',
     );
     expect(promptHtml).toContain(
       'Authentication: browser OAuth (no API key required)',
@@ -484,19 +483,24 @@ describe('MCP setup page', () => {
       );
     });
 
-    it('offers Claude clients the full server for image, video and audio generation', () => {
+    it('points every Claude client at the full-access MCP URL, never the directory endpoint', () => {
       const dom = new JSDOM(renderSetupPage());
       const text = (id: string): string =>
         dom.window.document.getElementById(id)?.textContent ?? '';
 
       expect(text('claude-code-command')).toBe(
-        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
       );
-      expect(text('claude-code-media-command')).toBe(
-        'claude mcp add --transport http genfeed-media --scope user https://mcp.genfeed.ai/mcp',
+      expect(text('claude-chat-url')).toBe('https://mcp.genfeed.ai/mcp');
+      expect(
+        dom.window.document.getElementById('claude-code-media-command'),
+      ).toBeNull();
+      expect(
+        dom.window.document.getElementById('claude-chat-media-url'),
+      ).toBeNull();
+      expect(dom.window.document.documentElement.outerHTML).not.toMatch(
+        /\/mcp\/claude|plugin install genfeed/,
       );
-      expect(text('claude-chat-url')).toBe('https://mcp.genfeed.ai/mcp/claude');
-      expect(text('claude-chat-media-url')).toBe('https://mcp.genfeed.ai/mcp');
       expect(dom.window.document.body.textContent).not.toContain(
         'Genfeed Studio',
       );

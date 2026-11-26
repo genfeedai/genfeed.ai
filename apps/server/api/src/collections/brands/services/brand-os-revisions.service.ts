@@ -1,12 +1,20 @@
+import type { UpdateBrandKitIdentityDto } from '@api/collections/brands/dto/update-brand-kit-identity.dto';
 import type { UpdateBrandKitVisualIdentityDto } from '@api/collections/brands/dto/update-brand-kit-visual-identity.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import {
+  parseBrandIdentity,
+  withBrandIdentity,
+} from '@api/collections/brands/utils/brand-identity.util';
+import { assertBrandKitRequiredTextContextFits } from '@api/collections/brands/utils/brand-kit-required-context.util';
+import {
   validateBrandOsDiagnostics,
   validateBrandOsEvidence,
 } from '@api/collections/brands/utils/brand-os-revision-validation.util';
+import { reviewedRulesHash } from '@api/collections/brands/utils/brand-rules-review.util';
 import {
   brandVisualIdentityColumns,
+  type OwnerEdit,
   parseVisualIdentity,
   withVisualIdentity,
 } from '@api/collections/brands/utils/brand-visual-identity.util';
@@ -55,8 +63,6 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-
-const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
 @Traced()
 @Injectable()
@@ -333,6 +339,29 @@ export class BrandOsRevisionsService {
     patch: UpdateBrandKitVisualIdentityDto,
   ): Promise<IBrandOsRevision> {
     const values = parseVisualIdentity(patch);
+    return this.applyOwnerEdit(organizationId, brandId, {
+      columns: brandVisualIdentityColumns(values),
+      edit: (previous) => withVisualIdentity(previous, values),
+    });
+  }
+
+  async applyIdentity(
+    organizationId: string,
+    brandId: string,
+    patch: UpdateBrandKitIdentityDto,
+  ): Promise<IBrandOsRevision> {
+    const values = parseBrandIdentity(patch);
+    return this.applyOwnerEdit(organizationId, brandId, {
+      columns: values,
+      edit: (previous) => withBrandIdentity(previous, values),
+    });
+  }
+
+  private async applyOwnerEdit(
+    organizationId: string,
+    brandId: string,
+    { columns, edit }: OwnerEdit,
+  ): Promise<IBrandOsRevision> {
     return this.prisma.$transaction(async (tx) => {
       const brand = await this.lockBrand(tx, organizationId, brandId);
       const revision = await tx.brandOsRevision.findFirst({
@@ -348,17 +377,13 @@ export class BrandOsRevisionsService {
         ? (revision.content as unknown as IBrandKitDraft)
         : await this.buildCurrentBrandContent(brand, organizationId, brandId);
       const persisted = this.normalize(
-        this.resolveDefaultKitContent(
-          previous,
-          withVisualIdentity(previous, values),
-          true,
-        ),
+        this.resolveDefaultKitContent(previous, edit(previous), true),
         organizationId,
         brandId,
       );
       // sql-risk-audit: ignore bulk-write-tenant-review -- scoped by the locked brand id and organization.
       await tx.brand.updateMany({
-        data: brandVisualIdentityColumns(values),
+        data: columns,
         where: { id: brandId, isDeleted: false, organizationId },
       });
       return this.saveDraft(tx, organizationId, brandId, persisted, revision);
@@ -422,31 +447,10 @@ export class BrandOsRevisionsService {
         organizationId,
         brandId,
       );
-      if (
-        reviewedGenerationRulesHash !== undefined &&
-        (typeof reviewedGenerationRulesHash !== 'string' ||
-          reviewedGenerationRulesHash.length !== 71 ||
-          !SHA256_DIGEST_PATTERN.test(reviewedGenerationRulesHash))
-      )
-        throw new BadRequestException('Invalid generation rules review hash');
-      let generationRulesReviewHash: string | null = null;
-      if (content.generationRules !== undefined) {
-        try {
-          generationRulesReviewHash = hashBrandGenerationRulesReviewV1(
-            content.generationRules,
-          );
-        } catch {
-          throw new BadRequestException('Invalid Brand OS generation rules');
-        }
-        if (reviewedGenerationRulesHash === undefined)
-          throw new BadRequestException(
-            'A valid generation rules review hash is required',
-          );
-        if (reviewedGenerationRulesHash !== generationRulesReviewHash)
-          throw new ConflictException(
-            'These generation rules changed. Reload and review them before approving.',
-          );
-      }
+      const generationRulesReviewHash = reviewedRulesHash(
+        content,
+        reviewedGenerationRulesHash,
+      );
       for (const [key, field] of Object.entries(content.fields)) {
         if (!field) continue;
         if (field.applyActionDefault === 'reject') {
@@ -460,6 +464,7 @@ export class BrandOsRevisionsService {
           field.currentValue = field.proposedValue;
         delete field.proposedValue;
       }
+      assertBrandKitRequiredTextContextFits(row, content);
       content.assetCandidates = [];
       content.status = 'accepted';
       await this.syncApprovedStyle(tx, organizationId, brandId, content);
@@ -489,7 +494,7 @@ export class BrandOsRevisionsService {
   }
 
   /**
-   * Palette and font roles live on the brand row too, so prompts and the agent
+   * Palette, font roles and the visual direction live on the brand row too, so prompts and the agent
    * read the approved kit without resolving a revision. Only fields the
    * revision carries are written; a revision without them leaves the brand as
    * it is.
@@ -506,9 +511,11 @@ export class BrandOsRevisionsService {
     const fontRoles = brandFontRolesSchema.safeParse(
       content.fields.fontRoles?.currentValue,
     );
+    const visualDirection = content.fields.visualDirection?.currentValue;
     const data: Prisma.BrandUpdateManyMutationInput = {
       ...(palette.success ? { colorPalette: toPrismaJson(palette.data) } : {}),
       ...(fontRoles.success ? { fontRoles: toPrismaJson(fontRoles.data) } : {}),
+      ...(typeof visualDirection === 'string' ? { visualDirection } : {}),
     };
     if (Object.keys(data).length === 0) return;
     // sql-risk-audit: ignore bulk-write-tenant-review -- organizationId, isDeleted:false and the unique brand id bound the write to the one brand under the approval lock.

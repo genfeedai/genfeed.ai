@@ -292,6 +292,18 @@ export function fitBrandContextToBudget(
   return fitBrandContextToBudgetWithReport(contributions, maxLength).text;
 }
 
+/** Characters the required sections take once rendered, before any budget is applied. */
+export function measureRequiredBrandContext(
+  requiredContributions: readonly BrandContextContribution[],
+): number {
+  return requiredContributions
+    .map((contribution) =>
+      renderContribution(contribution, contribution.content),
+    )
+    .filter(Boolean)
+    .join('\n\n').length;
+}
+
 /** Protects required sections in full; only optional sections enter the reducer. */
 export function fitRequiredBrandContextToBudgetWithReport(
   requiredContributions: readonly BrandContextContribution[],
@@ -305,12 +317,7 @@ export function fitRequiredBrandContextToBudgetWithReport(
   ) {
     throw new RangeError('Invalid required brand context budget');
   }
-  const requiredCharacters = requiredContributions
-    .map((contribution) =>
-      renderContribution(contribution, contribution.content),
-    )
-    .filter(Boolean)
-    .join('\n\n').length;
+  const requiredCharacters = measureRequiredBrandContext(requiredContributions);
   for (const contribution of requiredContributions) {
     if (
       contribution.untrusted &&

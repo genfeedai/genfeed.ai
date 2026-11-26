@@ -47,6 +47,8 @@ function mergeContribution(
     (aggregate.sources ?? []).map((source) => source.id),
   );
 
+  const visualSeen = new Set(aggregate.visualDirections ?? []);
+
   const next: ContentHarnessContribution = {
     evaluationCriteria: [...(aggregate.evaluationCriteria ?? [])],
     guardrails: [...(aggregate.guardrails ?? [])],
@@ -54,6 +56,8 @@ function mergeContribution(
     sources: [...(aggregate.sources ?? [])],
     styleDirectives: [...(aggregate.styleDirectives ?? [])],
     systemDirectives: [...(aggregate.systemDirectives ?? [])],
+    visualDirections: [...(aggregate.visualDirections ?? [])],
+    palette: [...(aggregate.palette ?? [])],
   };
 
   mergeUnique(
@@ -66,6 +70,21 @@ function mergeContribution(
     contribution.styleDirectives,
     styleSeen,
   );
+  mergeUnique(
+    next.visualDirections ?? [],
+    contribution.visualDirections,
+    visualSeen,
+  );
+  const paletteSeen = new Set(
+    (next.palette ?? []).map((color) => color.hex.toUpperCase()),
+  );
+  for (const color of contribution.palette ?? []) {
+    const key = color.hex.toUpperCase();
+    if (!paletteSeen.has(key)) {
+      paletteSeen.add(key);
+      next.palette?.push(color);
+    }
+  }
   mergeUnique(next.guardrails ?? [], contribution.guardrails, guardrailSeen);
   mergeUnique(
     next.evaluationCriteria ?? [],
@@ -90,11 +109,13 @@ function hasContribution(contribution: ContentHarnessContribution): boolean {
     [
       contribution.systemDirectives,
       contribution.styleDirectives,
+      contribution.visualDirections,
       contribution.guardrails,
       contribution.evaluationCriteria,
       contribution.providerHints,
     ].some((values) => values?.some((value) => value.trim().length > 0)) ||
-    (contribution.sources?.length ?? 0) > 0
+    (contribution.sources?.length ?? 0) > 0 ||
+    (contribution.palette?.length ?? 0) > 0
   );
 }
 
@@ -171,5 +192,9 @@ export async function composeContentHarnessBrief(
     sources: aggregate.sources ?? [],
     styleDirectives: aggregate.styleDirectives ?? [],
     systemDirectives: aggregate.systemDirectives ?? [],
+    ...(aggregate.visualDirections?.length
+      ? { visualDirections: aggregate.visualDirections }
+      : {}),
+    ...(aggregate.palette?.length ? { palette: aggregate.palette } : {}),
   };
 }

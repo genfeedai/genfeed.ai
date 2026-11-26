@@ -4,7 +4,14 @@ import {
   HEALTH_CONTRIBUTOR,
   type HealthContributor,
 } from '@libs/health/health-contributor.interface';
-import { Controller, Get, Inject, Optional } from '@nestjs/common';
+import { RedisService } from '@libs/redis/redis.service';
+import {
+  Controller,
+  Get,
+  Inject,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 interface HealthResponse {
   service: string;
@@ -22,7 +29,22 @@ export class HealthController {
     @Optional()
     @Inject(HEALTH_CONTRIBUTOR)
     private readonly contributor?: HealthContributor,
+    @Optional()
+    private readonly redisService?: RedisService,
   ) {}
+
+  /**
+   * A Redis client that was connected and is now closed for good never
+   * recovers, so every Redis command in this task fails until it restarts
+   * (#11388). Answering 503 gets the task replaced. Only the terminal state
+   * counts: a client still reconnecting is healthy, so a Redis outage does not
+   * take every task down with it. Reads in-memory client state, no I/O.
+   */
+  private assertRedisConnectionOpen(): void {
+    if (this.redisService?.hasClosedConnection()) {
+      throw new ServiceUnavailableException('Redis connection closed');
+    }
+  }
 
   private getServiceName(): string {
     return process.env.SERVICE_NAME ?? 'api';
@@ -40,6 +62,7 @@ export class HealthController {
   @Public()
   @Get()
   check(): HealthResponse {
+    this.assertRedisConnectionOpen();
     return this.buildResponse('ok');
   }
 
@@ -66,6 +89,7 @@ export class HealthController {
   @Public()
   @Get('ready')
   ready(): HealthResponse {
+    this.assertRedisConnectionOpen();
     const readiness = this.contributor?.getReadiness?.();
 
     if (!readiness) {

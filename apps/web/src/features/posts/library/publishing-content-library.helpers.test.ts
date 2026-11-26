@@ -5,7 +5,11 @@ import {
   PostFormat,
   PostStatus,
 } from '@genfeedai/contracts';
-import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import type {
+  ICredential,
+  IPost,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +18,7 @@ import {
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
   formatPublishingContentFormat,
+  hasPublishingInFlight,
   type PublishingContentLibraryItem,
 } from '@/features/posts/library/publishing-content-library.helpers';
 
@@ -587,5 +592,79 @@ describe('createPublishingBoardColumns', () => {
         (column) => `${column.status}:${column.items.length}`,
       ),
     ).toEqual(expected);
+  });
+});
+
+describe('release targets and their connected account', () => {
+  const release = {
+    baseContent: 'Sofa day',
+    createdAt: '2026-11-26T09:00:00.000Z',
+    id: 'release-1',
+    media: [],
+    status: 'published',
+    targets: [
+      { credentialId: 'credential-1', id: 'post-1', platform: 'instagram' },
+      { credentialId: 'credential-2', id: 'post-2', platform: 'twitter' },
+    ],
+    title: 'Sofa day carousel',
+  } as unknown as IReleaseGroup;
+  const credentials = [
+    {
+      externalHandle: 'koro',
+      externalName: 'Koro',
+      id: 'credential-1',
+      platform: 'instagram',
+    },
+  ] as unknown as ICredential[];
+
+  it('gives each target the connected account the list does not carry', () => {
+    const [item] = createPublishingContentLibraryItems({
+      articles: [],
+      credentials,
+      newsletters: [],
+      posts: [],
+      releases: [release],
+    });
+
+    expect(item?.release?.targets?.map((target) => target.credential)).toEqual([
+      credentials[0],
+      undefined,
+    ]);
+    expect(item?.accounts?.map((account) => account.id)).toEqual([
+      'credential-1',
+    ]);
+  });
+});
+
+describe('hasPublishingInFlight', () => {
+  it.each([
+    [
+      'a publishing release',
+      { releases: [{ status: 'publishing' }], posts: [] },
+    ],
+    ['a processing post', { releases: [], posts: [{ status: 'PROCESSING' }] }],
+  ])('is true for %s', (_name, input) => {
+    expect(
+      hasPublishingInFlight(
+        input as unknown as { posts: IPost[]; releases: IReleaseGroup[] },
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['nothing', { releases: [], posts: [] }],
+    [
+      'finished and waiting posts',
+      {
+        posts: [{ status: 'DRAFT' }],
+        releases: [{ status: 'published' }, { status: 'scheduled' }],
+      },
+    ],
+  ])('is false for %s', (_name, input) => {
+    expect(
+      hasPublishingInFlight(
+        input as unknown as { posts: IPost[]; releases: IReleaseGroup[] },
+      ),
+    ).toBe(false);
   });
 });

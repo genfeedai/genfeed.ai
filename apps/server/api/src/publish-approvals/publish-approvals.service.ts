@@ -1,10 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AgentArtifactReferenceService } from '@api/agent-artifacts/agent-artifact-reference.service';
 import {
-  flattenPostIngredients,
-  orderedPostIngredientLinks,
-} from '@api/collections/posts/services/post-ingredient-links.util';
-import {
   buildApprovalProvenance,
   isInteractiveApprovalOrigin,
   isPolicyBoundApprovalOrigin,
@@ -24,8 +20,8 @@ import {
   resetExpiredPublishExecution,
 } from '@api/publish-approvals/publish-approval-lease.util';
 import {
+  findApprovalPostOrThrow,
   findPublishApprovalOrThrow,
-  PublishApprovalNotFoundException,
 } from '@api/publish-approvals/publish-approval-lookup';
 import {
   assertApprovalEnhancementReady,
@@ -33,7 +29,12 @@ import {
   withMediaWarningProvenance,
   withMediaWarnings,
 } from '@api/publish-approvals/publish-approval-media-gate';
-import { describeLostPublishClaim } from '@api/publish-approvals/publish-claim-held.util';
+import { logApprovalTelemetry } from '@api/publish-approvals/publish-approval-telemetry';
+import {
+  describeLostPublishClaim,
+  describeLostTransition,
+  describeRejectedTransition,
+} from '@api/publish-approvals/publish-claim-held.util';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -755,14 +756,13 @@ export class PublishApprovalsService {
     integrity: 'blocked' | 'matched' | 'not_applicable',
     organizationId: string,
   ): void {
-    this.logger?.log('conversation_shell_approval', {
+    logApprovalTelemetry(
+      this.logger,
       action,
+      outcome,
       integrity,
       organizationId,
-      origin: readApprovalOrigin(),
-      outcome,
-      telemetryQueryVersion: 1,
-    });
+    );
   }
 
   @Traced()
@@ -777,9 +777,7 @@ export class PublishApprovalsService {
     const from = this.contractCodec.parseStatus(current.status);
     if (from === next) return this.contractCodec.toInterface(current);
     if (!canTransitionPublishApprovalStatus(from, next)) {
-      throw new ConflictException(
-        `Publish approval cannot transition from ${from} to ${next}.`,
-      );
+      throw new ConflictException(describeRejectedTransition(from, next));
     }
     // Guard the write with the prior status to reject concurrent transitions.
     const transitioned = await this.prisma.publishApproval.updateMany({
@@ -797,9 +795,14 @@ export class PublishApprovalsService {
       where: { id: current.id, organizationId: organizationId, status: from },
     });
     if (transitioned.count !== 1) {
-      throw new ConflictException(
-        `Publish approval changed concurrently; expected status ${from}.`,
-      );
+      const latest =
+        next === PublishApprovalStatus.QUEUED
+          ? await this.getApprovalOrThrow(organizationId, approvalId)
+          : undefined;
+      if (latest?.status === PublishApprovalStatus.QUEUED) {
+        return this.contractCodec.toInterface(latest);
+      }
+      throw new ConflictException(describeLostTransition(from, latest?.status));
     }
     const updated = await this.getApprovalOrThrow(organizationId, approvalId);
     return this.contractCodec.toInterface(updated);
@@ -961,26 +964,7 @@ export class PublishApprovalsService {
     postId: string,
     client: Pick<Prisma.TransactionClient, 'post'> = this.prisma,
   ): Promise<ApprovalPost> {
-    const row = await client.post.findFirst({
-      select: {
-        agentContextVersion: true,
-        brandId: true,
-        credentialId: true,
-        id: true,
-        ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
-        isDeleted: true,
-        organizationId: true,
-        platform: true,
-        publishApprovalId: true,
-        scheduledDate: true,
-        status: true,
-        targetExecutionState: true,
-        timezone: true,
-      },
-      where: scopedWhere(organizationId, { id: postId }),
-    });
-    if (!row) throw new PublishApprovalNotFoundException('Post', postId);
-    return flattenPostIngredients(row) as unknown as ApprovalPost;
+    return findApprovalPostOrThrow(client.post, organizationId, postId);
   }
 
   private getApprovalOrThrow(

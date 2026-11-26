@@ -16,7 +16,7 @@ export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
   {
     name: 'manage_brand_kit',
     description:
-      'Save one Brand Kit section for an explicit brand. Use visual_identity for colors and fonts (owner or admin), writing_voice for tone and writing guidance, or strategy for goals, platforms, and cadence. Send only fields for that section.',
+      'Save one Brand Kit section for an explicit brand, or approve its draft. Use identity for the brand name (label) and description (owner or admin), visual_identity for colors, fonts and the visual direction of images and video (owner or admin), writing_voice for tone and writing guidance, or strategy for goals, platforms, and cadence. Send only fields for that section. A brand whose approved Brand Kit has no name fails every branded text generation, so set the name with identity, then use approve (owner or admin): the first approve call approves nothing and returns the draft to show the person; after they agree in this conversation, repeat it with confirmed true and the revisionId and updatedAt it returned.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -25,20 +25,50 @@ export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['visual_identity', 'writing_voice', 'strategy'],
+          enum: [
+            'visual_identity',
+            'writing_voice',
+            'strategy',
+            'identity',
+            'approve',
+          ],
         },
         brandId: {
           type: 'string',
           description: 'The ID of the brand to edit.',
         },
+        confirmed: {
+          type: 'boolean',
+          description:
+            'For approve only. Set true only after the person has explicitly agreed, in this conversation, to approve this draft. Without it nothing is approved and the call returns what to confirm.',
+        },
+        revisionId: {
+          type: 'string',
+          description:
+            'For approve with confirmed true: the revisionId the first approve call returned.',
+        },
+        updatedAt: {
+          type: 'string',
+          description:
+            'For approve with confirmed true: the updatedAt the first approve call returned, unchanged.',
+        },
         fields: {
           type: 'object',
+          description:
+            'For every action except approve. For identity send label (the brand name) and optionally description.',
           additionalProperties: false,
           properties: {
+            description: text,
+            label: text,
             backgroundColor: text,
             fontFamily: text,
             primaryColor: text,
             secondaryColor: text,
+            visualDirection: {
+              ...text,
+              description:
+                'The look of the brand images and video, in plain sentences (medium, light, mood, composition). Image and video generation use it; text generation never does.',
+            },
             colorPalette,
             fontRoles: {
               ...fontRoles,
@@ -72,7 +102,7 @@ export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
           },
         },
       },
-      required: ['action', 'brandId', 'fields'],
+      required: ['action', 'brandId'],
     },
   },
 ];

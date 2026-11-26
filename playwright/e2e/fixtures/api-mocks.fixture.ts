@@ -2055,6 +2055,7 @@ interface MockSkillRecord {
   outputSchema?: Record<string, unknown>;
   requiredProviders: string[];
   reviewDefaults?: Record<string, unknown>;
+  runsOn: 'desktop' | 'web';
   slug: string;
   source: 'built_in' | 'custom' | 'imported';
   status: 'disabled' | 'draft' | 'published';
@@ -2083,6 +2084,7 @@ export async function mockSkillsCatalog(page: Page): Promise<void> {
     organization: null,
     requiredProviders: ['openai'],
     reviewDefaults: { requiresApproval: false },
+    runsOn: 'web',
     slug: 'youtube-script-setup',
     source: 'built_in',
     status: 'published',
@@ -2115,13 +2117,34 @@ export async function mockSkillsCatalog(page: Page): Promise<void> {
     organization: null,
     requiredProviders: ['openai'],
     reviewDefaults: { requiresApproval: true },
+    runsOn: 'web',
     slug: 'launch-caption-reviewer',
     source: 'built_in',
     status: 'published',
     workflowStage: 'review',
   };
 
-  const skills = [baseSkill, variantSkill, reviewerSkill];
+  const desktopSkill: MockSkillRecord = {
+    category: 'video',
+    channels: [],
+    defaultInstructions: 'Render a Remotion composition on this machine.',
+    description: 'Builds a Remotion motion video on this machine.',
+    id: 'skill-motion-video',
+    isBuiltIn: true,
+    isEnabled: true,
+    modalities: ['video'],
+    name: 'Motion Video',
+    organization: null,
+    requiredProviders: [],
+    reviewDefaults: { requiresApproval: false },
+    runsOn: 'desktop',
+    slug: 'motion-video',
+    source: 'built_in',
+    status: 'published',
+    workflowStage: 'creation',
+  };
+
+  const skills = [baseSkill, variantSkill, reviewerSkill, desktopSkill];
 
   await routeApiPattern(page, '/skills**', async (route) => {
     const method = route.request().method();
@@ -3618,6 +3641,7 @@ export async function mockBrandWithMedia(
       cdnUrl: MOCK_BRAND_LOGO_DATA_URL,
       id: 'asset-logo-1',
     },
+    isPublicAnalyticsEnabled: true,
     scope: 'private',
     slug: 'brand-1',
     updatedAt: new Date().toISOString(),
@@ -3643,13 +3667,23 @@ export async function mockBrandWithMedia(
       status: 200,
     });
   });
+  await routeApiPattern(page, '/brands/brand-1/reach', async (route) => {
+    await route.fulfill({
+      json: { data: { engagements: 12, impressions: null, views: 1200 } },
+      status: 200,
+    });
+  });
   for (const pattern of ['/brands/brand-1', '/brands/slug**']) {
     await routeApiPattern(page, pattern, async (route) => {
       if (route.request().method() === 'PATCH') {
-        const { scope } = extractRequestPayload(route);
+        const { isPublicAnalyticsEnabled, scope } =
+          extractRequestPayload(route);
         if (typeof scope === 'string') {
           await waitForScopeSave?.(scope);
           brand.scope = scope;
+        }
+        if (typeof isPublicAnalyticsEnabled === 'boolean') {
+          brand.isPublicAnalyticsEnabled = isPublicAnalyticsEnabled;
         }
       }
 

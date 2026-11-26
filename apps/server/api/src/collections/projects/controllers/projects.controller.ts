@@ -4,11 +4,13 @@ import { ProjectQueryDto } from '@api/collections/projects/dto/project-query.dto
 import { UpdateProjectDto } from '@api/collections/projects/dto/update-project.dto';
 import type { ProjectDocument } from '@api/collections/projects/schemas/project.schema';
 import { ProjectsService } from '@api/collections/projects/services/projects.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ProjectSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -33,6 +35,7 @@ export class ProjectsController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -76,6 +79,7 @@ export class ProjectsController extends BaseCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async patch(
     @Req() request: Request,
     @CurrentUser() user: User,

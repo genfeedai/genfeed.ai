@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { UsageError } from '../cli';
 import type { ContentEvalRunOptions, FixtureRow } from '../contracts';
@@ -17,8 +18,8 @@ const FIXTURE = fileURLToPath(
     import.meta.url,
   ),
 );
-const MODEL = 'deepseek/deepseek-v4-flash-0731';
-const JUDGE = 'openai/gpt-5.6-luna';
+const MODEL: string = AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH;
+const JUDGE: string = AGENT_CHAT_MODEL_KEYS.GPT_6_LUNA;
 
 function skillDirectory(name: string, body: string): string {
   const directory = join(mkdtempSync(join(tmpdir(), 'skill-ab-')), name);

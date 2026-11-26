@@ -37,6 +37,7 @@ describe('PersonasService', () => {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
     };
+    libraryElement: { findMany: ReturnType<typeof vi.fn> };
     member: { findFirst: ReturnType<typeof vi.fn> };
     persona: {
       create: ReturnType<typeof vi.fn>;
@@ -67,6 +68,7 @@ describe('PersonasService', () => {
         findFirst: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
       },
+      libraryElement: { findMany: vi.fn().mockResolvedValue([]) },
       member: { findFirst: vi.fn() },
       persona: {
         create: vi.fn(),
@@ -1356,6 +1358,68 @@ describe('PersonasService', () => {
             personaId: 'persona-g',
           }),
         ).resolves.toBeNull();
+      });
+
+      it('rejects a handle that collides with a library element in the same brand', async () => {
+        prisma.persona.findMany.mockResolvedValue([]);
+        prisma.libraryElement.findMany.mockResolvedValue([
+          {
+            availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+            availableBrandIds: [],
+            brandId: 'brand-b',
+          },
+        ]);
+        prisma.brand.findMany.mockResolvedValue([
+          { id: 'brand-b', label: 'Podcast' },
+        ]);
+
+        const failure = await service
+          .assertNoHandleCollision({
+            availability: {
+              availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+              availableBrandIds: [],
+              brandId: 'brand-b',
+            },
+            handle: 'paris-loft',
+            organizationId: orgId,
+            owningBrandId: 'brand-b',
+          })
+          .catch((error: unknown) => error);
+
+        expect(failure).toBeInstanceOf(ValidationException);
+        expect(
+          JSON.stringify((failure as ValidationException).getResponse()),
+        ).toContain('already exists in Podcast');
+      });
+
+      it('lets an element keep its own handle when it is excluded', async () => {
+        prisma.persona.findMany.mockResolvedValue([]);
+        prisma.libraryElement.findMany.mockImplementation(
+          async (args: { where: { id?: { not: string } } }) =>
+            args.where.id?.not === 'el-1'
+              ? []
+              : [
+                  {
+                    availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+                    availableBrandIds: [],
+                    brandId: 'brand-b',
+                  },
+                ],
+        );
+
+        await expect(
+          service.assertNoHandleCollision({
+            availability: {
+              availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+              availableBrandIds: [],
+              brandId: 'brand-b',
+            },
+            excludeElementId: 'el-1',
+            handle: 'paris-loft',
+            organizationId: orgId,
+            owningBrandId: 'brand-b',
+          }),
+        ).resolves.toBeUndefined();
       });
 
       it('rejects a handle that collides with a character granted into the target brand', async () => {

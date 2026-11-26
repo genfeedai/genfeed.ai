@@ -17,6 +17,7 @@ import type {
   McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 import {
+  approvalButtons,
   channelLabel,
   fact,
   formatAmount,
@@ -96,6 +97,10 @@ const INVOCATION_STATUS: Readonly<
  */
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
   const kind = getMcpCardKind(tool.name);
+  // The approval card's buttons call this tool; hosts keep it from the model.
+  if (tool.name === 'answer_approval') {
+    return { ...tool, _meta: { ...tool._meta, ui: { visibility: ['app'] } } };
+  }
   if (!kind && tool.name !== 'resolve_approval') return tool;
   const status = INVOCATION_STATUS[kind ?? 'post'];
   return {
@@ -789,6 +794,11 @@ function buildBatchApprovalView(
       : `${total} ${total === 1 ? 'post' : 'posts'} waiting for approval`,
     [...(invalid > 0 ? fact('Left out as invalid', `${invalid}`) : [])],
     {
+      ...approvalButtons(
+        approvalId,
+        batch.isApprovableHere === true && data.canApproveInCard === true,
+        false,
+      ),
       description:
         batch.isApprovableHere === true
           ? 'Nothing is scheduled until you approve.'
@@ -835,20 +845,11 @@ function buildApprovalView(
       ? []
       : fact('Estimated cost', `${formatAmount(credits)} credits`),
     {
-      ...(data.canResolveApproval === true
-        ? {
-            // Approving happens in the Genfeed review inbox (the link below),
-            // never from the MCP host, so the card only offers to decline.
-            actions: [
-              {
-                approvalId,
-                decision: 'decline' as const,
-                kind: 'resolve_approval' as const,
-                label: 'Decline',
-              },
-            ],
-          }
-        : {}),
+      ...approvalButtons(
+        approvalId,
+        data.canApproveInCard === true,
+        data.canResolveApproval === true || data.canApproveInCard === true,
+      ),
       description: 'This action needs your approval before it runs.',
       id: approvalId,
       linkLabel: 'Review in Genfeed',

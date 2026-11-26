@@ -10,6 +10,7 @@ import {
   claimOAuthVerifyCredential,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -21,7 +22,7 @@ import {
 import { SelectFacebookPagesDto } from '@api/services/integrations/facebook/dto/select-facebook-pages.dto';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { FacebookPageConnectionService } from '@api/services/integrations/facebook/services/facebook-page-connection.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import type { IFacebookPageCandidate } from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 import {
   buildGrantedScopesCredentialPatch,
@@ -60,6 +61,7 @@ export class FacebookController {
   ) {}
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -101,6 +103,7 @@ export class FacebookController {
   }
 
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() body: Partial<CreateCredentialVerifyDto>,
@@ -246,6 +249,7 @@ export class FacebookController {
    * credential and each further one becomes its own credential on the brand.
    */
   @Post(':credentialId/select-page')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async selectPages(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -278,6 +282,7 @@ export class FacebookController {
   }
 
   @Post('post')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createPost(
     @CurrentUser() _user: User,
     @Body()
@@ -323,6 +328,7 @@ export class FacebookController {
   }
 
   @Post('schedule')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async schedulePost(
     @CurrentUser() _user: User,
     @Body()

@@ -233,3 +233,92 @@ describe('ThreadListRecencySections', () => {
     expect(screen.getByText('p1 5 Nov')).toBeVisible();
   });
 });
+
+describe('ThreadListRow selection', () => {
+  it('has no checkbox unless the page makes the row selectable', () => {
+    render(
+      <ul>
+        <ThreadListRow href="/t/1" title="Plain" />
+      </ul>,
+    );
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('reports a Shift-click as a range pick and shows the row as selected', async () => {
+    const onToggle = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ul>
+        <ThreadListRow
+          href="/t/1"
+          selection={{
+            isSelected: false,
+            isSelecting: false,
+            label: 'Select Plan',
+            onToggle,
+          }}
+          title="Plan"
+        />
+      </ul>,
+    );
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Select Plan' });
+    expect(checkbox).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(checkbox);
+    expect(onToggle).toHaveBeenLastCalledWith({ isRange: false });
+
+    await user.keyboard('{Shift>}');
+    await user.click(checkbox);
+    await user.keyboard('{/Shift}');
+    expect(onToggle).toHaveBeenLastCalledWith({ isRange: true });
+
+    rerender(
+      <ul>
+        <ThreadListRow
+          href="/t/1"
+          selection={{
+            isSelected: true,
+            isSelecting: true,
+            label: 'Select Plan',
+            onToggle,
+          }}
+          title="Plan"
+        />
+      </ul>,
+    );
+    expect(
+      screen.getByRole('checkbox', { name: 'Select Plan' }),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+});
+
+describe('ThreadListSection select-all', () => {
+  it('shows a select-all that is partly ticked while some rows are picked', async () => {
+    const onToggle = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ThreadListSection
+        itemCount={2}
+        selection={{
+          isAllSelected: false,
+          isSomeSelected: true,
+          label: 'Select all in Today',
+          onToggle,
+        }}
+        title="Today"
+      >
+        <li>First thread</li>
+      </ThreadListSection>,
+    );
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Select all in Today',
+    });
+    expect(checkbox).toHaveAttribute('aria-checked', 'mixed');
+
+    await user.click(checkbox);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+});

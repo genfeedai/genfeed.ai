@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 import { UsageError } from './cli';
 import type {
@@ -19,9 +20,9 @@ const FIXTURES = fileURLToPath(
 );
 const LADDER_FIXTURE = `${FIXTURES}ladder/social-post.synthetic.jsonl`;
 const JUDGE_FIXTURE = `${FIXTURES}judge/social-post.synthetic.jsonl`;
-const BASELINE = 'google/gemini-2.5-flash-lite';
-const CHALLENGER = 'openai/gpt-5.6-luna';
-const JUDGE = 'anthropic/claude-sonnet-5';
+const BASELINE: string = AGENT_CHAT_MODEL_KEYS.GEMINI_3_5_FLASH_LITE;
+const CHALLENGER: string = AGENT_CHAT_MODEL_KEYS.GPT_6_1_TERRA;
+const JUDGE: string = AGENT_CHAT_MODEL_KEYS.CLAUDE_HAIKU_5_5;
 
 function options(
   overrides: Partial<ContentEvalRunOptions> = {},

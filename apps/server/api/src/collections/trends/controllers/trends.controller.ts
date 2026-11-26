@@ -16,6 +16,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -32,7 +33,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  ByokProvider,
+} from '@genfeedai/contracts';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -83,6 +88,7 @@ export class TrendsController {
       );
     }
 
+    void this.trendsService.noteBrandRead(organizationId, brandId);
     const result = await this.trendsService.getTrendsWithAccessControl(
       organizationId,
       brandId,
@@ -210,6 +216,7 @@ export class TrendsController {
   }
 
   @Post('refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async refreshTrends(@CurrentUser() user: User) {
     const organizationId = user.organizationId;
@@ -256,6 +263,7 @@ export class TrendsController {
   }
 
   @Put('preferences')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async savePreferences(
     @CurrentUser() user: User,

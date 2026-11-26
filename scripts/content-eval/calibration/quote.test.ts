@@ -1,3 +1,4 @@
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import type { CallProvenance, ContentEvalReport } from '../contracts';
 import {
@@ -11,8 +12,8 @@ import {
   quoteReport,
 } from './quote';
 
-const GEMINI = 'google/gemini-2.5-flash-lite';
-const LUNA = 'openai/gpt-5.6-luna';
+const GEMINI: string = AGENT_CHAT_MODEL_KEYS.GEMINI_3_5_FLASH_LITE;
+const LUNA: string = AGENT_CHAT_MODEL_KEYS.GPT_6_LUNA;
 const DIGEST = `sha256:${'0'.repeat(64)}`;
 
 function call(overrides: Partial<CallProvenance> = {}): CallProvenance {
@@ -114,27 +115,27 @@ describe('calibration cost quote', () => {
     expect(expectedCompletionTokens(null)).toBe(300);
     expect(expectedCompletionTokens('other-rubric')).toBe(300);
     expect(quote).toEqual({
-      capUsd: 0.006537,
+      capUsd: 0.015014,
       evaluationsPromptAllowance: 3000,
-      expectedUsd: 0.00127,
+      expectedUsd: 0.00224,
       models: [
         {
           calls: 2,
-          capUsd: 0.001883,
-          expectedUsd: 0.00022,
+          capUsd: 0.010974,
+          expectedUsd: 0.00131,
           model: GEMINI,
           promptTokens: 200,
         },
         {
           calls: 3,
-          capUsd: 0.004654,
-          expectedUsd: 0.00105,
+          capUsd: 0.004039,
+          expectedUsd: 0.00093,
           model: LUNA,
           promptTokens: 3300,
         },
       ],
-      perRowExpectedUsd: 0.000127,
-      recommendedMaxCredits: 1,
+      perRowExpectedUsd: 0.000224,
+      recommendedMaxCredits: 2,
       reportRunId: 'calibration-quote-test',
       rowCount: 10,
     });
@@ -145,7 +146,7 @@ describe('calibration cost quote', () => {
       3000,
     );
     expect(liveTemplateQuote.models[0]?.promptTokens).toBe(100);
-    expect(liveTemplateQuote.expectedUsd).toBe(0.00037);
+    expect(liveTemplateQuote.expectedUsd).toBe(0.00031);
   });
 
   it('uses the reservation fallback for a catalogue-absent model', () => {

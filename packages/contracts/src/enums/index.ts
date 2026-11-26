@@ -84,6 +84,7 @@ export * from './integration.enum';
 export * from './job.enum';
 export * from './knowledge-base.enum';
 export * from './knowledge-source.enum';
+export * from './library-element.enum';
 export * from './library-review-state.enum';
 export * from './library-shelf.enum';
 export * from './lifecycle-email-delivery.enum';

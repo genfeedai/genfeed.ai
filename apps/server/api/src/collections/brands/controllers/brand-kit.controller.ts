@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
+import { BrandDefaultReferencesQueryDto } from '@api/collections/brands/dto/brand-default-references-query.dto';
 import { BrandLogoDownloadQueryDto } from '@api/collections/brands/dto/brand-logo-download-query.dto';
 import { FillPlatformSlotsDto } from '@api/collections/brands/dto/fill-platform-slots.dto';
 import type { BrandFontActor } from '@api/collections/brands/services/brand-font-assets.service';
@@ -9,6 +10,7 @@ import { BrandKitBundleService } from '@api/collections/brands/services/brand-ki
 import { BrandLogoColorsService } from '@api/collections/brands/services/brand-logo-colors.service';
 import { BrandLogoDownloadService } from '@api/collections/brands/services/brand-logo-download.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { previewBrandDefaultReferences } from '@api/collections/brands/utils/brand-default-references.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -26,6 +28,7 @@ import {
 import { BRAND_KIT_BUNDLE_MAX_BYTES } from '@genfeedai/contracts/api-types/contracts/brand-kit-bundle.contract';
 import { isBrandKitSlotForCategory } from '@genfeedai/contracts/constants';
 import type {
+  IBrandDefaultReferences,
   IBrandKitImportResult,
   IBrandKitLogoColor,
   IBrandKitPlatformFillResult,
@@ -99,6 +102,29 @@ export class BrandKitController {
     @Param('brandId') brandId: string,
   ): Promise<{ data: IBrandKitView }> {
     return { data: await this.bundles.view(await this.actor(user, brandId)) };
+  }
+
+  /**
+   * The brand references a generation on this model attaches when nothing else
+   * is attached (#11031), so Studio shows them before the user sends.
+   */
+  @TenantReadPolicy('owner')
+  @Get('default-references')
+  async defaultReferences(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('brandId') brandId: string,
+    @Query() query: BrandDefaultReferencesQueryDto,
+  ): Promise<{ data: IBrandDefaultReferences }> {
+    const actor = await this.actor(user, brandId);
+    return {
+      data: previewBrandDefaultReferences({
+        brandKit: await this.brandsService.resolveBrandKitAssets(
+          actor.brandId,
+          actor.organizationId,
+        ),
+        modelKey: query.model,
+      }),
+    };
   }
 
   /** The full kit as one ZIP: every file plus a `manifest.json`. */

@@ -234,7 +234,7 @@ const trayService = new DesktopTrayService();
 const shortcutsService = new DesktopShortcutsService();
 
 /** Centres the 12px traffic lights in the shell's 40px topbar band. */
-const MAC_TRAFFIC_LIGHT_POSITION = { x: 14, y: 14 };
+const MAC_TRAFFIC_LIGHT_POSITION = { x: 14, y: 18 }; // (48px row - 12px light) / 2
 
 const EXTERNAL_NAVIGATION_HOSTS = new Set([
   'app.genfeed.ai',

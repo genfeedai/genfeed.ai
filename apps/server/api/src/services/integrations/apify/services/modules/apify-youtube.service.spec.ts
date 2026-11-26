@@ -3,10 +3,7 @@ import { ResearchCollectionRunner } from '@api/services/research-access/research
  * @fileoverview Tests for ApifyYouTubeService
  */
 
-import type {
-  ApifyYouTubeComment,
-  ApifyYouTubeVideo,
-} from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import type { ApifyYouTubeVideo } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -37,20 +34,6 @@ describe('ApifyYouTubeService', () => {
     viewCount: 10000,
   } as unknown as ApifyYouTubeVideo;
 
-  const mockRawComment: ApifyYouTubeComment = {
-    authorChannelId: 'channel-author-1',
-    authorDisplayName: 'TestUser',
-    authorProfileImageUrl: 'https://example.com/avatar.jpg',
-    commentId: 'comment-001',
-    id: 'comment-001',
-    likeCount: 10,
-    publishedAt: new Date().toISOString(),
-    replyCount: 2,
-    text: 'Great video!',
-    videoId: 'vid-001',
-    videoTitle: 'Test Video Title',
-  } as unknown as ApifyYouTubeComment;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,7 +44,6 @@ describe('ApifyYouTubeService', () => {
           useValue: {
             ACTORS: {
               YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
-              YOUTUBE_COMMENT_SCRAPER: 'bernardo/youtube-comment-scraper',
               YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
             },
             calculateEngagementMetrics: vi.fn(() => mockBaseMetrics),
@@ -92,52 +74,6 @@ describe('ApifyYouTubeService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-  });
-
-  describe('getYouTubeVideoComments', () => {
-    it('should fetch and normalize comments for a video URL', async () => {
-      baseService.runActor.mockResolvedValue([mockRawComment]);
-
-      const result = await service.getYouTubeVideoComments(
-        'https://youtube.com/watch?v=vid-001',
-        { limit: 10 },
-      );
-
-      expect(baseService.runActor).toHaveBeenCalledWith(
-        baseService.ACTORS.YOUTUBE_COMMENT_SCRAPER,
-        expect.objectContaining({
-          maxComments: 10,
-          startUrls: [{ url: 'https://youtube.com/watch?v=vid-001' }],
-        }),
-      );
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        authorDisplayName: 'TestUser',
-        text: 'Great video!',
-        videoId: 'vid-001',
-      });
-    });
-
-    it('should use default limit of 50 when none provided', async () => {
-      baseService.runActor.mockResolvedValue([]);
-
-      await service.getYouTubeVideoComments('https://youtube.com/watch?v=xyz');
-
-      expect(baseService.runActor).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ maxComments: 50 }),
-      );
-    });
-
-    it('should return empty array on error', async () => {
-      baseService.runActor.mockRejectedValue(new Error('Timeout'));
-
-      const result = await service.getYouTubeVideoComments(
-        'https://youtube.com/watch?v=xyz',
-      );
-
-      expect(result).toEqual([]);
-    });
   });
 
   describe('getYouTubeChannelVideos', () => {

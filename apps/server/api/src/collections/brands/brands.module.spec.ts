@@ -2,6 +2,7 @@ import { BrandFontAssetsController } from '@api/collections/brands/controllers/b
 import { BrandKitController } from '@api/collections/brands/controllers/brand-kit.controller';
 import { BrandKitEditsController } from '@api/collections/brands/controllers/brand-kit-edits.controller';
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
+import { BrandReachController } from '@api/collections/brands/controllers/brand-reach.controller';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
@@ -19,6 +20,7 @@ describe('BrandsModule registration', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BrandsModule),
     ).toEqual([
+      BrandReachController,
       BrandRelocationsController,
       BrandOsRevisionsController,
       BrandKitEditsController,

@@ -638,6 +638,7 @@ describe('content mandatory selected-data regressions', () => {
   });
   it('trends selected reads retain non-fetching arguments and reject refresh without invoking service', async () => {
     const trendsService = {
+      noteBrandRead: vi.fn(),
       getTrendsWithAccessControl: vi.fn((org: string) =>
         Promise.resolve({ trends: orgRows(org) }),
       ),
@@ -1184,6 +1185,7 @@ describe('existing required-brand scalar service arguments', () => {
   });
   it('viral videos retain selected brand and existing empty-brand zero-data contract', async () => {
     const trendsService = {
+      noteBrandRead: vi.fn(),
       getBrandViralVideos: vi.fn((organizationId: string, brandId: string) =>
         Promise.resolve(
           tenantRows

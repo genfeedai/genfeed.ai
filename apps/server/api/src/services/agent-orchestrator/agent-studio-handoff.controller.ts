@@ -2,12 +2,14 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AgentStudioHandoffService } from '@api/services/agent-orchestrator/agent-studio-handoff.service';
 import { AgentStudioHandoffIdentityService } from '@api/services/agent-orchestrator/agent-studio-handoff-identity.service';
 import { CreateAgentStudioHandoffDto } from '@api/services/agent-orchestrator/dto/create-agent-studio-handoff.dto';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { AgentStudioHandoffPayload } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
@@ -31,6 +33,7 @@ export class AgentStudioHandoffController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     description:
       '#4670: stores the Agent-resolved prompt/model/parameters as a short-lived, ' +

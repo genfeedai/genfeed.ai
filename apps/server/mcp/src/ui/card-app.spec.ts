@@ -1240,6 +1240,99 @@ describe('approval card', () => {
     expect(buttonNamed('Approve')).toBeUndefined();
   });
 
+  describe('Approve', () => {
+    const proof = 'proof-1';
+    function showApprovable() {
+      const content = { ...approval.structuredContent, canApproveInCard: true };
+      message('ui/notifications/tool-result', {
+        ...approval,
+        _meta: { 'genfeed/cardApprovalProof': proof },
+        structuredContent: {
+          ...content,
+          genfeedCards: withApprovalCard({
+            ...approval,
+            structuredContent: content,
+          }).structuredContent?.genfeedCards,
+        },
+      });
+    }
+    function toolCall() {
+      return vi
+        .mocked(window.parent.postMessage)
+        .mock.calls.map(
+          ([data]) =>
+            data as { id?: number; method?: string; params?: unknown },
+        )
+        .find((data) => data.method === 'tools/call');
+    }
+    function reply(id: number | undefined, result: object) {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          source: window.parent,
+          data: { jsonrpc: '2.0', id, result },
+        }),
+      );
+    }
+
+    it('shows Approve beside Decline only when the card can prove the click', () => {
+      showApprovable();
+
+      expect(buttonNamed('Approve')).toBeDefined();
+      expect(buttonNamed('Decline')).toBeDefined();
+    });
+
+    it('sends the card proof with the approval and shows the outcome', async () => {
+      showApprovable();
+      buttonNamed('Approve')?.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      const call = toolCall();
+      expect(call?.params).toEqual({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: proof,
+          decision: 'approve',
+        },
+        name: 'answer_approval',
+      });
+
+      reply(call?.id, { content: [{ text: 'Scheduled.', type: 'text' }] });
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(document.body.textContent).toContain('Approved');
+      expect(buttonNamed('Approve')).toBeUndefined();
+      expect(buttonNamed('Decline')).toBeUndefined();
+    });
+
+    it('declines through the same tool, with the same proof', async () => {
+      showApprovable();
+      buttonNamed('Decline')?.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(toolCall()?.params).toEqual({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: proof,
+          decision: 'decline',
+        },
+        name: 'answer_approval',
+      });
+    });
+
+    it('leaves the approval pending and says why when the approval is refused', async () => {
+      showApprovable();
+      buttonNamed('Approve')?.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      reply(toolCall()?.id, { ...approval });
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(document.body.textContent).not.toContain('Approved');
+      expect(buttonNamed('Approve')).toBeDefined();
+      expect(document.body.textContent).toContain('still waiting in Genfeed');
+    });
+  });
+
   it('declines in the organization the approval was queued in', async () => {
     const view = withApprovalCard(approval).structuredContent?.genfeedCards;
     message('ui/notifications/tool-result', {

@@ -557,8 +557,6 @@
     },
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
-    "loadingBrand": "Loading the selected brand…",
-    "selectBrand": "Select a brand to continue.",
     "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
@@ -601,6 +599,12 @@
       "selectionRequired": "Select at least one agent for a blank Program.",
       "title": "Start from a template"
     }
+  },
+  "brandRequired": {
+    "description": "Pick one in the top bar to continue.",
+    "loading": "Loading the selected brand…",
+    "manageBrands": "Manage brands",
+    "title": "Select a brand"
   },
   "selectionActions": {
     "count": "{count} selected",
@@ -1192,7 +1196,9 @@
         "fork": "Fork",
         "forking": "Forking…",
         "saveSkill": "Save skill",
-        "openSamplePrompt": "Open sample prompt"
+        "openSamplePrompt": "Open sample prompt",
+        "getDesktop": "Get Desktop",
+        "runInTerminal": "Run In Terminal"
       },
       "catalog": {
         "description": "Browse built-in, imported, and organization-owned content skills.",
@@ -1212,7 +1218,13 @@
         "generalChannels": "general channels",
         "stage": "Stage",
         "stageDescription": "Designed for the {stage} step of the content workflow.",
-        "version": "v{version}"
+        "version": "v{version}",
+        "runsOn": {
+          "label": "Runs on",
+          "web": "Runs in the Agent, on web and in Desktop.",
+          "desktopOnWeb": "This skill renders on your computer with tools a browser tab cannot reach, such as Chrome and ffmpeg. Run it in Genfeed Desktop.",
+          "desktopInDesktop": "Runs in the Desktop terminal, in a Claude Code session on your computer. Claude Code asks before it runs a command or writes a file."
+        }
       },
       "errors": {
         "authenticationUnavailable": "Authentication token unavailable",
@@ -1268,6 +1280,12 @@
         "search": {
           "label": "Search skills",
           "placeholder": "Search skills"
+        },
+        "runsOn": {
+          "menuLabel": "Runs on",
+          "all": "All",
+          "web": "Web",
+          "desktop": "Desktop"
         }
       },
       "heading": "Skills",
@@ -1280,9 +1298,18 @@
         "modality": "Modality",
         "name": "Name",
         "source": "Source",
-        "stage": "Stage"
+        "stage": "Stage",
+        "runsOn": "Runs on"
       },
-      "samplePrompt": "Help me explore a small {channel} example for the skill named {name}."
+      "samplePrompt": "Help me explore a small {channel} example for the skill named {name}.",
+      "runsOn": {
+        "web": "Web",
+        "desktop": "Desktop"
+      },
+      "terminal": {
+        "title": "Run {name} in the terminal",
+        "description": "A Claude Code session on this computer, opened on the skill. Closing this window ends the session."
+      }
     },
     "organizationAutomation": {
       "title": "Breakouts and brand checks",
@@ -1498,6 +1525,14 @@
     "resolve": "Resolve",
     "resolved": "Resolved",
     "search": "Search threads",
+    "selection": {
+      "bulkFailed": "{count, plural, one {# thread could not be updated and stays selected.} other {# threads could not be updated and stay selected.}}",
+      "clear": "Clear",
+      "count": "{count, plural, one {# selected} other {# selected}}",
+      "select": "Select {title}",
+      "selectGroup": "Select all in {group}",
+      "toolbar": "Selected threads"
+    },
     "share": {
       "accessBadge": "{owner} · {level}",
       "accessFor": "Access for {name}",
@@ -1716,12 +1751,6 @@
       "approvePost": "Approve post",
       "workflowFailed": "Workflow execution failed."
     },
-    "connect": {
-      "action": "Connect Genfeed",
-      "dismiss": "Dismiss connect card",
-      "title": "Connect Claude Code, Codex, or another AI client",
-      "verificationTimeUnavailable": "Verification time unavailable"
-    },
     "credentials": {
       "addBrand": "Add a brand",
       "empty": "No accounts are connected yet.",
@@ -1801,8 +1830,6 @@
       "description": "Activate a marketplace agent in one click, or describe a custom agent in chat.",
       "emptySearch": "No agents match this search.",
       "featured": "Featured",
-      "loadingBrand": "Loading the selected brand…",
-      "selectBrand": "Select a brand to continue.",
       "moreAgents": "More agents",
       "search": "Search agents",
       "title": "Add agent",
@@ -1960,11 +1987,6 @@
         "workflows": "Workflows"
       }
     },
-    "brandEmpty": {
-      "action": "Manage brands",
-      "description": "Choose a brand from the top bar to open this Automation page. Your current destination will stay selected when you switch brands.",
-      "title": "Select a brand to use Automation"
-    },
     "contentPlans": {
       "badgeColdStart": "Cold-start",
       "badgeGrounded": "Grounded",
@@ -2013,7 +2035,6 @@
       "emptyTitle": "No content runs yet",
       "goToDiscovery": "Go to Discovery",
       "loadError": "Content runs could not be loaded.",
-      "selectBrand": "Select a brand to view content runs.",
       "search": "Search content runs",
       "emptySearchTitle": "No content runs match your search"
     },
@@ -3050,9 +3071,40 @@
     "viewPlans": "View plans",
     "unavailable": "Unavailable right now."
   },
+  "appsMenu": {
+    "trigger": "Apps",
+    "desktop": {
+      "title": "Desktop app",
+      "subtitle": "Mac · Apple Silicon",
+      "download": "Download"
+    },
+    "mcp": {
+      "title": "MCP connector",
+      "subtitle": "Use Genfeed from Claude Code or Codex",
+      "connect": "Connect",
+      "manage": "Manage",
+      "connected": "Connected",
+      "verified": "Verified",
+      "unknownAgent": "Agent"
+    },
+    "cli": {
+      "title": "CLI",
+      "subtitle": "Run Genfeed from your terminal",
+      "install": "Install",
+      "hide": "Hide",
+      "packageManager": "Package manager",
+      "bun": "bun",
+      "npm": "npm",
+      "copy": "Copy install command",
+      "next": "Then run genfeed login and approve access in your browser."
+    },
+    "more": {
+      "label": "More apps in your workspace",
+      "action": "Open Apps"
+    }
+  },
   "appRail": {
     "apps": "Apps",
-    "launcher": "Apps",
     "search": "Search apps",
     "noApps": "No apps installed yet.",
     "noMatches": "No matching apps.",

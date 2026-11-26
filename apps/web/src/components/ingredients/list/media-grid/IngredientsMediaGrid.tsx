@@ -80,6 +80,7 @@ export default function IngredientsMediaGrid({
         title={emptyLabel}
         actions={emptyActions}
         className="w-full"
+        preview="tiles"
       />
     );
   }

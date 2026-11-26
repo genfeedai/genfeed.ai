@@ -7,6 +7,7 @@ import {
   UpdateBrandOsRevisionDto,
 } from '@api/collections/brands/dto/brand-os-revision.dto';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { withRequiredTextContext } from '@api/collections/brands/utils/brand-kit-required-context.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -21,6 +22,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { BrandOsRevisionSerializer } from '@genfeedai/serializers';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -50,7 +52,9 @@ export class BrandOsRevisionsController {
     @Param('id') id: string,
   ) {
     const docs = await this.revisions.list(this.organizationId(user), id);
-    return serializeCollection(request, BrandOsRevisionSerializer, { docs });
+    return serializeCollection(request, BrandOsRevisionSerializer, {
+      docs: docs.map(withRequiredTextContext),
+    });
   }
 
   @TenantReadPolicy('selected')
@@ -64,10 +68,12 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.get(
-        this.organizationId(user, resolveTenantReadScope(user)),
-        id,
-        revisionId,
+      withRequiredTextContext(
+        await this.revisions.get(
+          this.organizationId(user, resolveTenantReadScope(user)),
+          id,
+          revisionId,
+        ),
       ),
     );
   }
@@ -84,7 +90,13 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.create(this.organizationId(user), id, dto.content),
+      withRequiredTextContext(
+        await this.revisions.create(
+          this.writeOrganizationId(user),
+          id,
+          dto.content,
+        ),
+      ),
     );
   }
 
@@ -101,12 +113,14 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.update(
-        this.organizationId(user),
-        id,
-        revisionId,
-        dto.content,
-        dto.updatedAt,
+      withRequiredTextContext(
+        await this.revisions.update(
+          this.writeOrganizationId(user),
+          id,
+          revisionId,
+          dto.content,
+          dto.updatedAt,
+        ),
       ),
     );
   }
@@ -127,15 +141,32 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.approve(
-        this.organizationId(user),
-        id,
-        revisionId,
-        userId,
-        dto.updatedAt,
-        dto.reviewedGenerationRulesHash,
+      withRequiredTextContext(
+        await this.revisions.approve(
+          this.writeOrganizationId(user),
+          id,
+          revisionId,
+          userId,
+          dto.updatedAt,
+          dto.reviewedGenerationRulesHash,
+        ),
       ),
     );
+  }
+
+  /**
+   * Writes belong to the organization the request is pinned to. For a verified
+   * super admin that is the `?organizationId=` override; everyone else is
+   * pinned to the session organization, so the value is the same as before.
+   * Reading the session organization here made the Prisma tenant guard reject
+   * an overridden write (#11066).
+   */
+  private writeOrganizationId(user: User): string {
+    const organizationId =
+      getTenantContext()?.organizationId ?? user.organizationId;
+    if (!organizationId)
+      throw new ForbiddenException('Organization context is required');
+    return organizationId;
   }
 
   private organizationId(user: User, readScope?: ITenantReadScope): string {

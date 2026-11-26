@@ -5,11 +5,13 @@ import { HighlightRewriteService } from '@api/collections/clipper-projects/servi
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -68,6 +70,7 @@ export class ClipperProjectHighlightsController {
   }
 
   @Post(':projectId/highlights/:highlightId/rewrite')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     description:

@@ -1,8 +1,10 @@
 import { ModelProviderOffersService } from '@api/collections/models/services/model-provider-offers.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ModelDetailSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -67,6 +69,7 @@ export class AdminModelDetailController {
   }
 
   @Patch('providers/:provider')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async provider(@Param('provider') provider: string, @Body() body: unknown) {
     const parsed = z.object({ isActive: z.boolean() }).strict().safeParse(body);
     if (!parsed.success) throw new BadRequestException('isActive is required');
@@ -75,6 +78,7 @@ export class AdminModelDetailController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async update(
     @Req() request: Request,
     @Param('id') id: string,

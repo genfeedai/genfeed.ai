@@ -808,6 +808,79 @@ describe('PublishApprovalsService', () => {
     );
   });
 
+  it.each([
+    [
+      PublishApprovalStatus.EXECUTING,
+      'Publish approval is already claimed by another run.',
+    ],
+    [
+      PublishApprovalStatus.PUBLISHED,
+      'Publish approval is already claimed by another run.',
+    ],
+    [PublishApprovalStatus.INVALIDATED, 'Publish approval is not queued.'],
+  ])(
+    'queueing an approval that is already %s reads as a lost claim, not a bad transition',
+    async (status, message) => {
+      const publishApproval = {
+        findFirst: vi.fn().mockResolvedValue(makeApproval({ status })),
+        updateMany: vi.fn(),
+      };
+      const service = new PublishApprovalsService(
+        { publishApproval } as never,
+        {} as AgentArtifactReferenceService,
+      );
+
+      await expect(service.markQueued('approval-1', 'org-1')).rejects.toThrow(
+        message,
+      );
+      expect(publishApproval.updateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it('queueing treats a duplicate run that queued it first as done', async () => {
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(
+          makeApproval({ status: PublishApprovalStatus.APPROVED }),
+        )
+        .mockResolvedValue(
+          makeApproval({ status: PublishApprovalStatus.QUEUED }),
+        ),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.markQueued('approval-1', 'org-1'),
+    ).resolves.toMatchObject({ status: PublishApprovalStatus.QUEUED });
+  });
+
+  it('queueing reports a lost claim when a duplicate run claimed it between read and write', async () => {
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(
+          makeApproval({ status: PublishApprovalStatus.APPROVED }),
+        )
+        .mockResolvedValue(
+          makeApproval({ status: PublishApprovalStatus.EXECUTING }),
+        ),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await expect(service.markQueued('approval-1', 'org-1')).rejects.toThrow(
+      'Publish approval is already claimed by another run.',
+    );
+  });
+
   it('records queue insertion failure as retryable approval failure', async () => {
     const queued = makeApproval({ status: PublishApprovalStatus.QUEUED });
     const failed = makeApproval({

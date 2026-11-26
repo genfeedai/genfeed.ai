@@ -89,9 +89,24 @@ export interface ContentHarnessInput {
   metadata?: Record<string, unknown>;
 }
 
+/** One brand colour for a media prompt, which words it rather than prints it. */
+export interface HarnessPaletteColor {
+  /** `#RRGGBB`. */
+  hex: string;
+  /** Where the brand uses it, such as `Primary` or `Background`. */
+  usage?: string;
+}
+
 export interface ContentHarnessContribution {
   systemDirectives?: string[];
   styleDirectives?: string[];
+  /**
+   * The owner's art direction for images and video, one sentence per entry.
+   * Only media prompts read it; copy prompts never print it.
+   */
+  visualDirections?: string[];
+  /** The typed palette, primary first. Only media prompts read it. */
+  palette?: HarnessPaletteColor[];
   guardrails?: string[];
   evaluationCriteria?: string[];
   providerHints?: string[];
@@ -140,6 +155,10 @@ export interface ContentHarnessBrief {
   appliedPacks: string[];
   systemDirectives: string[];
   styleDirectives: string[];
+  /** The owner's art direction. Read by media prompts only, never by copy. */
+  visualDirections?: string[];
+  /** The typed palette, primary first. Read by media prompts only. */
+  palette?: HarnessPaletteColor[];
   guardrails: string[];
   evaluationCriteria: string[];
   providerHints: string[];

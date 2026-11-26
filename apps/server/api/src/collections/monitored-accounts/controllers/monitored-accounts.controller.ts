@@ -6,6 +6,7 @@ import { ValidateTwitterUsernameDto } from '@api/collections/monitored-accounts/
 import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -15,6 +16,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { MonitoredAccountSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -118,6 +120,7 @@ export class MonitoredAccountsController extends BaseCRUDController<
    * Validate a Twitter username and fetch user details
    */
   @Post('validate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validate Twitter username and fetch details' })
   @ApiResponse({

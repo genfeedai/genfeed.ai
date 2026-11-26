@@ -51,6 +51,7 @@
   "dmReconnectBadge": "DMs need reconnect",
   "dmReconnectHint": "This X account has no access to DMs. Click to reconnect it and turn them on.",
   "empty": "No social accounts connected yet.",
+  "emptyAccountsDescription": "Connect a social account to publish and track this brand from one place.",
   "emptyAccountsTitle": "No accounts connected yet",
   "apiKeyConnect": {
     "beehiiv": {

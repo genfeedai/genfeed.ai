@@ -6,9 +6,11 @@ import {
   type Connection,
   ConnectionMode,
   Controls,
+  type EdgeChangeset,
   type EdgeTypes,
   MiniMap,
   type Node,
+  type NodeChangeset,
   type NodeTypes,
   type OnConnectEnd,
   ReactFlow,
@@ -811,6 +813,15 @@ export function WorkflowCanvas({
     unlockAllNodes,
   });
 
+  const handleNodesChange = useCallback(
+    (changes: NodeChangeset<WorkflowNode>) => onNodesChange(changes.toArray()),
+    [onNodesChange],
+  );
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChangeset<WorkflowEdge>) => onEdgesChange(changes.toArray()),
+    [onEdgesChange],
+  );
+
   return (
     <ContextMenu onOpenChange={handleContextMenuOpenChange}>
       <ContextMenuTrigger asChild>
@@ -824,8 +835,8 @@ export function WorkflowCanvas({
           <ReactFlow<WorkflowNode, WorkflowEdge>
             nodes={nodes}
             edges={styledEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
             onConnect={onConnect}
             onConnectEnd={handleConnectEnd}
             onNodeClick={handleNodeClick}
@@ -848,7 +859,6 @@ export function WorkflowCanvas({
             minZoom={0.1}
             maxZoom={4}
             nodeDragThreshold={5}
-            nodeClickDistance={5}
             connectionMode={ConnectionMode.Loose}
             selectionMode={SelectionMode.Partial}
             selectionOnDrag

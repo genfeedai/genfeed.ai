@@ -1,5 +1,12 @@
 import { PublishErrorKind } from '../../enums/publish-error-kind.enum';
 
+/**
+ * The `providerCode` of a `CONTENT_REJECTED` failure whose reason is that the
+ * provider already holds an identical post. Its stored code is
+ * `duplicate_content`, so the owner is told to change the text, not to retry.
+ */
+export const DUPLICATE_CONTENT_PROVIDER_CODE = 'duplicate_content';
+
 export interface PublishErrorOptions {
   /** The provider's own error code, read from its response. */
   providerCode?: string;

@@ -20,6 +20,7 @@ import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { usePrefetchOnIntent } from '@hooks/navigation/use-prefetch-on-intent/use-prefetch-on-intent';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -69,6 +70,7 @@ export default function ContentCalendarPage({
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href, activeHref } = useOrgUrl();
+  const getIntentProps = usePrefetchOnIntent();
   const translate = useTranslations('pages.publishing.calendar');
   const { openConfirm } = useConfirmModal();
 
@@ -286,6 +288,23 @@ export default function ContentCalendarPage({
     [confirmBulkGenerate, href, push, setSelectedReleaseId, setDrawerError],
   );
 
+  // Articles and newsletters open their editor page: prepare it while the
+  // pointer or focus is on the event, before the click.
+  const handleEventIntent = useCallback(
+    (item: ContentCalendarItem) => {
+      if (item.itemType === 'newsletter') {
+        getIntentProps(
+          href(createArtifactEditorRoute('newsletter', item.newsletter.id)),
+        ).onPointerEnter();
+      } else if (item.itemType === 'article') {
+        getIntentProps(
+          href(createArtifactEditorRoute('article', item.article.id)),
+        ).onPointerEnter();
+      }
+    },
+    [getIntentProps, href],
+  );
+
   const handleDatesChange = useCallback(
     (start: Date, end: Date) => {
       setDateRange({ end, start });
@@ -489,6 +508,7 @@ export default function ContentCalendarPage({
       embedded={embedded}
       items={calendarItems}
       onEventClick={handleEventClick}
+      onEventIntent={handleEventIntent}
       onDateClick={handleDateClick}
       onDatesChange={handleDatesChange}
       onViewChange={setCalendarView}

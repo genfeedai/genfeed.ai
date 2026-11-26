@@ -3,10 +3,12 @@ import { CreateVoteDto } from '@api/collections/votes/dto/create-vote.dto';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -31,6 +33,7 @@ export class VotesController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -81,6 +84,7 @@ export class VotesController {
   }
 
   @Delete()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Query('entity') entityId: string,

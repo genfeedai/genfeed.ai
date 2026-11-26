@@ -115,6 +115,7 @@ const createService = () => {
       secondaryColor: '#000',
       text: 'text',
     }),
+    resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
   };
   const organizationSettingsService = {
     findOne: vi.fn().mockResolvedValue(null),
@@ -1287,92 +1288,177 @@ describe('ImageGenerationService', () => {
       ).toHaveBeenCalledWith(ORG, 20);
     });
 
-    // #10186: Brand voice comes from the approved revision the enhancement
-    // receipt carries, never from the live brand row or a template.
-    describe('brand voice injection (#10186)', () => {
-      const fluxSchnellModel =
-        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
-      const brandVoice = 'Brand voice for Brand:\nTone: warm and direct';
+    // #11030: tone, audience and values are copy concepts; an image model
+    // draws or ignores them, so nothing about writing voice reaches the prompt.
+    it('adds no brand voice text to a compiled image prompt', async () => {
+      const { service, replicateService } = createService();
 
-      function withBrandVoice(
-        enhancementService: ReturnType<
-          typeof createService
-        >['enhancementService'],
-      ) {
-        enhancementService.enhance.mockImplementation(
-          async (input: { prompt: string; brandId: string }) => ({
-            originalPrompt: input.prompt,
-            enhancedPrompt: input.prompt,
-            brandId: input.brandId,
-            brandVoice,
-            status: 'applied',
-            source: 'default',
-            appliedPacks: [],
-          }),
-        );
-      }
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          brandingMode: 'brand',
+          model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+          text: 'a sunset over the ocean',
+        }),
+        buildRequest(),
+      );
 
-      it.each([
-        ['brand', 'brand'],
-        ['unset (MCP and agent calls)', undefined],
-      ] as const)(
-        'injects the approved revision brand voice when branding is %s',
-        async (_label, brandingMode) => {
-          const { service, replicateService, enhancementService } =
-            createService();
-          withBrandVoice(enhancementService);
+      const dispatch = replicateService.generateTextToImage.mock
+        .calls[0]?.[1] as { prompt: string };
+      expect(dispatch.prompt).toContain('a sunset over the ocean');
+      expect(dispatch.prompt).not.toContain('Brand voice');
+    });
+  });
 
-          await service.generateImage(
-            buildUser(),
-            baseDto({
-              ...(brandingMode ? { brandingMode } : {}),
-              model: fluxSchnellModel,
-              text: 'a sunset over the ocean',
-            }),
-            buildRequest(),
-          );
+  describe('brand reference defaults (#11031)', () => {
+    const styleId = testId('reference', 11);
+    const productId = testId('reference', 12);
+    const faceId = testId('reference', 13);
+    const logoId = testId('reference', 14);
+    const ownId = testId('reference', 15);
+    const brandKit = {
+      references: [
+        { id: faceId, referenceCategory: 'FACE', role: 'reference', url: 'u' },
+        {
+          id: productId,
+          referenceCategory: 'PRODUCT',
+          role: 'reference',
+          url: 'u',
+        },
+        { id: logoId, referenceCategory: 'LOGO', role: 'reference', url: 'u' },
+        {
+          id: styleId,
+          referenceCategory: 'STYLE',
+          role: 'reference',
+          url: 'u',
+        },
+      ],
+    };
+    const urlOf = (id: string) =>
+      `${REFERENCE_INGREDIENTS_ENDPOINT}/images/${id}`;
+    const rows = [styleId, productId, faceId, logoId, ownId].map((id) => ({
+      id,
+      organizationId: ORG,
+    }));
 
-          const dispatch = replicateService.generateTextToImage.mock
-            .calls[0]?.[1] as { prompt: string };
-          expect(dispatch.prompt).toContain('a sunset over the ocean');
-          expect(dispatch.prompt).toContain(brandVoice);
+    async function generate(dto: Record<string, unknown>, kit = brandKit) {
+      const harness = createService();
+      harness.brandsService.resolveBrandKitAssets.mockResolvedValue(kit);
+      mockTenantIngredients(harness.ingredientsService, rows);
+      await harness.service.generateImage(
+        buildUser(),
+        baseDto({ model: FAL_MODEL, ...dto }),
+        buildRequest(),
+      );
+      const dispatched = JSON.stringify(
+        harness.falService.generateImage.mock.calls,
+      );
+      return { dispatched, harness };
+    }
+
+    it('attaches the style reference first', async () => {
+      const { dispatched } = await generate({});
+
+      expect(dispatched).toContain(`"image_url":"${urlOf(styleId)}"`);
+    });
+
+    it('never attaches a face or a logo by default', async () => {
+      const { dispatched } = await generate(
+        {},
+        {
+          references: brandKit.references.filter((reference) =>
+            [faceId, logoId].includes(reference.id),
+          ),
         },
       );
 
-      it('excludes brand-voice text when Brand voice is off, even when avoid terms force a guided fidelity mode', async () => {
-        const { service, replicateService, enhancementService } =
-          createService();
-        withBrandVoice(enhancementService);
+      expect(dispatched).not.toContain('image_url');
+    });
 
-        await service.generateImage(
-          buildUser(),
-          baseDto({
-            blacklist: ['neon signage'],
-            brandingMode: 'off',
-            model: fluxSchnellModel,
-            text: 'a sunset over the ocean',
+    it('uses the product reference when the brand has no style reference', async () => {
+      const { dispatched } = await generate(
+        {},
+        {
+          references: brandKit.references.filter((reference) =>
+            [faceId, productId].includes(reference.id),
+          ),
+        },
+      );
+
+      expect(dispatched).toContain(`"image_url":"${urlOf(productId)}"`);
+    });
+
+    it('records the attached brand reference ids on the saved receipt', async () => {
+      const { harness } = await generate({});
+
+      await vi.waitFor(() =>
+        expect(harness.sharedService.createMediaDocuments).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            generationHarness: expect.objectContaining({
+              brandReferences: { attachedAssetIds: [styleId, productId] },
+            }),
           }),
-          buildRequest(),
-        );
+        ),
+      );
+    });
 
-        const dispatch = replicateService.generateTextToImage.mock
-          .calls[0]?.[1] as { prompt: string };
-        expect(dispatch.prompt).not.toContain('Brand voice');
+    it('records why a model that accepts no references got none', async () => {
+      const harnessed = createService();
+      harnessed.brandsService.resolveBrandKitAssets.mockResolvedValue(brandKit);
+      await harnessed.service.generateImage(
+        buildUser(),
+        baseDto({ model: MODEL_KEYS.FAL_SEEDREAM_5_5 }),
+        buildRequest(),
+      );
+
+      await vi.waitFor(() =>
+        expect(
+          harnessed.sharedService.createMediaDocuments,
+        ).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            generationHarness: expect.objectContaining({
+              brandReferences: {
+                attachedAssetIds: [],
+                skippedReason: 'model_accepts_no_references',
+              },
+            }),
+          }),
+        ),
+      );
+    });
+
+    it('adds nothing when the caller attached a reference', async () => {
+      const { dispatched } = await generate({ references: [ownId] });
+
+      expect(dispatched).toContain(`"image_url":"${urlOf(ownId)}"`);
+    });
+
+    it('adds nothing when branding is off', async () => {
+      const { dispatched, harness } = await generate({ brandingMode: 'off' });
+
+      expect(dispatched).not.toContain(urlOf(styleId));
+      expect(
+        harness.brandsService.resolveBrandKitAssets,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('adds nothing when the caller removed the defaults it was shown', async () => {
+      const { dispatched, harness } = await generate({
+        skipBrandReferences: true,
       });
 
-      it('adds no brand voice when the receipt carries none', async () => {
-        const { service, replicateService } = createService();
+      expect(dispatched).not.toContain(urlOf(styleId));
+      expect(
+        harness.brandsService.resolveBrandKitAssets,
+      ).not.toHaveBeenCalled();
+    });
 
-        await service.generateImage(
-          buildUser(),
-          baseDto({ brandingMode: 'brand', model: fluxSchnellModel }),
-          buildRequest(),
-        );
+    it('adds nothing for a brand without references', async () => {
+      const { dispatched } = await generate({}, { references: [] });
 
-        const dispatch = replicateService.generateTextToImage.mock
-          .calls[0]?.[1] as { prompt: string };
-        expect(dispatch.prompt).not.toContain('Brand voice');
-      });
+      expect(dispatched).not.toContain('image_url');
     });
   });
 

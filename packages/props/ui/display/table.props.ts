@@ -1,3 +1,4 @@
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ContextSidebarSelectionKind } from '@props/ui/context-sidebar.props';
 import type { Key, ReactNode } from 'react';
 
@@ -61,6 +62,23 @@ export interface TableRowSidebar<T> {
   render: (item: T) => ReactNode;
 }
 
+/**
+ * What an empty table says. The table draws the faded rows from its own
+ * column labels; this supplies the words and the one next step.
+ */
+interface TableEmptyConfig {
+  title: string;
+  /** One sentence on what the table lists or what to do next. */
+  description?: string;
+  icon?: IconComponent;
+  /** The single CTA, a verb or verb plus noun ("Create Brand"). */
+  action?: {
+    label: string;
+    icon?: IconComponent;
+    onClick: () => void;
+  };
+}
+
 export interface TableErrorState {
   title: string;
   description?: string;
@@ -93,7 +111,10 @@ interface TableBaseProps<T> {
   label?: string;
   /** Accessible name for the `<table>` element when no visible `label` is shown. */
   ariaLabel?: string;
+  /** Title when `empty` is not given. Prefer `empty`, which adds the CTA. */
   emptyLabel?: string;
+  empty?: TableEmptyConfig;
+  /** A fully custom empty body; replaces the faded rows. */
   emptyState?: ReactNode;
 
   // Selection support

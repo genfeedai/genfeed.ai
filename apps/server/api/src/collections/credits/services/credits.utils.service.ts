@@ -3,6 +3,8 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { publishAvailableBalance } from '@api/collections/credits/services/credit-balance-event.util';
 import { computeCycleCredits } from '@api/collections/credits/services/credit-cycle-metrics.util';
 import type { CreditCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
+import { withEarnedAmount } from '@api/collections/credits/services/credit-earned-amount.util';
+import { applyCreditRefund } from '@api/collections/credits/services/credit-refund-entry.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -164,7 +166,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         options?.referenceType === 'credit_reservation' ||
         (options?.maxOverdraftCredits ?? 0) > 0;
       if (!isSettlingAdmittedWork) {
-        await this.freeTrialService.assertTrialActive(organizationId);
+        await this.freeTrialService.assertTrialActive(
+          organizationId,
+          creditsToDeduct,
+        );
       }
 
       const { newBalance, wasApplied } =
@@ -308,6 +313,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         balanceDelta: -input.creditsToDeduct,
         billingAccountId: lateReservation?.billingAccountId ?? account.id,
         maxOverdraftCredits,
+        trackEarnedSpend: true,
       },
       tx,
       lateReservation?.id,
@@ -332,9 +338,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         ...(input.options?.idempotencyKey
           ? { idempotencyKey: input.options.idempotencyKey }
           : {}),
-        ...(input.options?.metadata
-          ? { metadata: input.options.metadata }
-          : {}),
+        ...withEarnedAmount(input.options?.metadata, snapshot.earnedConsumed),
         ...(input.options?.referenceId
           ? { referenceId: input.options.referenceId }
           : {}),
@@ -396,11 +400,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     organizationId: string,
     requiredCredits: number,
   ): Promise<boolean> {
-    if (
-      requiredCredits > 0 &&
-      (await this.freeTrialService.isTrialExpired(organizationId))
-    ) {
-      return false;
+    const spendable =
+      requiredCredits > 0
+        ? await this.freeTrialService.expiredTrialSpendableCredits(
+            organizationId,
+          )
+        : null;
+    if (typeof spendable === 'number') {
+      return requiredCredits <= spendable;
     }
 
     const currentBalance =
@@ -450,7 +457,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     input: IReserveCreditsInput,
     admission?: CreditReservationAdmission,
   ): Promise<ICreditReservation> {
-    await this.freeTrialService.assertTrialActive(input.organizationId);
+    await this.freeTrialService.assertTrialActive(
+      input.organizationId,
+      input.amount,
+    );
     const account = await this.billingAccountsService.resolveForOrganization(
       input.organizationId,
     );
@@ -732,30 +742,20 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         );
         if (replay) return replay;
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
-        const currentBalance = wallet.available;
-        const newBalance = currentBalance + creditsToRefund;
-        const newSettledBalance = wallet.settled + creditsToRefund;
-
-        await this.creditBalanceService.updateBalance(
-          organizationId,
-          newSettledBalance,
-          wallet.billingAccountId,
+        return applyCreditRefund(
+          this.creditBalanceService,
+          this.creditTransactionsService,
+          {
+            creditsToRefund,
+            description,
+            expiresAt,
+            options,
+            organizationId,
+            source,
+            wallet,
+          },
           tx,
         );
-        await this.creditTransactionsService.createTransactionEntry(
-          organizationId,
-          CreditTransactionCategory.REFUND,
-          creditsToRefund,
-          currentBalance,
-          newBalance,
-          source,
-          description,
-          expiresAt,
-          tx,
-          options,
-        );
-
-        return { currentBalance, newBalance, wasApplied: true };
       };
 
       const { currentBalance, newBalance, wasApplied } =

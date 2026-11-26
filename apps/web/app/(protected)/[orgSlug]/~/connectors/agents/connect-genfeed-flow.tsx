@@ -14,7 +14,6 @@ import type {
   ConnectGenfeedVerificationResult,
 } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
-import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
@@ -144,10 +143,7 @@ export default function ConnectGenfeedFlow() {
         : false,
   });
   const deployment = getDeployment();
-  const endpoint =
-    client === 'claude-code'
-      ? deriveClaudeMcpResourceIdentifier(EnvironmentService.mcpEndpoint)
-      : EnvironmentService.mcpEndpoint;
+  const endpoint = EnvironmentService.mcpEndpoint;
   const hasProductApiAccess =
     isSelfHostedDeployment() || hasApiAccess(settings?.subscriptionTier);
   const instructions = buildConnectGenfeedInstructions(

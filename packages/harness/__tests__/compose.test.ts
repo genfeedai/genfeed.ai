@@ -53,6 +53,59 @@ describe('composeContentHarnessBrief', () => {
     });
   });
 
+  it('carries the identity visual direction onto the brief once', async () => {
+    const registry = new ContentHarnessRegistry();
+
+    const brief = await composeContentHarnessBrief(registry, {
+      ...BASE_INPUT,
+      identityContribution: {
+        visualDirections: ['Oil painting.', ' Oil painting. ', 'Monochrome.'],
+      },
+    });
+
+    expect(brief.visualDirections).toEqual(['Oil painting.', 'Monochrome.']);
+    expect(brief.systemDirectives).toEqual([]);
+  });
+
+  it('leaves visualDirections off a brief without any', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      BASE_INPUT,
+    );
+
+    expect(brief).not.toHaveProperty('visualDirections');
+  });
+
+  it('carries the identity palette onto the brief once per colour, primary first', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      {
+        ...BASE_INPUT,
+        identityContribution: {
+          palette: [
+            { hex: '#0A0A0A', usage: 'Primary' },
+            { hex: '#0a0a0a', usage: 'Ink' },
+            { hex: '#FFFFFF', usage: 'Background' },
+          ],
+        },
+      },
+    );
+
+    expect(brief.palette).toEqual([
+      { hex: '#0A0A0A', usage: 'Primary' },
+      { hex: '#FFFFFF', usage: 'Background' },
+    ]);
+  });
+
+  it('leaves the palette off a brief without one', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      BASE_INPUT,
+    );
+
+    expect(brief).not.toHaveProperty('palette');
+  });
+
   it('skips packs without a contribute function but still lists them', async () => {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(buildPack('inert'));

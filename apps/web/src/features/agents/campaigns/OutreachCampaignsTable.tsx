@@ -42,7 +42,6 @@ type Props = {
   onStart: (campaign: OutreachCampaign) => void;
   onPause: (campaign: OutreachCampaign) => void;
   onComplete: (campaign: OutreachCampaign) => void;
-  onConfigure: (campaign: OutreachCampaign) => void;
   onDelete: (campaign: OutreachCampaign) => void;
 };
 
@@ -52,7 +51,6 @@ export default function OutreachCampaignsTable({
   onStart,
   onPause,
   onComplete,
-  onConfigure,
   onDelete,
 }: Props) {
   const translate = useTranslations('pages.outreachCampaign');
@@ -184,8 +182,11 @@ export default function OutreachCampaignsTable({
         variant: ButtonVariant.SECONDARY,
       },
       {
+        // A link, so the sequence page is prepared as soon as the row action
+        // is hovered or focused, and opens in a new tab.
+        href: (campaign: OutreachCampaign) =>
+          href(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`),
         icon: <Settings />,
-        onClick: onConfigure,
         size: ButtonSize.SM,
         tooltip: 'Configure',
         variant: ButtonVariant.SECONDARY,
@@ -198,7 +199,7 @@ export default function OutreachCampaignsTable({
         variant: ButtonVariant.DESTRUCTIVE,
       },
     ],
-    [onStart, onPause, onComplete, onConfigure, onDelete],
+    [href, onStart, onPause, onComplete, onDelete],
   );
 
   const rowSidebar = useMemo(

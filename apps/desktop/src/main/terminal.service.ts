@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/desktop';
 import type { IDisposable, IPty } from 'node-pty';
 import { spawn } from 'node-pty';
+import { resolveGenfeedCliLaunch } from './genfeed-cli-launch.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
 interface DesktopTerminalProcess {
@@ -25,6 +26,8 @@ type TerminalExitCallback = (event: IDesktopTerminalExitEvent) => void;
 
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
+/** Keeps one argv entry far below the OS argument limit. */
+const MAX_CLAUDE_PROMPT_LENGTH = 100_000;
 
 const TERMINAL_PATHS = [
   '/opt/homebrew/bin',
@@ -60,7 +63,7 @@ export class DesktopTerminalService {
       options?.workspaceId,
       options?.cwd,
     );
-    const { args, command } = this.resolveCommand(kind);
+    const { args, command } = this.resolveCommand(kind, options?.prompt);
     const sessionId = randomUUID();
 
     this.ensurePtyHelperExecutable();
@@ -204,12 +207,20 @@ export class DesktopTerminalService {
     return os.homedir();
   }
 
-  private resolveCommand(kind: DesktopTerminalKind): {
+  private resolveCommand(
+    kind: DesktopTerminalKind,
+    prompt?: string,
+  ): {
     args: string[];
     command: string;
   } {
     if (kind === 'claude') {
-      return { args: [], command: 'claude' };
+      // No permission flag: Claude Code asks before it runs a command or
+      // writes a file. The prompt is an argv entry, never shell text.
+      return {
+        args: prompt ? [prompt.slice(0, MAX_CLAUDE_PROMPT_LENGTH)] : [],
+        command: 'claude',
+      };
     }
 
     if (kind === 'codex') {
@@ -217,7 +228,7 @@ export class DesktopTerminalService {
     }
 
     if (kind === 'genfeed') {
-      return { args: [], command: 'gf' };
+      return resolveGenfeedCliLaunch(process.platform);
     }
 
     if (process.platform === 'win32') {

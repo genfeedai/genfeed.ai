@@ -36,18 +36,11 @@ then connect a client.
 
 ### Claude Code
 
-Register the dedicated content connector, then open `/mcp` inside Claude Code,
-select `genfeed`, and complete browser OAuth:
+Register the server, then open `/mcp` inside Claude Code, select `genfeed`, and
+complete browser OAuth:
 
 ```bash
-claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
-```
-
-This connector does not generate media. To generate images, video and audio
-from Claude Code, add the standard endpoint as a second server:
-
-```bash
-claude mcp add --transport http genfeed-media --scope user http://localhost:3014/mcp
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp
 ```
 
 Configure your deployment's public app, API, and MCP URLs so OAuth discovery
@@ -140,9 +133,7 @@ What a spec-compliant client can rely on:
   `http://localhost:3010/.well-known/oauth-authorization-server`. Both documents
   are readable cross-origin.
 - **Resource identifier (RFC 8707).** The `resource` is your MCP URL ending in
-  `/mcp` for the standard connector, or `/mcp/claude` for Claude. Claude
-  discovery is at `/.well-known/oauth-protected-resource/mcp/claude`. Send it on
-  the authorize and token requests.
+  `/mcp`. Send it on the authorize and token requests.
 - **Client metadata documents (CIMD).** A public client can use its HTTPS
   metadata-document URL as `client_id`, without registering first. The document
   must have a path and contain the exact `client_id`, `client_name` and
@@ -182,7 +173,7 @@ Genfeed connector without a consent screen. The client sends a signed identity
 assertion (an ID-JAG, `typ` `oauth-id-jag+jwt`) to the token endpoint with the
 RFC 7523 `jwt-bearer` grant and gets an access token back. It is available
 only to clients whose metadata document declares the `jwt-bearer` grant, such
-as the Claude connector; dynamically registered clients cannot use it.
+as the Claude directory connector; dynamically registered clients cannot use it.
 
 Set it up as the organization owner:
 
@@ -354,9 +345,19 @@ Genfeed session can also use the tools within its existing brand access.
 
 1. Call `get_context(action=brand_completeness)` with the selected `brandId` to find gaps.
 2. Call `setup_brand(action=brand_kit)` with `brandId`, `action`, and `fields`. Use
-   `visual_identity` for colors and fonts, `writing_voice` for tone and writing
-   guidance, or `strategy` for goals, platforms, and cadence. Visual edits
-   require an organization owner or admin. Use the upload tools to change assets.
+   `visual_identity` for colors, fonts and the `visualDirection` of images and
+   video, `writing_voice` for tone and writing guidance, `strategy` for goals,
+   platforms, and cadence, or `identity` for the brand name (`label`) and
+   `description`. A brand with no name fails every branded text generation.
+   Identity and visual edits require an organization owner or admin. Image and
+   video generation read the visual direction; text generation never does. Use
+   the upload tools to change assets.
+   To make the draft the approved Brand Kit, an owner or admin calls
+   `setup_brand(action=brand_kit)` with `action: approve`. The first call approves
+   nothing and returns the draft; once you agree in the conversation, the agent
+   repeats it with `confirmed: true` and the `revisionId` and `updatedAt` it
+   returned. A draft that carries generation rules is approved in the web app,
+   where the rules are read in full.
 3. For an AI-drafted voice profile, call `setup_brand(action=voice_draft)` with the
    explicit `brandId`. Review the one-credit draft before passing its
    `voiceProfile` to `setup_brand(action=voice_save)` for the same brand.
@@ -459,7 +460,12 @@ when they do not apply; `rate_limited` does not invent a URL. Paths are app
 routes on your instance; sign-in continues into the caller's organization. Fix
 `errors[]` and call the tool again. For `approval_pending`, hand the human
 `nextStepUrl` or, when `canResolveApproval` is true and the user approves, call
-`resolve_approval` with `structuredContent.approvalId`. For
+`resolve_approval` with `structuredContent.approvalId`. When the client renders
+the approval card, the card also has Approve and Decline buttons for the
+member who asked for the action, if they are an owner or admin. They call
+`answer_approval`, which MCP Apps hosts hide from the model and which the
+server accepts only with a short-lived proof returned in the result's `_meta`
+for that one approval; never call it yourself. For
 `brand_required`, retry with one of the listed `brands[].id` values; no brand is
 ever picked for you.
 
@@ -492,7 +498,7 @@ With `deleteOnPlatform: true` `remove_post` deletes the post on its network
 first, on X and Mastodon; any other platform is refused, and when the network
 refuses nothing is deleted at all. The result also
 reads the post and media back, and the agent confirms with `get_content` and
-`get_assets`. The Claude connector at `/mcp/claude` does not list them. The CLI
+`get_assets`. The CLI
 has `genfeed posts delete <id> [--with-media] [--on-platform]` and `genfeed asset delete <id>`,
 each asking for confirmation unless `--force` is given.
 
@@ -514,8 +520,7 @@ Generation tools call the model providers whose keys you configured; see
 Every connection lists the same tools, at most 30 for an ordinary user (the
 list is checked in CI). Nothing needs selecting: `?toolsets=`, `?profile=` and
 `?app=` are no longer read, and an old URL that still carries them connects and
-gets the same list. The Claude connector at `/mcp/claude` keeps its fixed,
-smaller list.
+gets the same list.
 
 Most tools take an `action` and one `input` object, so one tool covers a family
 of operations. Permissions and approvals are checked on the call, whatever is
@@ -725,17 +730,9 @@ account cookies.
 
 ## Claude, Claude Code and Cowork
 
-Connect to `http://localhost:3014/mcp/claude` with browser OAuth (see
-[Claude Code](#claude-code) above). This connector supports brands, drafts,
-existing assets, scheduling and analytics. It does not generate media. To
-generate images, video and audio from a Claude client, add the standard
-endpoint (`http://localhost:3014/mcp`) as a second custom connector; it
-authorizes separately and carries the generation tools.
-
-This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory.
-Existing connections to `/mcp` retain their original capabilities.
-
-The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Using the Claude token on `/mcp` does not enable generation; a separate connection to `/mcp` has its own grant. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
+Connect to `http://localhost:3014/mcp` with browser OAuth, the same URL every
+other client uses (see [Claude Code](#claude-code) above). In Claude and Cowork,
+add it as a custom connector.
 
 ## Troubleshooting
 

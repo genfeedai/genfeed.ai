@@ -84,6 +84,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_article_card_editorial_system](feedback_article_card_editorial_system.md) — article covers and OG cards use the dark physical-studio Genfeed system with article-specific metaphors
 - [feedback_marketing_og_founder_direction](feedback_marketing_og_founder_direction.md) — expressive founder likeness, cinematic physical G, and code-rendered marketing headlines
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
+- [onboarding funnel definitions](project_onboarding_funnel_definitions.md) — one "completed" definition, the separate "activated" step, and what `partial` first-run drafts mean
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
 - [project_x_author_reply_loop](project_x_author_reply_loop.md) — Automate **Replies** surface (inbox + auto-replies + closed-loop memory for X)
 - [project_x_activity_pipes](project_x_activity_pipes.md) — XAA webhook + post-watch + reply-inbound queues (connect later)
@@ -181,6 +182,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_desktop_byok_generation](project_desktop_byok_generation.md) — BYOK generation runs in Electron main behind the canonical app UI
 - [project_desktop_first_run](project_desktop_first_run.md) — desktop boots `apps/web` with Genfeed Connect sign-in; sync consent per cloud user
 - [project_desktop_cli_agent_runtime](project_desktop_cli_agent_runtime.md) — CLI runtime architecture = Claude Code / Codex CLI + Genfeed MCP + Desktop; threads in Genfeed, external turns never reserve credits; cloud mode, no local workspace
+- [decisions-desktop-skills-run-in-terminal](decisions-desktop-skills-run-in-terminal.md) — a skill tagged `local` runs in a `claude` session in the Desktop terminal (`runsOn: 'desktop'`); never a permission bypass; web shows Get Desktop
 - [project_agent_free_tier_model_lock](project_agent_free_tier_model_lock.md) — unsubscribed hosted orgs run every agent turn on `LLM_DEFAULTS.agentChat` (DeepSeek V4 Flash) unless BYOK pays; no-billing servers never lock
 - [project_agent_exact_cost_chat_billing](project_agent_exact_cost_chat_billing.md) — chat rounds settle at exact provider cost as fractional credits; one credit display formatter (balance floor + compact ≥100k, cost 1 dp / `<0.1` / `Free`); admin unit economics + revenue ledger from deploy onward
 - [project_agent_context_snapshot_parity](project_agent_context_snapshot_parity.md) — Agent context page, `GET /brands/:id/agent-context`, and `get_brand_context` reuse `resolveTurnContext`; real layers incl. `brandKnowledge`, no `knowledgeBase`
@@ -227,3 +229,4 @@ Load on demand: [lockstep-surfaces](context/lockstep-surfaces.md) · [e2e-archit
 - [Cloud member brand authorization](adr_cloud_member_brand_authorization.md) — assigned-only Cloud access, live role/key caps and zero-brand rollout.
 - [Onboarding: shared UI and read-only preview rules](feedback_onboarding_shared_readonly_previews.md) — approved October 22 prototype; implementation tracked in #7775 / #7834.
 - [Contextual agent sidebar](feedback_contextual_agent_sidebar.md) — one header, real shared components, feature icons, contextual cards, and standalone HTML prototypes.
+- [MCP approval card buttons](reference_mcp_approval_card_buttons.md) — card Approve/Decline call app-only `answer_approval` with a signed `_meta` proof; `resolve_approval` is admin-endpoint only (#9754)

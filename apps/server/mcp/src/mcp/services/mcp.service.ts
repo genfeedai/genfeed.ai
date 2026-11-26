@@ -1,6 +1,5 @@
 import type { CanonicalToolDefinition, ToolCategory } from '@genfeedai/actions';
 import { getToolsForRole } from '@genfeedai/actions';
-import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import * as appMetadata from '@mcp/config/app-metadata.json';
 import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { MCP_SERVER_CAPABILITIES } from '@mcp/mcp/server-identity';
@@ -56,7 +55,7 @@ export class MCPService {
       installation: {
         clientExamples: {
           claudeCode: {
-            command: `claude mcp add --transport http genfeed --scope user ${deriveClaudeMcpResourceIdentifier(mcpUrl)}`,
+            command: `claude mcp add --transport http genfeed --scope user ${mcpUrl}`,
           },
           codex: {
             command: `codex mcp add genfeed --url ${mcpUrl} --bearer-token-env-var GENFEED_API_KEY`,
@@ -80,10 +79,9 @@ bearer_token_env_var = "GENFEED_API_KEY"`,
         },
         description: 'Connect the hosted Genfeed.ai MCP server',
         steps: [
-          '1. Add the dedicated /mcp/claude endpoint to Claude Code and complete browser OAuth through /mcp',
+          '1. Add the MCP endpoint to Claude Code and complete browser OAuth through /mcp',
           '2. For Codex or other clients using manual authentication, create a scoped key and export GENFEED_API_KEY in the client environment',
-          '3. Claude supports brands, drafts, existing assets, scheduling and analytics; for image, video and audio generation, add the standard /mcp endpoint as a second server',
-          '4. Verify authorization by asking your client to list Genfeed brands',
+          '3. Verify authorization by asking your client to list Genfeed brands',
         ],
       },
       name: 'Genfeed.ai MCP Server',

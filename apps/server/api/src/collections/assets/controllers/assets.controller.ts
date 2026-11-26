@@ -16,6 +16,7 @@ import {
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -33,7 +34,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { AssetCategory, AssetParent } from '@genfeedai/contracts';
+import { ApiKeyScope, AssetCategory, AssetParent } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -156,6 +157,7 @@ export class AssetsController {
   }
 
   @Patch(':assetId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -299,6 +301,7 @@ export class AssetsController {
   }
 
   @Delete(':assetId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

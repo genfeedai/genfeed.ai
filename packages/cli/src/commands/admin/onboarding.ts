@@ -11,6 +11,7 @@ import { wantsJson } from '@/utils/options';
 
 const FUNNEL_STEP_LABELS: Record<OnboardingFunnelStep, string> = {
   accountConnected: 'social account connected',
+  activated: 'first credit spent',
   brandScanned: 'brand scanned',
   completed: 'onboarding completed',
   draftsReady: 'drafts ready',

@@ -4,6 +4,7 @@ import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto'
 import { type FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -15,6 +16,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -101,6 +103,7 @@ export class FoldersController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   override async create(
     @Req() request: Request,
@@ -121,6 +124,7 @@ export class FoldersController extends BaseCRUDController<
   }
 
   @Patch(':folderId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -154,6 +158,7 @@ export class FoldersController extends BaseCRUDController<
   }
 
   @Delete(':folderId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,

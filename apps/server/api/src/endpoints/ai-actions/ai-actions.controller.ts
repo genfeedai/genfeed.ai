@@ -4,8 +4,10 @@ import {
   AiActionsService,
 } from '@api/endpoints/ai-actions/ai-actions.service';
 import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   Body,
   Controller,
@@ -22,6 +24,7 @@ export class AiActionsController {
   constructor(private readonly aiActionsService: AiActionsService) {}
 
   @Post('execute')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   execute(
     @Param('organizationId') organizationId: string,

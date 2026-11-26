@@ -16,12 +16,13 @@ import { XGrowthReportService } from '@api/endpoints/analytics/x-growth-report/x
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   AccountAnalyticsDetailSerializer,
   AccountAnalyticsListSerializer,
@@ -224,6 +225,7 @@ export class AccountAnalyticsController {
   }
 
   @Patch('fleet-evaluation-policy')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async savePolicy(
     @CurrentUser() user: User,

@@ -146,6 +146,12 @@ export class SocialInboxController {
 
   @OrganizationModule('messages', 'read')
   @Patch(':conversationId/read')
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_APPROVE,
+    ApiKeyScope.POSTS_PUBLISH,
+    ApiKeyScope.ADMIN,
+  )
   @ApiOperation({
     summary: 'Mark a social conversation read for the current user',
   })
@@ -268,6 +274,12 @@ export class SocialInboxController {
   }
 
   @Patch(':conversationId')
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_APPROVE,
+    ApiKeyScope.POSTS_PUBLISH,
+    ApiKeyScope.ADMIN,
+  )
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({
     summary: 'Update a social conversation (status, tags, and/or assignment)',

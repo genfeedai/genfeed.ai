@@ -11,6 +11,7 @@ import type {
   IAnalytics,
   IArticle,
   IBrandAgentPrompting,
+  IBrandDefaultReferences,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
@@ -34,6 +35,7 @@ import type {
   IImage,
   IPaginatedResponse,
   IPost,
+  IPublicBrandReach,
   IQueryParams,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
@@ -559,6 +561,19 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => deserializeResource<IAnalytics>(res.data));
   }
 
+  /**
+   * Lifetime views, impressions and engagements of the brand: the totals its
+   * public profile shows, readable by the owner while the profile is private.
+   */
+  public async findBrandReach(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IPublicBrandReach> {
+    return await this.instance
+      .get<{ data: IPublicBrandReach }>(`/${id}/reach`, { signal })
+      .then((res) => res.data.data);
+  }
+
   public async findBrandAnalyticsTimeSeries(
     id: string,
     query: {
@@ -646,6 +661,20 @@ export class BrandsService extends BaseService<Brand> {
   ): Promise<IBrandKitView> {
     return this.instance
       .get<{ data: IBrandKitView }>(`/${id}/kit`, { signal })
+      .then((res) => res.data.data);
+  }
+
+  /** The brand references a generation on `model` attaches when none are. */
+  public async getDefaultReferences(
+    id: string,
+    model: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandDefaultReferences> {
+    return this.instance
+      .get<{ data: IBrandDefaultReferences }>(`/${id}/kit/default-references`, {
+        params: { model },
+        signal,
+      })
       .then((res) => res.data.data);
   }
 

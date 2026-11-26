@@ -302,7 +302,6 @@
   },
   "breakouts": {
     "loadingBrandContext": "Loading brand context…",
-    "selectBrand": "Select a brand to inspect its breakout responses.",
     "loading": "Loading breakout responses…",
     "empty": "No breakout responses have been detected for this brand.",
     "loadError": "Unable to load breakout responses. Your access may have changed.",

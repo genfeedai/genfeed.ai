@@ -134,6 +134,7 @@ export default function AppTable<T>({
   ariaLabel,
   scrollAriaLabel,
   emptyLabel = EMPTY_STATES.DEFAULT,
+  empty,
   emptyState,
 
   selectable = false,
@@ -462,7 +463,21 @@ export default function AppTable<T>({
           )}
           data-testid="table-empty"
         >
-          {emptyState ?? <EmptyState title={emptyLabel} className="w-full" />}
+          {emptyState ?? (
+            <EmptyState
+              action={empty?.action}
+              className="w-full"
+              description={empty?.description}
+              icon={empty?.icon}
+              preview="rows"
+              previewColumns={columns
+                .map((column) => column.header)
+                .filter(
+                  (header): header is string => typeof header === 'string',
+                )}
+              title={empty?.title ?? emptyLabel}
+            />
+          )}
         </div>
       </TableSectionWrapper>
     );

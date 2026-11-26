@@ -365,9 +365,10 @@ test.describe('Studio Editor', () => {
 
       await assertRouteRenders(authenticatedPage, studioPage.url);
 
-      // Studio tools are separate apps (#5502): the topbar's Apps icon opens
-      // Apps (formerly the Store), where members install and pin them.
-      await authenticatedPage.getByTestId('topbar-apps-link').click();
+      // Studio tools are separate apps (#5502): the topbar's Apps menu ends
+      // with Open Apps (formerly the Store), where members install and pin them.
+      await authenticatedPage.getByTestId('topbar-apps-menu').click();
+      await authenticatedPage.getByTestId('apps-menu-open-apps').click();
 
       await expect(authenticatedPage).toHaveURL(/\/apps(?:[/?#]|$)/);
       await expectNoErrorOverlay(authenticatedPage);

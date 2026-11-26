@@ -26,9 +26,11 @@ import {
   buildImageGenerationBriefAppliedFields,
   buildImageGenerationBriefEvidence,
   buildImageGenerationBriefPrompt,
+  buildImageGenerationBriefReferenceLabels,
   recordExcessImageGenerationBriefReferences,
+  recordUnsupportedImageGenerationBriefReferenceRoles,
   resolveImageGenerationBriefAspectRatio,
-  selectImageGenerationBriefReferences,
+  selectImageGenerationBriefReferencesByRole,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -96,9 +98,14 @@ export function compileSeedream45GenerationBrief(
   const policy = generationFidelityPolicies[brief.fidelityMode];
   const omitted: GenerationBriefOmittedSignal[] = [];
 
-  const { excludedCount, included } = selectImageGenerationBriefReferences(
-    brief,
-    profile.references.max,
+  const { excludedCount, included, unsupportedRoles } =
+    selectImageGenerationBriefReferencesByRole(brief, profile.references);
+  recordUnsupportedImageGenerationBriefReferenceRoles(
+    omitted,
+    unsupportedRoles,
+    policy,
+    brief.fidelityMode,
+    SEEDREAM_4_5_MODEL_LABEL,
   );
   recordExcessImageGenerationBriefReferences(
     omitted,
@@ -109,12 +116,17 @@ export function compileSeedream45GenerationBrief(
     SEEDREAM_4_5_MODEL_LABEL,
   );
 
+  const referenceLabels = buildImageGenerationBriefReferenceLabels(
+    included,
+    profile.references,
+  );
   const { appliedConstraintFields, prompt } = buildImageGenerationBriefPrompt({
     brief,
     maxCharacters: profile.prompt.maxCharacters,
     modelLabel: SEEDREAM_4_5_MODEL_LABEL,
     omitted,
     policy,
+    referenceLabels,
     supportsNegativePrompt: false,
   });
 
@@ -135,6 +147,7 @@ export function compileSeedream45GenerationBrief(
   const appliedFields = buildImageGenerationBriefAppliedFields({
     appliedConstraintFields,
     brief,
+    hasReferenceLabels: referenceLabels.length > 0,
     hasSeed: false,
   });
 
@@ -151,6 +164,7 @@ export function compileSeedream45GenerationBrief(
     outputFormat: SEEDREAM_4_5_IMPLICIT_OUTPUT_FORMAT,
     profileId: profile.id,
     profileVersion: profile.version,
+    referenceAssetIds: included.map((reference) => reference.assetId),
   });
 
   return { brief, dispatch, evidence };

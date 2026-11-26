@@ -5,8 +5,8 @@ import type {
 } from '@genfeedai/contracts/types';
 import type { Connection, EdgeChange, NodeChange } from '@xyflow/react';
 import {
-  applyEdgeChanges,
-  applyNodeChanges,
+  EdgeChangeset,
+  NodeChangeset,
   addEdge as rfAddEdge,
 } from '@xyflow/react';
 import type { StateCreator } from 'zustand';
@@ -153,7 +153,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     );
 
     set((state) => ({
-      edges: applyEdgeChanges(changes, state.edges) as WorkflowEdge[],
+      edges: new EdgeChangeset<WorkflowEdge>(changes).applyTo(state.edges),
       ...(hasMeaningfulChange && { isDirty: true }),
     }));
   },
@@ -167,7 +167,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     );
 
     set((state) => ({
-      nodes: applyNodeChanges(changes, state.nodes) as WorkflowNode[],
+      nodes: new NodeChangeset<WorkflowNode>(changes).applyTo(state.nodes),
       ...(hasMeaningfulChange && { isDirty: true }),
     }));
   },

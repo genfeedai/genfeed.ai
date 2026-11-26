@@ -22,6 +22,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -39,7 +40,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { SubscriptionStatus } from '@genfeedai/contracts';
+import { ApiKeyScope, SubscriptionStatus } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -230,6 +231,7 @@ export class UsersController {
   }
 
   @Post('me/avatar')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAvatarUploadUrl(
     @CurrentUser() user: User,
@@ -248,6 +250,7 @@ export class UsersController {
   }
 
   @Patch('me')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMe(
     @Req() request: Request,
@@ -304,6 +307,7 @@ export class UsersController {
   // Internal onboarding hand-off — excluded from the OpenAPI documentation.
   @ApiExcludeEndpoint()
   @Post('me/signup-attribution')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(204)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async recordMeSignupAttribution(
@@ -326,6 +330,7 @@ export class UsersController {
   // it persists a client preference rather than a public API operation.
   @ApiExcludeEndpoint()
   @Patch('me/asset-gate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMeAssetGate(
     @Req() request: Request,
@@ -378,6 +383,7 @@ export class UsersController {
   }
 
   @Patch(':userId/onboarding')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateOnboardingStatus(
     @Req() request: Request,
@@ -434,6 +440,7 @@ export class UsersController {
   }
 
   @Patch(':userId/profile')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   async updateAdminProfile(
     @Req() request: Request,
@@ -453,6 +460,7 @@ export class UsersController {
   }
 
   @Post(':userId/onboarding/reset')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @SetMetadata('roles', ['superadmin'])
   async resetOnboarding(

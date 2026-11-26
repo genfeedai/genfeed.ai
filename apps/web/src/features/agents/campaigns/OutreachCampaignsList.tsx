@@ -13,6 +13,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { usePrefetchOnIntent } from '@hooks/navigation/use-prefetch-on-intent/use-prefetch-on-intent';
 import {
   type OutreachCampaign,
   OutreachCampaignsService,
@@ -196,16 +197,11 @@ export default function OutreachCampaignsList() {
     [getService, notificationsService, patchCampaign, translate],
   );
 
+  const getIntentProps = usePrefetchOnIntent();
+  const createCampaignHref = href(APP_ROUTES.MESSAGES.OUTREACH_NEW);
   const handleCreateCampaign = useCallback(() => {
-    router.push(href(APP_ROUTES.MESSAGES.OUTREACH_NEW));
-  }, [href, router]);
-
-  const handleConfigureCampaign = useCallback(
-    (campaign: OutreachCampaign) => {
-      router.push(href(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`));
-    },
-    [href, router],
-  );
+    router.push(createCampaignHref);
+  }, [createCampaignHref, router]);
 
   const handleDeleteCampaign = useCallback(
     async (campaign: OutreachCampaign) => {
@@ -277,6 +273,7 @@ export default function OutreachCampaignsList() {
           }
           variant={ButtonVariant.DEFAULT}
           onClick={handleCreateCampaign}
+          {...getIntentProps(createCampaignHref)}
         />
       }
     >
@@ -295,7 +292,6 @@ export default function OutreachCampaignsList() {
           onStart={handleStartCampaign}
           onPause={handlePauseCampaign}
           onComplete={handleCompleteCampaign}
-          onConfigure={handleConfigureCampaign}
           onDelete={handleDeleteCampaign}
         />
         {!isLoading && pageCampaigns.length > 0 ? (

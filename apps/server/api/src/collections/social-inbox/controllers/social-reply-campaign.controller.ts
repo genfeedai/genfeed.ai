@@ -125,6 +125,7 @@ export class SocialReplyCampaignController {
   }
 
   @Patch(':campaignId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Update a campaign’s copy or rate limits' })
   async patch(
@@ -162,6 +163,7 @@ export class SocialReplyCampaignController {
   }
 
   @Delete(':campaignId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('messages', 'cancel')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Cancel and soft-delete a reply campaign' })

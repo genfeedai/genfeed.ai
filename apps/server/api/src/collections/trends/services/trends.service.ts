@@ -24,6 +24,7 @@ import {
   TrendBrandDigestService,
 } from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
+import { TrendBrandReadService } from '@api/collections/trends/services/modules/trend-brand-read.service';
 import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import {
@@ -81,6 +82,7 @@ export class TrendsService {
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
     private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
     private readonly trendBrandDigestService: TrendBrandDigestService,
+    private readonly trendBrandReadService: TrendBrandReadService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -828,9 +830,23 @@ export class TrendsService {
     };
   }
 
+  /** A read of this brand's Trends: remembers it and may start one niche search. */
+  noteBrandRead(organizationId?: string, brandId?: string): Promise<void> {
+    return this.trendBrandReadService.noteRead(
+      organizationId,
+      brandId,
+      (org, brand) => this.fetchAndCacheBrandNicheVideos(org, brand),
+    );
+  }
+
+  hasBrandReadRecently(organizationId: string, brandId: string) {
+    return this.trendBrandReadService.hasReadRecently(organizationId, brandId);
+  }
+
   /**
    * Refresh the niche videos for one brand from its keywords, hashtags and
-   * categories. Runs from the scheduled scoped refresh, never from a read.
+   * categories. Runs from the scheduled scoped refresh for brands that read
+   * their trends, and once from the first read of a brand with none.
    */
   async fetchAndCacheBrandNicheVideos(
     organizationId: string,
@@ -938,6 +954,10 @@ export class TrendsService {
   /**
    * Fetch and store trending sounds
    */
+  deriveAndCacheTwitterHashtags(): Promise<number> {
+    return this.trendVideoService.deriveAndCacheTwitterHashtags();
+  }
+
   fetchAndCacheSounds(): Promise<number> {
     return this.trendVideoService.fetchAndCacheSounds();
   }

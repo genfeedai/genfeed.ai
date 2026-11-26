@@ -6,6 +6,7 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -20,7 +21,11 @@ import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.u
 import { handleAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -143,6 +148,7 @@ export class CaptionsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -222,6 +228,7 @@ export class CaptionsController {
   }
 
   @Patch(':captionId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -238,6 +245,7 @@ export class CaptionsController {
   }
 
   @Delete(':captionId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

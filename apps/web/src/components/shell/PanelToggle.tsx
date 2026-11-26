@@ -1,7 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers';
 import { Button } from '@ui/primitives/button';
+import { SHELL_CHROME_FOCUS_CLASS } from '@ui-constants/shell-chrome.constant';
 import type { ReactNode } from 'react';
 
 type PanelToggleProps = {
@@ -37,7 +39,7 @@ export default function PanelToggle({
       aria-expanded={isPressed}
       aria-keyshortcuts={ariaKeyShortcuts}
       ariaLabel={label}
-      className="relative size-8"
+      className={cn('relative size-8', SHELL_CHROME_FOCUS_CLASS)}
       data-active={isPressed ? 'true' : 'false'}
       data-testid={testId}
       onClick={onToggle}

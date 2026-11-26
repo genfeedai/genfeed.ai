@@ -159,6 +159,33 @@ describe('YoutubeMetadataService', () => {
     expect(loggerService.error).toHaveBeenCalled();
   });
 
+  it('treats a permission-denied read as unreadable, not as a service fault', async () => {
+    mockVideosList.mockRejectedValueOnce(
+      Object.assign(new Error('The caller does not have permission'), {
+        errors: [{ reason: 'forbidden' }],
+        status: 403,
+      }),
+    );
+
+    const result = await service.getVideoMetadata('vid-denied');
+
+    expect(result).toBeNull();
+    expect(loggerService.error).not.toHaveBeenCalled();
+    expect(loggerService.warn).toHaveBeenCalled();
+  });
+
+  it('keeps a quota failure as an error', async () => {
+    mockVideosList.mockRejectedValueOnce(
+      Object.assign(new Error('quota'), {
+        errors: [{ reason: 'quotaExceeded' }],
+        status: 403,
+      }),
+    );
+
+    expect(await service.getVideoMetadata('vid-quota')).toBeNull();
+    expect(loggerService.error).toHaveBeenCalled();
+  });
+
   it('should handle missing optional fields gracefully', async () => {
     mockVideosList.mockResolvedValueOnce({
       data: {

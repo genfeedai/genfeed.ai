@@ -4,8 +4,8 @@
  * Usage (from the repo root; paths are repo-root-relative):
  *   bun run eval:content -- --suite=ladder \
  *     --fixture=apps/server/api/test/fixtures/content-evals/ladder/social-post.synthetic.jsonl \
- *     --models=google/gemini-2.5-flash-lite,deepseek/deepseek-v4-flash-0731 \
- *     --judge=anthropic/claude-sonnet-5 --max-credits=5 --out=reports/ladder.json
+ *     --models=google/gemini-3.5-flash-lite,deepseek/deepseek-v4.1-flash-1017 \
+ *     --judge=anthropic/claude-sonnet-5.5 --max-credits=5 --out=reports/ladder.json
  *
  * Flags:
  *   --suite=judge|ladder|harness-ab|product-ab|skill-ab|media-ladder   required

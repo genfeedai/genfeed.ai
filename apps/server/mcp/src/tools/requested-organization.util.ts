@@ -4,6 +4,7 @@ import type { ClientService } from '@mcp/services/client.service';
 import { matchOrganization } from '@mcp/tools/account-management.tool';
 import {
   MCP_ORGANIZATION_BOUND,
+  McpUpstreamError,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
 import { ForbiddenException } from '@nestjs/common';
@@ -16,7 +17,13 @@ export function isOrganizationExemptCall(
   toolName: string,
   args: Record<string, unknown> | undefined,
 ): boolean {
-  if (toolName === 'find_tools' || toolName === 'resolve_approval') return true;
+  if (
+    toolName === 'find_tools' ||
+    toolName === 'resolve_approval' ||
+    toolName === 'answer_approval'
+  ) {
+    return true;
+  }
   return toolName === 'get_context' && args?.action === 'organizations';
 }
 
@@ -49,6 +56,9 @@ export function mcpToolFailureResult(error: unknown) {
           error instanceof Error ? error.message : String(error),
         ),
         detail: null,
+        ...(error instanceof McpUpstreamError && error.report?.causeCode
+          ? { causeCode: error.report.causeCode }
+          : {}),
       },
     },
     isError: true,

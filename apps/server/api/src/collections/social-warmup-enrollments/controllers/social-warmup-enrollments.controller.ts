@@ -5,6 +5,7 @@ import { SocialWarmupEnrollmentsQueryDto } from '@api/collections/social-warmup-
 import { UpsertSocialWarmupSignalDto } from '@api/collections/social-warmup-enrollments/dto/upsert-social-warmup-signal.dto';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -13,6 +14,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { SocialWarmupEnrollmentSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -55,6 +57,7 @@ export class SocialWarmupEnrollmentsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -92,6 +95,7 @@ export class SocialWarmupEnrollmentsController {
   }
 
   @Post(':id/items/:itemId/complete')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async completeItem(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -116,6 +120,7 @@ export class SocialWarmupEnrollmentsController {
   }
 
   @Post(':id/items/:itemId/reopen')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async reopenItem(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -140,6 +145,7 @@ export class SocialWarmupEnrollmentsController {
   }
 
   @Post(':id/signals')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async upsertSignal(
     @Req() request: Request,
     @CurrentUser() user: User,

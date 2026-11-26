@@ -510,6 +510,30 @@ describe('MasonryVideo', () => {
     expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
   });
 
+  it('keeps the expiry notice above the placeholder behind it', () => {
+    render(
+      <MasonryVideo
+        video={{ ...mockVideo, storageExpiredAt: '2026-11-21T12:00:00.000Z' }}
+      />,
+    );
+
+    expect(screen.getByTestId('video-expired-vid-123')).toHaveClass('z-10');
+  });
+
+  it('reveals the actions of an expired tile on hover, though it mounts no video', () => {
+    const { container } = render(
+      <MasonryVideo
+        video={{ ...mockVideo, storageExpiredAt: '2026-11-21T12:00:00.000Z' }}
+      />,
+    );
+    const tile = container.querySelector('[data-masonry-item]') as HTMLElement;
+
+    expect(tile).toHaveAttribute('data-state', 'idle');
+    fireEvent.mouseEnter(tile);
+
+    expect(tile).toHaveAttribute('data-state', 'hovered');
+  });
+
   it('shows no expiry notice for a video whose file exists', () => {
     render(<MasonryVideo video={mockVideo} />);
 

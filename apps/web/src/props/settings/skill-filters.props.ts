@@ -15,3 +15,5 @@ export type StageFilterValue =
   | 'review'
   | 'publishing'
   | 'analysis';
+
+export type RunsOnFilterValue = 'all' | 'web' | 'desktop';

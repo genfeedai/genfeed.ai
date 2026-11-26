@@ -5,6 +5,7 @@ import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto'
 import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -14,6 +15,7 @@ import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ScopedCRUDController } from '@api/shared/controllers/base-crud/scoped-crud.controller';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { PresetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -144,6 +146,7 @@ export class PresetsController extends ScopedCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   create(
@@ -155,6 +158,7 @@ export class PresetsController extends ScopedCRUDController<
   }
 
   @Patch(':presetId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
@@ -167,6 +171,7 @@ export class PresetsController extends ScopedCRUDController<
   }
 
   @Delete(':presetId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(

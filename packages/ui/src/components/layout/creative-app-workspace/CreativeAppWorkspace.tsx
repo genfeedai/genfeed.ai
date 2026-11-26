@@ -1,45 +1,14 @@
 'use client';
 
-import type {
-  CreativeAppWorkspaceProps,
-  CreativeProjectsPresence,
-} from '@genfeedai/props/ui/layout/creative-app-layout.props';
+import type { CreativeAppWorkspaceProps } from '@genfeedai/props/ui/layout/creative-app-layout.props';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
-import {
-  createContext,
-  type ReactElement,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
-
-const CreativeProjectsPresenceContext = createContext<
-  ((presence: CreativeProjectsPresence) => void) | null
->(null);
-
-/**
- * Called by a creative app's projects list with what it knows: `empty` once it
- * has loaded and the brand has no project at all (not merely none matching a
- * search), `populated` once it has any. Keep `unknown` while loading, on an
- * error and while a search is narrowing the list, so the layout never moves
- * for a search.
- */
-export function useCreativeProjectsPresence(
-  presence: CreativeProjectsPresence,
-): void {
-  const report = useContext(CreativeProjectsPresenceContext);
-  // use-effect-audit: ignore reports presence to the workspace shell
-  useEffect(() => {
-    if (presence !== 'unknown') report?.(presence);
-  }, [presence, report]);
-}
+import type { ReactElement } from 'react';
 
 /**
  * Turbo, Clipper, Motion, Editor and Storyboard with no project open: the New
- * pane on the left and the brand's projects on the right. While the brand has
- * no project at all there is nothing to put on the right, so the New pane has
- * the page to itself; the second column arrives with the first project. The
- * list stays mounted either way, so it is the one that notices.
+ * pane on the left and the brand's projects on the right. Both columns are
+ * always there, so a brand with no project yet sees the same two-column page it
+ * will have; the right column says what to do first.
  */
 export default function CreativeAppWorkspace({
   agent,
@@ -47,17 +16,13 @@ export default function CreativeAppWorkspace({
   children,
   outputLabel,
 }: CreativeAppWorkspaceProps): ReactElement {
-  const [presence, setPresence] = useState<CreativeProjectsPresence>('unknown');
   return (
-    <CreativeProjectsPresenceContext.Provider value={setPresence}>
-      <AgentOutputShell
-        agent={agent}
-        agentTitle={agentTitle}
-        isOutputHidden={presence === 'empty'}
-        outputLabel={outputLabel}
-      >
-        {children}
-      </AgentOutputShell>
-    </CreativeProjectsPresenceContext.Provider>
+    <AgentOutputShell
+      agent={agent}
+      agentTitle={agentTitle}
+      outputLabel={outputLabel}
+    >
+      {children}
+    </AgentOutputShell>
   );
 }

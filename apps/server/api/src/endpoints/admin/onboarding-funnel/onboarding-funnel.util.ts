@@ -12,9 +12,22 @@ const ONBOARDING_FUNNEL_STEPS: readonly OnboardingFunnelStep[] = [
   'draftsStarted',
   'draftsReady',
   'completed',
+  'activated',
   'accountConnected',
   'published',
 ];
+
+/**
+ * The one definition of "onboarding completed", shared by the organizations
+ * report and the funnel. The agent-first path sets both flags; the classic
+ * wizard only ever set the owner's, so either one counts.
+ */
+export function isOnboardingCompleted(flags: {
+  organization: boolean;
+  owner: boolean;
+}): boolean {
+  return flags.organization || flags.owner;
+}
 
 /** The signup prefill marker saved on a brand's agent config, when it has one. */
 export function readPrefillMarker(agentConfig: unknown): {
@@ -41,6 +54,7 @@ function emptyBucket(): IOnboardingFunnelBucket {
   return {
     steps: {
       accountConnected: 0,
+      activated: 0,
       brandScanned: 0,
       completed: 0,
       draftsReady: 0,

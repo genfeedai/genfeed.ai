@@ -461,6 +461,37 @@ describe('SkillsService', () => {
     expect(await slugs({ search: 'nothing matches' })).toEqual([]);
   });
 
+  it('filters by where a skill runs and treats a row without a value as web', async () => {
+    const row = (slug: string, config: Record<string, unknown>) =>
+      makeSkillRow({
+        config: {
+          isEnabled: true,
+          modalities: ['video'],
+          name: slug,
+          slug,
+          source: 'built_in',
+          status: 'published',
+          workflowStage: 'creation',
+          ...config,
+        },
+        id: `skill-${slug}`,
+      });
+    prisma.skill.findMany.mockResolvedValue([
+      row('motion-video', { runsOn: 'desktop' }),
+      row('clip-editor', { runsOn: 'web' }),
+      row('x-thread', {}),
+    ]);
+
+    const slugs = async (runsOn?: string) =>
+      (await service.listAllForOrg('org-1', { runsOn })).map((doc) => doc.slug);
+
+    expect(await slugs('desktop')).toEqual(['motion-video']);
+    expect(await slugs('web')).toEqual(['clip-editor', 'x-thread']);
+    expect(await slugs()).toEqual(['clip-editor', 'motion-video', 'x-thread']);
+    const [stale] = await service.listAllForOrg('org-1', { runsOn: 'web' });
+    expect(stale?.runsOn).toBe('web');
+  });
+
   it('honours a surface persisted on the skill over the inferred one', async () => {
     prisma.skill.findMany.mockResolvedValue([
       makeSkillRow({

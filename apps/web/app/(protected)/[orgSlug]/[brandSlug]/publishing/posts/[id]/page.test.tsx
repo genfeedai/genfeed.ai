@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { DetailPageProps } from '@/props/pages/page.props';
 import * as PageModule from './page';
+import PublishingPostContent from './publishing-post-content';
 
 assertSourceHasExport(
   'app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/page.tsx',
@@ -49,7 +50,7 @@ describe('direct brand server adapter', () => {
       const params =
         Promise.withResolvers<Awaited<DetailPageProps['params']>>();
       const settled = vi.fn();
-      const pending = PageModule.default({ params: params.promise }).then(
+      const pending = PublishingPostContent({ params: params.promise }).then(
         (element) => {
           settled();
           return element;
@@ -71,7 +72,7 @@ describe('direct brand server adapter', () => {
     expect(typeof PageModule.generateMetadata).toBe('function');
     const failure = new Error('params failed');
     await expect(
-      PageModule.default({ params: Promise.reject(failure) }),
+      PublishingPostContent({ params: Promise.reject(failure) }),
     ).rejects.toBe(failure);
   });
 });

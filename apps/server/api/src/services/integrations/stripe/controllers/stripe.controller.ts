@@ -4,6 +4,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -20,7 +21,7 @@ import {
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { BillingAccountMemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, BillingAccountMemberRole } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -90,6 +91,7 @@ export class StripeController {
   }
 
   @Post('checkout')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createCheckoutSession(
     @CurrentUser() user: User,
     @Body() createCheckoutSessionDto: CreateCheckoutSessionDto,
@@ -236,6 +238,11 @@ export class StripeController {
   }
 
   @Post('credits/checkout')
+  @RequiredScopes(
+    ApiKeyScope.CREDITS_READ,
+    ApiKeyScope.CREDITS_PROVISION,
+    ApiKeyScope.ADMIN,
+  )
   async createCreditsCheckoutSession(
     @CurrentUser() user: User,
     @Body() dto: CreateCreditsCheckoutDto,

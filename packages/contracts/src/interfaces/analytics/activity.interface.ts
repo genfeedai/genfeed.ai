@@ -28,6 +28,30 @@ export interface IActivityPostPreview {
   remixQuery?: string;
 }
 
+/** One state change a post went through, oldest first in `IActivityPostGroup.steps`. */
+export interface IActivityPostStep {
+  from: string;
+  to: string;
+  /** ISO time of the change. */
+  at: string;
+  error?: string;
+}
+
+/**
+ * Every lifecycle event of one post folded into the activity that carries it:
+ * the feed shows a post once, with the trail it went through.
+ */
+export interface IActivityPostGroup {
+  postId: string;
+  /** The state the post is in now. */
+  status: string;
+  steps: IActivityPostStep[];
+  /** Every activity folded into this one, so a read-state change reaches all of them. */
+  eventIds: string[];
+  /** Why the post failed, when its last step did. */
+  error?: string;
+}
+
 export interface IActivity extends IBaseEntity {
   user: IUser;
   userId?: string | null;
@@ -50,6 +74,8 @@ export interface IActivity extends IBaseEntity {
   isRead: boolean;
   /** What the activity is about, when it is a post the member can look at. */
   preview?: IActivityPostPreview;
+  /** Set when this activity stands for a whole post: its events are folded into it. */
+  postGroup?: IActivityPostGroup;
 
   label?: string;
 }

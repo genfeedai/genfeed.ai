@@ -167,7 +167,7 @@ export function BrandPerformanceChart({
           {!isEmpty && !isMetricEmpty ? (
             <ChartContainer
               config={chartConfig}
-              className="border-0 bg-transparent p-0 shadow-none"
+              className="h-full border-0 bg-transparent p-0 shadow-none"
               height="100%"
               style={{ minWidth: 0 }}
             >

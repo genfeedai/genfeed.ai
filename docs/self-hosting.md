@@ -271,7 +271,7 @@ Unconfigured providers fail closed; they are not required to run Community.
 
 Turning off the login wall (`BETTER_AUTH_ENABLED=false`) does **not** disable
 MCP authentication. `apps/server/mcp` still requires
-`Authorization: Bearer <token>` on the standard `/mcp` endpoint, which accepts OAuth or scoped API keys. The `/mcp/claude` endpoint requires its own resource-bound OAuth token. Missing or invalid tokens
+`Authorization: Bearer <token>` on the standard `/mcp` endpoint, which accepts OAuth or scoped API keys. Missing or invalid tokens
 return JSON-RPC `-32001` with a `WWW-Authenticate` header.
 
 The Community seed creates organization slug `default`
@@ -291,13 +291,13 @@ export GENFEED_API_KEY=gf_live_xxx
 codex mcp add genfeed --url http://localhost:3014/mcp --bearer-token-env-var GENFEED_API_KEY
 ```
 
-For Claude Code, use the dedicated content connector with browser OAuth:
+For Claude Code, use browser OAuth:
 
 ```bash
-claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp
 ```
 
-Open `/mcp`, select Genfeed and authenticate in your browser. Media creation happens separately in Genfeed Studio. Configure the deployment’s public app, API and MCP URLs for OAuth discovery.
+Open `/mcp`, select Genfeed and authenticate in your browser. Configure the deployment’s public app, API and MCP URLs for OAuth discovery.
 
 Codex configuration alternative: set `url = "http://localhost:3014/mcp"` and
 `bearer_token_env_var = "GENFEED_API_KEY"` so the key stays in the environment

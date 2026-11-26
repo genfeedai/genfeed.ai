@@ -2,6 +2,7 @@ import type { PublishResult } from '@api/services/integrations/publishers/interf
 import { PublishErrorKind } from '@genfeedai/contracts';
 import { isPublishError, PublishError } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import type { LoggerService } from '@libs/logger/logger.service';
 
 /** What a thrown provider failure says, read once so a mapper can switch on it. */
 export interface ProviderFailure {
@@ -244,4 +245,28 @@ export function withErrorKind(
   errorKind: PublishErrorKind,
 ): PublishResult {
   return { ...result, errorKind };
+}
+
+/**
+ * Logs a provider's refusal once, with what it means. A classified failure is
+ * the provider's answer and is reported when it ends the post, so it is a
+ * warning here carrying the kind, the provider's code and the HTTP status. A
+ * failure the provider never explained is a fault and stays an error.
+ */
+export function logProviderPublishFailure(
+  logger: Pick<LoggerService, 'error' | 'warn'>,
+  message: string,
+  details: { error: string; failure: PublishError | null; postId: string },
+): void {
+  const { failure, ...rest } = details;
+  if (!failure) {
+    logger.error(message, rest);
+    return;
+  }
+  logger.warn(message, {
+    ...rest,
+    httpStatus: failure.httpStatus,
+    kind: failure.kind,
+    providerCode: failure.providerCode,
+  });
 }

@@ -1,8 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OptionalAuth } from '@api/helpers/decorators/optional-auth.decorator';
 import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_MCP_ACTION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   DownloadSkillDto,
@@ -10,6 +12,7 @@ import {
 } from '@api/skills-pro/dto/download-skill.dto';
 import { VerifyReceiptDto } from '@api/skills-pro/dto/verify-receipt.dto';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   SkillSerializer,
   SkillsProInstallationSerializer,
@@ -79,6 +82,7 @@ export class SkillDownloadController {
   }
 
   @Post('install')
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Verify and install a purchased skill into this organization',
@@ -98,6 +102,7 @@ export class SkillDownloadController {
   }
 
   @Post('rollback')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Restore an installed Skills Pro skill to an earlier version',

@@ -1,3 +1,4 @@
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
@@ -6,6 +7,7 @@ import {
   ManagedStripeCheckoutService,
 } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -31,6 +33,7 @@ export class ManagedStripeController {
   ) {}
 
   @Post('checkout')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   // Shared across API instances through the Redis-backed rate limit guard.
   @RateLimit({ limit: 5, scope: 'ip', windowMs: 60_000 })
   @ApiOperation({

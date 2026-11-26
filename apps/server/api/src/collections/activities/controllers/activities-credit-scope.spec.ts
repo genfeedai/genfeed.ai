@@ -22,6 +22,7 @@ const controller = new ActivitiesController(
   { log: vi.fn(), error: vi.fn() } as unknown as LoggerService,
   {
     attachDisplayContext: async (docs: unknown) => docs,
+    collapsePostActivities: async (docs: unknown) => docs,
     findAll,
   } as unknown as ActivitiesService,
 );

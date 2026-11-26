@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImportSkillPackageDto } from '@api/collections/skills/dto/import-skill-package.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -8,6 +9,7 @@ import {
   RateLimit,
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { SkillSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -25,6 +27,7 @@ export class SkillPackageImportController {
   constructor(private readonly library: SkillLibraryService) {}
 
   @Post('import')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit(RateLimitPresets.uploads)
   async importSkillPackage(
     @Req() request: Request,

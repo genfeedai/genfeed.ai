@@ -136,6 +136,7 @@ interface DayViewRowsProps<T extends CalendarItem> {
   items: T[];
   onDateClick?: (start: Date) => void;
   onEventClick: (item: T) => void;
+  onEventIntent?: (item: T) => void;
   rows: Array<{ hour: number; minute: number }>;
   timezone: string;
   visibleDay: Date;
@@ -146,6 +147,7 @@ function DayViewRows<T extends CalendarItem>({
   items,
   onDateClick,
   onEventClick,
+  onEventIntent,
   rows,
   timezone,
   visibleDay,
@@ -188,6 +190,9 @@ function DayViewRows<T extends CalendarItem>({
                   isDisabled={item.isDisabled}
                   key={item.id}
                   onClick={() => onEventClick(item)}
+                  onFocus={() => onEventIntent?.(item)}
+                  onPointerDown={() => onEventIntent?.(item)}
+                  onPointerEnter={() => onEventIntent?.(item)}
                   style={{ backgroundColor: getEventColor(item) }}
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
@@ -331,6 +336,7 @@ function FullCalendarHost({ options, calendarRef }: FullCalendarHostProps) {
 export default function ContentCalendarView<T extends CalendarItem>({
   items,
   onEventClick,
+  onEventIntent,
   onDatesChange,
   getEventColor,
   getEventBadge,
@@ -466,6 +472,15 @@ export default function ContentCalendarView<T extends CalendarItem>({
       const item = info.event.extendedProps.item;
       const actions = item && getEventActions ? getEventActions(item) : [];
 
+      // Lets the page prepare what a click opens while the pointer or focus is
+      // still on the event. The element is dropped with the event.
+      if (item && onEventIntent && !info.event.extendedProps.isDisabled) {
+        const prepare = () => onEventIntent(item);
+        info.el.addEventListener('pointerenter', prepare);
+        info.el.addEventListener('pointerdown', prepare);
+        info.el.addEventListener('focusin', prepare);
+      }
+
       // The accounts an event goes to sit at its start as profile pictures
       // with their platform badge, drawn by the shared avatar stack. List rows
       // keep their own cells.
@@ -542,6 +557,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
       getEventBadge,
       getEventChannels,
       onEventClick,
+      onEventIntent,
     ],
   );
 
@@ -885,6 +901,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
                   items={items}
                   onDateClick={onDateClick}
                   onEventClick={onEventClick}
+                  onEventIntent={onEventIntent}
                   rows={dayViewRows}
                   timezone={timezone}
                   visibleDay={visibleDay}

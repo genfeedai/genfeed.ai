@@ -13,6 +13,9 @@ vi.mock('@/components/shell/NotificationInboxToggle', () => ({
 vi.mock('@/components/shell/GenerationToasts', () => ({
   default: () => null,
 }));
+vi.mock('@/components/shell/TopbarAppsMenu', () => ({
+  default: () => <button data-testid="topbar-apps-menu" type="button" />,
+}));
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
@@ -409,7 +412,17 @@ describe('AppProtectedTopbar', () => {
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
-    expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3', 'md:px-3');
+    expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3');
+    expect(topbarInner).not.toHaveClass('md:px-3');
+    // From lg the breadcrumb sits in the middle column of a 1fr / auto / 1fr
+    // grid, so it is centred in the row and the dropdowns have room.
+    expect(topbarInner).toHaveClass('lg:grid', 'lg:grid-cols-[1fr_auto_1fr]');
+    expect(
+      screen.getByTestId('app-protected-topbar-breadcrumb'),
+    ).toContainElement(breadcrumbs);
+    expect(screen.getByTestId('app-protected-topbar-breadcrumb')).toHaveClass(
+      'lg:justify-center',
+    );
     expect(topbarInner).not.toHaveClass('justify-center');
     expect(breadcrumbs).toHaveTextContent('Playground');
     expect(
@@ -426,31 +439,17 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('links Apps to the app catalog, before the panel toggles', () => {
+  it('puts the Apps menu before the panel toggles', () => {
     mountShellPanel();
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
-    const apps = screen.getByRole('link', { name: 'Apps' });
+    const apps = screen.getByTestId('topbar-apps-menu');
     const activityMenu = screen.getByTestId('topbar-notifications-toggle');
 
-    expect(apps).toHaveAttribute('href', '/acme/~/apps');
-    expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
-    expect(apps).not.toHaveAttribute('aria-current');
     expect(
       apps.compareDocumentPosition(activityMenu) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-  });
-
-  it('marks the Apps link as current on its page', () => {
-    mockPathname.value = '/acme/~/apps';
-
-    render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
-
-    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
   });
 
   it('shows a single Apps breadcrumb with organization selection and no brand selector', () => {
@@ -494,7 +493,7 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.queryByTestId('topbar-credits-status'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('topbar-apps-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-apps-menu')).not.toBeInTheDocument();
   });
 
   it('keeps the wallet synced and puts the credits status before the panel toggles', () => {

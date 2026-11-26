@@ -82,6 +82,13 @@ vi.mock('@/features/brands/components/brand-kit/BrandOsSettingsCard', () => ({
     renderWorkspace?.({
       content: mocks.revisionContent,
       approvedContent: null,
+      requiredTextContext: {
+        fields: [{ characters: 110, field: 'promptGuidelines' }],
+        maxCharacters: 6000,
+        overflowCharacters: 0,
+        requiredCharacters: 772,
+      },
+      isApproved: false,
       renderFields: (groups) => <p>Revision fields: {groups.join(', ')}</p>,
       review: <p>Approval and rules</p>,
       history: <p>Revision picker</p>,
@@ -256,6 +263,13 @@ describe('Brand Kit workspace', () => {
       screen.getByText('Revision fields: profile, links'),
     ).toBeInTheDocument();
     expect(screen.getByText('Revision fields: visual')).toBeInTheDocument();
+  });
+
+  it('shows the text budget in Writing voice, counted from the saved revision', () => {
+    render(<BrandKitPage />);
+    const budget = screen.getByRole('region', { name: 'Text budget' });
+    expect(budget).toHaveTextContent('772 of 6,000 characters');
+    expect(budget).toHaveTextContent('Counted from the last saved draft');
   });
 
   it('keeps one save bar for the revision draft', () => {

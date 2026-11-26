@@ -1,3 +1,4 @@
+import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -14,7 +15,9 @@ import type {
   MediaGenerationReceiptOpenInputV1,
   MediaGenerationTerminalSignalV1,
 } from '@api/services/media-generation-receipts/media-generation-receipts.types';
+import { projectMediaPaletteReceipt } from '@api/services/media-generation-receipts/media-palette-receipt.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   CreditReservationStatus,
   IngredientCategory,
@@ -24,11 +27,14 @@ import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import type {
+  BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
   BrandedGenerationResolutionV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { GenerationBrandPaletteReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { ConflictException, HttpException, Injectable } from '@nestjs/common';
@@ -65,6 +71,9 @@ function receiptErrorCode(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** A palette proof that takes longer is dropped; the receipt records no report instead. */
+const PALETTE_PROOF_TIMEOUT_MS = 30_000;
+
 const GENERATION_COST_ID = 'generation';
 const CHARGED_HOLD_STATUSES: ReadonlySet<string> = new Set<string>([
   CreditReservationStatus.RESERVED,
@@ -92,6 +101,7 @@ export class MediaGenerationReceiptsService {
     private readonly material: BrandedGenerationArtifactMaterialService,
     private readonly snapshots: BrandIdentitySnapshotService,
     private readonly logger: LoggerService,
+    private readonly validator: BrandValidationService,
   ) {}
 
   /** Starts the receipt for one admitted output; never awaits the write. */
@@ -377,16 +387,24 @@ export class MediaGenerationReceiptsService {
     }
     if (current?.state === 'dispatched')
       current = await this.bind(located, current, ingredientId);
-    if (current?.state === 'checking')
+    if (current?.state === 'checking') {
+      const report = await this.provePalette(located.actor, current);
+      const { snapshot } = current;
       current = (
         await this.receipts.recordValidation(
           located.actor,
           current.id,
           this.mutation(current, 'validate'),
           'validate',
-          null,
+          report,
         )
       ).receipt;
+      const palette =
+        report && snapshot
+          ? projectMediaPaletteReceipt(report, snapshot)
+          : null;
+      if (palette) await this.showPalette(located, ingredientId, palette);
+    }
     const isDelivered =
       current?.state === 'ready' ||
       current?.state === 'needs_review' ||
@@ -398,6 +416,91 @@ export class MediaGenerationReceiptsService {
       !current.costs.some((cost) => cost.id === GENERATION_COST_ID)
     )
       await this.recordCost(located, current, ingredientId);
+  }
+
+  /**
+   * Measures the approved palette on the stored output's final pixels (#11034).
+   * Only the deterministic pixel proof runs: no vision model is offered, so the
+   * checks that need one stay unknown and the receipt cannot reach `ready` on
+   * this alone. A raw receipt has no palette to measure. A proof that fails or
+   * runs past its budget yields no report, so the output is recorded exactly as
+   * before and the generation is never held up or failed by it.
+   */
+  private async provePalette(
+    actor: BrandedGenerationActorV1,
+    current: BrandedGenerationReceiptV1,
+  ): Promise<BrandArtifactValidationReportV1 | null> {
+    if (current.mode === 'raw') return null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const { receipt, material } = await this.material.acquire(
+        actor,
+        current.id,
+      );
+      if (!receipt.snapshot || !receipt.artifact) return null;
+      const proof = this.validator.validateBrandArtifact({
+        snapshot: receipt.snapshot,
+        artifact: receipt.artifact,
+        material,
+      });
+      const budget = new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), PALETTE_PROOF_TIMEOUT_MS);
+      });
+      const report = await Promise.race([proof, budget]);
+      if (report === null) {
+        // The late result is discarded; its rejection must not surface.
+        proof.catch(() => undefined);
+        this.logger.warn('Media palette proof timed out', {
+          receiptId: current.id,
+        });
+      }
+      return report;
+    } catch (error: unknown) {
+      this.logger.warn('Media palette proof failed', {
+        error: receiptErrorCode(error),
+        receiptId: current.id,
+      });
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Copies the palette result onto the output's generation receipt, which is
+   * what the generation details read. Best effort: the validation report on the
+   * branded receipt is the record, so a failed copy only logs.
+   */
+  private async showPalette(
+    located: LocatedMediaReceipt,
+    ingredientId: string,
+    palette: GenerationBrandPaletteReceipt,
+  ): Promise<void> {
+    const { organizationId } = located.actor;
+    try {
+      const row = await this.prisma.ingredient.findFirst({
+        where: scopedWhere(organizationId, { id: ingredientId }),
+        select: { generationHarness: true },
+      });
+      const harness = row?.generationHarness;
+      if (!harness || typeof harness !== 'object' || Array.isArray(harness))
+        return;
+      await this.prisma.ingredient.updateMany({
+        where: scopedWhere(organizationId, { id: ingredientId }),
+        data: {
+          generationHarness: toPrismaJson({
+            ...harness,
+            brandPalette: palette,
+          }),
+        },
+      });
+    } catch (error: unknown) {
+      this.logger.warn('Media palette result was not shown', {
+        error: receiptErrorCode(error),
+        ingredientId,
+        organizationId,
+      });
+    }
   }
 
   /**

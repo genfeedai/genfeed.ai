@@ -1,11 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { YoutubeLongFormWorkflowService } from '@api/collections/workflows/services/youtube-long-form-workflow.service';
+import {
+  PUBLIC_YOUTUBE_LONG_FORM_DAILY_RUNS,
+  publicToolDailyLimit,
+} from '@api/endpoints/public/constants/public-tool-daily-limits.constant';
 import { CreatePublicYoutubeLongFormDto } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.dto';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   IngredientSerializer,
@@ -34,7 +40,13 @@ export class PublicYoutubeLongFormController {
   @Public()
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
-  @RateLimit({ limit: 3, scope: 'ip', windowMs: 60 * 60 * 1000 })
+  @RateLimit([
+    { limit: 3, scope: 'ip', windowMs: 60 * 60 * 1000 },
+    publicToolDailyLimit(
+      PUBLIC_YOUTUBE_LONG_FORM_DAILY_RUNS,
+      'YouTube to long-form tool',
+    ),
+  ])
   async create(
     @Req() request: Request,
     @Body() dto: CreatePublicYoutubeLongFormDto,
@@ -50,6 +62,7 @@ export class PublicYoutubeLongFormController {
   }
 
   @Post('youtube-long-form')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Header('Cache-Control', 'no-store')
   @UseGuards(RolesGuard)
   async createAuthenticated(
@@ -71,6 +84,7 @@ export class PublicYoutubeLongFormController {
   }
 
   @Post('youtube-long-form/:artifactId/source-library')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Header('Cache-Control', 'no-store')
   @UseGuards(RolesGuard)
   async promoteSource(

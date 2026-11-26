@@ -146,7 +146,7 @@ export default function ReleaseDetailDrawer({
       </ContextSidebarHeaderSlot>
 
       <div className="flex flex-col" data-testid="release-detail-panel">
-        <div className="flex items-center gap-2 border-b border-border px-4 pb-3">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           {statusBadge ? (
             <Badge variant={badgeVariantForTone(statusBadge.tone)}>
               {statusBadge.label}

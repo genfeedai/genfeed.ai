@@ -138,6 +138,14 @@ export const CURATED_ACTION_CATALOG = [
     uiActionType: 'analytics_snapshot_card',
   },
   {
+    annotationHint: 'destructive',
+    category: 'proactive',
+    isReadOnly: true,
+    name: 'answer_approval',
+    surfaces: ['mcp'],
+    toolset: 'core',
+  },
+  {
     actionClass: 'outbound',
     category: 'social',
     isPublishingApprovalRequired: true,

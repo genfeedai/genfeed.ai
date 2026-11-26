@@ -17,6 +17,8 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { ingredientResponseIds } from '@genfeedai/serializers/helpers/media-delivery-projection.helper';
+import { PostListSerializer } from '@genfeedai/serializers/server/content/post.serializer';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
 const evaluationProjection = {
@@ -62,6 +64,25 @@ describe('PostsController.buildFindAllQuery', () => {
       orderBy: [{ position: 'asc' }, { id: 'asc' }],
       take: 1,
     });
+  });
+
+  it('loads media the response projection recognises, so the row gets a delivery grant', () => {
+    const { select } = controller.buildFindAllQuery(
+      makeUser(),
+      {} as PostsQueryDto,
+    ).include.ingredientLinks.include.ingredient;
+    const ingredientRow = Object.fromEntries(
+      Object.keys(select).map((column) => [
+        column,
+        column === 'category' ? 'IMAGE' : `${column}-value`,
+      ]),
+    );
+
+    const response = PostListSerializer.serialize([
+      { id: 'post-1', ingredients: [ingredientRow] },
+    ]);
+
+    expect(ingredientResponseIds(response)).toEqual(['id-value']);
   });
 
   it('filters an agent without dropping tenant and brand scope', () => {

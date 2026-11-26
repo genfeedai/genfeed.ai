@@ -1,11 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SubmitBrandInterviewAnswerDto } from '@api/collections/brands/brand-interview/dto/submit-brand-interview-answer.dto';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
+import { API_KEY_BRAND_EDIT_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import type {
   IActiveBrandInterview,
   IBrandInterviewAnswerResult,
@@ -62,6 +64,7 @@ export class BrandInterviewController {
    * No request body — brand is in the path; org/user come from the session.
    */
   @Post(':brandId/interview')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async start(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
@@ -131,6 +134,7 @@ export class BrandInterviewController {
    * Submit an answer to the current question.
    */
   @Post('interview/:interviewId/answer')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async submitAnswer(
     @Param('interviewId') interviewId: string,
     @CurrentUser() user: User,
@@ -153,6 +157,7 @@ export class BrandInterviewController {
    * Skip the current question and advance.
    */
   @Post('interview/:interviewId/skip')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async skipField(
     @Param('interviewId') interviewId: string,
     @CurrentUser() user: User,
@@ -172,6 +177,7 @@ export class BrandInterviewController {
    * generate the scored harness profile draft.
    */
   @Post('interview/:interviewId/complete')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async complete(
     @Param('interviewId') interviewId: string,
     @CurrentUser() user: User,
@@ -190,6 +196,7 @@ export class BrandInterviewController {
    * Abandon an in-progress interview.
    */
   @Post('interview/:interviewId/abandon')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async abandon(
     @Param('interviewId') interviewId: string,
     @CurrentUser() user: User,

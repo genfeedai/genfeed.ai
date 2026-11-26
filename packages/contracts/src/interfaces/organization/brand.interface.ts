@@ -77,6 +77,8 @@ export interface IBrand extends IBaseEntity {
   colorPalette?: BrandPaletteColor[];
   /** The font for headings, body text and captions. */
   fontRoles?: BrandFontRoles;
+  /** The look of the brand's images and video. Text generation never reads it. */
+  visualDirection?: string;
 
   voice?: string;
   music?: string;
@@ -113,6 +115,8 @@ export interface IBrand extends IBaseEntity {
   isVerified: boolean;
   isDefault: boolean;
   isFleetEnabled: boolean;
+  /** Show reach and post metrics on the public profile; on unless the owner turns it off. */
+  isPublicAnalyticsEnabled?: boolean;
   scope: AssetScope;
   isActive: boolean;
   isHighlighted?: boolean;
@@ -133,11 +137,14 @@ export interface IPublicBrandSocial {
 }
 
 /**
- * Lifetime totals a public profile shows, summed over every connected platform
- * from the creator's post analytics. A metric no platform reports is null.
+ * Totals a public profile shows, summed over every connected platform: lifetime
+ * views, impressions and engagements from the creator's post analytics, and the
+ * audience (followers, or subscribers on YouTube) at each account's latest
+ * snapshot. A metric no platform reports is null.
  */
 export interface IPublicBrandReach {
   engagements: number | null;
+  followers: number | null;
   impressions: number | null;
   views: number | null;
 }

@@ -122,5 +122,17 @@
   "showPreview": "Show preview",
   "history": "Version history",
   "share": "Share & export",
-  "publishing": "Publishing"
+  "publishing": "Publishing",
+  "textBudget": {
+    "title": "Text budget",
+    "count": "{required} of {max} characters",
+    "meterLabel": "Characters every text generation carries",
+    "failsPosts": "Posts for this brand fail until this is shortened",
+    "tooLong": "Too long to approve",
+    "overflow": "The Brand Kit text a generation must carry is {required} characters and the limit is {max}, so it is {over} too long. Shorten the longest fields: {fields}.",
+    "fits": "Identity and writing voice go into every text generation whole. Longest: {fields}.",
+    "fieldLong": "{label} ({characters} characters)",
+    "fieldShort": "{label} ({characters})",
+    "unsaved": "Counted from the last saved draft. Save to update it."
+  }
 }

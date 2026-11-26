@@ -28,6 +28,16 @@ describe('ConnectorsShell', () => {
     expect(screen.getByText('Section body')).toBeInTheDocument();
   });
 
+  it('adds no empty sub-bar under the topbar', () => {
+    render(
+      <ConnectorsShell>
+        <p>Section body</p>
+      </ConnectorsShell>,
+    );
+
+    expect(screen.queryByTestId('section-topbar')).not.toBeInTheDocument();
+  });
+
   it('shows an inline error when a section fails to load', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     render(

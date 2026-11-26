@@ -3,7 +3,13 @@ import { SetMetadata } from '@nestjs/common';
 export interface RateLimitOptions {
   windowMs?: number; // Time window in milliseconds
   limit?: number; // Maximum number of requests
-  scope?: 'ip' | 'organization' | 'user';
+  /**
+   * `global` counts every caller of the endpoint together, so it caps the
+   * spend behind a public endpoint no matter how many IPs call it.
+   */
+  scope?: 'global' | 'ip' | 'organization' | 'user';
+  /** Plain sentence the 429 answer carries instead of the retry hint. */
+  message?: string;
   skipSuccessfulRequests?: boolean; // Skip counting successful requests
   skipFailedRequests?: boolean; // Skip counting failed requests
   keyGenerator?: string; // Custom key generator function name
@@ -14,9 +20,10 @@ export const RATE_LIMIT_KEY = 'rateLimit';
 
 /**
  * Custom rate limit decorator for per-endpoint rate limiting
- * @param options Rate limit configuration
+ * @param options Rate limit configuration. A list is checked in order, and a
+ * request refused by one window is not counted by the windows after it.
  */
-export const RateLimit = (options: RateLimitOptions) =>
+export const RateLimit = (options: RateLimitOptions | RateLimitOptions[]) =>
   SetMetadata(RATE_LIMIT_KEY, options);
 
 /**

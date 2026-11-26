@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PostVisibility } from '../..';
+import type { ChannelSettingDefinition } from './channel-setting-validation.contract';
 import { tiktokAuthorizedSignalsSnapshotSchema } from './tiktok-authorized-signals.contract';
 
 export const TIKTOK_PRIVACY_OPTIONS = [
@@ -16,6 +17,47 @@ export const TIKTOK_PRIVACY_OPTIONS = [
   },
   { label: 'Only me', value: 'private', providerValue: 'SELF_ONLY' },
 ] as const;
+
+/** TikTok target setting that labels a post as AI-generated. */
+export const TIKTOK_AI_GENERATED_SETTING_KEY = 'aiGenerated';
+
+/**
+ * The catalog entry for the AI label. On by default because what Genfeed
+ * publishes is generated in Genfeed; turn it off for a real video or photo
+ * you uploaded. TikTok's inbox hand-off for videos documents no such flag,
+ * so a video sent to the TikTok app carries none.
+ */
+export const TIKTOK_AI_GENERATED_SETTING: ChannelSettingDefinition = {
+  defaultValue: true,
+  description:
+    'Sends the AI-generated label (is_aigc) to TikTok. Turn it off for a real video or photo you uploaded.',
+  key: TIKTOK_AI_GENERATED_SETTING_KEY,
+  label: 'Label as AI-generated',
+  type: 'boolean',
+};
+
+/** TikTok target setting that records where the creator sent the post. */
+export const TIKTOK_DELIVERY_MODE_SETTING_KEY = 'deliveryMode';
+
+/** The creator finishes the video in the TikTok app, so nothing posts publicly. */
+export const TIKTOK_DELIVERY_MODE_APP = 'tiktok_app';
+
+/**
+ * The delivery the creator chose with the publish action, kept on the target
+ * so a retry and a scheduled sweep send the post the same way. Absent means a
+ * direct post. The publish actions set and clear it; it is not a form field.
+ */
+export const TIKTOK_DELIVERY_MODE_SETTING: ChannelSettingDefinition = {
+  description:
+    "Set by the publish action. TikTok app delivery sends the video to the creator's TikTok Inbox instead of posting it.",
+  key: TIKTOK_DELIVERY_MODE_SETTING_KEY,
+  label: 'Delivery',
+  options: [
+    { label: 'Direct post', value: 'direct' },
+    { label: 'TikTok app Inbox', value: TIKTOK_DELIVERY_MODE_APP },
+  ],
+  type: 'select',
+};
 
 /**
  * The audience a TikTok post's Privacy setting limits it to: private for

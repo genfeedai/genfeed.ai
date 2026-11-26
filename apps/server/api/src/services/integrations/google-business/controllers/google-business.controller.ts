@@ -12,6 +12,7 @@ import {
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -24,7 +25,7 @@ import { GOOGLE_BUSINESS_SCOPE } from '@api/services/integrations/google-busines
 import { GoogleBusinessApiError } from '@api/services/integrations/google-business/google-business-error.util';
 import type { GoogleBusinessLocation } from '@api/services/integrations/google-business/interfaces/google-business.interface';
 import { GoogleBusinessService } from '@api/services/integrations/google-business/services/google-business.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import {
   buildGrantedScopesCredentialPatch,
   parseGrantedOAuthScopes,
@@ -69,6 +70,7 @@ export class GoogleBusinessController {
   }
 
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -109,6 +111,7 @@ export class GoogleBusinessController {
    * `needsAccountSelection` so the caller knows to ask.
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() body: Partial<CreateCredentialVerifyDto>,
@@ -241,6 +244,7 @@ export class GoogleBusinessController {
    * brand. Names are read again from Google, never trusted from the body.
    */
   @Post(':credentialId/select-location')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async selectLocations(
     @Req() request: Request,
     @CurrentUser() user: User,

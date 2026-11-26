@@ -83,6 +83,7 @@
       "access_required": "The provider requires additional permission or API access.",
       "budget_exhausted": "Provider credits or the collection budget are exhausted.",
       "rate_limited": "The provider rate limit was reached. Retry later.",
+      "actor_unavailable": "The collection actor no longer exists at the provider. Replace it, then retry.",
       "native_unavailable": "No native provider is available for this dataset.",
       "native_empty": "The native provider returned no observations.",
       "native_failed": "The native provider request failed.",
@@ -312,7 +313,31 @@
     "organization": "Organization",
     "organizationHint": "Applies to every brand unless a brand overrides it.",
     "organizationLabel": "Organization prompt enhancement",
+    "palette": {
+      "absent": "Not found",
+      "coverage": "{percent} of the output",
+      "found": "Found",
+      "measuredHint": "Measured on the final output. A miss is information; the generation was never stopped by it.",
+      "notMeasured": "Not measured. {reason}",
+      "reason": {
+        "artifact_undecodable": "The file could not be read.",
+        "palette_color_translucent": "The colour is translucent, which pixels cannot prove.",
+        "unknown": "The pixels could not be checked.",
+        "visual_composite_unproven": "A layer is placed over this output, so its final pixels are not proven.",
+        "visual_part_unavailable": "The output file was not available to measure.",
+        "visual_too_small": "The output has too few pixels to measure."
+      },
+      "required": "required",
+      "requiredMissHint": "A required colour is missing, so the receipt records a failed check. The generation itself was not stopped.",
+      "summary": "{found} of {total} colours found",
+      "title": "Palette check"
+    },
     "promptEnhanced": "Prompt enhanced",
+    "references": {
+      "added": "{count, plural, one {# brand reference was added because none were attached.} other {# brand references were added because none were attached.}}",
+      "skipped": "None were added: this model does not accept reference images.",
+      "title": "Brand references"
+    },
     "refresh": "Refresh settings",
     "requestOverride": "This generation’s override",
     "sourcePreference": "{source} preference",
@@ -481,6 +506,21 @@
     "cancel": "Cancel",
     "generate": "Generate",
     "generateFailed": "Could not start the generation. Please try again."
+  },
+  "emptyStates": {
+    "posts": {
+      "clearFilters": "Clear filters",
+      "description": "Posts you create, schedule and publish appear here.",
+      "filteredDescription": "Try a different filter or clear the search to see more posts.",
+      "filteredTitle": "No matching posts",
+      "title": "No posts yet",
+      "unavailableTitle": "Posts unavailable"
+    },
+    "trainings": {
+      "action": "Create training",
+      "description": "Train a model on your own images so it can generate content in your style.",
+      "title": "No trainings yet"
+    }
   },
   "elementPlatformFields": {
     "activeHelp": "Inactive elements are hidden from pickers.",
@@ -685,6 +725,10 @@
     "upload": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
     "cloneVoice": "Clone voice"
   },
+  "aiGeneratedLabel": {
+    "label": "Label as AI-generated",
+    "hint": "On by default because what Genfeed publishes is generated in Genfeed. Turn it off for a real video or photo you uploaded."
+  },
   "tiktokPublishing": {
     "connectAccount": "Connect a TikTok account before posting.",
     "capabilitiesUnavailable": "TikTok posting capabilities are unavailable. Reconnect the account or try again later.",
@@ -868,7 +912,7 @@
     "seoSummary": "SEO {score}",
     "notRun": "Not run",
     "postLabel": "post",
-    "tiktokInboxDelivered": "Delivered to TikTok Inbox",
+    "tiktokInboxDelivered": "Delivered",
     "tiktokInboxFinish": "Open your TikTok Inbox to finish editing and publish.",
     "tiktokProcessing": "Processing",
     "unknownPlatform": "Unknown",

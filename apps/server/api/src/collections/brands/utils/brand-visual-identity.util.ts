@@ -7,8 +7,9 @@ import {
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type IBrandKitDraft,
+  type IBrandKitFieldOwner,
 } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 
 export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
@@ -19,8 +20,14 @@ export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
     fontRoles,
     primaryColor,
     secondaryColor,
+    visualDirection,
   } = patch;
-  const styles = { backgroundColor, primaryColor, secondaryColor };
+  const styles = {
+    backgroundColor,
+    primaryColor,
+    secondaryColor,
+    visualDirection,
+  };
   if (
     Object.values(styles).some(
       (value) => value !== undefined && typeof value !== 'string',
@@ -45,15 +52,23 @@ export function parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
   return values;
 }
 
+/** A brand edit: the brand columns to write and the matching draft change. */
+export interface OwnerEdit {
+  columns: Prisma.BrandUpdateManyMutationInput;
+  edit: (previous: IBrandKitDraft) => IBrandKitDraft;
+}
+
 type VisualIdentity = ReturnType<typeof parseVisualIdentity>;
 
-export function withVisualIdentity(
+/** Writes the given values into the draft fields of one Brand Kit group. */
+export function withOwnedFields(
   previous: IBrandKitDraft,
-  values: VisualIdentity,
+  group: IBrandKitFieldOwner['group'],
+  values: object,
 ): IBrandKitDraft {
   const content = structuredClone(previous);
   for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
-    if (owner.group !== 'visual') continue;
+    if (owner.group !== group) continue;
     const value: unknown = Reflect.get(values, owner.key);
     if (value === undefined) continue;
     const field = content.fields[owner.key];
@@ -70,6 +85,13 @@ export function withVisualIdentity(
     };
   }
   return content;
+}
+
+export function withVisualIdentity(
+  previous: IBrandKitDraft,
+  values: VisualIdentity,
+): IBrandKitDraft {
+  return withOwnedFields(previous, 'visual', values);
 }
 
 export function brandVisualIdentityColumns(values: VisualIdentity) {

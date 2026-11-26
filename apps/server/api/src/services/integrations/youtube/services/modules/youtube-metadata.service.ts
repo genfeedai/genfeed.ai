@@ -6,6 +6,7 @@ import {
   YOUTUBE_VERIFICATION_PAGE_SIZE,
 } from '@api/services/integrations/publishers/publisher-youtube-verification-pages.util';
 import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
+import { isYoutubePermissionDeniedError } from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
@@ -75,7 +76,16 @@ export class YoutubeMetadataService {
 
       return this.toVideoMetadata(videoId, video);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error, { videoId });
+      // A refused read is a video this key cannot see, not a fault in our
+      // service. Callers fall back to the connected channel or tell the person
+      // the video is not readable, so it is a warning.
+      if (isYoutubePermissionDeniedError(error)) {
+        this.loggerService.warn(`${url} skipped: YouTube denied access`, {
+          videoId,
+        });
+      } else {
+        this.loggerService.error(`${url} failed`, error, { videoId });
+      }
       return null;
     }
   }

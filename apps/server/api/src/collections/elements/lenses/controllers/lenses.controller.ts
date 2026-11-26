@@ -6,13 +6,14 @@ import { ElementsLensesService } from '@api/collections/elements/lenses/services
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -60,6 +61,7 @@ export class ElementsLensesController extends ElementsCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Create a new lens' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -72,6 +74,7 @@ export class ElementsLensesController extends ElementsCRUDController<
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a lens' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -85,6 +88,7 @@ export class ElementsLensesController extends ElementsCRUDController<
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a lens' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })

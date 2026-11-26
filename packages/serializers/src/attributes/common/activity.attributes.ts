@@ -7,6 +7,7 @@ export const activityAttributes = createEntityAttributes([
   'brandLabel',
   'userLabel',
   'preview',
+  'postGroup',
   'brandId',
   'entityModel',
   'entityId',

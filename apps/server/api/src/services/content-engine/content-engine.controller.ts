@@ -5,6 +5,7 @@ import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   PaginationQueryDto,
@@ -12,6 +13,7 @@ import {
 } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -62,6 +64,7 @@ export class ContentEngineController {
 
   /** Agent-written drafts Playground and Storyboard open on (#7341). */
   @Post('studio-proposals')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async generateStudioProposals(
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
@@ -79,6 +82,7 @@ export class ContentEngineController {
   // Plans
 
   @Post('plans')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async generatePlan(
     @Req() req: Request,
     @CurrentUser() user: User,
@@ -154,6 +158,7 @@ export class ContentEngineController {
   }
 
   @Put('plans/:planId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async updatePlan(
     @Req() req: Request,
     @CurrentUser() user: User,
@@ -169,6 +174,7 @@ export class ContentEngineController {
   }
 
   @Delete('plans/:planId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async deletePlan(@CurrentUser() user: User, @Param('planId') planId: string) {
     const organization = user.organizationId;
     await this.contentPlanItemsService.softDeleteByPlan(organization, planId);
@@ -182,6 +188,7 @@ export class ContentEngineController {
    * immutable `content.production.engine.plan` system workflow.
    */
   @Post('plans/:planId/execute')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async executePlan(
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
@@ -208,6 +215,7 @@ export class ContentEngineController {
    * `content.production.engine.plan-item` system workflow.
    */
   @Post('plans/:planId/items/:itemId/execute')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async executeItem(
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,

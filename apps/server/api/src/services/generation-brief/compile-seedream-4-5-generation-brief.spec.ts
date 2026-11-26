@@ -155,6 +155,34 @@ describe('compileSeedream45GenerationBrief', () => {
     ).toThrow(GenerationBriefCompileError);
   });
 
+  it('names a style and a product reference by position, product first, for SeeDream 5 Lite too', () => {
+    const base = imageGenerationBriefSchema.parse(
+      readFixture('unbranded.input.json'),
+    );
+    const brief = imageGenerationBriefSchema.parse({
+      ...base,
+      references: [
+        { assetId: 'asset_style_1', role: 'style' },
+        { assetId: 'asset_product_1', role: 'product' },
+      ],
+    });
+
+    const result = compileSeedream45GenerationBrief({
+      brief,
+      modelKey: SEEDREAM_5_LITE_MODEL_KEY,
+    });
+
+    expect(result.dispatch.image_input).toEqual([
+      'asset_product_1',
+      'asset_style_1',
+    ]);
+    expect(result.dispatch.prompt).toContain(
+      'Image 1 is the product: keep it exactly. Image 2 is a style reference: match its palette, texture and lighting, not its subject',
+    );
+    expect(result.dispatch.prompt).not.toContain('asset_');
+    expect(result.evidence.compilerVersion).toBe(2);
+  });
+
   it('does not mutate the normalized brief', () => {
     const brief = imageGenerationBriefSchema.parse(
       readFixture('unbranded.input.json'),

@@ -71,7 +71,7 @@ describe('buildMediaPromptFromHarness', () => {
       [
         'product on marble table',
         '',
-        'Brand look: Primary color: #000000. Font family: Montserrat Regular. Prefer distinctive brand-native visuals over generic stock or template looks. Never show competitor logos. This brand is software. Depict the person.',
+        'Brand palette: black. Brand look: Prefer distinctive brand-native visuals over generic stock or template looks. Never show competitor logos. This brand is software. Depict the person.',
       ].join('\n'),
     );
     expect(result).not.toMatch(/BAM|Write as|harness|Voice tone|wrapper/);
@@ -391,5 +391,125 @@ describe('buildMediaEnhancerBrief', () => {
         }),
       ),
     ).toBe('');
+  });
+});
+
+describe('visual direction', () => {
+  const direction = [
+    'Reinterpret classic paintings in oil.',
+    'Write the mark into the scene, never beside it.',
+    'Monochrome, grain, no gloss',
+  ];
+
+  it('leads the image look and survives a copy word in one sentence', () => {
+    const result = buildMediaPromptFromHarness(
+      'a quiet harbour',
+      brief({
+        metadata: { contentType: 'image', objective: 'awareness' },
+        styleDirectives: ['Primary color: #0A0A0A'],
+        visualDirections: direction,
+      }),
+    );
+
+    expect(result).toBe(
+      [
+        'a quiet harbour',
+        '',
+        'Brand palette: black. Brand look: Reinterpret classic paintings in oil. Write the mark into the scene, never beside it. Monochrome, grain, no gloss.',
+      ].join('\n'),
+    );
+  });
+
+  it('words the typed palette, primary first, and never prints a hex code or a font', () => {
+    const result = buildMediaPromptFromHarness(
+      'a quiet harbour',
+      brief({
+        metadata: { contentType: 'image', objective: 'awareness' },
+        palette: [
+          { hex: '#0A0A0A', usage: 'Primary' },
+          { hex: '#FFFFFF', usage: 'Background' },
+          { hex: '#1D4ED8', usage: 'Sea blue: water and sky' },
+          { hex: '#000000', usage: 'Ink' },
+        ],
+        styleDirectives: [
+          'Primary color: #0A0A0A',
+          'Font family: MONTSERRAT_BLACK',
+        ],
+        visualDirections: ['Monochrome, grain, no gloss'],
+      }),
+    );
+
+    expect(result).toBe(
+      [
+        'a quiet harbour',
+        '',
+        'Brand palette: black, white and blue. Brand look: Monochrome, grain, no gloss.',
+      ].join('\n'),
+    );
+    expect(result).not.toMatch(/#[0-9a-f]{6}|Montserrat/i);
+  });
+
+  it('caps the palette at five colour words', () => {
+    const result = buildMediaPromptFromHarness(
+      'a quiet harbour',
+      brief({
+        metadata: { contentType: 'video', objective: 'awareness' },
+        palette: [
+          '#FF0000',
+          '#FFA500',
+          '#FFFF00',
+          '#00FF00',
+          '#0000FF',
+          '#800080',
+          '#FFC0CB',
+        ].map((hex) => ({ hex })),
+      }),
+    );
+
+    expect(result).toContain(
+      'Brand palette: red, orange, yellow, green and blue.',
+    );
+    expect(result).not.toMatch(/purple|pink/);
+  });
+
+  it('reaches a video prompt in plain words', () => {
+    const result = buildMediaPromptFromHarness(
+      'slow pan over a harbour',
+      brief({
+        metadata: { contentType: 'video', objective: 'awareness' },
+        styleDirectives: ['Primary color: #000000'],
+        visualDirections: ['Monochrome, grain, no gloss'],
+      }),
+    );
+
+    expect(result).toBe(
+      'slow pan over a harbour\n\nBrand palette: black. Brand look: Monochrome, grain, no gloss.',
+    );
+  });
+
+  it('is part of the enhancer look, before generic style lines', () => {
+    const result = buildMediaEnhancerBrief(
+      brief({
+        metadata: { contentType: 'image', objective: 'awareness' },
+        styleDirectives: ['Prefer soft shadows'],
+        visualDirections: ['Oil painting, monochrome'],
+      }),
+    );
+
+    expect(result).toContain(
+      'Look:\n- Oil painting, monochrome.\n- Prefer soft shadows.',
+    );
+  });
+
+  it('is never folded into the generic suffix of a copy brief', () => {
+    const result = buildMediaPromptFromHarness(
+      'write a post',
+      brief({
+        metadata: { contentType: 'post', objective: 'awareness' },
+        visualDirections: ['Oil painting, monochrome'],
+      }),
+    );
+
+    expect(result).not.toContain('Oil painting');
   });
 });

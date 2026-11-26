@@ -382,7 +382,7 @@ const RESTREAM_STATE = closedObjectSchema(
   ['botId', 'organizationId', 'status'],
 );
 const PROMOTION_COUNTS = closedObjectSchema(
-  { promoted: COUNT, skipped: COUNT },
+  { denied: COUNT, promoted: COUNT, skipped: COUNT },
   ['promoted', 'skipped'],
 );
 const PERFORMANCE_CONTENT_ITEM = closedObjectSchema(
@@ -859,16 +859,18 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     outputSchema: closedObjectSchema(
       {
         brandId: STRING_SCHEMA,
+        denied: COUNT,
         promoted: COUNT,
         skipped: COUNT,
-        status: { const: 'promoted', type: 'string' },
+        status: enumSchema(['denied', 'promoted'] as const),
       },
-      ['brandId', 'promoted', 'skipped', 'status'],
+      ['brandId', 'denied', 'promoted', 'skipped', 'status'],
     ),
   },
   'harness.winners.finalize': {
     inputSchema: sweepFinalInput,
     outputSchema: countResult('harness.winners.promote', [
+      'brandsDenied',
       'brandsEligible',
       'brandsFailed',
       'brandsPromoted',

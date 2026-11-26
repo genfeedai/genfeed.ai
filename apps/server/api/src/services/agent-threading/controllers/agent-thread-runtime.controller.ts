@@ -5,8 +5,10 @@ import { AgentThreadAccessService } from '@api/collections/agent-threads/service
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService } from '@api/index';
@@ -113,6 +115,7 @@ export class AgentThreadRuntimeController {
   }
 
   @Post(':threadId/work-objects/:objectId/actions')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   async actOnWorkObject(
     @Param('threadId') threadId: string,
     @Param('objectId') objectId: string,
@@ -227,6 +230,7 @@ export class AgentThreadRuntimeController {
   }
 
   @Post(':threadId/input-requests/:requestId/responses')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({ summary: 'Resolve a pending thread input request' })
   async respondToInputRequest(
     @Param('threadId') threadId: string,
@@ -322,6 +326,7 @@ export class AgentThreadRuntimeController {
   }
 
   @Post(':threadId/ui-actions')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({ summary: 'Execute a thread UI action' })
   async respondToUiAction(
     @Param('threadId') threadId: string,
@@ -367,6 +372,7 @@ export class AgentThreadRuntimeController {
   }
 
   @Post(':threadId/branches')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @ApiOperation({ summary: 'Branch an existing thread' })
   async branchThread(
     @Req() request: Request,
@@ -440,11 +446,7 @@ export class AgentThreadRuntimeController {
     );
   }
 
-  /**
-   * Opens a thread for reading to its owner or to a live share (#9936), and
-   * returns the owner's id: the engine's own check is an ownership lookup, so
-   * it passes once the access check has already allowed this viewer.
-   */
+  /** Opens a thread to its owner or a live share (#9936); returns the owner's id. */
   private async resolveThreadOwnerForRead(
     user: User,
     organizationId: string,

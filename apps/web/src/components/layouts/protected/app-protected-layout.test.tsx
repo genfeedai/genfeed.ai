@@ -12,7 +12,12 @@ import {
   render as renderWithoutQueryClient,
   screen,
 } from '@testing-library/react';
-import type { ReactElement, ReactNode } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUserRole } from '@/hooks/auth/use-user-role';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
@@ -175,7 +180,15 @@ vi.mock('@/components/layouts/app/AppLayout', () => ({
     appLayoutSpy({ bannerComponent, ...props });
     return (
       <div data-testid="app-layout">
-        {menuComponent}
+        {/* The copy the shell hands the mobile drawer, with an onClose: the
+            one that keeps the quick-action rows. The desktop copy has none,
+            they sit in the strip above it. */}
+        {isValidElement(menuComponent)
+          ? cloneElement(
+              menuComponent as ReactElement<{ onClose?: () => void }>,
+              { onClose: () => undefined },
+            )
+          : null}
         {bannerComponent}
         {children}
       </div>
@@ -757,6 +770,7 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
+        hasMenuQuickActions: true,
       }),
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
@@ -1596,7 +1610,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts the same New Task + shared command palette search trigger on the settings sidebar as everywhere else', () => {
+  it('mounts the same New Task + shared command palette search trigger on the settings sidebar in the mobile drawer as everywhere else', () => {
     render(
       <AppProtectedLayoutSidebar
         currentApp="workspace"
@@ -1607,6 +1621,7 @@ describe('AppProtectedLayout', () => {
         isPublishingRoute={false}
         isDiscoveryRoute={false}
         isSettingsRoute
+        onClose={() => undefined}
         isStudioRoute={false}
         isAutomationRoute={false}
         adminMenuItems={[]}
@@ -1636,6 +1651,43 @@ describe('AppProtectedLayout', () => {
         renderTopSlot: expect.any(Function),
       }),
     );
+  });
+
+  it('leaves the quick actions to the strip above the desktop menu', () => {
+    appSidebarSpy.mockClear();
+    render(
+      <AppProtectedLayoutSidebar
+        currentApp="workspace"
+        isAdminRoute={false}
+        isAnalyticsRoute={false}
+        isLibraryRoute={false}
+        isOrgRoute={false}
+        isPublishingRoute={false}
+        isDiscoveryRoute={false}
+        isSettingsRoute={false}
+        isStudioRoute={false}
+        isAutomationRoute={false}
+        adminMenuItems={[]}
+        analyticsMenuItems={[]}
+        libraryMenuItems={[]}
+        menuItems={[]}
+        orgMenuItems={[]}
+        publishingMenuItems={[]}
+        discoveryMenuItems={[]}
+        secondaryMenuItems={[]}
+        settingsMenuItems={[]}
+        studioMenuItems={[]}
+        automationMenuItems={[]}
+        messagesMenuItems={[]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'New Task' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('sidebar-search-trigger'),
+    ).not.toBeInTheDocument();
   });
 
   it('lets a module swap its own nav panel in for the surface menu items', () => {

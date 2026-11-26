@@ -48,8 +48,6 @@ export interface GenerationHarnessReceipt {
   negativePrompt?: string;
   /** The media brand brief the enhancer was given, verbatim; absent when the brief had nothing visual. */
   enhancerBrief?: string;
-  /** Brand voice (tone, voice, audience, values) from the pinned revision, for brief-compiled models; absent in raw mode. */
-  brandVoice?: string;
   /**
    * A receipt is either `applied` or `skipped`: enhancement off, an explicit
    * `raw` opt-out, or a failed enhancement that fell back to the prompt as
@@ -70,6 +68,43 @@ export interface GenerationHarnessReceipt {
   appliedPacks: Array<{ id: string; version: string }>;
   /** Exact Knowledge source versions folded into the enhanced prompt. */
   knowledgeReceipts?: KnowledgeReceipt[];
+  /**
+   * Brand references attached because the caller attached none. Absent when
+   * the caller chose the references, branding was off, or the brand has none.
+   */
+  brandReferences?: GenerationBrandReferencesReceipt;
+  /**
+   * The approved palette measured on the final output once it completed.
+   * Absent while the output is still being checked, for a raw generation, and
+   * when the brand has no palette.
+   */
+  brandPalette?: GenerationBrandPaletteReceipt;
+}
+
+export interface GenerationBrandPaletteColor {
+  id: string;
+  hex: string;
+  /** Where the brand uses the colour, in the brand's words. */
+  usage?: string;
+  isRequired: boolean;
+  /** Share of the output's opaque pixels close to this colour, 0 to 1. */
+  coverage: number;
+  result: 'found' | 'absent';
+}
+
+/** A palette result is evidence on the receipt: a miss never stops a generation. */
+export type GenerationBrandPaletteReceipt =
+  | { status: 'measured'; colors: GenerationBrandPaletteColor[] }
+  | {
+      status: 'not_measured';
+      /** Why the pixels could not be measured, for example `visual_composite_unproven`. */
+      reasonCode: string;
+    };
+
+export interface GenerationBrandReferencesReceipt {
+  attachedAssetIds: string[];
+  /** The brand had references but the model accepts none. */
+  skippedReason?: 'model_accepts_no_references';
 }
 
 /** Safe projection from persisted receipt JSON, including historical receipts. */

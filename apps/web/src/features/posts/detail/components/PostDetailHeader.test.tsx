@@ -106,7 +106,6 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
   const onViewModeChange = vi.fn();
   const onDelete = vi.fn();
   const onExpandToThread = vi.fn();
-  const onCreateRemix = vi.fn();
   const onPublishNow = vi.fn();
   const onScheduleSave = vi.fn();
 
@@ -119,7 +118,7 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
       viewMode="edit"
       onViewModeChange={onViewModeChange}
       onDelete={onDelete}
-      onCreateRemix={onCreateRemix}
+      remixHref="/acme/moonrise/playground?platform=twitter&sourcePostId=post-1"
       onExpandToThread={onExpandToThread}
       onPublishNow={onPublishNow}
       onScheduleSave={onScheduleSave}
@@ -128,7 +127,6 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
   );
 
   return {
-    onCreateRemix,
     onDelete,
     onExpandToThread,
     onPublishNow,
@@ -279,7 +277,10 @@ describe('PostDetailHeader', () => {
   it('offers remix, performance and agent links for public posts', () => {
     renderHeader({ status: PostStatus.PUBLIC }, { isPublished: true });
 
-    expect(screen.getByRole('button', { name: 'Remix' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/playground?platform=twitter&sourcePostId=post-1',
+    );
     expect(
       screen.getByRole('link', { name: 'Performance' }),
     ).toBeInTheDocument();

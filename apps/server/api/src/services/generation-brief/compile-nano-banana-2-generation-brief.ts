@@ -7,10 +7,12 @@
  * None of the three has a dispatch-side aspect-ratio field — the resolved
  * aspect ratio still feeds evidence via
  * {@link resolveImageGenerationBriefAspectRatio}, it is simply never spread
- * into the dispatch object. The capability profile's `resolution` flag only
- * toggles provider support; there is no brief-carried resolution-tier value
- * to map onto it, so the dispatch never sets `resolution` (a documented
- * simplification, not a fidelity loss — nothing in the brief is discarded).
+ * into the dispatch object. The capability profile's `resolution` flag toggles
+ * provider support; there is no brief-carried resolution-tier value to map
+ * onto it, so a model that supports it dispatches Replicate's default tier
+ * (`NANO_BANANA_DEFAULT_RESOLUTION`). The tier is explicit because the reviewed
+ * rate sheet prices these models per tier and a quote of this dispatch is
+ * refused without one (API-GENFEED-AI-BE). Nothing in the brief is discarded.
  * Up to 14 references map onto the native `image_input` array; anything
  * beyond that is recorded as an omitted signal.
  */
@@ -19,9 +21,11 @@ import {
   buildImageGenerationBriefAppliedFields,
   buildImageGenerationBriefEvidence,
   buildImageGenerationBriefPrompt,
+  buildImageGenerationBriefReferenceLabels,
   recordExcessImageGenerationBriefReferences,
+  recordUnsupportedImageGenerationBriefReferenceRoles,
   resolveImageGenerationBriefAspectRatio,
-  selectImageGenerationBriefReferences,
+  selectImageGenerationBriefReferencesByRole,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -42,6 +46,7 @@ import {
   NANO_BANANA_2_LITE_CAPABILITY_PROFILE,
   NANO_BANANA_PRO_CAPABILITY_PROFILE,
 } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
+import { NANO_BANANA_DEFAULT_RESOLUTION } from '@genfeedai/contracts/constants';
 
 const NANO_BANANA_2_MODEL_LABEL = 'Nano Banana 2';
 
@@ -92,9 +97,14 @@ export function compileNanoBanana2GenerationBrief(
   const policy = generationFidelityPolicies[brief.fidelityMode];
   const omitted: GenerationBriefOmittedSignal[] = [];
 
-  const { excludedCount, included } = selectImageGenerationBriefReferences(
-    brief,
-    profile.references.max,
+  const { excludedCount, included, unsupportedRoles } =
+    selectImageGenerationBriefReferencesByRole(brief, profile.references);
+  recordUnsupportedImageGenerationBriefReferenceRoles(
+    omitted,
+    unsupportedRoles,
+    policy,
+    brief.fidelityMode,
+    NANO_BANANA_2_MODEL_LABEL,
   );
   recordExcessImageGenerationBriefReferences(
     omitted,
@@ -105,12 +115,17 @@ export function compileNanoBanana2GenerationBrief(
     NANO_BANANA_2_MODEL_LABEL,
   );
 
+  const referenceLabels = buildImageGenerationBriefReferenceLabels(
+    included,
+    profile.references,
+  );
   const { appliedConstraintFields, prompt } = buildImageGenerationBriefPrompt({
     brief,
     maxCharacters: profile.prompt.maxCharacters,
     modelLabel: NANO_BANANA_2_MODEL_LABEL,
     omitted,
     policy,
+    referenceLabels,
     supportsNegativePrompt: false,
   });
 
@@ -122,10 +137,15 @@ export function compileNanoBanana2GenerationBrief(
 
   const imageInput = included.map((reference) => reference.assetId);
 
+  const resolution = profile.resolution.supported
+    ? NANO_BANANA_DEFAULT_RESOLUTION[modelKey]
+    : undefined;
+
   const dispatch = nanoBanana2DispatchSchema.parse({
     ...(imageInput.length > 0 ? { image_input: imageInput } : {}),
     output_format: profile.defaults.outputFormat,
     prompt,
+    ...(resolution ? { resolution } : {}),
     ...(profile.defaults.safetyFilterLevel
       ? { safety_filter_level: profile.defaults.safetyFilterLevel }
       : {}),
@@ -134,6 +154,7 @@ export function compileNanoBanana2GenerationBrief(
   const appliedFields = buildImageGenerationBriefAppliedFields({
     appliedConstraintFields,
     brief,
+    hasReferenceLabels: referenceLabels.length > 0,
     hasSeed: false,
   });
 
@@ -150,6 +171,7 @@ export function compileNanoBanana2GenerationBrief(
     outputFormat: profile.defaults.outputFormat,
     profileId: profile.id,
     profileVersion: profile.version,
+    referenceAssetIds: included.map((reference) => reference.assetId),
   });
 
   return { brief, dispatch, evidence };

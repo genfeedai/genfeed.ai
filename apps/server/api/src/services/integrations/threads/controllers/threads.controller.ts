@@ -10,6 +10,7 @@ import {
   claimOAuthVerifyCredential,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -20,7 +21,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  CredentialPlatform,
+  OAuthGrantType,
+} from '@genfeedai/contracts';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { THREADS_GRAPH_URL } from '@genfeedai/integrations';
 import {
   CredentialOAuthSerializer,
@@ -101,6 +107,7 @@ export class ThreadsController {
    * Step 1: Get Threads OAuth URL for user to connect their account.
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -154,6 +161,7 @@ export class ThreadsController {
    * Step 2: Handle the OAuth callback, exchange code for access token
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
@@ -186,7 +194,6 @@ export class ThreadsController {
       }
 
       const { organizationId } = existingCredential;
-
       const { clientId, clientSecret, redirectUri } = this.getOAuthConfig();
 
       // Exchange code for short-lived token
@@ -227,7 +234,6 @@ export class ThreadsController {
 
       const shortLivedToken = tokenRes.data.access_token;
       const userId = tokenRes.data.user_id;
-
       if (!shortLivedToken) {
         return returnBadRequest({
           detail: 'Missing access token from Threads',
@@ -274,7 +280,6 @@ export class ThreadsController {
         userId,
       );
 
-      // Update the credential with the access token
       let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
@@ -285,6 +290,7 @@ export class ThreadsController {
           isConnected: true,
           isDeleted: false,
           oauthState: verifiedOAuthState(state),
+          ...(await this.grantedScopesPatch(access_token)),
         },
       );
 
@@ -302,6 +308,17 @@ export class ThreadsController {
       }
       return returnInternalServerError('Failed to verify Threads OAuth');
     }
+  }
+
+  /**
+   * Neither token exchange lists the grant, so ask Threads which permissions
+   * this token carries. Unknown stays unknown: the reply calls then rely on
+   * Threads' own refusal.
+   */
+  private async grantedScopesPatch(accessToken: string) {
+    return buildGrantedScopesCredentialPatch(
+      await this.threadsService.getGrantedScopes(accessToken),
+    );
   }
 
   private async resolveExternalProfile(

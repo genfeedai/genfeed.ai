@@ -11,6 +11,7 @@ import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategi
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
@@ -18,6 +19,7 @@ import { PageQueryDto } from '@api/helpers/dto/page-query.dto';
 import { PaginationQueryDto } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
@@ -26,6 +28,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { transformPaginationFormat } from '@api/shared/utils/pagination-transform/pagination-transform.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -196,6 +199,7 @@ export class AgentStrategiesController extends BaseCRUDController<
    * through to the default CRUD patch.
    */
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -227,6 +231,7 @@ export class AgentStrategiesController extends BaseCRUDController<
   }
 
   @Post(':id/run-now')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually trigger a proactive run' })
   @ApiResponse({ description: 'Run triggered', status: 200 })
@@ -266,6 +271,7 @@ export class AgentStrategiesController extends BaseCRUDController<
   }
 
   @Post(':id/run-workflow')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -286,6 +292,7 @@ export class AgentStrategiesController extends BaseCRUDController<
   }
 
   @Post(':id/report-now')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Generate a strategy report immediately' })
   async reportNow(@Param('id') id: string, @CurrentUser() user: User) {

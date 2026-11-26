@@ -8,11 +8,13 @@ import { ClipperProjectClientSourceService } from '@api/collections/clipper-proj
 import { HookClipApprovalService } from '@api/collections/clipper-projects/services/hook-clipper-approval.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -63,6 +65,7 @@ export class ClipperProjectsController {
   ) {}
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -167,6 +170,7 @@ export class ClipperProjectsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,

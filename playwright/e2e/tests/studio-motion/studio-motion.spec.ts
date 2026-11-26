@@ -88,8 +88,8 @@ test('Motion reviews exact output cost and retains source on a revision conflict
   await expect(
     page.getByRole('heading', { name: 'What should Motion make?' }),
   ).toBeVisible();
-  // A brand with no projects has nothing to list: the prompt has the page.
-  await expect(page.getByTestId('agent-output-output-pane')).toBeHidden();
+  // A brand with no projects still gets both columns; the right one says so.
+  await expect(page.getByTestId('agent-output-output-pane')).toBeVisible();
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveCount(0);

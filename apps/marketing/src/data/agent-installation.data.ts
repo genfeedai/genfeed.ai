@@ -10,7 +10,7 @@ const repository = 'https://github.com/genfeedai/agent';
 const CLAUDE_CONNECTORS_URL =
   'https://claude.ai/customize/connectors?modal=add-custom-connector';
 const connector =
-  'In Claude, open Customize → Connectors → + Add → Add custom connector. Name it Genfeed, paste the URL below and approve browser sign-in. If Add is unavailable, ask your workspace owner. To generate images, video and audio, add the full Genfeed server (https://mcp.genfeed.ai/mcp) as a second connector named Genfeed Full and approve its sign-in too.';
+  'In Claude, open Customize → Connectors → + Add → Add custom connector. Name it Genfeed, paste the URL below and approve browser sign-in. If Add is unavailable, ask your workspace owner.';
 
 export const agentInstallations = {
   chatgpt: {
@@ -29,11 +29,10 @@ export const agentInstallations = {
     method: 'Claude connector',
   },
   'claude-code': {
-    command: '/plugin install genfeed --marketplace genfeedai/agent',
     instruction:
-      'In Claude Code 2.1.275 or newer, paste this command to install Genfeed and its playbook. On older versions, run /plugin marketplace add genfeedai/agent, then /plugin install genfeed@genfeed. Open /mcp, select Genfeed, and complete browser sign-in. To generate images, video and audio, also add the full Genfeed server (https://mcp.genfeed.ai/mcp) as a second MCP server named Genfeed Full and complete its sign-in.',
-    label: 'Install in Claude Code',
-    method: 'Claude Code plugin',
+      'Run `claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp` in your terminal, then open /mcp in Claude Code, select Genfeed, and complete browser sign-in. The connector URL below is the same address.',
+    label: 'Add to Claude Code',
+    method: 'Claude Code MCP server',
   },
   'claude-cowork': {
     destination: CLAUDE_CONNECTORS_URL,

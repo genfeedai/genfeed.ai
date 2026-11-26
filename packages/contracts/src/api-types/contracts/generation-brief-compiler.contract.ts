@@ -255,7 +255,7 @@ export const nanoBananaDispatchSchema = z
   .strict();
 export type NanoBananaDispatch = z.infer<typeof nanoBananaDispatchSchema>;
 export const NANO_BANANA_IMAGE_COMPILER_ID = 'nano-banana-image-compiler';
-export const NANO_BANANA_IMAGE_COMPILER_VERSION = 1;
+export const NANO_BANANA_IMAGE_COMPILER_VERSION = 2;
 
 export const nanoBanana2DispatchSchema = z
   .object({
@@ -271,7 +271,7 @@ export const nanoBanana2DispatchSchema = z
   .strict();
 export type NanoBanana2Dispatch = z.infer<typeof nanoBanana2DispatchSchema>;
 export const NANO_BANANA_2_IMAGE_COMPILER_ID = 'nano-banana-2-image-compiler';
-export const NANO_BANANA_2_IMAGE_COMPILER_VERSION = 1;
+export const NANO_BANANA_2_IMAGE_COMPILER_VERSION = 2;
 
 export const seedream4DispatchSchema = z
   .object({
@@ -286,7 +286,7 @@ export const seedream4DispatchSchema = z
   .strict();
 export type Seedream4Dispatch = z.infer<typeof seedream4DispatchSchema>;
 export const SEEDREAM_4_IMAGE_COMPILER_ID = 'seedream-4-image-compiler';
-export const SEEDREAM_4_IMAGE_COMPILER_VERSION = 1;
+export const SEEDREAM_4_IMAGE_COMPILER_VERSION = 2;
 
 export const seedream45DispatchSchema = z
   .object({
@@ -300,7 +300,7 @@ export const seedream45DispatchSchema = z
   .strict();
 export type Seedream45Dispatch = z.infer<typeof seedream45DispatchSchema>;
 export const SEEDREAM_4_5_IMAGE_COMPILER_ID = 'seedream-4-5-image-compiler';
-export const SEEDREAM_4_5_IMAGE_COMPILER_VERSION = 1;
+export const SEEDREAM_4_5_IMAGE_COMPILER_VERSION = 2;
 
 export const seedream5ProDispatchSchema = z
   .object({
@@ -315,7 +315,7 @@ export const seedream5ProDispatchSchema = z
   .strict();
 export type Seedream5ProDispatch = z.infer<typeof seedream5ProDispatchSchema>;
 export const SEEDREAM_5_PRO_IMAGE_COMPILER_ID = 'seedream-5-pro-image-compiler';
-export const SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION = 1;
+export const SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION = 2;
 
 export const ideogramCharacterDispatchSchema = z
   .object({
@@ -344,7 +344,7 @@ export const ideogramV3DispatchSchema = z
   .strict();
 export type IdeogramV3Dispatch = z.infer<typeof ideogramV3DispatchSchema>;
 export const IDEOGRAM_V3_IMAGE_COMPILER_ID = 'ideogram-v3-image-compiler';
-export const IDEOGRAM_V3_IMAGE_COMPILER_VERSION = 1;
+export const IDEOGRAM_V3_IMAGE_COMPILER_VERSION = 2;
 
 export const flux11ProDispatchSchema = z
   .object({
@@ -360,7 +360,7 @@ export const flux11ProDispatchSchema = z
   .strict();
 export type Flux11ProDispatch = z.infer<typeof flux11ProDispatchSchema>;
 export const FLUX_1_1_PRO_IMAGE_COMPILER_ID = 'flux-1-1-pro-image-compiler';
-export const FLUX_1_1_PRO_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_1_1_PRO_IMAGE_COMPILER_VERSION = 2;
 
 export const flux2DevDispatchSchema = z
   .object({
@@ -379,7 +379,7 @@ export const flux2DevDispatchSchema = z
   .strict();
 export type Flux2DevDispatch = z.infer<typeof flux2DevDispatchSchema>;
 export const FLUX_2_DEV_IMAGE_COMPILER_ID = 'flux-2-dev-image-compiler';
-export const FLUX_2_DEV_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_2_DEV_IMAGE_COMPILER_VERSION = 2;
 
 export const flux2FlexDispatchSchema = z
   .object({
@@ -400,7 +400,7 @@ export const flux2FlexDispatchSchema = z
   .strict();
 export type Flux2FlexDispatch = z.infer<typeof flux2FlexDispatchSchema>;
 export const FLUX_2_FLEX_IMAGE_COMPILER_ID = 'flux-2-flex-image-compiler';
-export const FLUX_2_FLEX_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_2_FLEX_IMAGE_COMPILER_VERSION = 2;
 
 export const flux2ProDispatchSchema = z
   .object({
@@ -418,7 +418,7 @@ export const flux2ProDispatchSchema = z
   .strict();
 export type Flux2ProDispatch = z.infer<typeof flux2ProDispatchSchema>;
 export const FLUX_2_PRO_IMAGE_COMPILER_ID = 'flux-2-pro-image-compiler';
-export const FLUX_2_PRO_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_2_PRO_IMAGE_COMPILER_VERSION = 2;
 
 export const fluxKontextProDispatchSchema = z
   .object({
@@ -436,7 +436,7 @@ export type FluxKontextProDispatch = z.infer<
 >;
 export const FLUX_KONTEXT_PRO_IMAGE_COMPILER_ID =
   'flux-kontext-pro-image-compiler';
-export const FLUX_KONTEXT_PRO_IMAGE_COMPILER_VERSION = 1;
+export const FLUX_KONTEXT_PRO_IMAGE_COMPILER_VERSION = 2;
 
 export const qwenImageDispatchSchema = z
   .object({
@@ -457,7 +457,7 @@ export const qwenImageDispatchSchema = z
   .strict();
 export type QwenImageDispatch = z.infer<typeof qwenImageDispatchSchema>;
 export const QWEN_IMAGE_IMAGE_COMPILER_ID = 'qwen-image-image-compiler';
-export const QWEN_IMAGE_IMAGE_COMPILER_VERSION = 1;
+export const QWEN_IMAGE_IMAGE_COMPILER_VERSION = 2;
 
 export const runwayGen4ImageTurboDispatchSchema = z
   .object({
@@ -475,7 +475,7 @@ export type RunwayGen4ImageTurboDispatch = z.infer<
 >;
 export const RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_ID =
   'runway-gen4-image-turbo-image-compiler';
-export const RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_VERSION = 1;
+export const RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_VERSION = 2;
 
 const remainingImageDispatchValueSchema = z.union([
   z.string(),
@@ -509,7 +509,7 @@ export const FAL_NANO_BANANA_2_IMAGE_COMPILER_ID =
 export const FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID =
   'fal-seedream-5-5-image-compiler';
 export const FAL_MAI_IMAGE_COMPILER_ID = 'fal-mai-image-compiler';
-export const REMAINING_IMAGE_COMPILER_VERSION = 1;
+export const REMAINING_IMAGE_COMPILER_VERSION = 2;
 
 export type ImageGenerationBriefDispatch =
   | FluxSchnellDispatch

@@ -206,6 +206,8 @@ export class TrendsAnalyticsController {
         'Select an authorized brand before reading its trends.',
       );
     }
+    if (query.relevance !== 'market')
+      void this.trendsService.noteBrandRead(readScope.organizationId, brandId);
     return { organizationId: readScope.organizationId, brandId };
   }
 

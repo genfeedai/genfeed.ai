@@ -15,7 +15,7 @@ import { isPersonalSettingsPage } from '@/components/layouts/protected/app-prote
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
-import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
+import TopbarAppsMenu from '@/components/shell/TopbarAppsMenu';
 import TopbarPanelToggles from '@/components/shell/TopbarPanelToggles';
 import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
 import CreditsLiveSync from '@/components/topbars/credits-bar/CreditsLiveSync';
@@ -73,14 +73,18 @@ function AppProtectedTopbarContent({
     ? 'admin'
     : (currentApp ?? 'workspace');
   return (
-    <header className="h-full w-full bg-transparent">
-      {/* Leading edge, one height: organization, brand, then the breadcrumb.
-          The Genfeed mark lives in the rail. Every control is h-8. */}
+    <header className="h-full w-full">
+      {/* One row, Vercel style: organization and brand on the leading edge,
+          the breadcrumb centred in the row from `lg` (below it, right after
+          the switchers) so the dropdowns have room, account controls on the
+          trailing edge. The Genfeed mark lives in the rail. Every control is
+          h-8, and the 8px side padding puts the first and last icon centres
+          24px from the edge, mirroring the rail. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="flex h-full w-full items-center gap-1 px-2 md:gap-3 md:px-3"
+        className="flex h-full w-full items-center gap-1 px-2 md:gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr]"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1 md:gap-1.5">
+        <div className="flex min-w-0 items-center gap-1 md:gap-1.5">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -115,34 +119,40 @@ function AppProtectedTopbarContent({
                 orgSlug={orgSlug}
               />
             </div>
-
-            <div className={cn('min-w-0 md:flex', !isAppsRoute && 'hidden')}>
-              {isAppsRoute ? (
-                <nav aria-label={translateApps('breadcrumbLabel')}>
-                  <span className="text-sm font-semibold">
-                    {translateApps('title')}
-                  </span>
-                </nav>
-              ) : (
-                <TopbarBreadcrumbs
-                  fallbackRootLabel={
-                    TOPBAR_BREADCRUMB_ROOT_LABELS[breadcrumbFallbackApp]
-                  }
-                  rootLabel={isSettingsRoute ? 'Settings' : undefined}
-                />
-              )}
-            </div>
           </div>
         </div>
 
-        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
+        <div
+          className={cn(
+            'min-w-0 flex-1 md:flex lg:flex-none lg:justify-center',
+            !isAppsRoute && 'hidden',
+          )}
+          data-testid="app-protected-topbar-breadcrumb"
+        >
+          {isAppsRoute ? (
+            <nav aria-label={translateApps('breadcrumbLabel')}>
+              <span className="text-sm font-semibold">
+                {translateApps('title')}
+              </span>
+            </nav>
+          ) : (
+            <TopbarBreadcrumbs
+              fallbackRootLabel={
+                TOPBAR_BREADCRUMB_ROOT_LABELS[breadcrumbFallbackApp]
+              }
+              rootLabel={isSettingsRoute ? 'Settings' : undefined}
+            />
+          )}
+        </div>
+
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5 max-lg:ml-auto">
           <div className="flex min-w-0 items-center gap-1 md:gap-1.5">
             {!isAdminChrome ? <CreditsLiveSync /> : null}
 
             {/* Out of credits, trial ended or running low: one pill, one action. */}
             {!isAdminChrome ? <TopbarCreditsStatus /> : null}
 
-            {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
+            {!isAdminChrome ? <TopbarAppsMenu orgSlug={orgSlug} /> : null}
           </div>
           {!isAdminChrome ? <GenerationToasts /> : null}
 

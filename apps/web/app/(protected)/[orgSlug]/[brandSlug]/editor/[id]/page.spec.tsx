@@ -4,6 +4,7 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { DetailPageProps } from '@/props/pages/page.props';
+import EditorDetailContent from './editor-detail-content';
 import * as PageModule from './page';
 
 runPageModuleTests('app/(protected)/editor/[id]/page', PageModule);
@@ -47,7 +48,7 @@ describe('direct brand server adapter', () => {
       const params =
         Promise.withResolvers<Awaited<DetailPageProps['params']>>();
       const settled = vi.fn();
-      const pending = PageModule.default({ params: params.promise }).then(
+      const pending = EditorDetailContent({ params: params.promise }).then(
         (element) => {
           settled();
           return element;
@@ -69,7 +70,7 @@ describe('direct brand server adapter', () => {
     expect(typeof PageModule.generateMetadata).toBe('function');
     const failure = new Error('params failed');
     await expect(
-      PageModule.default({ params: Promise.reject(failure) }),
+      EditorDetailContent({ params: Promise.reject(failure) }),
     ).rejects.toBe(failure);
   });
 });

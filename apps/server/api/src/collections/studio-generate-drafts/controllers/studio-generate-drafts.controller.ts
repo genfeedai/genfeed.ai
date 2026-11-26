@@ -5,10 +5,12 @@ import {
   StudioGenerateDraftsService,
 } from '@api/collections/studio-generate-drafts/services/studio-generate-drafts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { StudioGenerateDraftSerializer } from '@genfeedai/serializers';
 import {
@@ -55,6 +57,7 @@ export class StudioGenerateDraftsController {
   }
 
   @Put('current')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async upsertCurrent(
     @Req() request: Request,
