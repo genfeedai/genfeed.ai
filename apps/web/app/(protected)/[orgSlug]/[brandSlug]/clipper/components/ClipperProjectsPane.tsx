@@ -2,8 +2,8 @@
 
 import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import SearchField from '@ui/content/search-field/SearchField';
+import { CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME } from '@ui/layout/agent-output-layout/agent-pane.constant';
 import Container from '@ui/layout/container/Container';
-import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
@@ -50,18 +50,10 @@ export default function ClipperProjectsPane() {
   const isSearching = search !== '';
   const hasProjects = projects.length > 0;
   const isEmpty = !isLoading && !hasProjects && !error;
-  // An empty page past the last one (the final row of a page deleted) is not
-  // an empty brand: the total says whether any project exists.
-  useCreativeProjectsPresence(
-    hasProjects || pageTotals.totalDocs > 0
-      ? 'populated'
-      : isEmpty && !isSearching
-        ? 'empty'
-        : 'unknown',
-  );
 
   return (
     <Container
+      bodyClassName={CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME}
       label={t('title')}
       leading={
         <SearchField

@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.props';
+import { NotificationsService } from '@services/core/notifications.service';
 import SearchField from '@ui/content/search-field/SearchField';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
@@ -29,7 +30,7 @@ import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { useAgentThreadMembers } from '@/components/workspace-shell/use-agent-thread-members';
 import { useAgentThreadOwnerFilter } from '@/components/workspace-shell/use-agent-thread-owner-filter';
@@ -37,6 +38,17 @@ import AgentThreadLightView from './AgentThreadLightView';
 
 /** Open by default: what needs the operator, what runs, what just finished. */
 const OPEN_GROUPS = ['needsYou', 'working', 'readyForReview'] as const;
+
+/** Thread ids in the order the panel lists them, for a Shift-click range. */
+function listedThreadIds(groups: ChildThreadGroups): string[] {
+  return [
+    ...groups.needsYou,
+    ...groups.working,
+    ...groups.readyForReview,
+    ...groups.recent,
+    ...groups.resolved,
+  ].map((thread) => thread.id);
+}
 
 function countThreads(groups: ChildThreadGroups): number {
   return (
@@ -77,6 +89,13 @@ export default function AgentThreadsPanel({
   const locale = useLocale();
   const now = useLocalDayClock();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(
+    null,
+  );
+  const [isBulkPending, setIsBulkPending] = useState(false);
   const { ownerFilter, setOwnerFilter } = useAgentThreadOwnerFilter();
   const [localOpenThreadId, setLocalOpenThreadId] = useState<string | null>(
     null,
@@ -148,6 +167,26 @@ export default function AgentThreadsPanel({
     [brandId, listedThreads, searchQuery],
   );
 
+  const isSelecting = selectedIds.size > 0;
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
+  };
+  // use-effect-audit: ignore subscribes to document keydown while selecting
+  useEffect(() => {
+    if (!isSelecting) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedIds(new Set());
+        setSelectionAnchorId(null);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isSelecting]);
+
   const openThread = openThreadId
     ? allThreads.find((thread) => thread.id === openThreadId)
     : undefined;
@@ -181,6 +220,97 @@ export default function AgentThreadsPanel({
   }
 
   const visibleCount = countThreads(groups);
+  const orderedIds = listedThreadIds(groups);
+  const threadsById = new Map(allThreads.map((thread) => [thread.id, thread]));
+  const selectedThreads = [...selectedIds]
+    .map((id) => threadsById.get(id))
+    .filter((thread): thread is AgentThread => thread !== undefined);
+  const areAllSelectedResolved =
+    selectedThreads.length > 0 &&
+    selectedThreads.every(
+      (thread) => thread.status === AgentThreadStatus.ARCHIVED,
+    );
+  const toggleThread = (threadId: string, isRange: boolean) => {
+    const next = new Set(selectedIds);
+    const anchorIndex = selectionAnchorId
+      ? orderedIds.indexOf(selectionAnchorId)
+      : -1;
+    const targetIndex = orderedIds.indexOf(threadId);
+    if (isRange && anchorIndex !== -1 && targetIndex !== -1) {
+      const [from, to] =
+        anchorIndex < targetIndex
+          ? [anchorIndex, targetIndex]
+          : [targetIndex, anchorIndex];
+      for (const id of orderedIds.slice(from, to + 1)) {
+        next.add(id);
+      }
+    } else if (next.has(threadId)) {
+      next.delete(threadId);
+    } else {
+      next.add(threadId);
+    }
+    setSelectedIds(next);
+    setSelectionAnchorId(threadId);
+  };
+  const toggleGroup = (threads: readonly AgentThread[]) => {
+    const next = new Set(selectedIds);
+    const isAllSelected = threads.every((thread) => next.has(thread.id));
+    for (const thread of threads) {
+      if (isAllSelected) {
+        next.delete(thread.id);
+      } else {
+        next.add(thread.id);
+      }
+    }
+    setSelectedIds(next);
+  };
+  const groupSelection = (label: string, threads: readonly AgentThread[]) => {
+    const selectedCount = threads.filter((thread) =>
+      selectedIds.has(thread.id),
+    ).length;
+    return {
+      isAllSelected: threads.length > 0 && selectedCount === threads.length,
+      isSomeSelected: selectedCount > 0 && selectedCount < threads.length,
+      label: translate('selection.selectGroup', { group: label }),
+      onToggle: () => toggleGroup(threads),
+    };
+  };
+  const runBulk = async () => {
+    const handler = areAllSelectedResolved ? onReopenThread : onResolveThread;
+    if (!handler) {
+      return;
+    }
+    const targets = selectedThreads.filter(
+      (thread) =>
+        (thread.status === AgentThreadStatus.ARCHIVED) ===
+        areAllSelectedResolved,
+    );
+    setIsBulkPending(true);
+    const outcomes = await Promise.allSettled(
+      targets.map((thread) => handler(thread.id)),
+    );
+    setIsBulkPending(false);
+    // Threads that went through leave the selection; a failed one stays picked
+    // so one click retries it, and picks made meanwhile are kept.
+    const done = new Set(
+      targets
+        .filter((_, index) => outcomes[index]?.status === 'fulfilled')
+        .map((thread) => thread.id),
+    );
+    const failedCount = targets.length - done.size;
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const id of done) {
+        next.delete(id);
+      }
+      return next;
+    });
+    if (failedCount > 0) {
+      NotificationsService.getInstance().error(
+        translate('selection.bulkFailed', { count: failedCount }),
+      );
+    }
+  };
   const isSearching = searchQuery.trim().length > 0;
   const earlierCount = groups.recent.length + groups.resolved.length;
   const isQueueClear = OPEN_GROUPS.every((key) => groups[key].length === 0);
@@ -252,6 +382,12 @@ export default function AgentThreadsPanel({
           ) : null
         }
         onSelect={() => setOpenThreadId(thread.id)}
+        selection={{
+          isSelected: selectedIds.has(thread.id),
+          isSelecting,
+          label: translate('selection.select', { title }),
+          onToggle: ({ isRange }) => toggleThread(thread.id, isRange),
+        }}
         status={status}
         statusLabel={label}
         subtitle={
@@ -283,47 +419,80 @@ export default function AgentThreadsPanel({
       className="flex min-h-0 flex-1 flex-col"
       data-testid="agent-threads-panel"
     >
-      <div className="p-3 pb-1">
-        <SearchField
-          ariaLabel={translate('search')}
-          className="w-full"
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder={translate('search')}
-          value={searchQuery}
+      {isSelecting ? (
+        <div
+          aria-label={translate('selection.toolbar')}
+          className="flex h-[3.25rem] shrink-0 items-center gap-2 px-3"
+          data-testid="agent-threads-panel-bulk-bar"
+          role="toolbar"
         >
-          <FilterMenu
-            isAttached
-            facets={[
-              {
-                defaultValue: AgentThreadOwnerFilter.ALL,
-                key: 'owner',
-                label: translate('filters.owner'),
-                onChange: (value) =>
-                  setOwnerFilter(value as AgentThreadOwnerFilter),
-                options: [
-                  {
-                    label: translate('filters.ownerAll'),
-                    value: AgentThreadOwnerFilter.ALL,
-                  },
-                  {
-                    label: translate('filters.ownerMine'),
-                    value: AgentThreadOwnerFilter.MINE,
-                  },
-                  {
-                    label: translate('filters.ownerShared'),
-                    value: AgentThreadOwnerFilter.SHARED,
-                  },
-                ],
-                selection: 'single',
-                value: ownerFilter,
-              },
-            ]}
-            onClear={() => setOwnerFilter(AgentThreadOwnerFilter.ALL)}
-          />
-        </SearchField>
-      </div>
+          <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+            {translate('selection.count', { count: selectedIds.size })}
+          </span>
+          {(areAllSelectedResolved ? onReopenThread : onResolveThread) ? (
+            <Button
+              isLoading={isBulkPending}
+              onClick={() => void runBulk()}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              {translate(areAllSelectedResolved ? 'reopen' : 'resolve')}
+            </Button>
+          ) : null}
+          <Button
+            isDisabled={isBulkPending}
+            onClick={clearSelection}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {translate('selection.clear')}
+          </Button>
+        </div>
+      ) : (
+        <div className="p-2 pb-1">
+          <SearchField
+            ariaLabel={translate('search')}
+            className="w-full"
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={translate('search')}
+            value={searchQuery}
+          >
+            <FilterMenu
+              isAttached
+              facets={[
+                {
+                  defaultValue: AgentThreadOwnerFilter.ALL,
+                  key: 'owner',
+                  label: translate('filters.owner'),
+                  onChange: (value) =>
+                    setOwnerFilter(value as AgentThreadOwnerFilter),
+                  options: [
+                    {
+                      label: translate('filters.ownerAll'),
+                      value: AgentThreadOwnerFilter.ALL,
+                    },
+                    {
+                      label: translate('filters.ownerMine'),
+                      value: AgentThreadOwnerFilter.MINE,
+                    },
+                    {
+                      label: translate('filters.ownerShared'),
+                      value: AgentThreadOwnerFilter.SHARED,
+                    },
+                  ],
+                  selection: 'single',
+                  value: ownerFilter,
+                },
+              ]}
+              onClear={() => setOwnerFilter(AgentThreadOwnerFilter.ALL)}
+            />
+          </SearchField>
+        </div>
+      )}
 
-      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-3 pt-1">
+      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-1.5 pb-2 pt-1">
         {isLoading && visibleCount === 0 ? (
           <p className="px-2 text-sm text-muted-foreground" role="status">
             {translate('loading')}
@@ -335,7 +504,7 @@ export default function AgentThreadsPanel({
         ) : (
           <>
             {isQueueClear && !isSearching ? (
-              <p className="px-2.5 pt-2 text-sm text-muted-foreground">
+              <p className="px-2 pt-2 text-sm text-muted-foreground">
                 {translate('nothingNeedsYou')}
               </p>
             ) : null}
@@ -344,6 +513,11 @@ export default function AgentThreadsPanel({
                 data-testid={`agent-threads-panel-group-${key}`}
                 itemCount={groups[key].length}
                 key={sectionKey(key)}
+                selection={
+                  isSelecting
+                    ? groupSelection(translate(`groups.${key}`), groups[key])
+                    : undefined
+                }
                 title={translate(`groups.${key}`)}
               >
                 {groups[key].map(renderRow)}
@@ -354,11 +528,19 @@ export default function AgentThreadsPanel({
               isDefaultCollapsed={!isSearching}
               itemCount={earlierCount}
               key={sectionKey('earlier')}
+              selection={
+                isSelecting
+                  ? groupSelection(translate('groups.earlier'), [
+                      ...groups.recent,
+                      ...groups.resolved,
+                    ])
+                  : undefined
+              }
               title={translate('groups.earlier')}
             >
               {groups.recent.map(renderRow)}
               {groups.resolved.length > 0 ? (
-                <li className="px-2.5 pb-1 pt-2 text-xs text-muted-foreground/70">
+                <li className="px-2 pb-1 pt-2 text-xs text-muted-foreground/70">
                   {translate('groups.resolved')}
                 </li>
               ) : null}

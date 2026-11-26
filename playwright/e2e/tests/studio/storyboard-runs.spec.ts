@@ -193,13 +193,13 @@ test.describe('Storyboard runs', () => {
     await page.goto(`${BRAND_BASE}/storyboard`);
 
     // An empty brand lands on the one workspace: the prompt and its starter
-    // cards, alone until the first run exists. No separate hero, preset shelf
-    // or /new page.
+    // cards on the left, the (empty) runs list on the right. No separate hero,
+    // preset shelf or /new page.
     await expect(
       page.getByRole('heading', { name: 'Start a storyboard' }),
     ).toBeVisible();
     await expect(page.getByLabel('Brief', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('agent-output-output-pane')).toBeHidden();
+    await expect(page.getByTestId('agent-output-output-pane')).toBeVisible();
     await expect(page.getByTestId('storyboard-onboarding')).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: 'New storyboard' }),

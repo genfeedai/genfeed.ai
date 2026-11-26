@@ -1,17 +1,11 @@
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
 
-/**
- * Whether a creative app has any project to list. `unknown` while the list
- * loads (or fails), so the workspace keeps both columns until it knows.
- */
-export type CreativeProjectsPresence = 'empty' | 'populated' | 'unknown';
-
 export interface CreativeAppWorkspaceProps {
   /** The New pane: the prompt that starts a project. */
   agent: ReactNode;
   agentTitle: string;
-  /** The projects list. It reports whether it has any (`useCreativeProjectsPresence`). */
+  /** The projects list. */
   children: ReactNode;
   outputLabel: string;
 }
