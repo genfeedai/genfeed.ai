@@ -6,7 +6,7 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   fireEvent,
@@ -219,5 +219,88 @@ describe('PublishingPostHoverPreview lazy post details', () => {
       await screen.findByText('Full caption from the actual post'),
     ).toBeVisible();
     expect(screen.queryByText('Loading post preview…')).not.toBeInTheDocument();
+  });
+  describe('a release row', () => {
+    // The release list carries asset ids without URLs and no connected account.
+    const release = {
+      attachments: [],
+      baseContent: 'Koro on the sofa',
+      id: 'release-1',
+      media: [
+        { assetId: 'asset-1', kind: 'image', order: 0 },
+        { assetId: 'asset-2', kind: 'image', order: 1 },
+      ],
+      targets: [
+        {
+          credentialId: 'credential-1',
+          id: 'post-1',
+          platform: 'instagram',
+        },
+      ],
+      title: 'Sofa day carousel',
+    } as unknown as IReleaseGroup;
+
+    beforeEach(() => {
+      mocks.findOne.mockResolvedValue({
+        credential: { externalHandle: 'koro', externalName: 'Koro' },
+        id: 'post-1',
+        ingredients: [
+          {
+            category: 'IMAGE',
+            id: 'asset-1',
+            ingredientUrl: 'https://cdn.example.com/slide-1.jpg',
+          },
+          {
+            category: 'IMAGE',
+            id: 'asset-2',
+            ingredientUrl: 'https://cdn.example.com/slide-2.jpg',
+          },
+        ],
+        platform: 'instagram',
+      } as IPost);
+    });
+
+    it('shows the real slides and the connected account, not empty tiles', async () => {
+      render(
+        <PublishingPostHoverPreview release={release}>
+          <a href="/review">Review post</a>
+        </PublishingPostHoverPreview>,
+      );
+      fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+
+      expect(await screen.findByText('Koro')).toBeVisible();
+      expect(screen.getByText('@koro')).toBeVisible();
+      expect(screen.queryByText('Your Account')).not.toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Media 1' })).toHaveAttribute(
+        'src',
+        expect.stringContaining('slide-1.jpg'),
+      );
+      expect(mocks.findOne).toHaveBeenCalledExactlyOnceWith(
+        'post-1',
+        {},
+        expect.any(AbortSignal),
+      );
+    });
+
+    it('prefers the account the list already matched to the target', async () => {
+      const matched = {
+        ...release,
+        targets: [
+          {
+            ...release.targets[0],
+            credential: { externalHandle: 'listed', externalName: 'Listed' },
+          },
+        ],
+      } as unknown as IReleaseGroup;
+      render(
+        <PublishingPostHoverPreview release={matched}>
+          <a href="/review">Review post</a>
+        </PublishingPostHoverPreview>,
+      );
+      fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+
+      expect(await screen.findByText('Listed')).toBeVisible();
+      expect(screen.getByText('@listed')).toBeVisible();
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { denyWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import {
@@ -123,6 +124,46 @@ describe('WinnerPromotionWorkflowService atomic actions', () => {
 
       expect(await run(permitted)).toEqual({ promoted: 1, skipped: 0 });
       expect(await run(denied)).toEqual({ denied: 1, promoted: 0, skipped: 0 });
+    });
+
+    it('logs the check that refused the actor, while the denial still answers with the same message', async () => {
+      const warnings: { context: unknown; message: string }[] = [];
+      const service = new WinnerPromotionWorkflowService(
+        {} as never,
+        { releaseLock: vi.fn() } as never,
+        {
+          promoteTopPerformer: vi.fn(async () =>
+            denyWorkflowActor('the initiating key lacks the brand scope'),
+          ),
+        } as never,
+        undefined,
+        {
+          warn: (message: string, context: unknown) =>
+            warnings.push({ context, message }),
+        } as never,
+      );
+
+      await service.promoteWinnerItem(
+        'org-1',
+        { contextBaseId: 'context-1', item: denied },
+        CONTEXT,
+        'execute',
+        'harness.winners.promote-item',
+      );
+
+      expect(warnings).toEqual([
+        {
+          context: {
+            executionId: 'persisted-execution',
+            organizationId: 'org-1',
+            reason: 'the initiating key lacks the brand scope',
+          },
+          message: 'Winner promotion denied for one item',
+        },
+      ]);
+      expect(() => denyWorkflowActor('any check')).toThrow(
+        'Brand access denied',
+      );
     });
 
     it('still fails the item for an error that is not an access decision', async () => {
