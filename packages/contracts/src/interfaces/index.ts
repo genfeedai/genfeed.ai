@@ -10,6 +10,7 @@ export * from './admin/onboarding-funnel.interface';
 export * from './admin/organization-apps-report.interface';
 export * from './admin/organizations-report.interface';
 export * from './admin/publish-pipeline.interface';
+export * from './admin/repo-sync.interface';
 export * from './admin/warmup-accounts.interface';
 export * from './ai/agent-artifact-reference.interface';
 export * from './ai/agent-auto-routing.interface';

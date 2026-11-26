@@ -20,7 +20,12 @@ const unchangedSeed = {
     catalog: { slug: string }[],
     options: SkillCatalogReconcileOptions,
   ) => {
-    for (const { slug } of catalog) options.onOutcome?.(slug, 'skipped');
+    for (const { slug } of catalog)
+      options.onOutcome?.(slug, 'skipped', {
+        after: 'name: x\n\nbody',
+        before: 'name: x\n\nbody',
+        change: 'unchanged',
+      });
     return { inserted: 0, skipped: catalog.length, updated: 0 };
   },
 } as unknown as SkillCatalogSeedService;
@@ -84,11 +89,16 @@ describe('AdminSkillSyncService', () => {
     expect(summary.dryRun).toBe(true);
     expect(summary.commit).toBe(COMMIT);
     expect(summary.committedAt).toBe('2026-11-27T09:00:00.000Z');
-    expect(summary.items.map((item) => item.outcome)).toEqual(
-      summary.items.map(() => 'skipped'),
+    expect(summary.repository).toBe('genfeedai/skills');
+    expect(summary.items.map((item) => item.change)).toEqual(
+      summary.items.map(() => 'unchanged'),
     );
-    expect(summary.items.map((item) => item.slug)).toContain('x-post');
-    expect(summary.totals.skipped).toBe(summary.items.length);
+    expect(summary.items.map((item) => item.key)).toContain('x-post');
+    expect(summary.items.find((item) => item.key === 'x-post')?.path).toBe(
+      'x-post/SKILL.md',
+    );
+    expect(summary.totals.unchanged).toBe(summary.items.length);
+    expect(summary.totals.conflict).toBe(0);
   });
 
   it('answers 502 when GitHub cannot be read', async () => {

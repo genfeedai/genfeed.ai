@@ -12,9 +12,15 @@ import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { classifyRepoChange } from '@api/shared/repo-sync/classify-repo-change';
+import type {
+  RepoSyncChange,
+  RepoSyncDecision,
+} from '@genfeedai/contracts/interfaces/admin/repo-sync.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
+import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type SkillCatalogSeedResult = {
@@ -23,12 +29,50 @@ export type SkillCatalogSeedResult = {
   updated: number;
 };
 
+export type SkillCatalogItemDetail = {
+  /** The stored text as a diff base. Absent for a skill that is not stored yet. */
+  after: string;
+  before?: string;
+  change: RepoSyncChange;
+  decision?: RepoSyncDecision;
+};
+
 export type SkillCatalogReconcileOptions = {
+  /** What to do with skills edited here and changed in the repo, by slug. */
+  decisions?: Readonly<Record<string, RepoSyncDecision>>;
   /** Report what a live run would write, and write nothing. */
   dryRun?: boolean;
   /** Called once per skill with what happened (or would happen) to it. */
-  onOutcome?: (slug: string, outcome: keyof SkillCatalogSeedResult) => void;
+  onOutcome?: (
+    slug: string,
+    outcome: keyof SkillCatalogSeedResult,
+    detail: SkillCatalogItemDetail,
+  ) => void;
 };
+
+/**
+ * The fields a person can see and edit. A refresh compares these to tell a
+ * skill edited here from one that only drifted; every other managed field is
+ * reconciled silently.
+ */
+const CONTENT_KEYS = [
+  'defaultInstructions',
+  'description',
+  'name',
+  'systemPromptTemplate',
+] as const;
+
+function contentFingerprint(config: Record<string, unknown>): string {
+  return sha256Hex(
+    stableStringify(
+      Object.fromEntries(CONTENT_KEYS.map((key) => [key, config[key] ?? null])),
+    ),
+  );
+}
+
+function skillDocument(config: Record<string, unknown>): string {
+  return `name: ${String(config.name ?? '')}\ndescription: ${String(config.description ?? '')}\n\n${String(config.defaultInstructions ?? '')}`;
+}
 
 @Traced()
 @Injectable()
@@ -58,12 +102,13 @@ export class SkillCatalogSeedService {
 
     for (const definition of catalog) {
       try {
-        const outcome = await this.upsertDefinition(
+        const { detail, outcome } = await this.upsertDefinition(
           definition,
           options.dryRun === true,
+          options.decisions?.[definition.slug],
         );
         result[outcome] += 1;
-        options.onOutcome?.(definition.slug, outcome);
+        options.onOutcome?.(definition.slug, outcome, detail);
       } catch (error) {
         failedSlugs.push(definition.slug);
         this.logger.error(
@@ -91,7 +136,7 @@ export class SkillCatalogSeedService {
   private buildCatalogConfig(
     definition: FirstPartySkillDefinition,
   ): Record<string, unknown> {
-    return {
+    const config: Record<string, unknown> = {
       ...(definition.catalogOrigin
         ? {
             catalogOrigin: definition.catalogOrigin,
@@ -124,6 +169,9 @@ export class SkillCatalogSeedService {
       version: definition.version,
       workflowStage: definition.workflowStage,
     };
+    // What a later refresh treats as the repo version this row was loaded from.
+    config.sourceContentHash = contentFingerprint(config);
+    return config;
   }
 
   private readConfig(row: { config: unknown }): Record<string, unknown> {
@@ -140,14 +188,21 @@ export class SkillCatalogSeedService {
   private async upsertDefinition(
     definition: FirstPartySkillDefinition,
     isDryRun: boolean,
-  ): Promise<keyof SkillCatalogSeedResult> {
+    decision?: RepoSyncDecision,
+  ): Promise<{
+    detail: SkillCatalogItemDetail;
+    outcome: keyof SkillCatalogSeedResult;
+  }> {
+    const managedConfig = this.buildCatalogConfig(definition);
+    const after = skillDocument(managedConfig);
     // tenant-scope-ignore: catalog provisioner reads migration-owned global ids
     const existing = await this.prisma.skill.findUnique({
       where: { id: definition.id },
     });
 
     if (!existing) {
-      if (isDryRun) return 'inserted';
+      if (isDryRun)
+        return { detail: { after, change: 'new' }, outcome: 'inserted' };
       await withSkillWriteSession(
         this.prisma,
         { origin: 'provisioning' },
@@ -155,9 +210,7 @@ export class SkillCatalogSeedService {
           // tenant-scope-ignore: first-party catalog rows are organizationId-null
           tx.skill.create({
             data: {
-              config: this.buildCatalogConfig(
-                definition,
-              ) as Prisma.InputJsonValue,
+              config: managedConfig as Prisma.InputJsonValue,
               id: definition.id,
               isDeleted: false,
               label: definition.name,
@@ -165,7 +218,7 @@ export class SkillCatalogSeedService {
             },
           }),
       );
-      return 'inserted';
+      return { detail: { after, change: 'new' }, outcome: 'inserted' };
     }
 
     if (existing.organizationId !== null) {
@@ -173,7 +226,7 @@ export class SkillCatalogSeedService {
         `Skipping first-party skill ${definition.slug}: id ${definition.id} is organization-owned`,
         this.context,
       );
-      return 'skipped';
+      return { detail: { after, change: 'unchanged' }, outcome: 'skipped' };
     }
 
     const existingConfig = this.readConfig(existing);
@@ -186,16 +239,50 @@ export class SkillCatalogSeedService {
         `Skipping first-party skill ${definition.slug}: existing global row is not a trusted catalog identity`,
         this.context,
       );
-      return 'skipped';
+      return { detail: { after, change: 'unchanged' }, outcome: 'skipped' };
     }
 
-    const managedConfig = this.buildCatalogConfig(definition);
-    const nextConfig = { ...existingConfig, ...managedConfig };
+    // A row loaded before the content hash was recorded is treated as
+    // untouched: only the catalog provisioner wrote it.
+    const localHash = contentFingerprint(existingConfig);
+    const repoHash = String(managedConfig.sourceContentHash);
+    const change = classifyRepoChange({
+      base:
+        typeof existingConfig.sourceContentHash === 'string'
+          ? existingConfig.sourceContentHash
+          : localHash,
+      local: localHash,
+      repo: repoHash,
+    });
+    const detail: SkillCatalogItemDetail = {
+      after,
+      before: skillDocument(existingConfig),
+      change,
+      ...(change === 'conflict' && decision ? { decision } : {}),
+    };
+
+    // Edited here and the repo has not changed, or edited on both sides with
+    // no decision yet: leave the row alone.
+    if (change === 'edited' || (change === 'conflict' && !decision)) {
+      return { detail, outcome: 'skipped' };
+    }
+
+    // Keep mine: take the repo's provenance and the other managed fields, keep
+    // the edited text. The row then reads as edited until the repo changes again.
+    const keepsMine = change === 'conflict' && decision === 'mine';
+    const nextConfig: Record<string, unknown> = {
+      ...existingConfig,
+      ...managedConfig,
+    };
+    if (keepsMine) {
+      for (const key of CONTENT_KEYS) nextConfig[key] = existingConfig[key];
+    }
     if (definition.catalogOrigin && !definition.sourceCommit) {
       delete nextConfig.sourceCommit;
     }
 
     if (
+      !keepsMine &&
       existing.isDeleted === false &&
       existing.label === definition.name &&
       existingConfig.sourceCommit === nextConfig.sourceCommit &&
@@ -204,10 +291,10 @@ export class SkillCatalogSeedService {
           JSON.stringify(existingConfig[key]) === JSON.stringify(value),
       )
     ) {
-      return 'skipped';
+      return { detail, outcome: 'skipped' };
     }
 
-    if (isDryRun) return 'updated';
+    if (isDryRun) return { detail, outcome: 'updated' };
 
     await withSkillWriteSession(this.prisma, { origin: 'provisioning' }, (tx) =>
       // tenant-scope-ignore: updates the same migration-owned global catalog id
@@ -215,13 +302,13 @@ export class SkillCatalogSeedService {
         data: {
           config: nextConfig as Prisma.InputJsonValue,
           isDeleted: false,
-          label: definition.name,
+          label: keepsMine ? existing.label : definition.name,
           organizationId: null,
         },
         where: { id: definition.id },
       }),
     );
 
-    return 'updated';
+    return { detail, outcome: 'updated' };
   }
 }
