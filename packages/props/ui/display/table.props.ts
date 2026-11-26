@@ -66,7 +66,7 @@ export interface TableRowSidebar<T> {
  * What an empty table says. The table draws the faded rows from its own
  * column labels; this supplies the words and the one next step.
  */
-export interface TableEmptyConfig {
+interface TableEmptyConfig {
   title: string;
   /** One sentence on what the table lists or what to do next. */
   description?: string;
