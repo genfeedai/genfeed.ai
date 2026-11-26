@@ -51,12 +51,17 @@ export function createSocialMessageReference(
   };
 }
 
+/**
+ * One key per send attempt. A retry of the same draft reuses the key the caller
+ * cached; a new draft, or the same screen after a reload, gets a new one. The
+ * key carries a random part because a counter restarts at 1 on every page load
+ * and then collided with the key of an earlier reply in the same conversation.
+ */
 export function createMessagesIdempotencyKey(
   conversationId: string,
   action: Extract<MessagesActionKind, 'draft' | 'dm' | 'reply'>,
-  draftRevision: number,
 ): string {
-  return `messages:${conversationId}:${action}:${draftRevision}`;
+  return `messages:${conversationId}:${action}:${crypto.randomUUID()}`;
 }
 
 export function toggleSocialInboxReference(
