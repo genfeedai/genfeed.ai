@@ -3,10 +3,6 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import PublicShell from '@ui/shell/PublicShell';
 import LandingTopbar from '@web-components/shell/topbars/LandingTopbar';
 
-const overlay = (
-  <div className="pointer-events-none fixed inset-0 z-0 bg-dots opacity-40" />
-);
-
 const topbar = (
   <LandingTopbar
     ctaHref={getAppSignUpUrl()}
@@ -16,9 +12,5 @@ const topbar = (
 );
 
 export default function DevLandingLayout({ children }: LayoutProps) {
-  return (
-    <PublicShell overlay={overlay} topbar={topbar}>
-      {children}
-    </PublicShell>
-  );
+  return <PublicShell topbar={topbar}>{children}</PublicShell>;
 }

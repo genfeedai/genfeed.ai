@@ -19,18 +19,3 @@
     color 0.3s,
     background-color 0.3s;
 }
-
-/*
- * Dot pattern backgrounds — complex patterns not possible with Tailwind.
- * The alpha ladder inverts per theme on its own, so there is no light-mode
- * override to keep in sync.
- */
-.bg-dots {
-  background-image: radial-gradient(var(--gray-alpha-200) 1px, transparent 0);
-  background-size: 32px 32px;
-}
-
-.bg-dots-subtle {
-  background-image: radial-gradient(var(--gray-alpha-100) 1px, transparent 0);
-  background-size: 24px 24px;
-}
