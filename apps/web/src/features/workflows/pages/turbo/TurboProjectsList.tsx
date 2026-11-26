@@ -186,6 +186,7 @@ export default function TurboProjectsList() {
         {isEmpty && !isSearching ? (
           <CreativeProjectsEmptyState
             description={t('emptyDescription')}
+            hasPreview
             icon={Rocket}
             title={t('emptyTitle')}
           />

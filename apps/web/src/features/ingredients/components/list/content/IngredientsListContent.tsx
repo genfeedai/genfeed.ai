@@ -790,7 +790,7 @@ export default function IngredientsListContent({
               emptyLabel={`No ${mediaNoun} yet`}
               emptyActions={
                 isPlaygroundAvailable ? (
-                  <Button asChild variant={ButtonVariant.SECONDARY}>
+                  <Button asChild variant={ButtonVariant.DEFAULT}>
                     <Link href={href(APP_ROUTES.STUDIO.PLAYGROUND)}>
                       {translate('emptyOpenPlayground')}
                     </Link>
