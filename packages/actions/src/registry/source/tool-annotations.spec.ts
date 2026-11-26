@@ -303,6 +303,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['analyze_performance', 'Analyze Performance', true, false, true, false],
+  ['answer_approval', 'Answer Approval', false, true, false, false],
   ['approve_social_draft', 'Approve Social Draft', false, true, false, true],
   [
     'archive_knowledge_source',

@@ -11,7 +11,7 @@ describe('MCP tool cap', () => {
 
   it('lists at most 30 tools to an ordinary caller, on every connection', () => {
     expect(MCP_TOOL_CAP).toBe(30);
-    expect(listed().length).toBe(29);
+    expect(listed().length).toBe(30);
     expect(listed().length).toBeLessThanOrEqual(MCP_TOOL_CAP);
   });
 

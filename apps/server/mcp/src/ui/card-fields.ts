@@ -1,5 +1,6 @@
 import type {
   McpCard,
+  McpCardAction,
   McpCardFact,
   McpCardMetric,
 } from '@mcp/shared/interfaces/mcp-app.interface';
@@ -148,5 +149,31 @@ export function withoutBrandLogos(data: Record<string, unknown>) {
           },
         }
       : {}),
+  };
+}
+
+/**
+ * The approval card's buttons: Approve only when the server minted the card a
+ * proof that the click is the person's (#9754), Decline when the card can
+ * answer or the connection lists `resolve_approval`. Without either, approving
+ * stays in the Genfeed review inbox behind the card's link.
+ */
+export function approvalButtons(
+  approvalId: string,
+  canApprove: boolean,
+  canDecline: boolean,
+): { actions?: McpCardAction[] } {
+  if (!canApprove && !canDecline) return {};
+  const button = (decision: 'approve' | 'decline', label: string) => ({
+    approvalId,
+    decision,
+    kind: 'resolve_approval' as const,
+    label,
+  });
+  return {
+    actions: [
+      ...(canApprove ? [button('approve', 'Approve')] : []),
+      button('decline', 'Decline'),
+    ],
   };
 }

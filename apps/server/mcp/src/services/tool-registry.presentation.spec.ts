@@ -202,7 +202,10 @@ interface PresentationCase {
   name: string;
 }
 
+// `answer_approval` answers only with the proof its approval card holds, so a
+// generic call is refused by design; tool-registry.approval.spec.ts covers it.
 const CASES = getToolsForSurface('mcp').flatMap((tool): PresentationCase[] => {
+  if (tool.name === 'answer_approval') return [];
   const operations = getMcpCatalogOperations(tool.name);
   if (operations.length === 0)
     return [{ args: argsFor(tool), label: tool.name, name: tool.name }];

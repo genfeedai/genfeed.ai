@@ -1,6 +1,10 @@
 import { McpApprovalStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  type CardApprovalProofs,
+  createCardApprovalProofs,
+} from '@mcp/services/mcp-card-approval-proof.util';
 import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -85,6 +89,11 @@ const MOCK_TOOLS: Record<
     requiredRole: 'admin',
     surfaces: { mcp: true },
   },
+  answer_approval: {
+    name: 'answer_approval',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
 };
 
 vi.mock('@genfeedai/actions', async (importOriginal) => {
@@ -112,7 +121,7 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
   McpAuthGuard: { checkToolRole: vi.fn() },
 }));
 
-function build() {
+function build(cardApprovalProofs?: CardApprovalProofs) {
   const client = {
     importSourcePost: vi.fn().mockResolvedValue({ post: { id: 'source-1' } }),
     startRemixGeneration: vi
@@ -170,6 +179,7 @@ function build() {
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'admin',
+    cardApprovalProofs,
   );
   return { client, registry };
 }
@@ -692,6 +702,211 @@ describe('ToolRegistryService — approval queue', () => {
       )) as CallResult;
 
       expect(result.content[0].text).toContain('Nothing was run');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the Approve button on the approval card (#9754)', () => {
+    const args = { brandId: 'brand-1', content: 'hello' };
+    const pending = (
+      status: McpApprovalResource['status'],
+      extra: Partial<McpApprovalResource> = {},
+    ): McpApprovalResource => ({
+      arguments: args,
+      id: 'apr-1',
+      result: null,
+      status,
+      toolName: 'generate_turbo_content',
+      ...extra,
+    });
+    type CardResult = {
+      _meta?: Record<string, string>;
+      content: { text: string }[];
+      isError?: boolean;
+      structuredContent?: { canApproveInCard?: boolean; code?: string };
+    };
+    const proofs = () =>
+      createCardApprovalProofs('service-key', { userId: 'user-1' });
+
+    async function queuedCall(registry: ReturnType<typeof build>['registry']) {
+      return (await registry.handleToolCall({
+        arguments: args,
+        name: 'generate_turbo_content',
+      })) as CardResult;
+    }
+
+    it('hands the card a proof for the approval it queued, and offers Approve', async () => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+
+      const result = await queuedCall(registry);
+
+      expect(result.structuredContent).toMatchObject({
+        canApproveInCard: true,
+        code: 'approval_pending',
+      });
+      expect(typeof result._meta?.['genfeed/cardApprovalProof']).toBe('string');
+      // The proof stays out of the text and data a model reads.
+      expect(JSON.stringify(result.content)).not.toContain(
+        result._meta?.['genfeed/cardApprovalProof'],
+      );
+      expect(JSON.stringify(result.structuredContent)).not.toContain(
+        result._meta?.['genfeed/cardApprovalProof'],
+      );
+    });
+
+    it('offers no Approve and no proof when the connection cannot mint one', async () => {
+      const { client, registry } = build();
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+
+      const result = await queuedCall(registry);
+
+      expect(result.structuredContent?.canApproveInCard).toBeUndefined();
+      expect(result._meta).toBeUndefined();
+    });
+
+    it('approves with the card proof and runs the action once', async () => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+      const queued = await queuedCall(registry);
+      client.getApproval.mockResolvedValue(pending(McpApprovalStatus.PENDING));
+      client.confirmApproval.mockResolvedValue(
+        pending(McpApprovalStatus.APPROVED),
+      );
+
+      const result = (await registry.handleToolCall({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: queued._meta?.['genfeed/cardApprovalProof'],
+          decision: 'approve',
+        },
+        name: 'answer_approval',
+      })) as CardResult;
+
+      expect(result.isError).toBeFalsy();
+      expect(client.confirmApproval).toHaveBeenCalledWith('apr-1', 'approve');
+      expect(client.executeAgentTool).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not run the action twice when the card clicks again', async () => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+      const queued = await queuedCall(registry);
+      client.getApproval.mockResolvedValue(
+        pending(McpApprovalStatus.APPROVED, { result: { postId: 'post-1' } }),
+      );
+
+      const result = (await registry.handleToolCall({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: queued._meta?.['genfeed/cardApprovalProof'],
+          decision: 'approve',
+        },
+        name: 'answer_approval',
+      })) as CardResult;
+
+      expect(result.content[0].text).toBe('This action has already run.');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it('keeps the approval pending when the API refuses the click', async () => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+      const queued = await queuedCall(registry);
+      client.getApproval.mockResolvedValue(pending(McpApprovalStatus.PENDING));
+      client.confirmApproval.mockRejectedValue(new Error('Forbidden'));
+
+      const result = (await registry.handleToolCall({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: queued._meta?.['genfeed/cardApprovalProof'],
+          decision: 'approve',
+        },
+        name: 'answer_approval',
+      })) as CardResult;
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent?.code).toBe('approval_pending');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no proof', undefined],
+      ['a made-up proof', 'not-a-proof'],
+      ['a proof for another approval', 'other'],
+    ])('refuses an answer carrying %s', async (_label, cardProof) => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.getApproval.mockResolvedValue(pending(McpApprovalStatus.PENDING));
+      const given =
+        cardProof === 'other' ? proofs()?.mint('apr-other') : cardProof;
+
+      await expect(
+        registry.handleToolCall({
+          arguments: {
+            approvalId: 'apr-1',
+            decision: 'approve',
+            ...(given === undefined ? {} : { cardProof: given }),
+          },
+          name: 'answer_approval',
+        }),
+      ).resolves.toMatchObject({ isError: true });
+      expect(client.confirmApproval).not.toHaveBeenCalled();
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it('declines with the card proof and runs nothing', async () => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+      const queued = await queuedCall(registry);
+      client.getApproval.mockResolvedValue(pending(McpApprovalStatus.PENDING));
+      client.confirmApproval.mockResolvedValue(
+        pending(McpApprovalStatus.DECLINED),
+      );
+
+      const result = (await registry.handleToolCall({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: queued._meta?.['genfeed/cardApprovalProof'],
+          decision: 'decline',
+        },
+        name: 'answer_approval',
+      })) as CardResult;
+
+      expect(result.content[0].text).toBe('Declined. The action was not run.');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it('keeps refusing a model that approves through resolve_approval with the card proof', async () => {
+      const { client, registry } = build(proofs() ?? undefined);
+      client.createApproval.mockResolvedValue(
+        pending(McpApprovalStatus.PENDING),
+      );
+      const queued = await queuedCall(registry);
+      client.getApproval.mockResolvedValue(pending(McpApprovalStatus.PENDING));
+
+      const result = (await registry.handleToolCall({
+        arguments: {
+          approvalId: 'apr-1',
+          cardProof: queued._meta?.['genfeed/cardApprovalProof'],
+          decision: 'approve',
+        },
+        name: 'resolve_approval',
+      })) as CardResult;
+
+      expect(result.isError).toBe(true);
+      expect(client.confirmApproval).not.toHaveBeenCalled();
       expect(client.executeAgentTool).not.toHaveBeenCalled();
     });
   });
