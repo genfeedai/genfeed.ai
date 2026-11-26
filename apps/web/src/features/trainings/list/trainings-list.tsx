@@ -14,7 +14,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { Cpu, Lock } from 'lucide-react';
+import { Cpu, Lock, Plus } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -50,6 +50,7 @@ export default function TrainingsList({
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const trainingT = useTranslations('ui.rowSidebar.training');
+  const emptyT = useTranslations('ui.emptyStates.trainings');
   const { brands, isReady, settings } = useBrand();
   const selfHostedDeployment = isSelfHostedDeployment();
   const canTrain =
@@ -227,17 +228,19 @@ export default function TrainingsList({
         onSortChange={onSortChange}
         isLoading={isLoading}
         emptyLabel="No trainings found"
-        emptyState={
-          scope !== PageScope.SUPERADMIN ? (
-            <EmptyState
-              title="No trainings yet"
-              icon={Cpu}
-              action={{
-                label: 'Create Training',
-                onClick: () => openModal(ModalEnum.TRAINING_UPLOAD),
-              }}
-            />
-          ) : undefined
+        empty={
+          scope !== PageScope.SUPERADMIN
+            ? {
+                action: {
+                  icon: Plus,
+                  label: emptyT('action'),
+                  onClick: () => openModal(ModalEnum.TRAINING_UPLOAD),
+                },
+                description: emptyT('description'),
+                icon: Cpu,
+                title: emptyT('title'),
+              }
+            : undefined
         }
       />
 
