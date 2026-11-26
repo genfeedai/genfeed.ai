@@ -10,9 +10,11 @@ import { SocialSourceHistoryImportService } from '@api/collections/social-source
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_BRAND_EDIT_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { resolveRequiredBrandRequestContext } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -54,6 +56,7 @@ export class SocialSourcesController {
   }
 
   @Post('validate')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.OK)
   validate(
     @CurrentUser() user: User,
@@ -69,6 +72,7 @@ export class SocialSourcesController {
   }
 
   @Post('import-post')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.OK)
   importPost(
     @CurrentUser() user: User,
@@ -80,6 +84,7 @@ export class SocialSourcesController {
   }
 
   @Post('sync')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.OK)
   syncBrand(
     @CurrentUser() user: User,
@@ -107,6 +112,7 @@ export class SocialSourcesController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -130,6 +136,7 @@ export class SocialSourcesController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -147,6 +154,7 @@ export class SocialSourcesController {
   }
 
   @Delete(':id')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -165,6 +173,7 @@ export class SocialSourcesController {
    * account's own-account source.
    */
   @Post('history-import')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.ACCEPTED)
   scheduleHistoryImport(
     @CurrentUser() user: User,
@@ -182,6 +191,7 @@ export class SocialSourcesController {
   }
 
   @Post(':id/sync')
+  @RequiredScopes(...API_KEY_BRAND_EDIT_SCOPES)
   @HttpCode(HttpStatus.OK)
   syncOne(
     @CurrentUser() user: User,
