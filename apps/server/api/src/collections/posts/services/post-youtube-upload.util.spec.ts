@@ -3,8 +3,8 @@ import {
   type PostYoutubeUploadDependencies,
   queueYoutubePostUpload,
 } from '@api/collections/posts/services/post-youtube-upload.util';
-import type { IYoutubeUploadData } from '@genfeedai/contracts';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import type { IYoutubeUploadData } from '@genfeedai/contracts/interfaces';
 
 vi.mock(
   '@api/collections/outliers/services/breakout-publication-fence.util',
