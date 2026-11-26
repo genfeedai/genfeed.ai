@@ -498,8 +498,8 @@ describe('MCP setup page', () => {
       expect(
         dom.window.document.getElementById('claude-chat-media-url'),
       ).toBeNull();
-      expect(dom.window.document.documentElement.outerHTML).not.toContain(
-        '/mcp/claude',
+      expect(dom.window.document.documentElement.outerHTML).not.toMatch(
+        /\/mcp\/claude|plugin install genfeed/,
       );
       expect(dom.window.document.body.textContent).not.toContain(
         'Genfeed Studio',
