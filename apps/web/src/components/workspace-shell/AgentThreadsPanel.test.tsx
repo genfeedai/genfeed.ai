@@ -646,6 +646,31 @@ describe('AgentThreadsPanel', () => {
       expect(screen.getByRole('toolbar')).toHaveTextContent('2 selected');
     });
 
+    it('keeps a thread selected when its resolve fails, so it can be retried', async () => {
+      const onResolveThread = vi.fn(async (id: string) => {
+        if (id === 'running') {
+          throw new Error('nope');
+        }
+      });
+      const user = userEvent.setup();
+      renderPanel({ onResolveThread });
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Pick a hook' }),
+      );
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Select Cut the trailer' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Resolve' }));
+
+      await waitFor(() =>
+        expect(screen.getByRole('toolbar')).toHaveTextContent('1 selected'),
+      );
+      expect(
+        screen.getByRole('checkbox', { name: 'Select Cut the trailer' }),
+      ).toBeChecked();
+    });
+
     it('offers Reopen when every selected thread is resolved', async () => {
       const onReopenThread = vi.fn();
       const user = userEvent.setup();

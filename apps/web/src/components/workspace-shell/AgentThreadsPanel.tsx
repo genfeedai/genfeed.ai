@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.props';
+import { NotificationsService } from '@services/core/notifications.service';
 import SearchField from '@ui/content/search-field/SearchField';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
@@ -285,9 +286,30 @@ export default function AgentThreadsPanel({
         areAllSelectedResolved,
     );
     setIsBulkPending(true);
-    await Promise.allSettled(targets.map((thread) => handler(thread.id)));
+    const outcomes = await Promise.allSettled(
+      targets.map((thread) => handler(thread.id)),
+    );
     setIsBulkPending(false);
-    clearSelection();
+    // Threads that went through leave the selection; a failed one stays picked
+    // so one click retries it, and picks made meanwhile are kept.
+    const done = new Set(
+      targets
+        .filter((_, index) => outcomes[index]?.status === 'fulfilled')
+        .map((thread) => thread.id),
+    );
+    const failedCount = targets.length - done.size;
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const id of done) {
+        next.delete(id);
+      }
+      return next;
+    });
+    if (failedCount > 0) {
+      NotificationsService.getInstance().error(
+        translate('selection.bulkFailed', { count: failedCount }),
+      );
+    }
   };
   const isSearching = searchQuery.trim().length > 0;
   const earlierCount = groups.recent.length + groups.resolved.length;

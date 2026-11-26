@@ -128,7 +128,6 @@ describe('AgentOutputLayout', () => {
     render(<Harness />);
     const layout = screen.getByTestId('agent-output-layout');
 
-    expect(layout.children).toHaveLength(1);
     expect(
       within(screen.getByTestId('agent-output-agent-pane')).getByRole(
         'button',
@@ -141,6 +140,28 @@ describe('AgentOutputLayout', () => {
         { name: 'View: Agent' },
       ),
     ).toBeInTheDocument();
+  });
+
+  it('keeps the Agent / Output switch for a layout with no pane headers', async () => {
+    const user = userEvent.setup();
+    render(
+      <AgentOutputLayout
+        agent={<p>Agent transcript</p>}
+        labels={labels}
+        tabs={[{ content: <p>Board content</p>, id: 'board', label: 'Board' }]}
+        activeTabId="board"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'View: Agent' }));
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Output' }),
+    );
+
+    expect(screen.getByTestId('agent-output-layout')).toHaveAttribute(
+      'data-mobile-view',
+      'output',
+    );
   });
 
   it('hides the agent for a full-size output without unmounting it', () => {

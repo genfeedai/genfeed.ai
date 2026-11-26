@@ -603,6 +603,7 @@
   "brandRequired": {
     "description": "Pick one in the top bar to continue.",
     "loading": "Loading the selected brand…",
+    "manageBrands": "Manage brands",
     "title": "Select a brand"
   },
   "selectionActions": {
@@ -1525,6 +1526,7 @@
     "resolved": "Resolved",
     "search": "Search threads",
     "selection": {
+      "bulkFailed": "{count, plural, one {# thread could not be updated and stays selected.} other {# threads could not be updated and stay selected.}}",
       "clear": "Clear",
       "count": "{count, plural, one {# selected} other {# selected}}",
       "select": "Select {title}",

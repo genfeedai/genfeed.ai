@@ -206,6 +206,13 @@ export default function AgentOutputLayout({
       data-mobile-view={mobileView}
       data-testid="agent-output-layout"
     >
+      {hasHeaders ? null : (
+        // A bare conversation has no pane header to hold the switch, so below
+        // `xl` it keeps a row of its own.
+        <div className="shrink-0 border-b border-border px-3 py-2 xl:hidden">
+          {viewSwitch}
+        </div>
+      )}
       <div
         className={cn(
           'grid min-h-0 flex-1 grid-cols-1',

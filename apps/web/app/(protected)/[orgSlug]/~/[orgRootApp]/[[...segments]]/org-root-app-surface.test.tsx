@@ -368,6 +368,9 @@ describe('OrgRootAppSurface', () => {
       expect(
         screen.getByText('Pick one in the top bar to continue.'),
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'Manage brands' }),
+      ).toHaveAttribute('href', '/acme/~/settings/brands');
       expect(redirectMock).not.toHaveBeenCalled();
       expect(notFoundMock).not.toHaveBeenCalled();
     },
