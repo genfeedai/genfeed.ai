@@ -7,6 +7,11 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import {
+  ANNOTATION_SOURCE_MAX_BYTES,
+  readStreamCapped,
+  renderAnnotatedImage,
+} from '@api/collections/workflows/utils/annotation-image-render.util';
 import { buildCaptionBurnStyleFromConfig } from '@api/collections/workflows/utils/caption-burn-style.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -36,6 +41,7 @@ import {
   createVideoQaExecutor,
   createVideoStitchExecutor,
   type ExecutableNode,
+  prepareAnnotationShapes,
   type VideoStitchProcessorParams,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
@@ -118,6 +124,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
   }
 
   register(engine: WorkflowEngine): void {
+    this.registerAnnotationExecutor(engine);
     this.registerAvatarVideoExecutor(engine);
     this.registerBrandCoverExecutor(engine);
     this.registerCaptionsExecutor(engine);
@@ -127,6 +134,87 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     this.registerVideoQaExecutor(engine);
     this.registerVideoStitchExecutor(engine);
     this.registerDirectMediaInputExecutors(engine);
+  }
+
+  /** Draws the saved annotation shapes over one Library image and stores the result as a new image. */
+  private registerAnnotationExecutor(engine: WorkflowEngine): void {
+    const files = this.filesClientService;
+    if (!files) {
+      return;
+    }
+
+    engine.registerExecutor('annotation', async (node, inputs, context) => {
+      // Shapes are checked before any asset is read or output exists.
+      const shapes = prepareAnnotationShapes(node.config.annotations);
+      const source = await this.helper.requireMediaAsset(
+        inputs.get('image') ?? node.config.image,
+        context.organizationId,
+        [IngredientCategory.IMAGE, IngredientCategory.AVATAR],
+      );
+      const brandId =
+        this.helper.readConfigString(node.config, 'brandId') ?? source.brandId;
+      if (brandId !== source.brandId) {
+        throw new Error('Annotation brand must match the source image');
+      }
+
+      const stream = await files.getFileFromS3(
+        source.storageKey,
+        source.storageType,
+      );
+      const rendered = await renderAnnotatedImage(
+        await readStreamCapped(stream, ANNOTATION_SOURCE_MAX_BYTES),
+        shapes,
+      );
+
+      const pending = await this.helper.createWorkflowOutputIngredient({
+        brandId,
+        category: IngredientCategory.IMAGE,
+        extension: MetadataExtension.PNG,
+        organizationId: context.organizationId,
+        parentIngredientId: source.id,
+        references: [source.id],
+        userId: context.userId,
+      });
+      try {
+        const uploaded = await files.uploadToS3(
+          pending.ingredientId,
+          'images',
+          {
+            contentType: 'image/png',
+            data: rendered.data,
+            type: FileInputType.BUFFER,
+          },
+        );
+        if (typeof uploaded.s3Key !== 'string' || !uploaded.s3Key) {
+          throw new Error('Annotated image upload returned no object key');
+        }
+        await this.helper.patchMetadata(
+          pending.metadataId,
+          new MetadataEntity({
+            height: rendered.height,
+            publicUrl: uploaded.publicUrl,
+            s3Key: uploaded.s3Key,
+            width: rendered.width,
+          }),
+        );
+        await this.helper.completeOutput(
+          pending.ingredientId,
+          context.organizationId,
+          { s3Key: uploaded.s3Key },
+        );
+        return {
+          id: pending.ingredientId,
+          image: this.helper.buildImageIngredientUrl(pending.ingredientId),
+          status: IngredientStatus.GENERATED,
+        };
+      } catch (error) {
+        await this.helper.failOutput(
+          pending.ingredientId,
+          context.organizationId,
+        );
+        throw error;
+      }
+    });
   }
 
   private registerDirectMediaInputExecutors(engine: WorkflowEngine): void {

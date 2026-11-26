@@ -1,4 +1,5 @@
 export * from './analytics-feedback-executor';
+export * from './annotation-svg';
 export * from './brand-asset-executor';
 export * from './brand-context-executor';
 export * from './brand-executor';

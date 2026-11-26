@@ -49,3 +49,37 @@ export function getWorkflowPresentationNodeType(actionId: string): string {
     ] ?? actionId
   );
 }
+
+/**
+ * Actions whose canvas node is its own React Flow node type, because it carries editor-only data
+ * (a geometry editor, a preview) beside the action's inputs.
+ */
+const EDITOR_NODE_ACTION_IDS: ReadonlySet<string> = new Set([
+  'annotation',
+  'motionControl',
+]);
+
+export function hasEditorNodeType(actionId: string): boolean {
+  return EDITOR_NODE_ACTION_IDS.has(actionId);
+}
+
+/**
+ * Keeps only the parameters the action declares. A run validates its parameters against a closed
+ * input schema, so the editor-only keys of an editor node (previews, unused modes) are never saved.
+ * Other actions keep every parameter.
+ */
+export function pickActionInputParameters(
+  actionId: string,
+  parameters: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  if (!hasEditorNodeType(actionId)) {
+    return { ...parameters };
+  }
+  const schema = getActionDefinition(actionId)?.inputSchema as
+    | { properties?: Record<string, unknown> }
+    | undefined;
+  const declared = new Set(Object.keys(schema?.properties ?? {}));
+  return Object.fromEntries(
+    Object.entries(parameters).filter(([key]) => declared.has(key)),
+  );
+}

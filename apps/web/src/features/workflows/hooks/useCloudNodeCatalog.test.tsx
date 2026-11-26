@@ -44,4 +44,26 @@ describe('useCloudNodeCatalog', () => {
       icon: 'Navigation',
     });
   });
+
+  it('adds annotation and motion control as their own editor nodes', () => {
+    const { result } = renderHook(() => useCloudNodeCatalog());
+    const nodes = result.current;
+
+    expect(
+      nodes.find((node) => node.actionId === 'motionControl'),
+    ).toMatchObject({
+      category: 'ai',
+      label: 'Transfer Motion',
+      type: 'motionControl',
+    });
+    expect(nodes.find((node) => node.actionId === 'annotation')).toMatchObject({
+      category: 'processing',
+      icon: 'Pencil',
+      label: 'Annotate Image',
+      type: 'annotation',
+    });
+    expect(nodes.find((node) => node.actionId === 'imageGen')?.type).toBe(
+      'genfeedAction',
+    );
+  });
 });

@@ -199,6 +199,13 @@ const WORKFLOW_ACTIONS = [
   ],
   ['analyticsFeedback', 'Analytics', 'Performance stats.', 'input', 'Eye'],
   [
+    'annotation',
+    'Annotate Image',
+    'Draws shapes, arrows and text over one image.',
+    'processing',
+    'Pencil',
+  ],
+  [
     'attachPostIngredient',
     'Attach Post Ingredient',
     'Attaches a generated ingredient to a post draft.',

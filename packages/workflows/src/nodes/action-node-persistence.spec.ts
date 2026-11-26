@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   getWorkflowActionIdForNodeType,
   getWorkflowPresentationNodeType,
+  hasEditorNodeType,
+  pickActionInputParameters,
 } from './action-node-persistence';
 
 describe('workflow action-node persistence', () => {
@@ -29,5 +31,37 @@ describe('workflow action-node persistence', () => {
       'captionGen',
     );
     expect(getWorkflowPresentationNodeType('imageGen')).toBe('imageGen');
+  });
+
+  it('keeps only the declared inputs of an action with an editor node', () => {
+    expect(hasEditorNodeType('motionControl')).toBe(true);
+    expect(hasEditorNodeType('imageGen')).toBe(false);
+    expect(
+      pickActionInputParameters('motionControl', {
+        characterOrientation: 'video',
+        inputImage: 'https://cdn/image.png',
+        mode: 'video_transfer',
+        model: 'kwaivgi/kling-v3-motion-control',
+        qualityMode: 'pro',
+        trajectoryPoints: [],
+      }),
+    ).toEqual({
+      characterOrientation: 'video',
+      model: 'kwaivgi/kling-v3-motion-control',
+      qualityMode: 'pro',
+    });
+    expect(
+      pickActionInputParameters('annotation', {
+        annotations: [{ id: 'a' }],
+        hasAnnotations: true,
+        outputImage: null,
+      }),
+    ).toEqual({ annotations: [{ id: 'a' }] });
+  });
+
+  it('keeps every parameter of an action without an editor node', () => {
+    expect(pickActionInputParameters('imageGen', { anything: 1 })).toEqual({
+      anything: 1,
+    });
   });
 });
