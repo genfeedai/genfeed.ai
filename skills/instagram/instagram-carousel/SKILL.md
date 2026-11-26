@@ -31,7 +31,7 @@ For one image use [instagram-post](../instagram-post/SKILL.md). For a profession
 1. **Pick the topic formula** below.
 2. **Outline** one idea per slide with a reason to swipe on each.
 3. **Write slide copy** within the word limits.
-4. **Write the caption** and hashtags (see [instagram-post](../instagram-post/SKILL.md) for hook, CTA and hashtag rules).
+4. **Write the caption** and hashtags (see [instagram-post](../instagram-post/SKILL.md) for hook, CTA and hashtag rules: 3 to 5 hashtags, never more than 5).
 5. **Render** with carousel-renderer if installed, and view the output.
 6. **Check** against the list below.
 
@@ -81,8 +81,8 @@ Slide 2: [Point]
 Slide N (CTA): [Action]
 
 Caption: [hook under 125 characters, body, CTA]
-Hashtags: [relevant set]
-Alt text: [per slide or a deck description]
+Hashtags: [3 to 5, each naming something in the carousel]
+Alt text: [per slide or a deck description; up to 1,000 characters each]
 Design notes: [colors, fonts, logo, visuals per slide]
 ```
 
@@ -98,7 +98,7 @@ If Genfeed tools are available:
 
 - `upload_media` stores the slides; `save_post` (`action: post`) saves a draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish, and no tool turns that draft into a scheduled release later.
 - When the carousel is meant to be scheduled, create it with `schedule_release` (`action: create`) and `status: "draft"` (no date) instead, with the slides as `media` asset ids in slide order and the Instagram `credentialId` from `check_channel` (`action: readiness`). A release with a date is held for the person's approval. For a week of carousels use `weekly-batch`.
-- Use `check_channel` with `{action: "capabilities", input: {platform: "instagram"}}` for the carousel slide limit and media rules before building the deck.
+- Use `check_channel` with `{action: "capabilities", input: {platform: "instagram"}}` for the carousel slide limit and media rules before building the deck. Meta's API reference allows up to 20 items in a carousel (`loop/social-poster` states that number); Genfeed's `check_channel` returns 10 because that is what Genfeed publishes today. Build to the number `check_channel` returns.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 
 The skill works fully without Genfeed.

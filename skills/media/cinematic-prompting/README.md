@@ -1,7 +1,7 @@
 # Cinematic Prompting
 
 <!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
-Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, editing, and style.
+Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, lens, color grade, editing, and style.
 
 ## Installation
 
@@ -30,7 +30,7 @@ Give corrective feedback on this failed generation using Problem → Goal → Co
 
 ## What It Does
 
-- **Lexicon of 100+ named techniques**: camera movement, framing/composition, lighting, editing/transitions, and stylistic effects
+- **Lexicon of 140+ named techniques**: camera movement, framing/composition, lighting, lens and optics, color and grade, editing/transitions, and stylistic effects
 - **Naive-to-technical translation**: "from above" → high-angle shot, "moody" → low-key, "blurry background" → shallow depth of field
 - **Subject preservation**: characters, names, and objects stay verbatim while spatial/mood language is upgraded
 - **Draft-resolution testing**: 2–3 cheap waves at low resolution on the full-quality model — never a mini variant

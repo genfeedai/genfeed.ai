@@ -1,7 +1,7 @@
 {
   "name": "cinematic-prompting",
-  "version": "1.0.0",
-  "description": "Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, editing, and style.",
+  "version": "1.1.1",
+  "description": "Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, lens, color grade, editing, and style.",
   "author": "genfeedai",
   "license": "MIT",
   "triggers": [
@@ -14,7 +14,9 @@
     "enhance this video prompt",
     "cinematography vocabulary",
     "rewrite with camera terms",
-    "high angle shot"
+    "high angle shot",
+    "lens and aperture words",
+    "color grade words"
   ],
   "references": {},
   "outputs": ["text"],
@@ -25,6 +27,8 @@
     "video-generation",
     "camera",
     "lighting",
-    "framing"
+    "framing",
+    "lens",
+    "color-grade"
   ]
 }

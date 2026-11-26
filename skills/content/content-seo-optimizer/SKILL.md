@@ -230,7 +230,7 @@ Always output the score card in this format:
 
 | Platform | SEO Factor | Details |
 |----------|-----------|---------|
-| **Instagram** | Hashtag discovery | 5-15 hashtags, mix of sizes (10K-500K posts), keyword in alt text, keyword in caption first line |
+| **Instagram** | Hashtag discovery | 3-5 hashtags (Instagram's limit is 5 since 2025-12-18), each naming something in the post, in the caption; keywords in the caption and alt text |
 | **TikTok** | Search discovery | Keyword in caption, text overlay keywords, trending sounds, hashtags (3-5) |
 | **X/Twitter** | Alt text + search | Add alt text to images, keyword-rich tweets rank in X search, thread first tweet is indexed |
 | **LinkedIn** | Article SEO | LinkedIn articles are indexed by Google; treat like blog posts with H2s, meta, and keywords |
