@@ -735,6 +735,12 @@ colour and then a 2px ring in `--ring`, so the ring survives on any surface —
 including one whose background already matches the ring colour. The ring is
 monochrome; focus is not a place to introduce hue.
 
+**A text field never draws the ring.** Input, Textarea, Searchbar, Select and the
+pickers show focus by lifting the border to `foreground/50`
+(`fieldFocusClassName` in `@ui/primitives/field-control`); there is no gap, no
+offset and no outline around the field. `check:design-system` flags
+`field-focus-ring` on a field element that adds a ring back.
+
 In code the ring is `focusRingClassName` from `@ui/primitives/focus-ring`
 (`focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background`).
 Controls that sit flush in a clipped row, such as accordion triggers, tab panels
@@ -864,7 +870,7 @@ activity timeline with a single filter instead of a tab per record type.
 
 `bg-tertiary` fill (one step above the card it sits on), `border-border`, 32px tall,
 `rounded-md`, `body-md` type. Placeholders use `text-gray-800`, never
-lower. Focus applies `--focus-ring` and lifts the border to `border-strong`.
+lower. Focus lifts the border to `foreground/50` and draws no ring.
 
 ### Dropdown
 
@@ -923,7 +929,7 @@ buttons, the logo toggle and switcher menu rows mark keyboard focus with
 `SHELL_CHROME_FOCUS_CLASS` (`focus-visible:bg-accent`, no ring, no offset, no
 browser outline). After a menu closes with Escape, focus returns to its trigger,
 and the 2px white ring stayed there until the next click (issue #11310). The ring
-stays for form controls and content.
+stays for buttons, links and other non-field controls in content.
 
 ### Sidebar
 

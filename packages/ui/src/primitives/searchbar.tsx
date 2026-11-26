@@ -12,6 +12,7 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './button';
+import { fieldFocusClassName } from './field-control';
 
 export const SEARCHBAR_DEBOUNCE_MS = 300;
 
@@ -209,7 +210,7 @@ export default function Searchbar({
         className={cn(
           sizeClass,
           'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-gray-800',
-          'focus-visible:border-border-strong focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          fieldFocusClassName,
           showIcon && 'pl-10',
           showClearButton && displayedValue && 'pr-8',
           inputClassName,

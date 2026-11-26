@@ -11,8 +11,17 @@
  */
 export const controlHeightClassName = 'h-8';
 
-export const fieldControlClassName =
-  'flex h-8 w-full min-w-0 rounded-md border border-border bg-tertiary px-3 py-1.5 text-sm text-foreground transition-[color,box-shadow,border-color,background-color] duration-200 placeholder:text-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-border-strong disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+/**
+ * Focus on a text-entry field is the border lifting to `foreground/50`, never a
+ * ring or an offset: the border stays 1px, so nothing outlines the field. The
+ * 50% step keeps the border at 3:1 against the field fill in both themes. Every
+ * text field (Input, Textarea, SearchBar, Select, pickers) composes this class;
+ * `check:design-system` flags a field element that adds a ring back.
+ */
+export const fieldFocusClassName =
+  'focus-visible:outline-hidden focus-visible:border-foreground/50';
+
+export const fieldControlClassName = `flex h-8 w-full min-w-0 rounded-md border border-border bg-tertiary px-3 py-1.5 text-sm text-foreground transition-[color,box-shadow,border-color,background-color] duration-200 placeholder:text-gray-800 ${fieldFocusClassName} disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50`;
 
 export const fieldControlInputClassName =
   'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground';

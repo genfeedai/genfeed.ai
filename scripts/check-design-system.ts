@@ -62,6 +62,7 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 
 export type DesignSystemFindingKind =
   | 'heavy-weight'
+  | 'field-focus-ring'
   | 'off-contract-focus-ring'
   | 'off-ladder-opacity'
   | 'off-scale-icon-size'
@@ -377,6 +378,7 @@ const NATIVE_CONTROL_NAMES = new Set([
 ]);
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
+  'field-focus-ring',
   'heavy-weight',
   'off-contract-focus-ring',
   'off-ladder-opacity',
@@ -543,6 +545,45 @@ export function isOffContractFocusRingToken(token: string): boolean {
     return true;
   }
   return !visible || !FOCUS_RING_CONTRACT_TOKENS.has(utility);
+}
+
+// A text-entry field marks focus by lifting its border (`fieldFocusClassName` in
+// packages/ui/src/primitives/field-control.ts), never with a ring or an offset.
+// `ring-0` and `ring-offset-0` stay allowed: they remove a ring a base class
+// brings in.
+const FIELD_FOCUS_RING_PATTERN =
+  /^(?:.*:)?(?:focus|focus-visible|focus-within):!?(ring(?:-[^!]+)?)!?$/u;
+const FIELD_FOCUS_RING_RESETS = new Set(['ring-0', 'ring-offset-0']);
+const FIELD_ELEMENT_NAMES = new Set([
+  'formsearchbar',
+  'input',
+  'searchbar',
+  'textarea',
+]);
+const NON_TEXT_INPUT_TYPES = new Set(['checkbox', 'radio', 'range']);
+const FIELD_CLASS_ATTRIBUTES = new Set(['className', 'inputClassName']);
+
+export function isFieldFocusRingToken(token: string): boolean {
+  const match = FIELD_FOCUS_RING_PATTERN.exec(
+    token.replace(LEADING_BANG_PATTERN, ''),
+  );
+  return Boolean(match) && !FIELD_FOCUS_RING_RESETS.has(match?.[1] ?? '');
+}
+
+function isTextFieldElement(node: ts.JsxOpeningLikeElement): boolean {
+  const tagName = node.tagName.getText();
+  const componentName = (tagName.split('.').at(-1) ?? tagName).toLowerCase();
+  if (!FIELD_ELEMENT_NAMES.has(componentName)) {
+    return false;
+  }
+  return !node.attributes.properties.some(
+    (attribute) =>
+      ts.isJsxAttribute(attribute) &&
+      attribute.name.getText() === 'type' &&
+      attribute.initializer !== undefined &&
+      ts.isStringLiteral(attribute.initializer) &&
+      NON_TEXT_INPUT_TYPES.has(attribute.initializer.text),
+  );
 }
 
 const MIN_NEGATIVE_TRACKING_EM = -0.02;
@@ -715,6 +756,36 @@ export function findPackageUiGuardFindings(
     }
   };
 
+  const scanFieldFocus = (root: ts.Node): void => {
+    const walk = (child: ts.Node): void => {
+      if (
+        ts.isStringLiteralLike(child) ||
+        ts.isNoSubstitutionTemplateLiteral(child)
+      ) {
+        for (const token of classTokens(child.text)) {
+          if (isFieldFocusRingToken(token)) {
+            addFinding(child, 'field-focus-ring', token);
+          }
+        }
+        return;
+      }
+      if (
+        ts.isTemplateHead(child) ||
+        ts.isTemplateMiddle(child) ||
+        ts.isTemplateTail(child)
+      ) {
+        for (const token of completeTemplateTokens(child)) {
+          if (isFieldFocusRingToken(token)) {
+            addFinding(child, 'field-focus-ring', token);
+          }
+        }
+        return;
+      }
+      ts.forEachChild(child, walk);
+    };
+    walk(root);
+  };
+
   const visit = (node: ts.Node): void => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const className = node.attributes.properties.find(
@@ -722,6 +793,17 @@ export function findPackageUiGuardFindings(
           ts.isJsxAttribute(attribute) &&
           attribute.name.getText() === 'className',
       );
+      if (isTextFieldElement(node)) {
+        for (const attribute of node.attributes.properties) {
+          if (
+            ts.isJsxAttribute(attribute) &&
+            attribute.initializer &&
+            FIELD_CLASS_ATTRIBUTES.has(attribute.name.getText())
+          ) {
+            scanFieldFocus(attribute.initializer);
+          }
+        }
+      }
       if (className?.initializer) {
         const literals = literalNodesWithin(className.initializer);
         scanLiterals(literals, isControlElement(node));
@@ -978,11 +1060,13 @@ export function formatDesignSystemRegressions(
                       ? 'use an icon step: size-3.5 (14px), size-4 (16px) or size-5 (20px)'
                       : finding.kind === 'off-ladder-opacity'
                         ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
-                        : finding.kind === 'off-contract-focus-ring'
-                          ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background)'
-                          : finding.kind === 'off-scale-text-size'
-                            ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
-                            : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+                        : finding.kind === 'field-focus-ring'
+                          ? 'a text field marks focus with its border, not a ring: drop the ring classes and keep fieldFocusClassName (focus-visible:border-foreground/50)'
+                          : finding.kind === 'off-contract-focus-ring'
+                            ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background)'
+                            : finding.kind === 'off-scale-text-size'
+                              ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
+                              : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');
