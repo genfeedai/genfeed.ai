@@ -380,16 +380,16 @@ describe('SkillCheckoutService', () => {
       );
 
       await service.createCheckoutSession({
-        cancelUrl: 'https://marketplace.genfeed.ai/skills',
+        cancelUrl: 'https://shop.genfeed.ai/skills',
         successUrl:
-          'https://marketplace.genfeed.ai/skills/purchased?session_id={CHECKOUT_SESSION_ID}',
+          'https://shop.genfeed.ai/skills/purchased?session_id={CHECKOUT_SESSION_ID}',
       });
 
       expect(createdSessions).toEqual([
         expect.objectContaining({
-          cancel_url: 'https://marketplace.genfeed.ai/skills',
+          cancel_url: 'https://shop.genfeed.ai/skills',
           success_url:
-            'https://marketplace.genfeed.ai/skills/purchased?session_id={CHECKOUT_SESSION_ID}',
+            'https://shop.genfeed.ai/skills/purchased?session_id={CHECKOUT_SESSION_ID}',
         }),
       ]);
     });
@@ -403,8 +403,8 @@ describe('SkillCheckoutService', () => {
       );
 
       await service.createCheckoutSession({
-        cancelUrl: 'https://marketplace.genfeed.ai.evil.example/skills',
-        successUrl: 'http://marketplace.genfeed.ai/skills/purchased',
+        cancelUrl: 'https://shop.genfeed.ai.evil.example/skills',
+        successUrl: 'http://shop.genfeed.ai/skills/purchased',
       });
 
       expect(createdSessions).toEqual([
