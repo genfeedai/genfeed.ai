@@ -15,6 +15,7 @@ import {
 } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
+import { fieldFocusClassName } from './field-control';
 
 export interface TextareaProps<T extends FieldValues = FieldValues>
   extends Omit<
@@ -81,8 +82,7 @@ function toText(
   return typeof value === 'object' ? value.join(',') : String(value);
 }
 
-const textareaClassName =
-  'flex min-h-[80px] w-full rounded-md border border-border bg-tertiary px-3 py-2 text-sm text-foreground placeholder:text-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-border-strong disabled:cursor-not-allowed disabled:opacity-50 font-[inherit] min-h-textarea h-auto resize-y';
+const textareaClassName = `flex min-h-[80px] w-full rounded-md border border-border bg-tertiary px-3 py-2 text-sm text-foreground placeholder:text-gray-800 ${fieldFocusClassName} disabled:cursor-not-allowed disabled:opacity-50 font-[inherit] min-h-textarea h-auto resize-y`;
 
 function assignRef(
   ref:
