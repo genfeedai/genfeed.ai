@@ -12,17 +12,10 @@ import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { useIngredientsById } from '@/hooks/media/use-ingredients-by-id';
+import type { ElementsTableProps } from '@/props/characters/library-elements.props';
 import { LIBRARY_ELEMENT_KIND_ICONS } from './library-element-kind';
 
 const VISIBLE_REFERENCE_THUMBNAILS = 4;
-
-interface ElementsTableProps {
-  elements: LibraryElement[];
-  isLoading: boolean;
-  onCreate?: () => void;
-  onEdit: (element: LibraryElement) => void;
-  onRemove: (element: LibraryElement) => void;
-}
 
 export default function ElementsTable({
   elements,

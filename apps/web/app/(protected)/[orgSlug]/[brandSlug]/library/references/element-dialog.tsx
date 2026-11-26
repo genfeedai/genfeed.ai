@@ -28,12 +28,14 @@ import {
 } from '@ui/primitives/dialog';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { useIngredientsById } from '@/hooks/media/use-ingredients-by-id';
+import type { ElementDialogProps } from '@/props/characters/library-elements.props';
 
 /** People type the handle the way they mention it, with the @. */
 const LEADING_AT = /^\s*@/;
@@ -43,18 +45,6 @@ const ELEMENT_TYPES = [
   LibraryElementType.STYLE,
   LibraryElementType.PROP,
 ] as const;
-
-interface ElementDialogProps {
-  /** The element being edited; absent when creating a new one. */
-  element?: LibraryElement;
-  isBusy: boolean;
-  onClose: () => void;
-  onCreate: (input: CreateLibraryElementInput) => Promise<boolean>;
-  onUpdate: (
-    id: string,
-    input: Partial<Omit<CreateLibraryElementInput, 'type'>>,
-  ) => Promise<boolean>;
-}
 
 /** Creates a location, style or prop, or edits one: name, @handle, text and files. */
 export default function ElementDialog({
@@ -154,22 +144,15 @@ export default function ElementDialog({
         <DialogBody className="flex flex-col gap-4">
           {element ? null : (
             <Field label={translate('fields.type')}>
-              <fieldset className="flex flex-wrap gap-2">
-                {ELEMENT_TYPES.map((option) => (
-                  <Button
-                    key={option}
-                    label={translate(`kinds.${option}`)}
-                    onClick={() => setType(option)}
-                    size={ButtonSize.SM}
-                    variant={
-                      type === option
-                        ? ButtonVariant.SECONDARY
-                        : ButtonVariant.GHOST
-                    }
-                    withWrapper={false}
-                  />
-                ))}
-              </fieldset>
+              <SegmentedControl
+                ariaLabel={translate('fields.type')}
+                onValueChange={setType}
+                options={ELEMENT_TYPES.map((option) => ({
+                  label: translate(`kinds.${option}`),
+                  value: option,
+                }))}
+                value={type}
+              />
             </Field>
           )}
           <Field

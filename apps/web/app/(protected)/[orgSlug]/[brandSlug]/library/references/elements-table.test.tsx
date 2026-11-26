@@ -51,31 +51,31 @@ describe('ElementsTable', () => {
   });
 
   it('edits and removes the element of the clicked row', () => {
-    const onEdit = vi.fn();
-    const onRemove = vi.fn();
+    const edited: LibraryElement[] = [];
+    const removed: LibraryElement[] = [];
     render(
       <ElementsTable
         elements={[loft]}
         isLoading={false}
-        onEdit={onEdit}
-        onRemove={onRemove}
+        onEdit={(element) => edited.push(element)}
+        onRemove={(element) => removed.push(element)}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Loft studio' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove Loft studio' }));
 
-    expect(onEdit).toHaveBeenCalledWith(loft);
-    expect(onRemove).toHaveBeenCalledWith(loft);
+    expect(edited).toEqual([loft]);
+    expect(removed).toEqual([loft]);
   });
 
   it('offers to create the first element when the list is empty', () => {
-    const onCreate = vi.fn();
+    const created: string[] = [];
     render(
       <ElementsTable
         elements={[]}
         isLoading={false}
-        onCreate={onCreate}
+        onCreate={() => created.push('new')}
         onEdit={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -83,6 +83,6 @@ describe('ElementsTable', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /New element/ }));
 
-    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(created).toEqual(['new']);
   });
 });

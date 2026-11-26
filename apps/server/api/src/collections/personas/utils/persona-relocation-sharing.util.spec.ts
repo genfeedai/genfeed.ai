@@ -92,6 +92,7 @@ const bystanders = [
 describe('persona relocation sharing', () => {
   let audits: Record<string, unknown>[];
   let personas: Map<string, Row>;
+  let elements: Map<string, Row>;
 
   const seed = (...rows: Row[]) => {
     personas = new Map(
@@ -100,6 +101,21 @@ describe('persona relocation sharing', () => {
   };
   const tx = () =>
     ({
+      libraryElement: {
+        updateMany: async ({
+          data,
+          where,
+        }: {
+          data: Record<string, unknown>;
+          where: Where;
+        }) => {
+          const hits = [...elements.values()].filter((row) =>
+            matches(row, where),
+          );
+          for (const row of hits) Object.assign(row, data);
+          return { count: hits.length };
+        },
+      },
       persona: {
         findMany: async ({ where }: { where: Where }) =>
           [...personas.values()].filter((row) => matches(row, where)),
@@ -131,6 +147,37 @@ describe('persona relocation sharing', () => {
 
   beforeEach(() => {
     audits = [];
+    elements = new Map(
+      [
+        persona({
+          availabilityMode: 'ALL_BRANDS',
+          availableBrandIds: [],
+          id: 'element-shared',
+        }),
+        persona({
+          availabilityMode: 'SELECTED_BRANDS',
+          availableBrandIds: ['brand-2'],
+          id: 'element-listed',
+        }),
+        persona({
+          availabilityMode: 'OWNING_BRAND',
+          availableBrandIds: [],
+          id: 'element-private',
+        }),
+        persona({
+          availabilityMode: 'ALL_BRANDS',
+          availableBrandIds: [],
+          brandId: 'brand-9',
+          id: 'element-other-brand',
+        }),
+        persona({
+          availabilityMode: 'ALL_BRANDS',
+          availableBrandIds: [],
+          id: 'element-other-org',
+          organizationId: 'org-other',
+        }),
+      ].map((row) => [row.id, row]),
+    );
     seed();
   });
 
@@ -186,6 +233,26 @@ describe('persona relocation sharing', () => {
       expect(sharing('persona-deleted')).toEqual(['ALL_BRANDS', []]);
       expect(sharing('persona-other-brand')).toEqual(['ALL_BRANDS', []]);
       expect(sharing('persona-other-org')).toEqual(['ALL_BRANDS', []]);
+    });
+
+    it('resets the sharing of the brand elements and leaves other elements alone', async () => {
+      await resetPersonaSharingForRelocation(tx(), {
+        ...scope,
+        actorUserId: 'user-1',
+      });
+      expect(
+        [...elements.values()].map((row) => [
+          row.id,
+          row.availabilityMode,
+          row.availableBrandIds,
+        ]),
+      ).toEqual([
+        ['element-shared', 'OWNING_BRAND', []],
+        ['element-listed', 'OWNING_BRAND', []],
+        ['element-private', 'OWNING_BRAND', []],
+        ['element-other-brand', 'ALL_BRANDS', []],
+        ['element-other-org', 'ALL_BRANDS', []],
+      ]);
     });
 
     it('also clears a leftover brand list on an owning-brand character', async () => {

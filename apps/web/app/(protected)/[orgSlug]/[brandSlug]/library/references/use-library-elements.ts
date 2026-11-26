@@ -14,6 +14,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import type { LibraryElementsControls } from '@/props/characters/library-elements.props';
 
 /** The Library elements table; one cache entry per viewer, brand and filter. */
 const ELEMENTS_QUERY_KEY = 'library-elements';
@@ -27,15 +28,6 @@ export const ELEMENT_KINDS: readonly LibraryElementKind[] = [
 
 function createElementsService(token: string): LibraryElementsService {
   return LibraryElementsService.getInstance(token);
-}
-
-export interface LibraryElementsControls {
-  create: (input: CreateLibraryElementInput) => Promise<boolean>;
-  elements: LibraryElement[];
-  isBusy: boolean;
-  isLoading: boolean;
-  remove: (element: LibraryElement) => Promise<void>;
-  update: (id: string, input: UpdateLibraryElementInput) => Promise<boolean>;
 }
 
 /**

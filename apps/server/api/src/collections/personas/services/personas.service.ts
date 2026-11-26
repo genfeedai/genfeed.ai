@@ -16,6 +16,7 @@ import {
   resolvePersonaBrandIds,
 } from '@api/collections/personas/utils/persona-availability.util';
 import { rethrowHandleConflict } from '@api/collections/personas/utils/persona-handle-conflict.util';
+import { findHandleHolders } from '@api/collections/personas/utils/persona-handle-holders.util';
 import {
   assertOwningBrandLive,
   withPersonaHandleLocks,
@@ -783,34 +784,10 @@ export class PersonasService extends BaseService<
       return;
     }
     const client = params.client ?? this.prisma;
-    const characters = await client.persona.findMany({
-      select: {
-        availabilityMode: true,
-        availableBrandIds: true,
-        brandId: true,
-      },
-      where: scopedWhere(params.organizationId, {
-        handle: params.handle,
-        ...(params.excludePersonaId
-          ? { id: { not: params.excludePersonaId } }
-          : {}),
-      }),
+    const others = await findHandleHolders(client, {
+      ...params,
+      handle: params.handle,
     });
-    // Library elements share the character handle namespace (#7374).
-    const elements = await client.libraryElement.findMany({
-      select: {
-        availabilityMode: true,
-        availableBrandIds: true,
-        brandId: true,
-      },
-      where: scopedWhere(params.organizationId, {
-        handle: params.handle,
-        ...(params.excludeElementId
-          ? { id: { not: params.excludeElementId } }
-          : {}),
-      }),
-    });
-    const others = [...characters, ...elements];
     // Characters granted into this organization occupy their handle in the
     // brands they were granted to (#6037).
     const grantedIn = await client.personaGrant.findMany({

@@ -26,6 +26,7 @@ import {
   PersonaAvailabilityMode,
 } from '@genfeedai/contracts';
 import type { PersonaAvailabilityFields } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** What a caller needs to read the elements of one brand. */
@@ -85,6 +86,7 @@ type ElementWithRelations = Awaited<
  * handle namespace, availability model and reference-file rules, so a brand
  * mentions one with the same `@handle` as a character.
  */
+@Traced()
 @Injectable()
 export class LibraryElementsService {
   constructor(
@@ -115,7 +117,7 @@ export class LibraryElementsService {
         }
       : {};
     const reach = brandAvailabilityWhere(scope.brandId);
-    const take = page * limit;
+    const fetchCount = page * limit;
 
     const [characters, characterCount, elements, elementCount] =
       await Promise.all([
@@ -123,7 +125,7 @@ export class LibraryElementsService {
           ? this.prisma.persona.findMany({
               include: ELEMENT_INCLUDE,
               orderBy: { updatedAt: 'desc' },
-              take,
+              take: fetchCount,
               where: scopedWhere(scope.organizationId, {
                 AND: [reach, textFilter],
               }),
@@ -137,7 +139,7 @@ export class LibraryElementsService {
             })
           : 0,
         includeElements
-          ? this.loadElements(scope.organizationId, take, {
+          ? this.loadElements(scope.organizationId, fetchCount, {
               AND: [
                 reach,
                 textFilter,
@@ -332,13 +334,13 @@ export class LibraryElementsService {
 
   private loadElements(
     organizationId: string,
-    take: number,
+    fetchCount: number,
     where: Record<string, unknown>,
   ) {
     return this.prisma.libraryElement.findMany({
       include: ELEMENT_INCLUDE,
       orderBy: { updatedAt: 'desc' },
-      take,
+      take: fetchCount,
       where: scopedWhere(organizationId, where),
     });
   }
