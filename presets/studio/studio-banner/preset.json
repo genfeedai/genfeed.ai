@@ -1,0 +1,13 @@
+{
+  "key": "studio-banner",
+  "label": "Banner",
+  "type": "image",
+  "description": "A wide composition with space for your headline.",
+  "prompt": "Create a wide banner for your topic or brand.",
+  "values": {
+    "aspectRatio": "21:9",
+    "promptTemplate": "content.image.banner",
+    "style": "editorial brand banner",
+    "scene": "wide composition with clear negative space for a headline"
+  }
+}

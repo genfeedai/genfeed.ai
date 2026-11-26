@@ -911,6 +911,7 @@ describe('DiscordService', () => {
       const { service } = await createService();
 
       await service.sendPostPublishedNotification({
+        accountHandle: '@genfeedai',
         brandLabel: 'Shayla',
         caption: 'Studio day',
         organizationLabel: 'Genfeed',
@@ -927,6 +928,7 @@ describe('DiscordService', () => {
       expect(embed.description).toBe('Studio day');
       expect(embed.fields).toEqual([
         { inline: true, name: 'Platform', value: 'instagram' },
+        { inline: true, name: 'Account', value: '@genfeedai' },
         { inline: true, name: 'Brand', value: 'Shayla' },
         { inline: true, name: 'Organization', value: 'Genfeed' },
       ]);
