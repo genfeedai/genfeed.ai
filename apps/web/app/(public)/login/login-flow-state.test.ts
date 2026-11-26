@@ -138,7 +138,7 @@ describe('login flow selectors', () => {
     [WAITING, true],
     [WAITING_WITH_ERROR, true],
     [SUBMITTING_CODE, true],
-    [{ method: 'local', status: 'submitting' }, false],
+    [{ method: 'password', status: 'submitting' }, false],
     [DESKTOP_ERROR, false],
   ])('shows the code form for %o: %s', (state, expected) => {
     expect(isWaitingForDesktopSession(state)).toBe(expected);

@@ -101,16 +101,7 @@ const subscriptionCloudContext: IDesktopRuntimeContext = {
   selectedServerId: 'subscription-cloud',
   selectedServerKind: 'cloud',
   selectedApiEndpoint: 'https://example.invalid/v1',
-  runtimeMode: 'cloud',
   generationExecution: 'remote',
-  localProvider: null,
-};
-const subscriptionLocalContext: IDesktopRuntimeContext = {
-  ...subscriptionCloudContext,
-  revision: 2,
-  runtimeMode: 'local',
-  generationExecution: 'local-byok',
-  localProvider: { provider: 'ollama', networkAccess: 'local' },
 };
 
 function setSubscription(subscription: UseSubscriptionReturn['subscription']) {
@@ -693,25 +684,6 @@ describe('SettingsSubscriptionPage', () => {
         }),
       );
     });
-    it('withholds billing in a local renderer after the hosted server admits the route', async () => {
-      const element = await Route({
-        params: Promise.resolve({ orgSlug: 'acme' }),
-      });
-      vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', { clientSurface: 'desktop' });
-      runtime.mockReturnValue({
-        status: 'ready',
-        context: subscriptionLocalContext,
-      });
-      render(element);
-      expect(
-        screen.queryByRole('button', { name: 'Open Billing Portal' }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Get Scale' }),
-      ).not.toBeInTheDocument();
-      expect(useSubscriptionMock).not.toHaveBeenCalled();
-      expect(useBillingAccountMock).not.toHaveBeenCalled();
-    });
     it.each([
       ['cloud web', 'true', 'false', '', { status: 'web', context: null }],
       [
@@ -780,37 +752,11 @@ describe('SettingsSubscriptionPage', () => {
       },
     );
     it.each([
-      ['local Ollama', { status: 'ready', context: subscriptionLocalContext }],
-      [
-        'remote BYOK',
-        {
-          status: 'ready',
-          context: {
-            ...subscriptionLocalContext,
-            localProvider: { provider: 'replicate', networkAccess: 'remote' },
-          },
-        },
-      ],
-      [
-        'unknown local execution',
-        {
-          status: 'ready',
-          context: {
-            ...subscriptionLocalContext,
-            generationExecution: 'unknown',
-            localProvider: null,
-          },
-        },
-      ],
       ['loading', { status: 'loading', context: null }],
       ['unavailable', { status: 'unavailable', context: null }],
       [
         'switching from cloud',
         { status: 'switching', context: subscriptionCloudContext },
-      ],
-      [
-        'switching from local',
-        { status: 'switching', context: subscriptionLocalContext },
       ],
     ] satisfies [string, DesktopRuntimeSnapshot][])(
       'renders a neutral unavailable state for %s even with a cosmetic license hint',
@@ -871,11 +817,11 @@ describe('SettingsSubscriptionPage', () => {
           [{ status: 'web', context: null }, true],
           [{ status: 'ready', context: cloud }, true],
           [{ status: 'switching', context: cloud }, false],
-          [{ status: 'ready', context: subscriptionLocalContext }, false],
+          [{ status: 'switching', context: cloud }, false],
           [{ status: 'ready', context: cloud }, true],
           [{ status: 'unavailable', context: null }, false],
           [{ status: 'ready', context: cloud }, true],
-          [{ status: 'ready', context: subscriptionLocalContext }, false],
+          [{ status: 'switching', context: cloud }, false],
           [{ status: 'ready', context: cloud }, true],
         ];
         vi.stubEnv('NEXT_PUBLIC_GENFEED_LICENSE_KEY', 'cosmetic-test-only');
@@ -961,8 +907,8 @@ describe('SettingsSubscriptionPage', () => {
         useSubscriptionMock.mockClear();
         useBillingAccountMock.mockClear();
         runtime.mockReturnValue({
-          status: 'ready',
-          context: subscriptionLocalContext,
+          status: 'switching',
+          context: subscriptionCloudContext,
         });
         rerender(<SettingsSubscriptionPage />);
         expect(

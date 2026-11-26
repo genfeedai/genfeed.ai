@@ -62,7 +62,6 @@ export const PACKAGE_LAYERS: Readonly<Record<string, number>> = {
   cli: 6,
   create: 6,
   'desktop-core': 6,
-  'desktop-prisma': 6,
   'next-config': 6,
 };
 

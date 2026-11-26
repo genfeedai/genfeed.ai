@@ -309,12 +309,6 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
-vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
-  default: ({ variant }: { variant?: string }) => (
-    <div>Desktop providers: {variant}</div>
-  ),
-}));
-
 vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: () => mocks.desktop,
   isSelfHostedDeployment: () => mocks.isSelfHosted,

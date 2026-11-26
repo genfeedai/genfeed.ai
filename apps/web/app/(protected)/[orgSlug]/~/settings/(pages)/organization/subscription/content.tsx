@@ -84,8 +84,7 @@ export default function SettingsSubscriptionPage() {
   const runtime = useDesktopRuntimeContext();
   const translate = useTranslations('common.subscription');
   const isSubscriptionAvailable =
-    runtime.status === 'web' ||
-    (runtime.status === 'ready' && runtime.context?.runtimeMode === 'cloud');
+    runtime.status === 'web' || runtime.status === 'ready';
 
   if (!isSubscriptionAvailable) {
     return (

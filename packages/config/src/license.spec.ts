@@ -103,37 +103,13 @@ describe('shouldShowCreditsNav cosmetic context', () => {
     expect(shouldShowCreditsNav({ clientSurface: 'web' })).toBe(true);
   });
 
-  it('uses the selected cloud account independently of generation execution', () => {
-    for (const generationExecution of [
-      'remote',
-      'local-byok',
-      'unknown',
-    ] as const) {
-      expect(
-        shouldShowCreditsNav({
-          clientSurface: 'desktop',
-          selectedServerKind: 'cloud',
-          runtimeMode: 'cloud',
-          generationExecution,
-        }),
-      ).toBe(true);
-    }
-  });
-
-  it('keeps remembered cloud profiles hidden in explicit local mode', () => {
-    expect(
-      shouldShowCreditsNav({
-        clientSurface: 'desktop',
-        selectedServerKind: 'cloud',
-        runtimeMode: 'local',
-      }),
-    ).toBe(false);
+  it('shows the wallet of a ready Genfeed Cloud server in Desktop', () => {
     expect(
       shouldShowCreditsNav({
         clientSurface: 'desktop',
         selectedServerKind: 'cloud',
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('keeps self-hosted and unknown desktop contexts hidden despite cloud or license hints', () => {

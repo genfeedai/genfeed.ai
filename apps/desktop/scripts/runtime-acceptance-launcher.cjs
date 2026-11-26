@@ -37,12 +37,6 @@ const audit = {
 };
 let dialogMode = 'cancel';
 let pendingDialog;
-let failRename = false;
-// Test-only: force local mode on for the local acceptance scenarios. Production
-// reads the flag through isDesktopLocalModeEnabled(), which honours this symbol
-// and nothing the shipped app reads from its environment.
-if (process.env.GENFEED_RUNTIME_ACCEPTANCE_LOCAL_MODE === '1')
-  globalThis[Symbol.for('genfeed.desktop.localModeTestOverride')] = true;
 let startMain;
 const started = new Promise((resolve) => {
   startMain = resolve;
@@ -71,14 +65,6 @@ dialog.showMessageBox = (...args) => {
       pendingDialog = resolve;
     });
   return Promise.resolve({ response: 1, checkboxChecked: false });
-};
-const rename = fs.renameSync;
-fs.renameSync = (from, to) => {
-  if (failRename && to === statePath) {
-    failRename = false;
-    throw new Error('Acceptance mode persistence failure');
-  }
-  return rename(from, to);
 };
 app.relaunch = () => {
   audit.relaunchCalls++;
@@ -113,12 +99,10 @@ globalThis.__genfeedRuntimeAcceptance = {
         response: action === 'confirm' ? 0 : 1,
         checkboxChecked: false,
       });
-    } else if (action === 'fail-mode-rename') failRename = true;
-    else throw new Error('Unknown acceptance control.');
+    } else throw new Error('Unknown acceptance control.');
   },
   read() {
-    const values = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-    return { ...audit, savedMode: values['desktop.runtime.mode'] || 'cloud' };
+    return { ...audit };
   },
 };
 const encodeFixtureSession = (session) =>

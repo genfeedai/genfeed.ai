@@ -2004,16 +2004,7 @@ const creditsCloudContext: IDesktopRuntimeContext = {
   selectedServerId: 'credits-cloud',
   selectedServerKind: 'cloud',
   selectedApiEndpoint: 'https://example.invalid/v1',
-  runtimeMode: 'cloud',
   generationExecution: 'remote',
-  localProvider: null,
-};
-const creditsLocalContext: IDesktopRuntimeContext = {
-  ...creditsCloudContext,
-  revision: 2,
-  runtimeMode: 'local',
-  generationExecution: 'local-byok',
-  localProvider: { provider: 'ollama', networkAccess: 'local' },
 };
 const creditsRuntimeCases = [
   {
@@ -2054,43 +2045,6 @@ const creditsRuntimeCases = [
     allowed: true,
     selfHosted: false,
     billing: false,
-    price: undefined,
-  },
-  {
-    name: 'local Ollama with remembered cloud and billing hint',
-    runtime: { status: 'ready', context: creditsLocalContext },
-    allowed: false,
-    selfHosted: false,
-    billing: true,
-    price: undefined,
-  },
-  {
-    name: 'local Replicate with remote network',
-    runtime: {
-      status: 'ready',
-      context: {
-        ...creditsLocalContext,
-        localProvider: { provider: 'replicate', networkAccess: 'remote' },
-      },
-    },
-    allowed: false,
-    selfHosted: false,
-    billing: true,
-    price: undefined,
-  },
-  {
-    name: 'local unknown execution',
-    runtime: {
-      status: 'ready',
-      context: {
-        ...creditsLocalContext,
-        generationExecution: 'unknown',
-        localProvider: null,
-      },
-    },
-    allowed: false,
-    selfHosted: true,
-    billing: true,
     price: undefined,
   },
   {
@@ -2153,10 +2107,10 @@ const creditsRuntimeCases = [
 }[];
 const creditsRuntimeTransitions: DesktopRuntimeSnapshot[] = [
   { status: 'loading', context: null },
-  { status: 'ready', context: creditsLocalContext },
+  { status: 'unavailable', context: null },
   { status: 'ready', context: creditsCloudContext },
   { status: 'switching', context: creditsCloudContext },
-  { status: 'ready', context: creditsLocalContext },
+  { status: 'unavailable', context: null },
   { status: 'ready', context: creditsCloudContext },
 ];
 
@@ -2247,22 +2201,8 @@ describe('Subscription runtime boundary', () => {
     mockCreditsBilling.value = true;
     mockCreditsRuntime.mockReturnValue({
       status: 'ready',
-      context: creditsLocalContext,
+      context: creditsCloudContext,
     });
-  });
-  it('omits only Subscription from the local sidebar with a billing hint', () => {
-    const { result, unmount } = renderHook(() => useAppProtectedLayout());
-    expect(
-      result.current.settingsMenuItems.some(
-        (item) => item.href === '/settings/subscription',
-      ),
-    ).toBe(false);
-    expect(
-      result.current.settingsMenuItems.some(
-        (item) => item.href === '/settings/general',
-      ),
-    ).toBe(true);
-    unmount();
   });
   it.each([
     ['web', { status: 'web', context: null }, true],
@@ -2283,40 +2223,11 @@ describe('Subscription runtime boundary', () => {
       },
       true,
     ],
-    ['local Ollama', { status: 'ready', context: creditsLocalContext }, false],
-    [
-      'local remote BYOK',
-      {
-        status: 'ready',
-        context: {
-          ...creditsLocalContext,
-          localProvider: { provider: 'replicate', networkAccess: 'remote' },
-        },
-      },
-      false,
-    ],
-    [
-      'local unknown',
-      {
-        status: 'ready',
-        context: {
-          ...creditsLocalContext,
-          generationExecution: 'unknown',
-          localProvider: null,
-        },
-      },
-      false,
-    ],
     ['loading', { status: 'loading', context: null }, false],
     ['unavailable', { status: 'unavailable', context: null }, false],
     [
       'switching from cloud',
       { status: 'switching', context: creditsCloudContext },
-      false,
-    ],
-    [
-      'switching from local',
-      { status: 'switching', context: creditsLocalContext },
       false,
     ],
   ] satisfies [string, DesktopRuntimeSnapshot, boolean][])(
@@ -2349,11 +2260,9 @@ describe('Subscription runtime boundary', () => {
         [{ status: 'web', context: null }, true],
         [{ status: 'ready', context: cloud }, true],
         [{ status: 'switching', context: cloud }, false],
-        [{ status: 'ready', context: creditsLocalContext }, false],
         [{ status: 'ready', context: cloud }, true],
         [{ status: 'unavailable', context: null }, false],
         [{ status: 'ready', context: cloud }, true],
-        [{ status: 'ready', context: creditsLocalContext }, false],
         [{ status: 'ready', context: cloud }, true],
       ];
       mockCreditsRuntime.mockReturnValue({ status: 'loading', context: null });

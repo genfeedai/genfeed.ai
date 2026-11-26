@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { IDesktopTerminalDataEvent } from '@genfeedai/contracts/desktop';
-import type { DesktopWorkspaceService } from './workspace.service';
 
 const ptyState = {
   dataHandler: null as ((data: string) => void) | null,
@@ -85,31 +84,27 @@ describe('DesktopTerminalService', () => {
     ptyState.writes = [];
   });
 
-  it('starts a PTY in the selected workspace and forwards data events', async () => {
-    const workspaceService = {
-      getWorkspace: async () => ({
-        path: '/tmp/genfeed-workspace',
-      }),
-    } as unknown as DesktopWorkspaceService;
+  it('starts a PTY in the requested directory and forwards data events', async () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-terminal-'));
     const dataEvents: IDesktopTerminalDataEvent[] = [];
-    const service = new DesktopTerminalService(() => workspaceService);
+    const service = new DesktopTerminalService();
 
     const session = await service.createSession(
       {
         cols: 140,
+        cwd,
         rows: 40,
-        workspaceId: 'workspace-1',
       },
       (event) => dataEvents.push(event),
       () => {},
     );
 
-    expect(session.cwd).toBe('/tmp/genfeed-workspace');
+    expect(session.cwd).toBe(cwd);
     expect(session.kind).toBe('shell');
     expect(session.pid).toBe(42);
     expect(ptyState.spawnCalls[0]?.options).toMatchObject({
       cols: 140,
-      cwd: '/tmp/genfeed-workspace',
+      cwd,
       rows: 40,
     });
     expect(ptyState.spawnCalls[0]?.options.env.PATH).toContain(
@@ -122,12 +117,7 @@ describe('DesktopTerminalService', () => {
   });
 
   it('writes, resizes, and kills only active sessions', async () => {
-    const workspaceService = {
-      getWorkspace: async () => {
-        throw new Error('workspace should not be resolved');
-      },
-    } as unknown as DesktopWorkspaceService;
-    const service = new DesktopTerminalService(() => workspaceService);
+    const service = new DesktopTerminalService();
     const session = await service.createSession(
       { kind: 'codex' },
       () => {},
@@ -150,7 +140,7 @@ describe('DesktopTerminalService', () => {
   });
 
   it('starts the Genfeed CLI through a wrapper that explains a missing gf', async () => {
-    const service = new DesktopTerminalService(() => null);
+    const service = new DesktopTerminalService();
 
     await service.createSession(
       { kind: 'genfeed' },
@@ -164,13 +154,10 @@ describe('DesktopTerminalService', () => {
   });
 
   it('removes exited sessions before later writes', async () => {
-    const workspaceService = {
-      getWorkspace: async () => ({ path: '/tmp/genfeed-workspace' }),
-    } as unknown as DesktopWorkspaceService;
     const exitEvents: Array<{ exitCode?: number; sessionId: string }> = [];
-    const service = new DesktopTerminalService(() => workspaceService);
+    const service = new DesktopTerminalService();
     const session = await service.createSession(
-      { workspaceId: 'workspace-1' },
+      undefined,
       () => {},
       (event) => exitEvents.push(event),
     );
@@ -183,12 +170,12 @@ describe('DesktopTerminalService', () => {
     expect(ptyState.writes).toEqual([]);
   });
 
-  it('runs without a local workspace in cloud mode and honors an existing cwd', async () => {
-    const service = new DesktopTerminalService(() => null);
+  it('honors an existing cwd for an agent CLI session', async () => {
+    const service = new DesktopTerminalService();
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-terminal-'));
 
     const session = await service.createSession(
-      { cwd, kind: 'claude', workspaceId: 'workspace-ignored' },
+      { cwd, kind: 'claude' },
       () => {},
       () => {},
     );
@@ -198,7 +185,7 @@ describe('DesktopTerminalService', () => {
   });
 
   it('opens a claude session on its prompt as one argument and adds no permission flag', async () => {
-    const service = new DesktopTerminalService(() => null);
+    const service = new DesktopTerminalService();
 
     await service.createSession(
       { kind: 'claude', prompt: 'Use the threejs-previs skill; rm -rf ~' },
@@ -213,7 +200,7 @@ describe('DesktopTerminalService', () => {
   });
 
   it('ignores a prompt for every kind but claude', async () => {
-    const service = new DesktopTerminalService(() => null);
+    const service = new DesktopTerminalService();
 
     await service.createSession(
       { kind: 'codex', prompt: 'ignored' },
@@ -225,7 +212,7 @@ describe('DesktopTerminalService', () => {
   });
 
   it('falls back to the home directory for relative or missing cwd values', async () => {
-    const service = new DesktopTerminalService(() => null);
+    const service = new DesktopTerminalService();
 
     const relative = await service.createSession(
       { cwd: '../etc' },

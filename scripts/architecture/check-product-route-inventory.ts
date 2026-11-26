@@ -163,13 +163,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/onboarding/success',
     '/onboarding/summary',
   ] as const),
-  // Runtime-owned shells rather than ordinary public destinations. The
-  // service worker renders /~offline after failed navigation; Electron owns
-  // /desktop/local and exposes it only after explicit local-mode selection.
-  ...classifyPublicRoutes('app', 'system', [
-    '/desktop/local',
-    '/~offline',
-  ] as const),
+  // A runtime-owned shell rather than an ordinary public destination: the
+  // service worker renders /~offline after failed navigation.
+  ...classifyPublicRoutes('app', 'system', ['/~offline'] as const),
   ...classifyPublicRoutes('app', 'transactional', [
     '/managed-credits/success',
   ] as const),
