@@ -364,7 +364,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 304,
+      line: 305,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.
@@ -381,7 +381,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin activity list not pinned to the active organization.
     {
       file: 'apps/server/api/src/collections/activities/controllers/activities.controller.ts',
-      line: 163,
+      line: 164,
     },
     // #6120: superadmin operates on a bot in any organization.
     {

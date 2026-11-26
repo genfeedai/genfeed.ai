@@ -11,6 +11,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -25,7 +26,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ApiKeyScope } from '@genfeedai/contracts';
 import { InsightSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -58,6 +59,7 @@ export class InsightsController {
    * Get trend forecasts
    */
   @Post('forecast')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getForecast(@Body() dto: GetForecastDto, @CurrentUser() user: User) {
     const organization = user.organizationId;
@@ -93,6 +95,7 @@ export class InsightsController {
    * Predict viral potential
    */
   @Post('viral')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   @UseGuards(CreditsGuard)
   @Credits({
     description: 'Viral prediction (text model)',
@@ -212,6 +215,7 @@ export class InsightsController {
    * Update an insight's read/dismissed flags.
    */
   @Patch(':insightId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateInsight(
     @Req() req: Request,

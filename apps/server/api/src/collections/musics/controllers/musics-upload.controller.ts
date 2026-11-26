@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -10,6 +11,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ApiKeyScope,
   AssetScope,
   FileInputType,
   IngredientCategory,
@@ -43,6 +45,7 @@ export class MusicsUploadController {
   ) {}
 
   @Post('upload')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
