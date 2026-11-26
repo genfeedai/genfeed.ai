@@ -30,7 +30,7 @@ export class SyncSkillsDto {
 
   @ApiProperty({
     description:
-      'Branch, tag or commit of genfeedai/skills. Default: the default branch.',
+      'Branch, tag or commit of genfeedai/skills for a dry run (default: the default branch). A live run needs the full commit SHA the dry run reported.',
     required: false,
   })
   @IsString()

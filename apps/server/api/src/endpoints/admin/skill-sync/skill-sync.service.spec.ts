@@ -101,6 +101,34 @@ describe('AdminSkillSyncService', () => {
     expect(summary.totals.conflict).toBe(0);
   });
 
+  it.each([
+    ['no ref', {}],
+    ['a branch name', { ref: 'main' }],
+    ['an abbreviated commit', { ref: 'c'.repeat(7) }],
+  ])('refuses a live run with %s before reading GitHub', async (_name, ref) => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      new AdminSkillSyncService(unchangedSeed).syncPlatformSkills({
+        dryRun: false,
+        ...ref,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('applies a live run at the reviewed commit', async () => {
+    stubGitHub(pinnedZip());
+
+    const summary = await new AdminSkillSyncService(
+      unchangedSeed,
+    ).syncPlatformSkills({ dryRun: false, ref: COMMIT });
+
+    expect(summary.dryRun).toBe(false);
+    expect(summary.commit).toBe(COMMIT);
+  });
+
   it('answers 502 when GitHub cannot be read', async () => {
     vi.stubGlobal(
       'fetch',
