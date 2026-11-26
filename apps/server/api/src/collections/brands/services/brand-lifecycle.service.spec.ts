@@ -36,6 +36,7 @@ describe('BrandLifecycleService', () => {
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let memberDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let personaDelegate: Record<string, ReturnType<typeof vi.fn>>;
+  let libraryElementDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let personaGrantDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let txQueryRaw: ReturnType<typeof vi.fn>;
   let transactionMock: ReturnType<typeof vi.fn>;
@@ -71,6 +72,9 @@ describe('BrandLifecycleService', () => {
       updateMany: vi.fn(),
     };
     personaDelegate = { findMany: vi.fn().mockResolvedValue([]) };
+    libraryElementDelegate = {
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
     personaGrantDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     txQueryRaw = vi.fn().mockResolvedValue([{ id: 'locked' }]);
     cacheInvalidationService = {
@@ -104,6 +108,7 @@ describe('BrandLifecycleService', () => {
     const txClient = {
       $queryRaw: txQueryRaw,
       brand: delegate,
+      libraryElement: libraryElementDelegate,
       member: memberDelegate,
       persona: personaDelegate,
       personaGrant: personaGrantDelegate,
@@ -455,6 +460,17 @@ describe('BrandLifecycleService', () => {
       for (const [query] of delegate.findFirst.mock.calls) {
         expect(query.where).toMatchObject({ organizationId });
       }
+    });
+
+    it('soft-deletes the library elements of the deleted brand, scoped to its organization', async () => {
+      personaDelegate.findMany.mockResolvedValue([]);
+
+      await service.remove(organizationId, brandId);
+
+      expect(libraryElementDelegate.updateMany).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { brandId, isDeleted: false, organizationId },
+      });
     });
 
     it('deletes a brand that owns no shared characters', async () => {

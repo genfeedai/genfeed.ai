@@ -38,6 +38,7 @@ export * from '@serializers/configs/content/knowledge-source.config';
 export * from '@serializers/configs/content/knowledge-source-version.config';
 export * from '@serializers/configs/content/knowledge-space.config';
 export * from '@serializers/configs/content/knowledge-space-membership.config';
+export * from '@serializers/configs/content/library-element.config';
 export * from '@serializers/configs/content/link.config';
 export * from '@serializers/configs/content/live-session.config';
 export * from '@serializers/configs/content/media-moderation.config';

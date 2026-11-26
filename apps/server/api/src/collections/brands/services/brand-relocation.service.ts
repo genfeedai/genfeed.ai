@@ -49,6 +49,7 @@ import {
   unscheduleHeldWorkflows,
 } from '@api/collections/brands/utils/brand-relocation-schedules.util';
 import { invalidateLearningDependencySource } from '@api/collections/content-learning/services/learning-dependency.service';
+import { resetLibraryElementSharingForRelocation } from '@api/collections/library-elements/utils/library-element-relocation.util';
 import { revokePersonaGrantsForRelocation } from '@api/collections/personas/utils/persona-grant-revocation.util';
 import {
   type BrandRelocationSharedPersona,
@@ -427,6 +428,10 @@ export class BrandRelocationService {
     });
     const sharedPersonas = await resetPersonaSharingForRelocation(tx, {
       actorUserId: actingUser.userId,
+      brandId,
+      organizationId: sourceOrgId,
+    });
+    await resetLibraryElementSharingForRelocation(tx, {
       brandId,
       organizationId: sourceOrgId,
     });

@@ -301,7 +301,76 @@
     "viewMoreVersions": "View more versions"
   },
   "references": {
-    "title": "References"
+    "title": "References",
+    "elements": {
+      "actions": {
+        "edit": "Edit",
+        "editFor": "Edit {name}",
+        "remove": "Remove",
+        "removeFor": "Remove {name}"
+      },
+      "columns": {
+        "files": "Reference files",
+        "name": "Name",
+        "type": "Type"
+      },
+      "create": {
+        "description": "A reusable location, style or prop. Mention it by @handle in Studio or the agent and its description and files go with the generation.",
+        "save": "Create element",
+        "title": "New element"
+      },
+      "edit": {
+        "save": "Save changes",
+        "title": "Edit element"
+      },
+      "empty": "Create a location, style or prop here, then reuse it with @handle in Studio or the agent.",
+      "errors": {
+        "createFailed": "Could not create the element. Check that the handle is unique in this brand and try again.",
+        "invalidHandle": "Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores.",
+        "missingName": "Name is required.",
+        "removeFailed": "Could not remove the element. Try again.",
+        "updateFailed": "Could not save the element. Check that the handle is unique in this brand and try again."
+      },
+      "fields": {
+        "description": "Description",
+        "descriptionPlaceholder": "What every generation should know about it",
+        "handle": "Handle",
+        "handleHelp": "Shared with characters in this brand, so it must be unique.",
+        "handlePlaceholder": "loft-studio",
+        "name": "Name",
+        "namePlaceholder": "Loft studio",
+        "type": "Type"
+      },
+      "files": {
+        "add": "Add from Library",
+        "cover": "Cover",
+        "count": "{count} of {max} images. Linked, never copied. The first is the cover.",
+        "empty": "No files yet.",
+        "galleryTitle": "Add reference files",
+        "imageAlt": "Reference file {position} of {name}",
+        "limit": "An element can have up to {max} files. Remove one to add another.",
+        "moveDown": "Move file {position} down",
+        "moveUp": "Move file {position} up",
+        "more": "+{count}",
+        "remove": "Remove file {position}",
+        "title": "Reference files"
+      },
+      "filters": {
+        "searchLabel": "Search references",
+        "searchPlaceholder": "Search references",
+        "type": "Type",
+        "typeCount": "Type · {count}",
+        "clear": "Clear filters"
+      },
+      "kinds": {
+        "CHARACTER": "Character",
+        "LOCATION": "Location",
+        "PROP": "Prop",
+        "STYLE": "Style"
+      },
+      "removed": "Removed {name}.",
+      "title": "Elements"
+    }
   },
   "overview": {
     "actionsTitle": "Jump back in",

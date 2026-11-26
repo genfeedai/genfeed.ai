@@ -64,6 +64,8 @@ export type PersonaClient = Pick<
   PrismaService,
   | '$queryRaw'
   | 'brand'
+  | 'libraryElement'
+  | 'libraryElementReference'
   | 'persona'
   | 'personaAvailabilityAudit'
   | 'personaGrant'
@@ -769,6 +771,8 @@ export class PersonasService extends BaseService<
   async assertNoHandleCollision(params: {
     availability: PersonaAvailabilityFields;
     client?: PersonaClient;
+    /** The element being edited, so it does not collide with itself. */
+    excludeElementId?: string;
     excludePersonaId?: string;
     handle: string | null | undefined;
     organizationId: string;
@@ -779,7 +783,7 @@ export class PersonasService extends BaseService<
       return;
     }
     const client = params.client ?? this.prisma;
-    const others = await client.persona.findMany({
+    const characters = await client.persona.findMany({
       select: {
         availabilityMode: true,
         availableBrandIds: true,
@@ -792,6 +796,21 @@ export class PersonasService extends BaseService<
           : {}),
       }),
     });
+    // Library elements share the character handle namespace (#7374).
+    const elements = await client.libraryElement.findMany({
+      select: {
+        availabilityMode: true,
+        availableBrandIds: true,
+        brandId: true,
+      },
+      where: scopedWhere(params.organizationId, {
+        handle: params.handle,
+        ...(params.excludeElementId
+          ? { id: { not: params.excludeElementId } }
+          : {}),
+      }),
+    });
+    const others = [...characters, ...elements];
     // Characters granted into this organization occupy their handle in the
     // brands they were granted to (#6037).
     const grantedIn = await client.personaGrant.findMany({
@@ -843,7 +862,7 @@ export class PersonasService extends BaseService<
         (brand) => brand.id === conflictingBrandId,
       )?.label;
       throw new ValidationException(
-        `A character with the handle @${params.handle} already exists in ${brandLabel ?? 'a target brand'}`,
+        `A character or element with the handle @${params.handle} already exists in ${brandLabel ?? 'a target brand'}`,
         'handle',
         params.handle,
       );
