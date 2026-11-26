@@ -15,6 +15,7 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -31,6 +32,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   ActivitySource,
+  ApiKeyScope,
   AssetCategory,
   AssetParent,
   BrandKitSlot,
@@ -110,6 +112,7 @@ export class AssetsOperationsController {
   ) {}
 
   @Post('generate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Credits({
     amount: 200, // price for nano banana
     description: 'Asset generation',
@@ -138,9 +141,7 @@ export class AssetsOperationsController {
     const category = InputValidationUtil.validateString(
       generateAssetDto.category,
       'category',
-      {
-        maxLength: 50,
-      },
+      { maxLength: 50 },
     ).toUpperCase() as AssetCategory;
 
     const text = InputValidationUtil.validateString(

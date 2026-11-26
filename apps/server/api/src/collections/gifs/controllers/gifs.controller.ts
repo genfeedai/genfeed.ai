@@ -3,6 +3,7 @@ import { GifsQueryDto } from '@api/collections/gifs/dto/gifs-query.dto';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -23,7 +24,11 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { ActivityEntityModel, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ActivityEntityModel,
+  ApiKeyScope,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -198,6 +203,7 @@ export class GifsController {
   }
 
   @Delete(':gifId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

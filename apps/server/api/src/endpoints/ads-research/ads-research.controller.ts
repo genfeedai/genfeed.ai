@@ -3,6 +3,7 @@ import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/wo
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AdsDiscoveryService } from '@api/endpoints/ads-research/ads-discovery.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -18,6 +19,7 @@ import type {
 } from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { PaidCreativeResearchIngestionService } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   AdsPlatform,
   type AdWatchlistPlatform,
@@ -99,6 +101,7 @@ export class AdsResearchController {
    * row shows, so a blocked archive is explained rather than silent.
    */
   @Post('watchlist/:id/poll')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async pollWatchedAdvertiser(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -181,6 +184,7 @@ export class AdsResearchController {
   }
 
   @Post('ad-pack')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async generateAdPack(
     @CurrentUser() user: User,
     @Body()
@@ -207,6 +211,7 @@ export class AdsResearchController {
   }
 
   @Post('remix-workflow')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createRemixWorkflow(
     @CurrentUser() user: User,
     @Body()
@@ -234,6 +239,7 @@ export class AdsResearchController {
   }
 
   @Post('launch-prep')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async prepareCampaignForReview(
     @CurrentUser() user: User,
     @Body()

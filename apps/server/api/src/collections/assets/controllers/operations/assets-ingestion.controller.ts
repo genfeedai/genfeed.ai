@@ -3,11 +3,13 @@ import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,6 +38,7 @@ export class AssetsIngestionController {
   ) {}
 
   @Post('upload')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
@@ -80,6 +83,7 @@ export class AssetsIngestionController {
   }
 
   @Post('from-ingredient')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'AssetsOperationsController.createFromIngredient',

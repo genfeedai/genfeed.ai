@@ -1,7 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -20,6 +22,7 @@ export class MarketplaceInstallController {
    * verifies it and the purchase before returning the payload.
    */
   @Post(':listingId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async install(
     @Param('listingId') listingId: string,
     @CurrentUser() user: User,

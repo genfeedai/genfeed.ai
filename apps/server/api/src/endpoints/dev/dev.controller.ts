@@ -1,7 +1,12 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { categoryToPlural, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  categoryToPlural,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -40,6 +45,7 @@ export class DevController {
    */
   @HttpCode(200)
   @Post('discord')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async debugDiscordCard(@Body() body: { ingredientId: string }) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
