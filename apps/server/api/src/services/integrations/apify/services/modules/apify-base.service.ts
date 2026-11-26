@@ -45,6 +45,34 @@ type ApifyActorRegistration = {
 };
 
 /**
+ * Apify Actor IDs for different platforms.
+ * These are community or official actors from the Apify Store.
+ */
+export const APIFY_ACTOR_IDS = {
+  INSTAGRAM_COMMENT_SCRAPER: 'apify/instagram-comment-scraper',
+
+  // Instagram scrapers
+  INSTAGRAM_HASHTAG: 'apify/instagram-hashtag-scraper',
+  INSTAGRAM_POST_SCRAPER: 'apify/instagram-post-scraper',
+  INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
+
+  // LinkedIn scrapers
+  LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
+
+  // TikTok scrapers
+  TIKTOK_COMMENT_SCRAPER: 'clockworks/tiktok-comments-scraper',
+  TIKTOK_SCRAPER: 'clockworks/tiktok-scraper',
+  TIKTOK_USER_SCRAPER: 'clockworks/tiktok-profile-scraper',
+
+  // Twitter/X scrapers
+  TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
+  YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
+
+  // YouTube scrapers
+  YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
+};
+
+/**
  * Production allowlist and migration inventory for every actor Genfeed can
  * start with the hosted token. Keeping this beside the only HTTP execution
  * boundary makes an unknown direct actor call fail before it can spend money.
@@ -133,6 +161,16 @@ export class ApifyBaseService {
 
   private static readonly HOSTED_SCOPE = 'hosted';
 
+  /**
+   * One billed pull feeds every dataset built from the same source. A refresh
+   * runs at 00:15 and 12:15, so six hours keeps each tick on its own pull.
+   */
+  private static readonly SHARED_RUN_CACHE_PREFIX = 'apify:shared-run:';
+  private static readonly SHARED_RUN_TTL_SECONDS = 6 * 60 * 60;
+  private static readonly SHARED_EMPTY_RUN_TTL_SECONDS = 60 * 60;
+
+  private readonly sharedRuns = new Map<string, Promise<unknown[]>>();
+
   private readonly apiUrl = 'https://api.apify.com/v2';
   private readonly constructorName: string = String(this.constructor.name);
   private readonly actorPathPattern = ACTOR_PATH_PATTERN;
@@ -148,33 +186,8 @@ export class ApifyBaseService {
     ApifyAccountLimitSuspension
   >();
 
-  /**
-   * Apify Actor IDs for different platforms
-   * These are community or official actors from the Apify Store
-   */
-  readonly ACTORS = {
-    INSTAGRAM_COMMENT_SCRAPER: 'apify/instagram-comment-scraper',
-
-    // Instagram scrapers
-    INSTAGRAM_HASHTAG: 'apify/instagram-hashtag-scraper',
-    INSTAGRAM_POST_SCRAPER: 'apify/instagram-post-scraper',
-    INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
-
-    // LinkedIn scrapers
-    LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
-
-    // TikTok scrapers
-    TIKTOK_COMMENT_SCRAPER: 'clockworks/tiktok-comments-scraper',
-    TIKTOK_SCRAPER: 'clockworks/tiktok-scraper',
-    TIKTOK_USER_SCRAPER: 'clockworks/tiktok-profile-scraper',
-
-    // Twitter/X scrapers
-    TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
-    YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
-
-    // YouTube scrapers
-    YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
-  };
+  /** The Apify actor ids, shared with the trend health incidents that name them. */
+  readonly ACTORS = APIFY_ACTOR_IDS;
 
   constructor(
     private readonly configService: ConfigService,
@@ -199,6 +212,47 @@ export class ApifyBaseService {
       return null;
     }
     return token;
+  }
+
+  /**
+   * Run one scrape and let every caller in the same refresh reuse its items.
+   * Concurrent callers join the run in flight; later ones read the cached
+   * items. A scrape that throws is not cached, so the caller's failure
+   * handling and the account-limit breaker still see the error.
+   */
+  async shareRun<T>(key: string, scrape: () => Promise<T[]>): Promise<T[]> {
+    const held = await this.readSharedRun<T>(key);
+    if (held) return held;
+
+    const inFlight = this.sharedRuns.get(key) as Promise<T[]> | undefined;
+    if (inFlight) return inFlight;
+
+    const run = (async () => {
+      const items = await scrape();
+      await this.cacheService?.set(
+        `${ApifyBaseService.SHARED_RUN_CACHE_PREFIX}${key}`,
+        items,
+        {
+          tags: ['trends', 'apify-shared-run'],
+          ttl: items.length
+            ? ApifyBaseService.SHARED_RUN_TTL_SECONDS
+            : ApifyBaseService.SHARED_EMPTY_RUN_TTL_SECONDS,
+        },
+      );
+      return items;
+    })().finally(() => this.sharedRuns.delete(key));
+    this.sharedRuns.set(key, run);
+    return run;
+  }
+
+  /** The items a shared run already holds, or null. Never starts a run. */
+  async readSharedRun<T>(key: string): Promise<T[] | null> {
+    if (!this.cacheService) return null;
+    return (
+      (await this.cacheService.get<T[]>(
+        `${ApifyBaseService.SHARED_RUN_CACHE_PREFIX}${key}`,
+      )) ?? null
+    );
   }
 
   /**
@@ -284,7 +338,11 @@ export class ApifyBaseService {
     const capability = registration?.capability ?? 'an unregistered actor';
     const holdUntil = this.actorAvailability.getHoldUntil(scope, actorId);
     if (holdUntil !== null) {
-      throw new ApifyActorUnavailableException(capability, holdUntil);
+      throw new ApifyActorUnavailableException(
+        capability,
+        holdUntil,
+        this.actorAvailability.isNotFound(scope, actorId),
+      );
     }
 
     const url = this.buildActorRunUrl(actorId);
@@ -342,7 +400,16 @@ export class ApifyBaseService {
         }),
       );
 
-      return datasetResponse.data;
+      const items = datasetResponse.data;
+      if (items.length === 0) {
+        // Apify reports a run that found nothing as SUCCEEDED, so the empty
+        // run is only visible here. The run id is the key into its cost.
+        this.loggerService.warn(
+          `${this.constructorName} Apify run ${runId} returned zero items`,
+          { actorId, caller, capability, runId, scope },
+        );
+      }
+      return items;
     } catch (error: unknown) {
       if (error instanceof ApifyActorUnavailableException) {
         throw error;
@@ -357,6 +424,7 @@ export class ApifyBaseService {
           actorId,
           Date.now(),
           APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS,
+          false,
         );
         this.loggerService.warn(
           `${this.constructorName} Apify run for the ${capability} actor did not finish in ${error.maxWaitMs}ms; aborted, not retrying until ${new Date(until).toISOString()}`,

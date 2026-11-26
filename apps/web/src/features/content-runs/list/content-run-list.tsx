@@ -217,6 +217,7 @@ export default function ContentRunListPage() {
             <EmptyState
               surface="card"
               icon={Sparkles}
+              preview="rows"
               title={
                 search
                   ? translate('emptySearchTitle')
@@ -236,7 +237,7 @@ export default function ContentRunListPage() {
                 status === ALL_STATUSES && !search ? (
                   <Button
                     asChild
-                    variant={ButtonVariant.SECONDARY}
+                    variant={ButtonVariant.DEFAULT}
                     withWrapper={false}
                   >
                     <Link href={href(APP_ROUTES.DISCOVERY.ROOT)}>

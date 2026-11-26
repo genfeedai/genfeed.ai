@@ -311,6 +311,7 @@ export default function EditorProjectsList() {
       ) : (
         <CreativeProjectsEmptyState
           description={translate('emptyDescription')}
+          hasPreview
           icon={Film}
           title={translate('emptyTitle')}
         />

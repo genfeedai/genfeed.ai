@@ -1,4 +1,5 @@
 import { hiddenExecutionRef } from '@api/authorization/brand-access/hidden-execution-chain.util';
+import { workflowActorDenialReason } from '@api/authorization/brand-access/workflow-actor.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
@@ -134,7 +135,10 @@ export class WinnerPromotionWorkflowService {
       this.logger?.warn('Winner promotion denied for one item', {
         executionId: context.executionId,
         organizationId,
-        reason: error.message,
+        // The check that refused, when the denial names one: the message is the
+        // same for every check, and the actor denial's own log line is dropped
+        // by the workers' error-only Nest logger.
+        reason: workflowActorDenialReason(error) ?? error.message,
       });
       return { denied: 1, promoted: 0, skipped: 0 };
     }

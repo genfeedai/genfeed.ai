@@ -538,6 +538,16 @@ describe('ApifyBaseService', () => {
         expect(loggerService.warn).toHaveBeenCalledTimes(1);
       });
 
+      it('marks a 404 as a missing actor, on the first call and while it is held off', async () => {
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
+
+        const first = await service.runActor('test/actor', {}).catch((e) => e);
+        const held = await service.runActor('test/actor', {}).catch((e) => e);
+
+        expect(first).toMatchObject({ isNotFound: true });
+        expect(held).toMatchObject({ isNotFound: true });
+      });
+
       it('lets only success and 404 through the shared interceptor', async () => {
         httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
         await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
@@ -749,7 +759,7 @@ describe('ApifyBaseService', () => {
       );
       httpService.get.mockImplementation((url: string) =>
         url.includes('/datasets/')
-          ? of({ data: [] })
+          ? of({ data: [{ id: 'item-1' }] })
           : of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
       );
 
@@ -829,6 +839,8 @@ describe('ApifyBaseService', () => {
 
       const held = await service.runActor('test/actor', {}).catch((e) => e);
       expect(held).toBeInstanceOf(ApifyActorUnavailableException);
+      // A slow actor is held off too, but it is not a missing one.
+      expect(held).toMatchObject({ isNotFound: false });
       expect(httpService.post).toHaveBeenCalledTimes(2);
 
       now += 15 * 60 * 1000 + 1;
@@ -888,6 +900,33 @@ describe('ApifyBaseService', () => {
           runId: 'run-42',
         }),
       );
+    });
+
+    it('logs a run that finished with zero items as an empty run with its actor, caller and run id', async () => {
+      await runWithApifyCaller('trends.fetch-global', () =>
+        service.runActor('automation-lab/twitter-trends-scraper', {}),
+      );
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('run run-42 returned zero items'),
+        expect.objectContaining({
+          actorId: 'automation-lab/twitter-trends-scraper',
+          caller: 'trends.fetch-global',
+          runId: 'run-42',
+        }),
+      );
+    });
+
+    it('logs no empty run when the dataset has items', async () => {
+      httpService.get.mockImplementation((url: string) =>
+        url.includes('/datasets/')
+          ? of({ data: [{ id: 'item-1' }] })
+          : of({ data: { data: { id: 'run-42', status: 'SUCCEEDED' } } }),
+      );
+
+      await service.runActor('automation-lab/twitter-trends-scraper', {});
+
+      expect(loggerService.warn).not.toHaveBeenCalled();
     });
 
     it('marks a run from an entry point that never named itself as unattributed', async () => {

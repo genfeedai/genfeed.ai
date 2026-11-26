@@ -15,6 +15,7 @@ export type TrendRefreshReason =
   | 'access_required'
   | 'budget_exhausted'
   | 'rate_limited'
+  | 'actor_unavailable'
   | 'provider_failed'
   | 'persistence_failed';
 

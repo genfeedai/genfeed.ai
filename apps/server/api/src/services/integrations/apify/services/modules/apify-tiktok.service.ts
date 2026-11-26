@@ -12,6 +12,8 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_HASH_PATTERN = /^#/;
+/** Three tags at eight each: the 24 videos the sounds are read from. */
+const TIKTOK_RESULTS_PER_TAG = 8;
 
 /**
  * ApifyTikTokService
@@ -30,21 +32,31 @@ export class ApifyTikTokService {
   ) {}
 
   /**
-   * Get TikTok trending videos
+   * The videos behind both the videos dataset and the sounds dataset: one
+   * billed run per refresh instead of one for each.
+   */
+  private pullTrendingVideos(): Promise<ApifyVideoData[]> {
+    return this.baseService.shareRun('tiktok-trending-videos', async () => {
+      const rawVideos = await this.baseService.runActor<ApifyTikTokVideo>(
+        this.baseService.ACTORS.TIKTOK_SCRAPER,
+        {
+          hashtags: ['trending', 'fyp', 'viral'],
+          resultsPerPage: TIKTOK_RESULTS_PER_TAG,
+        },
+      );
+      return this.normalizeTikTokVideos(rawVideos);
+    });
+  }
+
+  /**
+   * Get TikTok trending videos: the most viewed of the refresh's shared pull.
    */
   async getTikTokVideos(limit: number = 50): Promise<ApifyVideoData[]> {
     try {
-      const input = {
-        hashtags: ['trending', 'fyp', 'viral'],
-        resultsPerPage: Math.max(1, Math.ceil(limit / 3)),
-      };
-
-      const rawVideos = await this.baseService.runActor<ApifyTikTokVideo>(
-        this.baseService.ACTORS.TIKTOK_SCRAPER,
-        input,
-      );
-
-      return this.normalizeTikTokVideos(rawVideos).slice(0, limit);
+      const videos = await this.pullTrendingVideos();
+      return [...videos]
+        .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
+        .slice(0, limit);
     } catch (error: unknown) {
       this.baseService.logFailure(
         `${this.constructorName}.getTikTokVideos failed`,
@@ -59,8 +71,8 @@ export class ApifyTikTokService {
    */
   async getTikTokSounds(limit: number = 50): Promise<ApifySoundData[]> {
     try {
-      // TikTok sounds are extracted from trending videos
-      const videos = await this.getTikTokVideos(limit * 2);
+      // TikTok sounds are extracted from the same trending videos
+      const videos = await this.pullTrendingVideos();
 
       // Extract unique sounds
       const soundMap = new Map<string, ApifySoundData>();

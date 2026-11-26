@@ -102,10 +102,17 @@ export class TrendSourceItemsService {
 
     const fetchers: Record<string, () => Promise<TrendSourceItem[]>> = {
       instagram: async () => {
-        const posts = await this.apifyService.searchInstagramByHashtag(
+        // The night's shared Instagram pull may already hold this hashtag.
+        const held = await this.apifyService.getHeldInstagramHashtagPosts(
           searchTerm,
-          { limit },
+          limit,
         );
+        const posts =
+          held.length > 0
+            ? held
+            : await this.apifyService.searchInstagramByHashtag(searchTerm, {
+                limit,
+              });
         return this.normalizeSourceItems(posts, (post) =>
           this.mapInstagramPostToSourceItem(post),
         );

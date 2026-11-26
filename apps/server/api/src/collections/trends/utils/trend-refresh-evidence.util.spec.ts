@@ -1,8 +1,10 @@
 import {
   captureTrendRefreshEvidence,
+  classifyTrendProviderError,
   recordTrendProviderOutcome,
   withTrendRefreshAttempt,
 } from '@api/collections/trends/utils/trend-refresh-evidence.util';
+import { ApifyActorUnavailableException } from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 
 describe('trend refresh evidence', () => {
   it('keeps concurrent provider attempts isolated and never records secrets from thrown errors', async () => {
@@ -59,5 +61,16 @@ describe('trend refresh evidence', () => {
       }),
     ]);
     expect(JSON.stringify(persist.mock.calls)).not.toContain('database secret');
+  });
+
+  it('classifies an actor Apify answered 404 for, but not one held off for being slow', () => {
+    expect(
+      classifyTrendProviderError(new ApifyActorUnavailableException('x', 0)),
+    ).toBe('actor_unavailable');
+    expect(
+      classifyTrendProviderError(
+        new ApifyActorUnavailableException('x', 0, false),
+      ),
+    ).toBe('provider_failed');
   });
 });
