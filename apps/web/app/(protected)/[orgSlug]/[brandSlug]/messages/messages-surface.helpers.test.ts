@@ -69,7 +69,7 @@ describe('Messages surface reference helpers', () => {
     ).toBeNull();
   });
 
-  it('toggles each selector once and keeps idempotency keys deterministic', () => {
+  it('toggles each selector once', () => {
     const reference = createSocialConversationReference(conversation);
     expect(reference).not.toBeNull();
     if (!reference) {
@@ -79,11 +79,16 @@ describe('Messages surface reference helpers', () => {
     const attached = toggleSocialInboxReference([], reference);
     expect(attached).toEqual([reference]);
     expect(toggleSocialInboxReference(attached, reference)).toEqual([]);
-    expect(createMessagesIdempotencyKey('conversation-1', 'reply', 3)).toBe(
-      createMessagesIdempotencyKey('conversation-1', 'reply', 3),
-    );
-    expect(createMessagesIdempotencyKey('conversation-1', 'reply', 4)).not.toBe(
-      createMessagesIdempotencyKey('conversation-1', 'reply', 3),
-    );
+  });
+
+  it('gives every send attempt its own idempotency key', () => {
+    // A page load restarts the in-memory draft counter, so the key must not be
+    // derived from it: a second reply in the same conversation after a reload
+    // used to reuse the first reply's key and be refused.
+    const first = createMessagesIdempotencyKey('conversation-1', 'reply');
+    const second = createMessagesIdempotencyKey('conversation-1', 'reply');
+
+    expect(first).toMatch(/^messages:conversation-1:reply:[0-9a-f-]{36}$/);
+    expect(second).not.toBe(first);
   });
 });
