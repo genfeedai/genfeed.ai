@@ -72,6 +72,8 @@ export const adPresetSubmissionSchema = z
   .object({
     presetId: z.string().min(1).max(160),
     params: adPresetParamsSchema,
+    /** Set false to skip the transcript check of the finished take. Omitted means the check runs. */
+    isDialogueCheckEnabled: z.boolean().optional(),
   })
   .strict();
 export const adPresetReferenceSchema = z

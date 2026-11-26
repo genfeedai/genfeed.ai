@@ -8,6 +8,7 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
+import { AdDialogueVerificationModule } from '@api/services/ad-dialogue-verification/ad-dialogue-verification.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { CrunModule } from '@api/services/integrations/crun/crun.module';
@@ -88,6 +89,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     WebhooksCoreModule,
     WorkspaceTaskRollupModule,
     AgentTransferRollupModule,
+    AdDialogueVerificationModule,
     BullModule.registerQueue(
       {
         defaultJobOptions: {

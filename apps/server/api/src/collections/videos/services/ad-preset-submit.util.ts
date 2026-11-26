@@ -12,6 +12,7 @@ import {
   AdPresetCompileError,
   compileAdPreset,
 } from '@genfeedai/contracts/constants/ad-preset-compiler';
+import type { GenerationAdDialogueReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { BadRequestException } from '@nestjs/common';
 
 type AdPresetSubmitInput = {
@@ -187,4 +188,19 @@ export async function compileSubmittedAdPreset(
       });
     throw error;
   }
+}
+
+/**
+ * The script to check the finished take against. Only a generation that locks
+ * an audio reference has spoken audio to compare, and the member can turn the
+ * check off for the request.
+ */
+export function pendingAdDialogue(
+  dto: Pick<CreateVideoDto, 'adPreset' | 'audioReferences'>,
+): GenerationAdDialogueReceipt | undefined {
+  const { adPreset } = dto;
+  if (!adPreset || adPreset.isDialogueCheckEnabled === false) return undefined;
+  if (!dto.audioReferences?.length) return undefined;
+  if (!adPreset.params.dialogue.trim()) return undefined;
+  return { script: adPreset.params.dialogue, status: 'pending' };
 }
