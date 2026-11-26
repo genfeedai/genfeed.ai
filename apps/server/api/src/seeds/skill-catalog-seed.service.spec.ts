@@ -297,4 +297,20 @@ describe('SkillCatalogSeedService', () => {
       }),
     });
   });
+  it('reports what a dry run would write per skill and writes nothing', async () => {
+    const outcomes: [string, string][] = [];
+
+    const result = await service.reconcileCatalog([imagePrompt, geo], {
+      dryRun: true,
+      onOutcome: (slug, outcome) => outcomes.push([slug, outcome]),
+    });
+
+    expect(result).toEqual({ inserted: 2, skipped: 0, updated: 0 });
+    expect(outcomes).toEqual([
+      ['image-prompt-engineer', 'inserted'],
+      ['content-geo-optimizer', 'inserted'],
+    ]);
+    expect(prisma.skill.create).not.toHaveBeenCalled();
+    expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
 });
