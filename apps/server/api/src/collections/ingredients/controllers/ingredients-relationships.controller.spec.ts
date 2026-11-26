@@ -3,6 +3,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
+import { IngredientVersionsService } from '@api/collections/ingredients/services/ingredient-versions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -95,6 +96,7 @@ describe('IngredientsRelationshipsController', () => {
           provide: IngredientLineageService,
           useValue: mockServices.lineageService,
         },
+        { provide: IngredientVersionsService, useValue: {} },
         {
           provide: IngredientStackService,
           useValue: mockServices.stackService,

@@ -4,6 +4,9 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   assertPublishable,
+  findStalePackageVersions,
+  isShippedSourcePath,
+  manifestShipsChange,
   planNpmRelease,
   readEnrollment,
   validateEnrollment,
@@ -257,6 +260,134 @@ describe('npm release plan', () => {
         publishedVersions: new Map([['@genfeedai/helpers', new Set()]]),
       }),
     ).toThrow('npm release enrollment is invalid');
+  });
+
+  describe('version bump check', () => {
+    const published = new Map([
+      ['@genfeedai/ui', new Set(['2.0.0', '2.0.1'])],
+      ['@genfeedai/new', null],
+    ]);
+
+    it('names a package whose shipped source changed under a version already on npm', () => {
+      expect(
+        findStalePackageVersions({
+          packages: [
+            {
+              baseVersion: '2.0.1',
+              headVersion: '2.0.1',
+              name: '@genfeedai/ui',
+              path: 'packages/ui',
+              shippedFiles: ['src/primitives/button.tsx'],
+            },
+          ],
+          publishedVersions: published,
+        }),
+      ).toEqual([
+        '@genfeedai/ui (packages/ui): 1 shipped file(s), such as src/primitives/button.tsx changed, but version 2.0.1 is already on npm. Bump "version" in packages/ui/package.json (a patch for a fix, a minor for a feature) so the next publish carries this change.',
+      ]);
+    });
+
+    it('accepts a bump, a pending bump from an earlier merge and a diff that ships nothing', () => {
+      const entry = {
+        name: '@genfeedai/ui',
+        path: 'packages/ui',
+        shippedFiles: ['src/index.ts'],
+      };
+      expect(
+        findStalePackageVersions({
+          packages: [
+            { ...entry, baseVersion: '2.0.1', headVersion: '2.1.0' },
+            // The base already moved to 2.1.0, which is not on npm yet.
+            { ...entry, baseVersion: '2.1.0', headVersion: '2.1.0' },
+            {
+              ...entry,
+              baseVersion: '2.0.1',
+              headVersion: '2.0.1',
+              shippedFiles: [],
+            },
+          ],
+          publishedVersions: published,
+        }),
+      ).toEqual([]);
+    });
+
+    it('rejects a bump onto a version that is already published and skips a name npm has never seen', () => {
+      expect(
+        findStalePackageVersions({
+          packages: [
+            {
+              baseVersion: '2.0.0',
+              headVersion: '2.0.1',
+              name: '@genfeedai/ui',
+              path: 'packages/ui',
+              shippedFiles: ['src/index.ts', 'src/a.ts'],
+            },
+            {
+              baseVersion: '0.1.0',
+              headVersion: '0.1.0',
+              name: '@genfeedai/new',
+              path: 'packages/new',
+              shippedFiles: ['src/index.ts'],
+            },
+          ],
+          publishedVersions: published,
+        }),
+      ).toEqual([
+        '@genfeedai/ui (packages/ui): version 2.0.1 is already on npm, so it cannot carry the 2 shipped file(s), such as src/index.ts. Move "version" in packages/ui/package.json past it.',
+      ]);
+    });
+
+    it('treats tests, docs and tool config as unshipped and everything else as source', () => {
+      expect(
+        [
+          'src/button.tsx',
+          'src/styles/tokens.css',
+          'web-tokens.css',
+          'src/button.test.tsx',
+          'src/button.stories.tsx',
+          'tests/commands/asset.test.ts',
+          'src/__tests__/helper.ts',
+          'README.md',
+          'tsconfig.build.json',
+          'vitest.config.ts',
+        ].map(isShippedSourcePath),
+      ).toEqual([
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ]);
+    });
+
+    it('counts a manifest change only when it reaches an install', () => {
+      const base = {
+        dependencies: { zod: '^4.0.0' },
+        devDependencies: { vitest: '^4.0.0' },
+        name: '@genfeedai/ui',
+        scripts: { test: 'vitest run' },
+        version: '2.0.1',
+      };
+      expect(
+        manifestShipsChange(base, {
+          ...base,
+          devDependencies: { vitest: '^4.1.0' },
+          scripts: { test: 'vitest' },
+          version: '2.1.0',
+        }),
+      ).toBe(false);
+      expect(
+        manifestShipsChange(base, {
+          ...base,
+          dependencies: { zod: '^4.1.0' },
+        }),
+      ).toBe(true);
+    });
   });
 
   function validate() {

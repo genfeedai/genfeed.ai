@@ -20,7 +20,7 @@ For multi-slide posts use [instagram-carousel](../instagram-carousel/SKILL.md). 
 ## Core principles
 
 1. **Visual first, copy second.** Decide what the image says before writing a word.
-2. **The fold matters.** Only the first ~125 characters show before "...more". The hook must land there.
+2. **The fold matters.** The caption is cut with "...more" after the first line or two. Instagram publishes no exact number; use about 125 characters as a working target and land the hook inside it.
 3. **Save-worthy wins.** Instagram creators widely report saves and shares as the strongest signals; write things people return to (tips, frameworks, checklists). Instagram does not publish exact weights, so test on the account.
 
 ## Inputs
@@ -96,15 +96,13 @@ No hook, no value, hashtag spam, "link in bio" with no context.
 
 ## Hashtags
 
-Instagram's own guidance has moved toward fewer, relevant hashtags, and the right number changes. Do not default to 25 without checking the account's results. A safe default is 3 to 10 relevant tags, mixed across tiers.
+Instagram allows at most 5 hashtags in a post or reel (since 2025-12-18). Write 3 to 5, never more than 5, in the caption after the body.
 
-| Tier | Post volume | Purpose |
-|------|------------|---------|
-| Broad | 1M+ | Category placement |
-| Niche | 10K-500K | Targeted audience, realistic ranking |
-| Branded or micro | under 10K | Community, easy to rank |
+- Each hashtag names something that is in the post: the subject, the place, the format. Never pad with unrelated or generic tags; Instagram says irrelevant hashtags can hurt distribution.
+- Put keywords in the caption as well. Instagram search matches usernames, bios, captions, hashtags and places, and says to put keywords and hashtags in the caption, not the comments.
+- To choose tags, search them in the app, read what the top posts are about, and keep the ones that describe this post. Test two or three sets and compare in Insights. Volume tiers (broad, niche, micro) are untested heuristics, not Instagram rules.
 
-Method: list 5 content pillars, find broad and niche tags by searching the app, add branded tags, test two or three sets and rotate based on results. Place tags after the caption or in the first comment; both work, so test. Never pad with unrelated tags.
+Sources, the date read and the unverified list: [official evidence](references/official-evidence.md).
 
 ## Image brief (when no image exists)
 
@@ -130,10 +128,10 @@ Caption:
 
 [CTA]
 
-Hashtags: [set]
-Alt text: [one or two sentences describing the image]
+Hashtags: [3 to 5, each naming something in the post]
+Alt text: [one or two sentences describing the image; up to 1,000 characters]
 Image brief: [only if no image exists]
-First comment: [optional: hashtags or a link note]
+First comment: [optional: a link note only; hashtags go in the caption]
 ```
 
 Offer two hooks when undecided.
@@ -154,7 +152,8 @@ The skill works fully without Genfeed.
 - [ ] Hook lands in the first 125 characters
 - [ ] Caption gives real value
 - [ ] Clear CTA
-- [ ] Relevant hashtags only
+- [ ] 3 to 5 relevant hashtags in the caption, none more than 5
+- [ ] No engagement bait, no third-party watermark; AI disclosure set if made with AI
 - [ ] Alt text added
 - [ ] Image quality and brand fit confirmed
 - [ ] Every fact and number is real

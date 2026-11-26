@@ -12,6 +12,7 @@ import {
   FileInputType,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -80,6 +81,7 @@ export class ImageResizeService {
           extension: MetadataExtension.JPG,
           organizationId: user.organizationId,
           parentId: imageId,
+          relationKind: IngredientRelationKind.DERIVATIVE,
           status: IngredientStatus.PROCESSING,
         });
 

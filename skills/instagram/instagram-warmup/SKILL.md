@@ -253,7 +253,7 @@ SOFT CTA (last 3 seconds):
 CAPTION (under 125 characters, no promotional CTA):
 "[Generated caption]"
 
-HASHTAGS (maximum 5 — 2026 hard limit):
+HASHTAGS (maximum 5):
 #[specific niche] #[mid-tier niche] #[broad niche] #[topic-specific] #[optional]
 
 ALT TEXT:
@@ -299,7 +299,7 @@ Final Slide (Soft CTA):
 CAPTION (under 125 characters, no promotional CTA):
 "[Generated caption]"
 
-HASHTAGS (maximum 5 — 2026 hard limit):
+HASHTAGS (maximum 5):
 #[specific niche] #[mid-tier niche] #[broad niche] #[topic-specific] #[optional]
 
 ALT TEXT (write one per slide):
@@ -308,11 +308,11 @@ Slide 2: "[Description]"
 [Continue for all slides]
 ```
 
-### 5-Hashtag Hard Limit (2026 Rule)
+### 5-Hashtag Limit
 
-Instagram enforces a hard limit of 5 hashtags per post and Reel as of 2026. Attempting to publish with more than 5 hashtags will block publication. This is not a soft recommendation — it is a platform enforcement boundary.
+Instagram has allowed at most 5 hashtags in a post or reel since 2025-12-18 (source and date read: [official evidence](../instagram-post/references/official-evidence.md)). Treat 5 as the ceiling. What the app or the API does with a sixth was not found on an official page, so do not tell the user a post "will be blocked"; just never write more than 5.
 
-**Hashtag selection for warmup posts:**
+**Hashtag selection for warmup posts** (volume tiers are untested heuristics, not Instagram rules):
 
 | Tier | Count | Purpose |
 |------|-------|---------|
@@ -478,7 +478,7 @@ Do not add a bio link until you have at least 5 posts that have generated non-fo
 
 | Trigger | Why Instagram Suppresses | How to Avoid |
 |---------|--------------------------|-------------|
-| More than 5 hashtags | 2026 platform hard limit | Stick to exactly 3-5 hashtags maximum |
+| More than 5 hashtags | Above Instagram's stated limit of 5 | Write 3 to 5 hashtags, never more |
 | Bio link on brand-new account | Monetization-first signal before trust established | Wait until 5+ performing posts |
 | Mass follow/unfollow in short windows | Bot pattern detection | Max 10 follows per day, spread across sessions |
 | Identical comments across posts | Template/spam pattern | Use structural templates, never word-for-word duplicates |
@@ -502,7 +502,7 @@ An account that only posts feed content and ignores Stories is algorithmically c
 
 ### Hashtag Rules for Instagram (2026)
 
-The 2026 hard limit is 5 hashtags. This changed from prior years where 20-30 hashtags were common. The selection logic also evolved:
+Instagram's limit is 5 hashtags (since 2025-12-18); earlier years allowed up to 30. The volume tiers below are untested heuristics, not Instagram rules. Instagram's only stated selection rule is relevance: irrelevant hashtags can hurt distribution.
 
 | Priority | Hashtag Type | Post Volume | Purpose |
 |----------|-------------|-------------|---------|
@@ -512,7 +512,7 @@ The 2026 hard limit is 5 hashtags. This changed from prior years where 20-30 has
 
 Total hashtag count: 3-5. Never more than 5 on any post type.
 
-For Reels, put hashtags in the caption, not the comments. For carousels and feed posts, place hashtags after the main caption body.
+Put hashtags in the caption, not the comments, on every post type, after the main caption body. Each one names something in the post.
 
 ---
 
@@ -702,7 +702,7 @@ Before publishing Days 8-10 warmup content, verify all of these:
 - [ ] All images/video are original and have never been posted on any other platform
 - [ ] No stock photos, no screenshots cross-posted from other apps, no recycled assets
 - [ ] Caption is under 125 characters with no CTA or link reference
-- [ ] Hashtag count is exactly 3-5 — never more (2026 hard limit)
+- [ ] Hashtag count is 3 to 5, never more than 5
 - [ ] All hashtags are niche-relevant (no generic hashtag spam)
 - [ ] Audio is trending in the niche and under 4 weeks old (or original audio)
 - [ ] No bio link has been added yet

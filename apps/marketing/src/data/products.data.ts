@@ -380,9 +380,9 @@ export const products: Product[] = [
       },
       {
         description:
-          'Load only the toolsets an agent needs with ?toolsets=, or every tool with ?profile=full.',
+          'Every connection gets the tools its role may call, in one short list. There is no query string to set.',
         icon: '',
-        title: 'Scoped toolsets',
+        title: 'One tool list per role',
       },
       {
         description:

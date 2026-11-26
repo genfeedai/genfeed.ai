@@ -4131,6 +4131,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   Ingredient: {
     allFields: [
+      'activeVersionId',
       'agentStrategy',
       'agentStrategyId',
       'altText',
@@ -4204,6 +4205,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'qualityScore',
       'qualityStatus',
       'recreateCount',
+      'relationKind',
       'reviewStatus',
       's3Key',
       'sampleAudioUrl',
@@ -4263,6 +4265,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       contentRating: { enumType: 'ContentRating', isRequired: false },
       origin: { enumType: 'IngredientOrigin', isRequired: true },
       qualityStatus: { enumType: 'QualityStatus', isRequired: true },
+      relationKind: { enumType: 'IngredientRelationKind', isRequired: false },
       reviewStatus: { enumType: 'FleetReviewStatus', isRequired: false },
       scope: { enumType: 'AssetScope', isRequired: true },
       status: { enumType: 'IngredientStatus', isRequired: true },

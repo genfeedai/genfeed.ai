@@ -30,6 +30,7 @@ import { toolsCommand } from '@/commands/tools';
 import { turboCommand } from '@/commands/turbo';
 import { whoamiCommand } from '@/commands/whoami';
 import { workflowCommand } from '@/commands/workflow';
+import cliPackage from '../package.json';
 
 export type LaunchMode = 'command' | 'help' | 'tui';
 
@@ -52,7 +53,7 @@ export function createProgram(): Command {
     new Command()
       .name('gf')
       .description('The Genfeed terminal content workspace')
-      .version('0.6.0')
+      .version(cliPackage.version)
       // Root options stop at the subcommand name, so a subcommand's own
       // `--version <pin>` (admin pricing approve, skill) is not read as `gf --version`.
       .enablePositionalOptions()

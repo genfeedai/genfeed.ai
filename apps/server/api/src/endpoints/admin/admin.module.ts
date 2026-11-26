@@ -16,6 +16,7 @@ import { AdminOrganizationsReportModule } from '@api/endpoints/admin/organizatio
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
 import { AdminPublishPipelineModule } from '@api/endpoints/admin/publish-pipeline/publish-pipeline.module';
 import { AdminSeedsModule } from '@api/endpoints/admin/seeds/seeds.module';
+import { AdminSkillSyncModule } from '@api/endpoints/admin/skill-sync/skill-sync.module';
 import { AdminSystemBrandModule } from '@api/endpoints/admin/system-brand/system-brand.module';
 import { AdminSystemEmailsModule } from '@api/endpoints/admin/system-emails/system-emails.module';
 import { AdminSystemNotificationsModule } from '@api/endpoints/admin/system-notifications/system-notifications.module';
@@ -41,6 +42,7 @@ import { Module } from '@nestjs/common';
     AdminOnboardingFunnelModule,
     AdminSystemEmailsModule,
     AdminSeedsModule,
+    AdminSkillSyncModule,
     AdminSystemBrandModule,
     AdminOrganizationApiKeysModule,
     AdminOrganizationAppsReportModule,

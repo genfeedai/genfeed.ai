@@ -143,6 +143,7 @@ describe('planPreflight', () => {
     expect(planPreflight(base).map((step) => step.id)).toEqual([
       'ratchet-growth',
       'e2e-spec-impact',
+      'npm-versions',
       'skills-catalog',
       'presets-pin',
       'skill-allowlist',
@@ -168,6 +169,7 @@ describe('planPreflight', () => {
     expect(ids).toEqual([
       'ratchet-growth',
       'e2e-spec-impact',
+      'npm-versions',
       'skills-catalog',
       'presets-pin',
       'skill-allowlist',
@@ -220,6 +222,9 @@ describe('planPreflight', () => {
     ).toEqual(['--base', 'abc123']);
     expect(
       steps.find((step) => step.id === 'e2e-spec-impact')?.command.slice(-2),
+    ).toEqual(['--base', 'abc123']);
+    expect(
+      steps.find((step) => step.id === 'npm-versions')?.command.slice(-2),
     ).toEqual(['--base', 'abc123']);
   });
 });

@@ -798,7 +798,7 @@
     },
     "packages/cli": {
       "name": "@genfeedai/cli",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "bin": {
         "genfeed": "dist/index.js",
         "gf": "dist/index.js",
@@ -884,7 +884,7 @@
     },
     "packages/contracts": {
       "name": "@genfeedai/contracts",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "twitter-text": "3.1.0",
         "zod": "4.6.7",
@@ -989,7 +989,7 @@
     },
     "packages/helpers": {
       "name": "@genfeedai/helpers",
-      "version": "2.2.13",
+      "version": "2.3.0",
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
         "clsx": "2.1.1",
@@ -1217,7 +1217,7 @@
     },
     "packages/styles": {
       "name": "@genfeedai/styles",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "@tailwindcss/typography": "0.5.20",
         "tailwindcss": "4.3.5",
@@ -1233,7 +1233,7 @@
     },
     "packages/ui": {
       "name": "@genfeedai/ui",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
