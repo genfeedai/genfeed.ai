@@ -6,6 +6,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { Test, TestingModule } from '@nestjs/testing';
 
 type ApifyMock = {
+  getHeldInstagramHashtagPosts: ReturnType<typeof vi.fn>;
   searchInstagramByHashtag: ReturnType<typeof vi.fn>;
   searchTikTokByHashtag: ReturnType<typeof vi.fn>;
   searchYouTubeVideos: ReturnType<typeof vi.fn>;
@@ -35,6 +36,7 @@ describe('TrendSourceItemsService', () => {
 
   beforeEach(async () => {
     apify = {
+      getHeldInstagramHashtagPosts: vi.fn().mockResolvedValue([]),
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
@@ -81,6 +83,25 @@ describe('TrendSourceItemsService', () => {
       const result = await service.fetchTrendSourceItems(trend, 5);
 
       expect(result).toEqual([stored]);
+      expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
+    });
+
+    it('reuses the posts the shared Instagram pull already holds instead of buying them again', async () => {
+      apify.getHeldInstagramHashtagPosts.mockResolvedValue([
+        { caption: 'held', id: 'ig-held', shortCode: 'held1' },
+      ]);
+
+      const result = await service.fetchTrendSourceItems(
+        makeTrend({ metadata: { hashtags: ['#viral'] } }),
+        5,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: 'ig-held' });
+      expect(apify.getHeldInstagramHashtagPosts).toHaveBeenCalledWith(
+        'viral',
+        5,
+      );
       expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
     });
 

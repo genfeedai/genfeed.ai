@@ -17,7 +17,9 @@ describe('ApifyInstagramService', () => {
       error: ReturnType<typeof vi.fn>;
       log: ReturnType<typeof vi.fn>;
     };
+    readSharedRun: ReturnType<typeof vi.fn>;
     runActor: ReturnType<typeof vi.fn>;
+    shareRun: ReturnType<typeof vi.fn>;
   };
 
   const mockPost = {
@@ -54,6 +56,10 @@ describe('ApifyInstagramService', () => {
         INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
       },
       getApiToken: vi.fn().mockReturnValue('test-token'),
+      readSharedRun: vi.fn().mockResolvedValue(null),
+      shareRun: vi.fn((_key: string, scrape: () => Promise<unknown[]>) =>
+        scrape(),
+      ),
       calculateEngagementMetrics: vi.fn().mockReturnValue({
         engagementRate: 2.1,
         velocity: 2083,
@@ -113,10 +119,29 @@ describe('ApifyInstagramService', () => {
     expect(baseService.runActor).toHaveBeenCalledWith(
       'apify/instagram-hashtag-scraper',
       expect.objectContaining({
-        hashtags: ['viral', 'reels'],
-        resultsLimit: 3,
+        hashtags: ['viral', 'reels', 'trending', 'explorepage'],
+        resultsLimit: 5,
       }),
     );
+  });
+
+  it('getHeldHashtagPosts returns only held posts that carry the hashtag, without a run', async () => {
+    baseService.readSharedRun.mockResolvedValue([
+      { ...mockPost, hashtags: ['Viral', 'reels'], id: 'held-1' },
+      { ...mockPost, hashtags: ['#viral'], id: 'held-2' },
+      { ...mockPost, hashtags: ['other'], id: 'held-3' },
+    ]);
+
+    const result = await service.getHeldHashtagPosts('#viral', 5);
+
+    expect(result.map((post) => post.id)).toEqual(['held-1', 'held-2']);
+    expect(baseService.runActor).not.toHaveBeenCalled();
+  });
+
+  it('getHeldHashtagPosts is empty when nothing is held', async () => {
+    baseService.readSharedRun.mockResolvedValue(null);
+
+    await expect(service.getHeldHashtagPosts('viral', 5)).resolves.toEqual([]);
   });
 
   it('getInstagramTrends skips posts with no hashtag instead of emitting an empty topic', async () => {
