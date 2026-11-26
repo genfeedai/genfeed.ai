@@ -16,7 +16,10 @@ import {
   isApifyActorDeferral,
   isApifyStartAccepted,
 } from '@api/services/integrations/apify/utils/apify-actor-availability.util';
-import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
+import {
+  currentApifyCaller,
+  UNATTRIBUTED_APIFY_CALLER,
+} from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
   ApifyAccountSuspendedException,
   describeApifyError,
@@ -309,6 +312,48 @@ export class ApifyBaseService {
   }
 
   /**
+   * The one line every started Apify run leaves, whichever path started it
+   * (this class or the paid research runner). The run id is the key into the
+   * Apify console's usage and cost view; the caller says who asked. A run from
+   * an entry point that never named itself is logged as a warning.
+   */
+  logRunStarted(run: { actorId: string; runId: string; scope: string }): void {
+    const caller = currentApifyCaller();
+    const message = `${this.constructorName} started Apify run ${run.runId}`;
+    const fields = { ...run, caller };
+    if (caller === UNATTRIBUTED_APIFY_CALLER) {
+      this.loggerService.warn(message, fields);
+    } else {
+      this.loggerService.log(message, fields);
+    }
+  }
+
+  /**
+   * The line a run leaves when it ends: its item count and cost, so a week of
+   * spend per caller can be read from the logs. A run that ends with nothing
+   * is a warning, because Apify reports it as succeeded.
+   */
+  logRunFinished(run: {
+    actorId: string;
+    costUsd?: number;
+    /** Unknown when the run ended without its dataset being read. */
+    items?: number;
+    runId: string;
+    scope: string;
+    status: string;
+  }): void {
+    const message = `${this.constructorName} Apify run ${run.runId} finished with status ${run.status}${run.items === undefined ? '' : ` and ${run.items} items`}`;
+    const fields = { ...run, caller: currentApifyCaller() };
+    if (run.items === 0 && run.status === 'SUCCEEDED') {
+      this.loggerService.warn(
+        `${this.constructorName} Apify run ${run.runId} returned zero items`,
+        fields,
+      );
+    }
+    this.loggerService.log(message, fields);
+  }
+
+  /**
    * Shared actor execution: refuse to call an account that is already known to
    * be over its usage limit, then start the run, wait for it, and read the
    * dataset.
@@ -379,11 +424,7 @@ export class ApifyBaseService {
 
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;
-      // The run id is the key into the Apify console's usage and cost view.
-      this.loggerService.log(
-        `${this.constructorName} started Apify run ${runId}`,
-        { actorId, caller, runId, scope },
-      );
+      this.logRunStarted({ actorId, runId, scope });
 
       const completedRun = await this.waitForRun(runId, token);
       if (completedRun.status !== 'SUCCEEDED') {
@@ -401,14 +442,14 @@ export class ApifyBaseService {
       );
 
       const items = datasetResponse.data;
-      if (items.length === 0) {
-        // Apify reports a run that found nothing as SUCCEEDED, so the empty
-        // run is only visible here. The run id is the key into its cost.
-        this.loggerService.warn(
-          `${this.constructorName} Apify run ${runId} returned zero items`,
-          { actorId, caller, capability, runId, scope },
-        );
-      }
+      this.logRunFinished({
+        actorId,
+        costUsd: completedRun.usageTotalUsd,
+        items: items.length,
+        runId,
+        scope,
+        status: completedRun.status,
+      });
       return items;
     } catch (error: unknown) {
       if (error instanceof ApifyActorUnavailableException) {

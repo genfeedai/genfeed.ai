@@ -764,7 +764,9 @@ describe('ApifyBaseService', () => {
       );
 
       for (let run = 0; run < 160; run += 1) {
-        await service.runActor('test/actor', {});
+        await runWithApifyCaller('test.runs', () =>
+          service.runActor('test/actor', {}),
+        );
       }
 
       expect(httpService.post).toHaveBeenCalledTimes(160);
@@ -813,7 +815,9 @@ describe('ApifyBaseService', () => {
     });
 
     const runToTimeout = async () => {
-      const execution = service.runActor('test/actor', {});
+      const execution = runWithApifyCaller('test.overrun', () =>
+        service.runActor('test/actor', {}),
+      );
       const settled = execution.catch((error: unknown) => error);
       await vi.advanceTimersByTimeAsync(5000);
       return settled;
@@ -924,17 +928,73 @@ describe('ApifyBaseService', () => {
           : of({ data: { data: { id: 'run-42', status: 'SUCCEEDED' } } }),
       );
 
-      await service.runActor('automation-lab/twitter-trends-scraper', {});
+      await runWithApifyCaller('trends.fetch-global', () =>
+        service.runActor('automation-lab/twitter-trends-scraper', {}),
+      );
 
       expect(loggerService.warn).not.toHaveBeenCalled();
     });
 
-    it('marks a run from an entry point that never named itself as unattributed', async () => {
+    it('warns about a run from an entry point that never named itself', async () => {
       await service.runActor('automation-lab/twitter-trends-scraper', {});
 
-      expect(loggerService.log).toHaveBeenCalledWith(
+      expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('started Apify run run-42'),
-        expect.objectContaining({ caller: 'unattributed' }),
+        expect.objectContaining({ caller: 'unattributed', runId: 'run-42' }),
+      );
+    });
+
+    it('logs the item count and cost when the run finishes', async () => {
+      httpService.get.mockImplementation((url: string) =>
+        url.includes('/datasets/')
+          ? of({ data: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] })
+          : of({
+              data: {
+                data: {
+                  id: 'run-42',
+                  status: 'SUCCEEDED',
+                  usageTotalUsd: 0.0912,
+                },
+              },
+            }),
+      );
+
+      await runWithApifyCaller('trends.fetch-global', () =>
+        service.runActor('automation-lab/twitter-trends-scraper', {}),
+      );
+
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'run run-42 finished with status SUCCEEDED and 3 items',
+        ),
+        expect.objectContaining({
+          actorId: 'automation-lab/twitter-trends-scraper',
+          caller: 'trends.fetch-global',
+          costUsd: 0.0912,
+          items: 3,
+          runId: 'run-42',
+          scope: 'hosted',
+        }),
+      );
+    });
+
+    it('logs a run another path started once, with the same fields', () => {
+      runWithApifyCaller('brand.niche', () => {
+        service.logRunStarted({
+          actorId: 'clockworks/tiktok-scraper',
+          runId: 'run-7',
+          scope: 'byok:org-1',
+        });
+      });
+
+      expect(loggerService.log).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('started Apify run run-7'),
+        {
+          actorId: 'clockworks/tiktok-scraper',
+          caller: 'brand.niche',
+          runId: 'run-7',
+          scope: 'byok:org-1',
+        },
       );
     });
   });

@@ -49,6 +49,8 @@ describe('ResearchCollectionRunner', () => {
   };
   const baseService = {
     assertRegisteredHostedActor: vi.fn(),
+    logRunFinished: vi.fn(),
+    logRunStarted: vi.fn(),
     assertCollectionAdmission: vi.fn(),
     recordCollectionFailure: vi.fn(),
     buildActorRunUrl: vi
@@ -781,6 +783,51 @@ describe('ResearchCollectionRunner', () => {
     );
   });
 
+  it('logs the run it started, and its items and cost when it ends', async () => {
+    newRun();
+    http.post.mockReturnValueOnce(
+      of({
+        data: {
+          data: {
+            id: 'run-1',
+            defaultDatasetId: 'dataset-1',
+            status: 'RUNNING',
+          },
+        },
+      }),
+    );
+    http.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status: 'SUCCEEDED',
+              usageTotalUsd: 0.02,
+            },
+          },
+        }),
+      )
+      .mockReturnValueOnce(of({ data: [{ id: 'row-1' }, { id: 'row-2' }] }));
+
+    await runner.run('org-1', job.actorId, {});
+
+    expect(baseService.logRunStarted).toHaveBeenCalledExactlyOnceWith({
+      actorId: job.actorId,
+      runId: 'run-1',
+      scope: 'hosted',
+    });
+    expect(baseService.logRunFinished).toHaveBeenCalledExactlyOnceWith({
+      actorId: job.actorId,
+      costUsd: 0.02,
+      items: 2,
+      runId: 'run-1',
+      scope: 'hosted',
+      status: 'SUCCEEDED',
+    });
+  });
+
   it.each([undefined, NaN, -1])(
     'retains the known run when actual usage is unverified (%s)',
     async (usageTotalUsd) => {
@@ -980,6 +1027,8 @@ describe('deferred collection start', () => {
       {
         assertRegisteredHostedActor: vi.fn(),
         assertCollectionAdmission: vi.fn(),
+        logRunFinished: vi.fn(),
+        logRunStarted: vi.fn(),
         recordCollectionFailure: vi.fn(),
         buildActorRunUrl: vi
           .fn()
@@ -1116,6 +1165,8 @@ describe('pre-migration collection rows', () => {
       {
         assertRegisteredHostedActor: vi.fn(),
         assertCollectionAdmission: vi.fn(),
+        logRunFinished: vi.fn(),
+        logRunStarted: vi.fn(),
         recordCollectionFailure: vi.fn(),
         buildActorRunUrl: vi
           .fn()

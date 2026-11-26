@@ -21,6 +21,7 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   ReplyBotPlatform,
@@ -558,9 +559,11 @@ export class SocialMonitorService {
     postUrl: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const comments = await this.apifyService.getInstagramPostComments(postUrl, {
-      limit,
-    });
+    const comments = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getInstagramPostComments(postUrl, {
+        limit,
+      }),
+    );
     return this.convertInstagramCommentsToSocialContent(comments);
   }
 
@@ -602,9 +605,8 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.searchInstagramByHashtag(
-      `@${username}`,
-      { limit },
+    const posts = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchInstagramByHashtag(`@${username}`, { limit }),
     );
     return this.convertInstagramPostsToSocialContent(posts);
   }
@@ -613,9 +615,11 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.getInstagramUserPosts(username, {
-      limit,
-    });
+    const posts = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getInstagramUserPosts(username, {
+        limit,
+      }),
+    );
     return this.convertInstagramPostsToSocialContent(posts, username, true);
   }
 
@@ -623,9 +627,11 @@ export class SocialMonitorService {
     hashtag: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.searchInstagramByHashtag(hashtag, {
-      limit,
-    });
+    const posts = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchInstagramByHashtag(hashtag, {
+        limit,
+      }),
+    );
     return this.convertInstagramPostsToSocialContent(posts);
   }
 
@@ -656,9 +662,11 @@ export class SocialMonitorService {
     videoUrl: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const comments = await this.apifyService.getTikTokVideoComments(videoUrl, {
-      limit,
-    });
+    const comments = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getTikTokVideoComments(videoUrl, {
+        limit,
+      }),
+    );
     return this.convertTikTokCommentsToSocialContent(comments);
   }
 
@@ -698,9 +706,8 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.searchTikTokByHashtag(
-      `@${username}`,
-      { limit },
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchTikTokByHashtag(`@${username}`, { limit }),
     );
     return this.convertTikTokVideosToSocialContent(videos);
   }
@@ -709,9 +716,11 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.getTikTokUserVideos(username, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getTikTokUserVideos(username, {
+        limit,
+      }),
+    );
     return this.convertTikTokVideosToSocialContent(videos, username);
   }
 
@@ -719,9 +728,11 @@ export class SocialMonitorService {
     hashtag: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.searchTikTokByHashtag(hashtag, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchTikTokByHashtag(hashtag, {
+        limit,
+      }),
+    );
     return this.convertTikTokVideosToSocialContent(videos);
   }
 
@@ -776,9 +787,11 @@ export class SocialMonitorService {
     channelUrl: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.getYouTubeChannelVideos(channelUrl, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getYouTubeChannelVideos(channelUrl, {
+        limit,
+      }),
+    );
     return this.convertYouTubeVideosToSocialContent(videos);
   }
 
@@ -786,9 +799,11 @@ export class SocialMonitorService {
     query: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.searchYouTubeVideos(query, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchYouTubeVideos(query, {
+        limit,
+      }),
+    );
     return this.convertYouTubeVideosToSocialContent(videos);
   }
 }
