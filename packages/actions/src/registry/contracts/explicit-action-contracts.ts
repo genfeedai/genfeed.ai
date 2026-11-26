@@ -5,6 +5,7 @@ import { getAgentEventRunActionContract } from './agent-event-run-action-contrac
 import { getAgentTurnActionContract } from './agent-turn-action-contracts';
 import { getAiInfluencerActionContract } from './ai-influencer-action-contracts';
 import { getAnalyticsActionContract } from './analytics-action-contracts';
+import { getAnnotationActionContract } from './annotation-action-contracts';
 import { getAuthorReplyActionContract } from './author-reply-action-contracts';
 import { getAutomationActionContract } from './automation-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
@@ -76,6 +77,7 @@ const CONTRACT_RESOLVERS = [
   getSocialSourceActionContract,
   getSystemActionContract,
   getMaintenanceActionContract,
+  getAnnotationActionContract,
   getMotionControlActionContract,
   getNewsletterActionContract,
   getPatternExtractionActionContract,

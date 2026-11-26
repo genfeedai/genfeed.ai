@@ -5,7 +5,7 @@ import {
   type MotionControlNodeData,
   NodeStatusEnum,
 } from '@genfeedai/contracts/types';
-import { readShapes, readTrajectoryPoints } from '../lib/geometry';
+import { readShapes, readTrajectoryPoints } from '../../engine/utils/geometry';
 import { useWorkflowStore } from '../stores/workflow';
 import GeometryEditorDialog from './GeometryEditorDialog';
 import { useGeometryEditorStore } from './geometryEditorStore';

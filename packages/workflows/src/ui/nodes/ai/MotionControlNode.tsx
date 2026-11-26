@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
+import {
+  modeUsesTrajectory,
+  readTrajectoryPoints,
+} from '../../../engine/utils/geometry';
 import { coerceControlValue } from '../../controls/controlValues';
 import GeometryThumb from '../../controls/GeometryThumb';
 import GroupedControls from '../../controls/GroupedControls';
@@ -24,7 +28,6 @@ import { useGeometryRunGuard } from '../../controls/useGeometryRunGuard';
 import { useNodeImage } from '../../controls/useNodeImage';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
-import { modeUsesTrajectory, readTrajectoryPoints } from '../../lib/geometry';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';

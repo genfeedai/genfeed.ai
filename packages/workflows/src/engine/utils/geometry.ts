@@ -19,7 +19,8 @@ export type GeometryIssueCode =
   | 'tooFewPoints'
   | 'pathTooShort'
   | 'pastEnd'
-  | 'notAfterPrevious';
+  | 'notAfterPrevious'
+  | 'unsupportedMode';
 
 /** What an issue names: a shape kind and its 1-based position among shapes of that kind, or a path point. */
 export type GeometrySubject =
@@ -225,6 +226,9 @@ interface GeometryNodeLike {
   type?: string;
 }
 
+/** The one motion mode a run accepts: the motion of a reference video, applied to one character image. */
+export const RUNNABLE_MOTION_MODE = 'video_transfer';
+
 /** True when the mode draws a path the subject follows. */
 export function modeUsesTrajectory(mode: unknown): boolean {
   return mode === 'trajectory' || mode === 'combined';
@@ -232,7 +236,7 @@ export function modeUsesTrajectory(mode: unknown): boolean {
 
 /**
  * Geometry problems in every annotation and motion-control node of a graph. A run is blocked while
- * this is non-empty. An empty path counts, because a trajectory mode with no path cannot run.
+ * this is non-empty. A motion node must be in video transfer mode, the only mode that runs.
  */
 export function collectGeometryIssues(
   nodes: readonly GeometryNodeLike[],
@@ -244,6 +248,18 @@ export function collectGeometryIssues(
       for (const issue of validateShapes(readShapes(data.annotations))) {
         found.push({ ...issue, nodeId: node.id, nodeType: 'annotation' });
       }
+    } else if (
+      node.type === 'motionControl' &&
+      data.mode !== undefined &&
+      data.mode !== RUNNABLE_MOTION_MODE
+    ) {
+      found.push({
+        code: 'unsupportedMode',
+        id: 'mode',
+        nodeId: node.id,
+        nodeType: 'motionControl',
+        subject: { kind: 'path' },
+      });
     } else if (node.type === 'motionControl' && modeUsesTrajectory(data.mode)) {
       const duration = data.duration === 10 ? 10 : 5;
       for (const issue of validateTrajectory(

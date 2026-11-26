@@ -311,6 +311,7 @@ export interface MotionControlNodeData extends BaseNodeData {
   outputVideo: string | null;
 
   // Motion control config
+  model: string;
   mode: MotionControlMode;
   duration: 5 | 10; // seconds
   aspectRatio: '16:9' | '9:16' | '1:1';
@@ -322,7 +323,7 @@ export interface MotionControlNodeData extends BaseNodeData {
   cameraMovement: CameraMovement;
   cameraIntensity: number; // 0-100
 
-  // Video transfer mode (Kling v2.6)
+  // Video transfer mode (Kling v3 motion control)
   qualityMode: KlingQualityMode;
   characterOrientation: CharacterOrientation;
   keepOriginalSound: boolean;
