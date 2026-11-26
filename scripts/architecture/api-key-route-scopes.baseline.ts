@@ -55,10 +55,6 @@ export const API_KEY_ROUTE_SCOPE_BASELINE: readonly string[] = [
   'apps/server/api/src/services/bot-gateway/bot-gateway.controller.ts::BotGatewayController.handleDiscordInteraction',
   'apps/server/api/src/services/bot-gateway/bot-gateway.controller.ts::BotGatewayController.handleSlackEvent',
   'apps/server/api/src/services/bot-gateway/bot-gateway.controller.ts::BotGatewayController.handleTelegramEvent',
-  'apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts::InstagramController.connect',
-  'apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts::InstagramController.refreshAuthorizedSignals',
-  'apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts::InstagramController.selectAccount',
-  'apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts::InstagramController.verify',
   'apps/server/api/src/services/telegram-bot/telegram-bot.controller.ts::TelegramBotController.webhook',
   'apps/server/api/src/skills-pro/controllers/skill-checkout.controller.ts::SkillCheckoutController.createCheckout',
 ];

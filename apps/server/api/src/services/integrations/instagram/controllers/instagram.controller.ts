@@ -13,6 +13,7 @@ import {
   claimOAuthVerifyCredential,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -31,7 +32,7 @@ import {
   throwMappedInstagramOAuthError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { INSTAGRAM_UNIFIED_LOGIN_DIALOG_URL } from '@genfeedai/integrations';
 import {
@@ -77,6 +78,7 @@ export class InstagramController {
    * This will allow us to request permissions to publish on their behalf.
    */
   @Post('connect')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -171,16 +173,12 @@ export class InstagramController {
   }
 
   /**
-   * Step 2: Handle the OAuth callback, exchange the code for the customer's
-   * Business Integration System User access token, and save it to the
-   * database. The user will select their Instagram brand later.
-   *
-   * The Graph API exchange, account discovery, account-resolution decision
-   * tree, and post-connection persistence steps live on
-   * `InstagramConnectionResolverService` — this method is the request/response
-   * shell plus the failure-stage bookkeeping for observability.
+   * Step 2: OAuth callback. The Graph API exchange, account discovery and
+   * persistence live on `InstagramConnectionResolverService`; this is the
+   * request shell plus failure-stage bookkeeping.
    */
   @Post('verify')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async verify(
     @Req() request: Request,
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
@@ -326,16 +324,13 @@ export class InstagramController {
   }
 
   /**
-   * Step 3 (only when verify reported `needsAccountSelection`): the operator
-   * has ticked one or more of the candidates from `GET
-   * /credentials/:credentialId/instagram/pages`. The first settles this
-   * credential and each further one becomes its own credential on the brand
-   * (see `InstagramConnectionResolverService.connectSelectedAccounts`).
-   * Handle/name/avatar are read from this endpoint's own re-fetch of the
-   * credential's authorized accounts — never trusted from the request body —
-   * so a client cannot claim an account the token does not authorize.
+   * Step 3 (only when verify reported `needsAccountSelection`): the first
+   * ticked candidate settles this credential, each further one becomes its own
+   * credential. Handle/name/avatar come from a re-fetch of the credential's
+   * authorized accounts, never the request body.
    */
   @Post(':credentialId/select-account')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async selectAccount(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -462,6 +457,7 @@ export class InstagramController {
   }
 
   @Post(':credentialId/authorized-signals/refresh')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async refreshAuthorizedSignals(
     @Req() request: Request,
     @CurrentUser() user: User,
