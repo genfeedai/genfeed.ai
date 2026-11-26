@@ -37,11 +37,11 @@ describe('buildPostDetailFacts', () => {
     const facts = buildPostDetailFacts(
       buildPost({ status: PostStatus.PUBLIC }),
       true,
-      'Delivered to TikTok Inbox',
+      'Delivered',
     );
 
     const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
-    expect(byId.get('status')).toBe('Delivered to TikTok Inbox');
+    expect(byId.get('status')).toBe('Delivered');
   });
 
   it('includes the known platform, status and category', () => {

@@ -6,6 +6,7 @@ import {
 import { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import { ReviewInboxDecisionService } from '@api/collections/review-inbox/services/review-inbox-decision.service';
 import { ScheduledReleaseBatchApprovalService } from '@api/collections/review-inbox/services/scheduled-release-batch-approval.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -15,6 +16,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   IReviewInboxBatchDecisionResult,
   IScheduledReleaseBatchReview,
@@ -128,6 +130,7 @@ export class ReviewInboxController {
   }
 
   @Post('decisions')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Approve or reject one review inbox item through its owner',
@@ -146,6 +149,7 @@ export class ReviewInboxController {
   }
 
   @Post('decisions/batch')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:

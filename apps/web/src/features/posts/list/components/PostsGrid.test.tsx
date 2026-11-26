@@ -109,7 +109,7 @@ describe('PostsGrid', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('reads Delivered to TikTok Inbox, not Posted, for an Inbox receipt', () => {
+  it('reads Delivered, not Posted, for an Inbox receipt', () => {
     render(
       <PostsGrid
         posts={[

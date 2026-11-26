@@ -8,6 +8,10 @@
  * (`@RequiredScopes(...)`, on the handler or the class) or that it changes no
  * tenant data (`@ApiKeyReadAccess()`).
  *
+ * A handler marked `@Public()` (on the method or the class) is skipped: the
+ * global auth guard returns before any key is read, so no key scope applies.
+ * It is not skipped when it also names `@UseGuards(ApiKeyAuthGuard)`.
+ *
  * Existing handlers are baselined by file, class and method. New ones fail,
  * stale entries fail, and `check:ratchet-growth` stops a PR appending to the
  * list.
@@ -37,6 +41,9 @@ const MUTATING_METHOD_DECORATORS: ReadonlySet<string> = new Set([
   'Post',
   'Put',
 ]);
+
+const PUBLIC_DECORATOR = 'Public';
+const API_KEY_GUARD = 'ApiKeyAuthGuard';
 
 const SCOPE_DECORATORS: ReadonlySet<string> = new Set([
   'ApiKeyReadAccess',
@@ -93,6 +100,19 @@ function decoratorNames(node: ts.HasDecorators): string[] {
   });
 }
 
+/** `@UseGuards(ApiKeyAuthGuard)` runs the key check even on a `@Public()` route. */
+function usesApiKeyGuard(node: ts.HasDecorators): boolean {
+  return (ts.getDecorators(node) ?? []).some(
+    (decorator) =>
+      ts.isCallExpression(decorator.expression) &&
+      decoratorName(decorator) === 'UseGuards' &&
+      decorator.expression.arguments.some(
+        (argument) =>
+          ts.isIdentifier(argument) && argument.text === API_KEY_GUARD,
+      ),
+  );
+}
+
 function collectRoutes(
   filePath: string,
   rootDir: string,
@@ -117,6 +137,8 @@ function collectRoutes(
     const isClassScoped = classDecorators.some((name) =>
       SCOPE_DECORATORS.has(name),
     );
+    const isClassPublic =
+      classDecorators.includes(PUBLIC_DECORATOR) && !usesApiKeyGuard(node);
 
     for (const member of node.members) {
       if (!ts.isMethodDeclaration(member) || !ts.isIdentifier(member.name)) {
@@ -127,7 +149,12 @@ function collectRoutes(
         continue;
       }
       mutating += 1;
-      if (isClassScoped || names.some((name) => SCOPE_DECORATORS.has(name))) {
+      if (
+        isClassScoped ||
+        isClassPublic ||
+        (names.includes(PUBLIC_DECORATOR) && !usesApiKeyGuard(member)) ||
+        names.some((name) => SCOPE_DECORATORS.has(name))
+      ) {
         continue;
       }
       unscoped.push({

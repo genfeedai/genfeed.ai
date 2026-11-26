@@ -8,6 +8,7 @@ import {
 } from '@api/collections/referrals/services/referrals.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,7 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ReferralRewardStatus } from '@genfeedai/contracts';
+import { ApiKeyScope, ReferralRewardStatus } from '@genfeedai/contracts';
 import {
   ReferralAdminRewardSerializer,
   ReferralProgramSerializer,
@@ -83,6 +84,7 @@ export class ReferralsController {
   }
 
   @Post('me/codes')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60_000 })
   async createCode(
     @Req() request: RequestWithContext,
@@ -93,6 +95,7 @@ export class ReferralsController {
   }
 
   @Patch('me/codes/:codeId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   async updateCode(
     @Req() request: RequestWithContext,
@@ -108,6 +111,7 @@ export class ReferralsController {
   }
 
   @Post('me/claim')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async claim(
     @Req() request: RequestWithContext,

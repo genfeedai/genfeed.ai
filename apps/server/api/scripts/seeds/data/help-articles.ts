@@ -680,9 +680,8 @@ surfaces on or off, so you may see only some of them.</p>
 <!-- TODO(help): write a short guide for each secondary Studio tool (storyboard, clips, turbo, motion, editor) once their flows are confirmed. -->
 
 <h2>Studio from your editor</h2>
-<p>Claude's connector creates drafts, schedules and reads analytics, but image,
-video and audio creation stay in Studio. Cursor's connection includes
-generation tools. See
+<p>Claude Code and Cursor connect to the same Genfeed server, which includes
+the generation tools. See
 <a href="${articleUrl(SLUGS.mcp)}">Connect Claude Code or Cursor</a>.</p>
 ${renderRelated([SLUGS.brand, SLUGS.approvalQueue])}
 `;
@@ -704,7 +703,7 @@ browser; there is nothing to install on a server and you do not paste an API key
 
 <h2>Connect Claude Code</h2>
 <p>Run this in your terminal:</p>
-<pre><code>claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude</code></pre>
+<pre><code>claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp</code></pre>
 <p>Then open <code>/mcp</code> inside Claude Code, select <strong>genfeed</strong>
 and choose to authenticate. Sign in and approve access in your browser, then
 return to Claude Code. Check the result with:</p>
@@ -736,15 +735,10 @@ approvals, brands, credits and analytics. Direct publishing is not part of the
 standard set. Access is limited to the Genfeed MCP resource, and you can revoke
 it from <strong>Settings &rarr; API Keys</strong>.</p>
 
-<h2>Two endpoints, different tools</h2>
-<ul>
-  <li><code>https://mcp.genfeed.ai/mcp/claude</code> is the Claude connector. It
-  manages brands, drafts, scheduling and analytics. Image, video and audio
-  creation stay in <a href="${articleUrl(SLUGS.studio)}">Studio</a>.</li>
-  <li><code>https://mcp.genfeed.ai/mcp</code> is the standard endpoint that
-  Cursor uses. It covers account and brand lookups, content, generation and
-  scheduling.</li>
-</ul>
+<h2>One endpoint for every client</h2>
+<p>Claude Code, Cursor and every other client connect to
+<code>https://mcp.genfeed.ai/mcp</code>. It covers account and brand lookups,
+content, generation and scheduling.</p>
 <p>Every connection lists every tool it is allowed to use, so there is nothing
 to select in the URL. If your client cannot find a capability, ask it to call
 <code>find_tools</code>.</p>

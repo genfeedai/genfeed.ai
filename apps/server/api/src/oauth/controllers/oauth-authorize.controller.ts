@@ -1,8 +1,10 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { OAuthExceptionFilter } from '@api/oauth/filters/oauth-exception.filter';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
 import {
   Body,
@@ -38,6 +40,7 @@ export class OAuthAuthorizeController {
   }
 
   @Post('authorize/decision')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiBearerAuth()
   @UseGuards(BetterAuthGuard)
   @RateLimit({ limit: 8, scope: 'ip', windowMs: 60_000 })

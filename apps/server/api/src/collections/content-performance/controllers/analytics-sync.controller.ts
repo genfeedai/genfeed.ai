@@ -4,11 +4,13 @@ import { EmailDigestWorkflowService } from '@api/collections/content-performance
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
@@ -55,6 +57,7 @@ export class AnalyticsSyncController {
    * into the closed-loop performance system.
    */
   @Post('trigger')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async triggerSync(@Body() dto: TriggerSyncDto, @CurrentUser() user: User) {
     const organizationId = user.organizationId;
@@ -78,6 +81,7 @@ export class AnalyticsSyncController {
    * Start the same action-backed workflow used by scheduled analytics sync.
    */
   @Post('run')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async runSync(@Body() dto: TriggerSyncDto, @CurrentUser() user: User) {
     const organizationId = user.organizationId;
@@ -118,6 +122,7 @@ export class AnalyticsSyncController {
    * Trigger email digest — enqueues a background job to send performance email.
    */
   @Post('digest')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async triggerDigest(
     @Body() dto: TriggerDigestDto,
@@ -145,6 +150,7 @@ export class AnalyticsSyncController {
    * Send digest immediately (synchronous).
    */
   @Post('digest/send')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async sendDigest(@Body() dto: TriggerDigestDto, @CurrentUser() user: User) {
     const organizationId = user.organizationId;

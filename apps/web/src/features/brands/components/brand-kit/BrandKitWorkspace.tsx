@@ -27,6 +27,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import type { BrandKitWorkspaceProps } from '@/features/brands/props/brand-kit-workspace.props';
 import BrandKitLocalPreview from './BrandKitLocalPreview';
+import BrandKitTextBudget from './BrandKitTextBudget';
 import BrandVideoFramePreview from './BrandVideoFramePreview';
 import BrandVideoTab from './BrandVideoTab';
 import { finishingFromBrand } from './brand-video-kit.helpers';
@@ -86,6 +87,8 @@ export default function BrandKitWorkspace({
   policy,
   content,
   approvedContent,
+  requiredTextContext,
+  isApproved,
   isDirty,
   isLoading,
   isSaveDisabled,
@@ -218,6 +221,11 @@ export default function BrandKitWorkspace({
               onActivate={setActiveSection}
             >
               {voiceEditor}
+              <BrandKitTextBudget
+                report={requiredTextContext}
+                isApproved={isApproved}
+                isDirty={isDirty}
+              />
               <Collapsible>
                 <CollapsibleTrigger>{t('snapshot')}</CollapsibleTrigger>
                 <CollapsibleContent className="space-y-3">

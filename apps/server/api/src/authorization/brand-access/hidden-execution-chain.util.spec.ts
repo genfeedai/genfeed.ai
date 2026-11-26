@@ -13,7 +13,7 @@ import {
 } from '@api/authorization/brand-access/hidden-execution-chain.util';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import type { Prisma } from '@genfeedai/prisma';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Logger } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runtime = vi.hoisted(() => ({ cloud: true }));
@@ -249,6 +249,46 @@ describe('hidden execution chain validation', () => {
         validateHiddenExecutionChain(tx, ref(root), ROOT),
       ).rejects.toThrow('Brand access denied');
     });
+
+    it.each([
+      [
+        'a canonical id the rule does not admit',
+        () => rootRow({ canonicalId: 'other' }),
+        ROOT,
+        'rule-does-not-match-workflow execution=root',
+      ],
+      [
+        'a child whose rule admits no parent',
+        () => childRow(),
+        {
+          holderKey: 'item',
+          matches: (id: string) => id === 'child',
+          parents: [],
+        },
+        'parent-link-metadata-missing execution=child',
+      ],
+    ] as const)(
+      'logs the check that refused %s, and keeps it out of the error',
+      async (_name, row, rule, logged) => {
+        const warn = vi
+          .spyOn(Logger.prototype, 'warn')
+          .mockImplementation(() => undefined);
+        const target = row();
+        const { tx } = harness(
+          target.id === 'root' ? [target] : [rootRow(), target],
+        );
+
+        const error = await validateHiddenExecutionChain(
+          tx,
+          ref(target),
+          rule,
+        ).catch((caught: unknown) => caught);
+
+        expect(error).toMatchObject({ message: 'Brand access denied' });
+        expect(warn).toHaveBeenCalledWith(`Workflow actor denied: ${logged}`);
+        warn.mockRestore();
+      },
+    );
 
     it('for a context that does not match the persisted execution', async () => {
       const root = rootRow();

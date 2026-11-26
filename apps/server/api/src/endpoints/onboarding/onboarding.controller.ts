@@ -10,10 +10,12 @@ import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -112,6 +114,7 @@ export class OnboardingController {
    * Prefix is immutable once set — used for issue identifiers (e.g., GEN-42)
    */
   @Post('prefix')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     description:
@@ -140,6 +143,7 @@ export class OnboardingController {
 
   /** Read a public link and prefill the brand from it. */
   @Post('brands/:brandId/scan')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     description:
@@ -170,6 +174,7 @@ export class OnboardingController {
 
   /** Draft one post each for X, Instagram, TikTok and LinkedIn with shared media. */
   @Post('brands/:brandId/drafts')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     description:
@@ -187,6 +192,7 @@ export class OnboardingController {
 
   /** Regenerate the image or video a saved run is missing. */
   @Post('brands/:brandId/drafts/media')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     description:
@@ -203,6 +209,7 @@ export class OnboardingController {
 
   /** Write one channel's post again. */
   @Post('brands/:brandId/drafts/redo')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @ApiOperation({
     description:

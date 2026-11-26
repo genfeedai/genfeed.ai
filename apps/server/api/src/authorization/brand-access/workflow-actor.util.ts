@@ -6,7 +6,7 @@ import type {
 } from '@api/authorization/brand-access/brand-access.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import type { Prisma } from '@genfeedai/prisma';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Logger } from '@nestjs/common';
 
 /** The authenticated identity a queued or scheduled workflow acts as. Never inferred from a creator or owner id. */
 export type WorkflowInitiatingActor = {
@@ -17,9 +17,16 @@ export type WorkflowInitiatingActor = {
   userId: string;
 };
 
-export type WorkflowActorDenial = () => never;
+export type WorkflowActorDenial = (reason?: string) => never;
 
-export function denyWorkflowActor(): never {
+const denialLogger = new Logger('WorkflowActorDenial');
+
+/**
+ * Every denial answers with the same message. The reason names the check that refused, so an
+ * operator can tell which one from the log; it never reaches the caller.
+ */
+export function denyWorkflowActor(reason?: string): never {
+  if (reason) denialLogger.warn(`Workflow actor denied: ${reason}`);
   throw new ForbiddenException('Brand access denied');
 }
 
@@ -52,7 +59,7 @@ export function parseWorkflowActor(
     (actor.apiKeyId !== undefined && !nonempty(actor.apiKeyId)) ||
     (isCloudDeployment() && actor.isApiKey && !nonempty(actor.apiKeyId))
   )
-    deny();
+    deny('actor-record-invalid');
   return {
     organizationId,
     userId: actor.userId,
@@ -105,7 +112,7 @@ export async function refreshWorkflowActor(
   const actor = parseWorkflowActor(value, organizationId, deny);
   if (actor.isApiKey && isCloudDeployment()) {
     const key = await findActorApiKey(tx, { ...actor, organizationId });
-    if (!key) deny();
+    if (!key) deny('actor-api-key-not-live');
     actor.scopes = actor.scopes.filter((scope) => key.scopes.includes(scope));
   }
   await policy.resolve(actor, tx);

@@ -36,6 +36,7 @@ export class AdminSystemNotificationsController {
     );
   }
   @Patch()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async configure(@Req() request: Request, @Body() body: unknown) {
     await this.events.configure(body);
     return this.overview(request);

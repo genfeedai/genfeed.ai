@@ -4,6 +4,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -20,6 +21,7 @@ import {
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   ActivitySource,
+  ApiKeyScope,
   IngredientOrigin,
   ModelCategory,
 } from '@genfeedai/contracts';
@@ -46,6 +48,7 @@ export class MCPController {
 
   @OrganizationModule('playground')
   @Post('videos')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Credits({
     description: 'Video generation',
     source: ActivitySource.VIDEO_GENERATION,

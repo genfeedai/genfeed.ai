@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -8,6 +9,7 @@ import {
   throwProviderCatalogError,
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
@@ -132,6 +134,7 @@ export class OpusProController {
   }
 
   @Post('generate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async generateVideo(
     @CurrentUser() user: User,
     @Body() body: GenerateVideoBody,

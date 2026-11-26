@@ -10,6 +10,7 @@ import { TranscribeUrlDto } from '@api/collections/speech/dto/transcribe-url.dto
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -17,7 +18,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { FileInputType } from '@genfeedai/contracts';
+import { ApiKeyScope, FileInputType } from '@genfeedai/contracts';
 import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -51,6 +52,7 @@ export class SpeechController {
   ) {}
 
   @Post('transcribe/audio')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Credits({ amount: 1, description: 'Speech transcription from audio file' })
   @UseGuards(CreditsGuard)
   @UseInterceptors(
@@ -145,6 +147,7 @@ export class SpeechController {
   }
 
   @Post('transcribe/url')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @Credits({ amount: 1, description: 'Speech transcription from URL' })
   @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)

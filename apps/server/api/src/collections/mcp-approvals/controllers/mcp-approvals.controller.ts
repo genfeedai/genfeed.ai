@@ -8,11 +8,13 @@ import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/service
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_MCP_ACTION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { scopedWhere } from '@api/index';
 import {
@@ -100,6 +102,7 @@ export class McpApprovalsController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a pending MCP approval request' })
   @ApiResponse({ description: 'Approval created', status: HttpStatus.CREATED })
@@ -207,6 +210,7 @@ export class McpApprovalsController {
   }
 
   @Post(':id/resolve')
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
@@ -237,6 +241,7 @@ export class McpApprovalsController {
   }
 
   @Post(':id/confirm')
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
@@ -287,6 +292,7 @@ export class McpApprovalsController {
   }
 
   @Post(':id/claim')
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @ApiOperation({
@@ -308,6 +314,7 @@ export class McpApprovalsController {
   }
 
   @Post(':id/result')
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @ApiOperation({

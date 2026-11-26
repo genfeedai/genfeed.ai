@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
@@ -7,6 +8,7 @@ import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
 import { ModelRecommendation } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { AgentGenerationQuote } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post } from '@nestjs/common';
@@ -29,6 +31,7 @@ export class RouterController {
   ) {}
 
   @Post('select-model')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     description:
       'Analyzes the user prompt and requirements to recommend the best model for content generation. ' +
@@ -125,6 +128,7 @@ export class RouterController {
   }
 
   @Post('estimate-generation-credits')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({
     description:
       '#4672 Manual-mode review card estimate: resolves the concrete, ' +

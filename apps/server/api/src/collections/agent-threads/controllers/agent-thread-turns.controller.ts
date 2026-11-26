@@ -14,7 +14,9 @@ import {
 import { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/index';
@@ -56,6 +58,7 @@ export class AgentThreadTurnsController {
   ) {}
 
   @Post('messages')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Add a message to a thread' })
   async addMessage(
@@ -130,6 +133,7 @@ export class AgentThreadTurnsController {
   }
 
   @Post('external-turns')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
     summary:

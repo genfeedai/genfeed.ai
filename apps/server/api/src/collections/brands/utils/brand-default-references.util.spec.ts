@@ -1,4 +1,7 @@
-import { resolveBrandDefaultReferences } from '@api/collections/brands/utils/brand-default-references.util';
+import {
+  previewBrandDefaultReferences,
+  resolveBrandDefaultReferences,
+} from '@api/collections/brands/utils/brand-default-references.util';
 import { ReferenceImageCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
@@ -83,5 +86,48 @@ describe('resolveBrandDefaultReferences', () => {
         modelKey: MODEL_WITHOUT_REFERENCES,
       }),
     ).toEqual({ attachedAssetIds: [], references: [] });
+  });
+});
+
+describe('previewBrandDefaultReferences', () => {
+  it('lists the references a generation would attach with their previews', () => {
+    expect(
+      previewBrandDefaultReferences({
+        brandKit: {
+          references: brandKit.references.map((reference) => ({
+            ...reference,
+            label: `${reference.id} label`,
+          })),
+        },
+        modelKey: MODEL_WITH_REFERENCES,
+      }),
+    ).toEqual({
+      references: [
+        {
+          assetId: 'style-1',
+          label: 'style-1 label',
+          role: 'style',
+          url: 'https://cdn.example.com/style-1',
+        },
+        {
+          assetId: 'product-1',
+          label: 'product-1 label',
+          role: 'product',
+          url: 'https://cdn.example.com/product-1',
+        },
+      ],
+    });
+  });
+
+  it('says so when the model accepts no references', () => {
+    expect(
+      previewBrandDefaultReferences({
+        brandKit,
+        modelKey: MODEL_WITHOUT_REFERENCES,
+      }),
+    ).toEqual({
+      references: [],
+      skippedReason: 'model_accepts_no_references',
+    });
   });
 });

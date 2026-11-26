@@ -1,6 +1,8 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SeedArticlesDto } from './dto/seed-articles.dto';
@@ -24,6 +26,7 @@ export class AdminSeedsController {
   constructor(private readonly seeds: AdminSeedsService) {}
 
   @Post('articles')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Publish the launch and help articles' })
@@ -32,6 +35,7 @@ export class AdminSeedsController {
   }
 
   @Post('templates')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Create the missing platform (system) templates' })
@@ -40,6 +44,7 @@ export class AdminSeedsController {
   }
 
   @Post('workflows')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @HttpCode(200)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Ensure the default recurring workflows per brand' })

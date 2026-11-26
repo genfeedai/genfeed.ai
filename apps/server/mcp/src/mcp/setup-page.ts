@@ -6,12 +6,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import {
-  buildClaudeCodeMediaMcpCommand,
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
   GENFEED_SKILLS_INSTALL_COMMAND,
-  toDefaultStandardEndpoint,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   deriveMcpResourceIdentifierForMode,
@@ -70,8 +68,9 @@ interface SetupTab {
 
 /**
  * Claude Code and Claude & Cowork stay separate: the first registers the
- * connector with `claude mcp add` and authorizes through `/mcp`, the second
- * adds a custom connector in the Claude UI. Both use the same Claude URL.
+ * server with `claude mcp add` and authorizes through `/mcp`, the second
+ * adds a custom connector in the Claude UI. Both use the same full-access URL
+ * as every other client.
  */
 const SETUP_TABS: SetupTab[] = [
   {
@@ -351,22 +350,12 @@ export function renderSetupPage(
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
 
-  const claudeUrlSafe = escapeHtml(
-    deriveMcpResourceIdentifierForMode(getPublicMcpUrl(), 'claude'),
-  );
-  const claude = buildConnectGenfeedInstructions(
-    'claude-code',
-    deriveMcpResourceIdentifierForMode(getPublicMcpUrl(), 'claude'),
-  );
+  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
   const generic = buildConnectGenfeedInstructions('generic', mcpUrl);
   const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
 
   const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
-  const claudeMediaCommandSafe = escapeHtml(
-    buildClaudeCodeMediaMcpCommand(mcpUrl),
-  );
-  const claudeMediaUrlSafe = escapeHtml(toDefaultStandardEndpoint(mcpUrl));
   const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
   const genericConfigSafe = escapeHtml(generic.configuration);
   const genericAuthSafe = escapeHtml(generic.authorizationInstruction);
@@ -769,7 +758,7 @@ ${postHogSnippet}
   <header class="hero">
     <p class="eyebrow">MCP server</p>
     <h1>Connect any AI agent to Genfeed.</h1>
-    <p class="lede">Draft, schedule and measure content through your AI client. The Claude connector covers brands, drafts, scheduling and analytics; add the full server below as a second connector to generate images, video and audio from Claude. Other clients generate through MCP directly.</p>
+    <p class="lede">Draft, schedule, generate and measure content through your AI client.</p>
     <div class="hero-endpoint">
       <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
       <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
@@ -804,23 +793,15 @@ ${postHogSnippet}
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">Registers the Claude connector in user scope with browser OAuth. It covers brands, drafts, scheduling and analytics.</p>
+              <p class="step-copy">Registers Genfeed in user scope with browser OAuth.</p>
               ${renderCommandBlock({ id: 'claude-code-command', label: 'Copy Claude Code command', textSafe: claudeCommandSafe, ui })}
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
-              <p class="step-title">Add image, video and audio generation</p>
-              <p class="step-copy">Optional. Registers the full Genfeed server as a second server, with the generation tools the Claude connector does not carry.</p>
-              ${renderCommandBlock({ id: 'claude-code-media-command', label: 'Copy Claude Code generation command', textSafe: claudeMediaCommandSafe, ui })}
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">03</span>
-            <div>
               <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select each Genfeed server you added, and sign in. Then ask it to list your Genfeed brands.</p>
+              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select genfeed, and sign in. Then ask it to list your Genfeed brands.</p>
             </div>
           </li>
         </ol>
@@ -828,10 +809,8 @@ ${postHogSnippet}
 
       <section class="${panelClass('claude-chat')}" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
         <h3 class="instruction-title">Claude and Cowork setup</h3>
-        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth. Use it for brands, drafts, scheduling and analytics. Reconnect existing installations with this URL. Genfeed is not yet listed in the public Claude directory.</p>
-        ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Claude connector URL', textSafe: claudeUrlSafe, ui })}
-        <p class="step-copy">To generate images, video and audio from Claude, add the full Genfeed server as a second custom connector with this URL.</p>
-        ${renderCommandBlock({ id: 'claude-chat-media-url', label: 'Copy full Genfeed server URL', textSafe: claudeMediaUrlSafe, ui })}
+        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth.</p>
+        ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Genfeed MCP URL', textSafe: mcpUrlSafe, ui })}
       </section>
 
       <section class="${panelClass('codex')}" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">

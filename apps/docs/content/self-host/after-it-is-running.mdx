@@ -38,14 +38,14 @@ the provider before saving it, so placeholder values are rejected.
 Your instance serves MCP on port `3014`. It does not depend on the login wall:
 the MCP server always requires a bearer credential.
 
-For Claude Code, register the dedicated content connector, then open `/mcp`,
-select `genfeed`, and complete browser authorization:
+For Claude Code, register the server, then open `/mcp`, select `genfeed`, and
+complete browser authorization:
 
 ```bash
-claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp
 ```
 
-For other clients, create a scoped key and point the client at
+For other clients, create a scoped key and point the client at the same
 `http://localhost:3014/mcp`:
 
 1. Open `http://localhost:3000/default/~/connectors/api-keys`.

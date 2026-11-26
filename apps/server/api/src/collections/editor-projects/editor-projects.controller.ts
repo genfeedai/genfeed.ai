@@ -16,11 +16,13 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -32,6 +34,7 @@ import {
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  ApiKeyScope,
   categoryToPlural,
   EditorProjectStatus,
   EditorTrackType,
@@ -82,6 +85,7 @@ export class EditorProjectsController {
   ) {}
 
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -276,6 +280,7 @@ export class EditorProjectsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -322,6 +327,7 @@ export class EditorProjectsController {
    * settings but never the composition provenance or render output.
    */
   @Post(':id/duplicate')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async duplicate(
     @Req() request: Request,
@@ -408,6 +414,7 @@ export class EditorProjectsController {
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,
@@ -438,6 +445,7 @@ export class EditorProjectsController {
   }
 
   @Post(':id/render')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async render(
     @Req() request: Request,
@@ -462,6 +470,7 @@ export class EditorProjectsController {
   }
 
   @Post(':id/render/cancel')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @OrganizationModule('editor', 'read')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cancelRender(

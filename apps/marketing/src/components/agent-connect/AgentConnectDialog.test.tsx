@@ -166,7 +166,7 @@ describe('AgentConnectDialog', () => {
       within(dialog).queryByRole('link', { name: 'Open Claude Customize' }),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog).getByText('https://mcp.genfeed.ai/mcp/claude'),
+      within(dialog).getByText('https://mcp.genfeed.ai/mcp'),
     ).toBeInTheDocument();
   });
 

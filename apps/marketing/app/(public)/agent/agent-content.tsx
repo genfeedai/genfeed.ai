@@ -95,7 +95,7 @@ export default function AgentContent() {
     <MarketingEntrance>
       <PageLayout
         compact
-        description="Add Genfeed to the agent you already use. Brief it and draft with your brand context, generate images, video and audio on the full Genfeed connector, then review, publish and track in the dashboard."
+        description="Add Genfeed to the agent you already use. Brief it and draft with your brand context, generate images, video and audio, then review, publish and track in the dashboard."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}
         heroVisual={HERO_VISUAL}
         title="Use Genfeed from your agent"
@@ -149,9 +149,8 @@ export default function AgentContent() {
             ))}
           </div>
           <Text as="p" className="mt-4 text-center text-sm text-foreground/60">
-            What an agent can do depends on its client. The Claude connector
-            drafts, schedules and reads analytics; to generate images, video and
-            audio, add the full Genfeed server as a second connector.
+            What an agent can do depends on its client and the plan on your
+            Genfeed account.
           </Text>
         </section>
 

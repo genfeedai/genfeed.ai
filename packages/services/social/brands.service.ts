@@ -11,6 +11,7 @@ import type {
   IAnalytics,
   IArticle,
   IBrandAgentPrompting,
+  IBrandDefaultReferences,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
@@ -660,6 +661,20 @@ export class BrandsService extends BaseService<Brand> {
   ): Promise<IBrandKitView> {
     return this.instance
       .get<{ data: IBrandKitView }>(`/${id}/kit`, { signal })
+      .then((res) => res.data.data);
+  }
+
+  /** The brand references a generation on `model` attaches when none are. */
+  public async getDefaultReferences(
+    id: string,
+    model: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandDefaultReferences> {
+    return this.instance
+      .get<{ data: IBrandDefaultReferences }>(`/${id}/kit/default-references`, {
+        params: { model },
+        signal,
+      })
       .then((res) => res.data.data);
   }
 

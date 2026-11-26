@@ -41,3 +41,18 @@ export const API_KEY_MEDIA_WRITE_SCOPES = [
   ApiKeyScope.VIDEOS_DELETE,
   ApiKeyScope.ADMIN,
 ] as const;
+
+/**
+ * Scopes for the approval routes the Genfeed MCP server calls around a write
+ * tool: queuing an action, answering it in the client, claiming it and
+ * recording its result. Any scope an MCP grant can carry for a write opens
+ * them, so a key that can run a write tool can also ask for its approval.
+ */
+export const API_KEY_MCP_ACTION_SCOPES = [
+  ...API_KEY_CONTENT_GENERATION_SCOPES,
+  ApiKeyScope.BRANDS_WRITE,
+  ApiKeyScope.BRAND_KIT_WRITE,
+  ApiKeyScope.POSTS_SCHEDULE,
+  ApiKeyScope.POSTS_APPROVE,
+  ApiKeyScope.POSTS_PUBLISH,
+] as const;
