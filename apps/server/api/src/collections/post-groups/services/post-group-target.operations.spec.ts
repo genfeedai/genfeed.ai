@@ -42,7 +42,14 @@ describe('applyReleaseTargetUpdates', () => {
     transition = vi.fn().mockResolvedValue({ kind: 'ok' });
     updateMany = vi.fn().mockResolvedValue({ count: 1 });
     transaction = vi.fn();
-    tx = { post: { updateMany } } as unknown as SchedulerTx;
+    tx = {
+      post: { findMany: vi.fn().mockResolvedValue([]), updateMany },
+      postGroup: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ attachments: [], id: 'group-1' }),
+      },
+    } as unknown as SchedulerTx;
     dependencies = {
       contractService,
       ensureReleaseForPost: vi.fn(),
@@ -140,6 +147,7 @@ describe('applyReleaseTargetUpdates', () => {
         groupId: 'group-1',
         isDeleted: false,
         organizationId: 'org-1',
+        parentId: null,
         targetExecutionState: {
           in: [
             TargetExecutionState.DRAFT,
