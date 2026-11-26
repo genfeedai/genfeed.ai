@@ -31,10 +31,12 @@ import {
   getActivityCreditsDelta,
   getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
+  getActivityResultType,
   getActivitySourceLabel,
   getActivityStatus,
   getActivityValueFields,
   getActivityVideoUrl,
+  getPostGroupLink,
   humanizeActivityToken,
 } from '@/features/activities/activities-list.utils';
 import ActivityPostPreviewCard from '@/features/activities/components/ActivityPostPreviewCard';
@@ -53,11 +55,29 @@ interface DetailFact {
   label: string;
   value: ReactNode;
   isMono?: boolean;
+  /** Bookkeeping a post row leaves to its technical details. */
+  isBookkeeping?: boolean;
 }
 
+const PAST_YEAR_TIMESTAMP = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  month: 'short',
+  timeZone: 'UTC',
+  year: 'numeric',
+});
+
+/** Always carries the clock time, and the year once it is not this year. */
 function formatTimestamp(value: string | undefined | null): string | undefined {
   if (!value || !Number.isFinite(new Date(value).getTime())) return undefined;
-  return `${formatShortDate(value, { timeZone: 'UTC' })} UTC`;
+  const isCurrentYear =
+    new Date(value).getUTCFullYear() === new Date().getUTCFullYear();
+  return `${
+    isCurrentYear
+      ? formatShortDate(value, { timeZone: 'UTC' })
+      : PAST_YEAR_TIMESTAMP.format(new Date(value))
+  } UTC`;
 }
 
 function FactList({ facts }: { facts: DetailFact[] }) {
@@ -97,6 +117,11 @@ export default function ActivityDetailPanel({
   const [failedPreviewSrc, setFailedPreviewSrc] = useState<string | null>(null);
 
   const fields = getActivityValueFields(activity);
+  // A post row reads its network link from the post it stands for; its own
+  // value only carries the state change.
+  const postLink = activity.postGroup
+    ? getPostGroupLink(activity)
+    : fields.post;
   const status = getActivityStatus(activity);
   const markReadLabel = activity.isRead
     ? translate('markUnread')
@@ -105,10 +130,13 @@ export default function ActivityDetailPanel({
   // have nothing yet (or nothing worth showing).
   const isCompleted = status === 'completed';
   const videoUrl = isCompleted ? getActivityVideoUrl(activity) : undefined;
+  // A post row shows the post's own media whatever state the post is in.
+  const hasPostMedia = Boolean(activity.postGroup);
   const previewUrl =
-    isCompleted && !videoUrl
+    (isCompleted || hasPostMedia) && !videoUrl
       ? getActivityMediaPreviewUrl(activity, {
           getPreviewUrl: getActivityIngredientPreviewUrl,
+          resultType: getActivityResultType(activity),
         })
       : undefined;
 
@@ -118,6 +146,13 @@ export default function ActivityDetailPanel({
       label: translate('detailStatus'),
       value: <ActivityStatusCell status={status} />,
     },
+    ...(activity.postGroup?.steps ?? []).map((step) => ({
+      label: translate('detailPostStep', {
+        from: humanizeActivityToken(step.from) ?? step.from,
+        to: humanizeActivityToken(step.to) ?? step.to,
+      }),
+      value: formatTimestamp(step.at),
+    })),
     {
       label: translate('detailUser'),
       value: activity.userLabel ?? activity.user?.email,
@@ -128,20 +163,24 @@ export default function ActivityDetailPanel({
     },
     { label: translate('detailBrand'), value: activity.brandLabel },
     {
+      isBookkeeping: true,
       label: translate('detailKey'),
       value: humanizeActivityToken(activity.key),
     },
     {
+      isBookkeeping: true,
       label: translate('detailSource'),
       value:
         getActivitySourceLabel(activity.source) ??
         humanizeActivityToken(activity.source),
     },
     {
+      isBookkeeping: true,
       label: translate('detailOrigin'),
       value: humanizeActivityToken(activity.origin),
     },
     {
+      isBookkeeping: true,
       label: translate('detailEntity'),
       value: humanizeActivityToken(activity.entityModel),
     },
@@ -150,10 +189,12 @@ export default function ActivityDetailPanel({
       value: getActivityCreditsDelta(activity),
     },
     {
+      isBookkeeping: true,
       label: translate('detailCreated'),
       value: formatTimestamp(activity.createdAt),
     },
     {
+      isBookkeeping: true,
       label: translate('detailUpdated'),
       value: formatTimestamp(activity.updatedAt),
     },
@@ -258,9 +299,15 @@ export default function ActivityDetailPanel({
           <Alert variant="destructive">{fields.error}</Alert>
         ) : null}
 
-        <FactList facts={facts} />
+        <FactList
+          facts={
+            activity.postGroup
+              ? facts.filter((fact) => !fact.isBookkeeping)
+              : facts
+          }
+        />
 
-        {openHref || fields.post ? (
+        {openHref || postLink ? (
           <div className="flex flex-wrap gap-2">
             {openHref ? (
               <Button
@@ -272,21 +319,21 @@ export default function ActivityDetailPanel({
                 <Link href={openHref}>{translate('detailOpen')}</Link>
               </Button>
             ) : null}
-            {fields.post ? (
+            {postLink ? (
               <Button
                 asChild
                 ariaLabel={translate('detailViewOnNetwork', {
-                  platform: getPostsPlatformLabel(fields.post.platform),
+                  platform: getPostsPlatformLabel(postLink.platform),
                 })}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
               >
                 <a
-                  href={fields.post.url}
+                  href={postLink.url}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  {getPlatformIcon(fields.post.platform, 'size-4') ?? (
+                  {getPlatformIcon(postLink.platform, 'size-4') ?? (
                     <ExternalLink className="size-4" />
                   )}
                   {translate('detailView')}

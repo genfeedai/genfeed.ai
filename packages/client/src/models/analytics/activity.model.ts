@@ -2,6 +2,7 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { ActionOrigin, ActivityStatus } from '@genfeedai/contracts';
 import type {
   IActivity,
+  IActivityPostGroup,
   IActivityPostPreview,
   IOrganization,
   IUser,
@@ -20,6 +21,7 @@ export class Activity extends BaseEntity implements IActivity {
   declare public brandLabel?: string;
   declare public userLabel?: string;
   declare public preview?: IActivityPostPreview;
+  declare public postGroup?: IActivityPostGroup;
 
   constructor(data: Partial<IActivity> = {}) {
     super(data);
