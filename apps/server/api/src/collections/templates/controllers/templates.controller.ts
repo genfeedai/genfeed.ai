@@ -12,6 +12,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -20,6 +21,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_CONTENT_GENERATION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   assertOrganizationCreditsAvailable,
@@ -63,6 +65,7 @@ export class TemplatesController {
    * Create a new template
    */
   @Post()
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -127,6 +130,7 @@ export class TemplatesController {
    * Update template
    */
   @Patch(':templateId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -147,6 +151,7 @@ export class TemplatesController {
    * Delete template
    */
   @Delete(':templateId')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Param('templateId') templateId: string,
@@ -161,6 +166,7 @@ export class TemplatesController {
    * Use template (fill variables)
    */
   @Post(':templateId/use')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
     allowByokBypass: true,
@@ -202,6 +208,7 @@ export class TemplatesController {
    * Get template suggestions
    */
   @Post('suggest')
+  @RequiredScopes(...API_KEY_CONTENT_GENERATION_SCOPES)
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
     allowByokBypass: true,
