@@ -94,4 +94,9 @@ export class TrendBrandNicheVideoService {
       )) ?? []
     );
   }
+
+  /** True while a snapshot of the brand's niche videos is cached. */
+  async hasSnapshot(organizationId: string, brandId: string): Promise<boolean> {
+    return (await this.get(organizationId, brandId)).length > 0;
+  }
 }
