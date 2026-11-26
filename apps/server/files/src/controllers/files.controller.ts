@@ -297,6 +297,7 @@ export class FilesController {
       const status = body.status || 'unlisted'; // Default to unlisted if no status provided
       const jobData = {
         brandId: body.brandId,
+        containsSyntheticMedia: body.containsSyntheticMedia,
         createdAt: new Date(),
         credential: body.credential,
         description: body.description,
@@ -312,6 +313,7 @@ export class FilesController {
         priority: body.priority || JOB_PRIORITY.HIGH,
         room: body.room,
         scheduledDate: body.scheduledDate,
+        selfDeclaredMadeForKids: body.selfDeclaredMadeForKids,
         status,
         tags: body.tags,
         title: body.title,

@@ -53,6 +53,7 @@ export interface ProcessFileRequestBody {
 
 export interface ProcessYoutubeRequestBody {
   brandId?: string;
+  containsSyntheticMedia?: boolean;
   credential: YoutubeCredential;
   description: string;
   id?: string;
@@ -62,6 +63,7 @@ export interface ProcessYoutubeRequestBody {
   priority?: JobPriority;
   room?: string;
   scheduledDate?: string;
+  selfDeclaredMadeForKids?: boolean;
   status?: 'public' | 'private' | 'scheduled' | 'unlisted';
   tags?: string[];
   title: string;

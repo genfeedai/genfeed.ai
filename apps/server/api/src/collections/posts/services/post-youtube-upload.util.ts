@@ -10,7 +10,12 @@ import {
   fromPrismaCredentialPlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import {
+  readChannelSettingBoolean,
+  resolveChannelTargetSettings,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { YOUTUBE_AI_GENERATED_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/youtube-publishing.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 
@@ -72,9 +77,26 @@ export async function queueYoutubePostUpload(
     const brandId = post.brandId;
     const organizationId = post.organizationId;
     const userId = post.userId;
+    // The same resolution the scheduled publisher applies: a post that never
+    // had a settings UI still gets the declared defaults (AI label on).
+    const settings = resolveChannelTargetSettings(
+      CredentialPlatform.YOUTUBE,
+      post.targetSettings,
+    );
+    const containsSyntheticMedia = readChannelSettingBoolean(
+      settings,
+      YOUTUBE_AI_GENERATED_SETTING_KEY,
+    );
+    const selfDeclaredMadeForKids = readChannelSettingBoolean(
+      settings,
+      'madeForKids',
+    );
 
     await deps.fileQueueService?.uploadYoutube({
       brandId,
+      ...(containsSyntheticMedia === undefined
+        ? {}
+        : { containsSyntheticMedia }),
       credentialId: credential.id.toString(),
       description: post.description || '',
       ingredientId: ingredient.id.toString(),
@@ -82,6 +104,9 @@ export async function queueYoutubePostUpload(
       postId,
       room: userId ? getUserRoomName(userId) : undefined,
       scheduledDate: post.scheduledDate ?? undefined,
+      ...(selfDeclaredMadeForKids === undefined
+        ? {}
+        : { selfDeclaredMadeForKids }),
       visibility: originalVisibility,
       tags:
         (post.tags as unknown as ({ name?: string } | string)[])?.map((tag) =>

@@ -354,6 +354,51 @@ describe('YoutubeService', () => {
       );
     });
 
+    it('sends the AI label and the audience declaration with an immediate upload', async () => {
+      await service.uploadVideo({
+        ...mockUploadParams,
+        containsSyntheticMedia: true,
+        selfDeclaredMadeForKids: false,
+        status: PostStatus.PUBLIC,
+      });
+
+      expect(mockYoutubeAPI.videos.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: expect.objectContaining({
+            status: {
+              containsSyntheticMedia: true,
+              privacyStatus: 'public',
+              selfDeclaredMadeForKids: false,
+            },
+          }),
+        }),
+        {},
+      );
+    });
+
+    it('sends the AI label with an upload scheduled for later', async () => {
+      const futureDate = new Date(Date.now() + 86400000);
+
+      await service.uploadVideo({
+        ...mockUploadParams,
+        containsSyntheticMedia: true,
+        scheduledDate: futureDate,
+      });
+
+      expect(mockYoutubeAPI.videos.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: expect.objectContaining({
+            status: {
+              containsSyntheticMedia: true,
+              privacyStatus: 'private',
+              publishAt: futureDate.toISOString(),
+            },
+          }),
+        }),
+        {},
+      );
+    });
+
     it('should use public status for SCHEDULED with past date', async () => {
       const pastDate = new Date(Date.now() - 86400000); // Yesterday
 
