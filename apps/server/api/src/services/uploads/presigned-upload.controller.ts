@@ -3,11 +3,14 @@
  * The shipped client posts `{base}/upload/presigned`. The references shelf
  * uses the `ingredients` base.
  */
+
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PresignedUploadDto } from '@api/collections/images/dto/presigned-upload.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -36,6 +39,7 @@ export class PresignedUploadController {
   ) {}
 
   @Post('upload/presigned')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generatePresignedUrl(
     @Req() request: Request,
@@ -51,6 +55,7 @@ export class PresignedUploadController {
   }
 
   @Post('upload/confirm/:id')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async confirmUpload(
     @Req() request: Request,

@@ -4,6 +4,7 @@ import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
 import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -24,7 +25,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { AggregatePaginateResult } from '@api/shared/controllers/base-crud/base-crud.types';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { ApiKeyScope, IngredientCategory } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -106,6 +107,7 @@ export class MusicsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -141,6 +143,7 @@ export class MusicsController {
   }
 
   @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

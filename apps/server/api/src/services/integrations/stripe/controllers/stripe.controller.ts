@@ -238,6 +238,11 @@ export class StripeController {
   }
 
   @Post('credits/checkout')
+  @RequiredScopes(
+    ApiKeyScope.CREDITS_READ,
+    ApiKeyScope.CREDITS_PROVISION,
+    ApiKeyScope.ADMIN,
+  )
   async createCreditsCheckoutSession(
     @CurrentUser() user: User,
     @Body() dto: CreateCreditsCheckoutDto,

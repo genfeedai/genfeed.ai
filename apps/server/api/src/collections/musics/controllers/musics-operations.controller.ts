@@ -4,6 +4,7 @@ import { MusicGenerationService } from '@api/collections/musics/services/music-g
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -13,6 +14,7 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,6 +39,7 @@ export class MusicsOperationsController {
   ) {}
 
   @Post()
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
   @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @Credits({

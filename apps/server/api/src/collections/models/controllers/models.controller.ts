@@ -8,6 +8,7 @@ import { buildModelListOrderBy } from '@api/collections/models/utils/model-list-
 import { readUnpriceableModelIds } from '@api/collections/models/utils/unpriceable-model-ids.cache';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -20,7 +21,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { ModelLifecycle } from '@genfeedai/contracts';
+import { ApiKeyScope, ModelLifecycle } from '@genfeedai/contracts';
 import type {
   IModelProviderContracts,
   JsonApiCollectionResponse,
@@ -358,6 +359,7 @@ export class ModelsController extends BaseCRUDController<
    * - Cannot remove the last default in a category
    */
   @Patch(':modelId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async patch(
     @Req() request: RequestWithContext,
     @CurrentUser() user: User,

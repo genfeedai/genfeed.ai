@@ -7,14 +7,17 @@ import {
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
 import { TaskCommentsService } from '@api/collections/task-comments/services/task-comments.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { API_KEY_MCP_ACTION_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { TaskCommentSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -55,6 +58,7 @@ export class TaskCommentsController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_MCP_ACTION_SCOPES)
   async create(
     @Req() request: Request,
     @Param('taskId') taskId: string,
@@ -75,6 +79,7 @@ export class TaskCommentsController {
   }
 
   @Delete(':commentId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async remove(
     @Param('commentId') commentId: string,
     @CurrentUser() user: User,
