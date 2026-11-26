@@ -37,6 +37,7 @@ export * from '@serializers/attributes/content/knowledge-source.attributes';
 export * from '@serializers/attributes/content/knowledge-source-version.attributes';
 export * from '@serializers/attributes/content/knowledge-space.attributes';
 export * from '@serializers/attributes/content/knowledge-space-membership.attributes';
+export * from '@serializers/attributes/content/library-element.attributes';
 export * from '@serializers/attributes/content/link.attributes';
 export * from '@serializers/attributes/content/live-session.attributes';
 export * from '@serializers/attributes/content/media-moderation.attributes';

@@ -28,7 +28,7 @@ export function rethrowHandleConflict(
 ): never {
   if (isPersonaHandleUniqueViolation(error)) {
     throw new ValidationException(
-      'A character with this handle already exists in this brand',
+      'A character or element with this handle already exists in this brand',
       'handle',
       handle,
     );

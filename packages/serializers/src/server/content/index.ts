@@ -42,6 +42,7 @@ export * from '@serializers/server/content/knowledge-source.serializer';
 export * from '@serializers/server/content/knowledge-source-version.serializer';
 export * from '@serializers/server/content/knowledge-space.serializer';
 export * from '@serializers/server/content/knowledge-space-membership.serializer';
+export * from '@serializers/server/content/library-element.serializer';
 export * from '@serializers/server/content/link.serializer';
 export * from '@serializers/server/content/live-session.serializer';
 export * from '@serializers/server/content/media-moderation.serializer';

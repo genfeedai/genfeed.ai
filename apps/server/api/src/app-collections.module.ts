@@ -1,5 +1,6 @@
 import { BrandedGenerationReceiptsHttpModule } from '@api/collections/branded-generation-receipts/branded-generation-receipts-http.module';
 import { ContentLearningModule } from '@api/collections/content-learning/content-learning.module';
+import { LibraryElementsModule } from '@api/collections/library-elements/library-elements.module';
 import { OutliersModule } from '@api/collections/outliers/outliers.module';
 import { TurboProjectsModule } from '@api/collections/turbo-projects/turbo-projects.module';
 import { VisualProjectsModule } from '@api/collections/visual-projects/visual-projects.module';
@@ -206,6 +207,7 @@ import { Module } from '@nestjs/common';
     IngredientsModule,
     InsightsModule,
     TasksModule,
+    LibraryElementsModule,
     LinksModule,
     ListeningTopicsModule,
     LongFormDeliveriesModule,
