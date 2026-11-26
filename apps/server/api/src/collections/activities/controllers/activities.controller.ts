@@ -186,7 +186,9 @@ export class ActivitiesController {
       AggregatePaginateResult<ActivityDocument>
     > => {
       const page = await this.activitiesService.findAll(aggregate, options);
-      page.docs = await this.activitiesService.attachDisplayContext(page.docs);
+      page.docs = await this.activitiesService.attachDisplayContext(
+        await this.activitiesService.collapsePostActivities(page.docs),
+      );
       return page;
     };
     const data = await this.runInListScope(isCrossTenantList, load);

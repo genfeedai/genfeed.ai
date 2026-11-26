@@ -20,6 +20,23 @@ import { useCallback, useMemo, useState } from 'react';
 
 const EMPTY_ACTIVITIES: IActivity[] = [];
 
+/** The API accepts this many ids in one bulk read-state change. */
+const BULK_PATCH_MAX_IDS = 100;
+
+/**
+ * A post row stands for every activity folded into it, so a read-state change
+ * on the row reaches all of them.
+ */
+function expandActivityIds(
+  activities: readonly IActivity[],
+  ids: readonly string[],
+): string[] {
+  const byId = new Map(activities.map((activity) => [activity.id, activity]));
+  return [
+    ...new Set(ids.flatMap((id) => byId.get(id)?.postGroup?.eventIds ?? [id])),
+  ];
+}
+
 type ActivitiesTarget =
   | { kind: 'organization'; id: string }
   | { kind: 'brand'; id: string }
@@ -227,11 +244,21 @@ export function useActivities({
         onSuccess: refetchAfterReadChange,
         operation: async () => {
           const service = await getActivitiesService();
-          return service.bulkPatch({
-            ids: activityIds,
-            isRead: true,
-            type: 'activity-bulk-patch',
-          });
+          const results = [];
+          for (
+            let start = 0;
+            start < activityIds.length;
+            start += BULK_PATCH_MAX_IDS
+          ) {
+            results.push(
+              await service.bulkPatch({
+                ids: activityIds.slice(start, start + BULK_PATCH_MAX_IDS),
+                isRead: true,
+                type: 'activity-bulk-patch',
+              }),
+            );
+          }
+          return results[results.length - 1];
         },
         url: `PATCH /activities/bulk [${activityIds.length} activities]`,
       });
@@ -273,7 +300,7 @@ export function useActivities({
         idsToMark = activities.filter((a) => !a.isRead).map((a) => a.id);
       }
 
-      await patchActivities(idsToMark);
+      await patchActivities(expandActivityIds(activities, idsToMark));
     },
     [activities, patchActivities],
   );
@@ -290,6 +317,13 @@ export function useActivities({
         onSuccess: refetchAfterReadChange,
         operation: async () => {
           const service = await getActivitiesService();
+          if (activity.postGroup) {
+            return service.bulkPatch({
+              ids: activity.postGroup.eventIds,
+              isRead: !activity.isRead,
+              type: 'activity-bulk-patch',
+            });
+          }
           return service.patch(activityId, {
             id: activityId,
             isRead: !activity.isRead,

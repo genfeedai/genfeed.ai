@@ -31,6 +31,7 @@ import {
   getActivityCreditsDelta,
   getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
+  getActivityResultType,
   getActivitySourceLabel,
   getActivityStatus,
   getActivityValueFields,
@@ -53,6 +54,8 @@ interface DetailFact {
   label: string;
   value: ReactNode;
   isMono?: boolean;
+  /** Bookkeeping a post row leaves to its technical details. */
+  isBookkeeping?: boolean;
 }
 
 function formatTimestamp(value: string | undefined | null): string | undefined {
@@ -105,10 +108,13 @@ export default function ActivityDetailPanel({
   // have nothing yet (or nothing worth showing).
   const isCompleted = status === 'completed';
   const videoUrl = isCompleted ? getActivityVideoUrl(activity) : undefined;
+  // A post row shows the post's own media whatever state the post is in.
+  const hasPostMedia = Boolean(activity.postGroup);
   const previewUrl =
-    isCompleted && !videoUrl
+    (isCompleted || hasPostMedia) && !videoUrl
       ? getActivityMediaPreviewUrl(activity, {
           getPreviewUrl: getActivityIngredientPreviewUrl,
+          resultType: getActivityResultType(activity),
         })
       : undefined;
 
@@ -118,6 +124,13 @@ export default function ActivityDetailPanel({
       label: translate('detailStatus'),
       value: <ActivityStatusCell status={status} />,
     },
+    ...(activity.postGroup?.steps ?? []).map((step) => ({
+      label: translate('detailPostStep', {
+        from: humanizeActivityToken(step.from) ?? step.from,
+        to: humanizeActivityToken(step.to) ?? step.to,
+      }),
+      value: formatTimestamp(step.at),
+    })),
     {
       label: translate('detailUser'),
       value: activity.userLabel ?? activity.user?.email,
@@ -128,20 +141,24 @@ export default function ActivityDetailPanel({
     },
     { label: translate('detailBrand'), value: activity.brandLabel },
     {
+      isBookkeeping: true,
       label: translate('detailKey'),
       value: humanizeActivityToken(activity.key),
     },
     {
+      isBookkeeping: true,
       label: translate('detailSource'),
       value:
         getActivitySourceLabel(activity.source) ??
         humanizeActivityToken(activity.source),
     },
     {
+      isBookkeeping: true,
       label: translate('detailOrigin'),
       value: humanizeActivityToken(activity.origin),
     },
     {
+      isBookkeeping: true,
       label: translate('detailEntity'),
       value: humanizeActivityToken(activity.entityModel),
     },
@@ -150,10 +167,12 @@ export default function ActivityDetailPanel({
       value: getActivityCreditsDelta(activity),
     },
     {
+      isBookkeeping: true,
       label: translate('detailCreated'),
       value: formatTimestamp(activity.createdAt),
     },
     {
+      isBookkeeping: true,
       label: translate('detailUpdated'),
       value: formatTimestamp(activity.updatedAt),
     },
@@ -258,7 +277,13 @@ export default function ActivityDetailPanel({
           <Alert variant="destructive">{fields.error}</Alert>
         ) : null}
 
-        <FactList facts={facts} />
+        <FactList
+          facts={
+            activity.postGroup
+              ? facts.filter((fact) => !fact.isBookkeeping)
+              : facts
+          }
+        />
 
         {openHref || fields.post ? (
           <div className="flex flex-wrap gap-2">

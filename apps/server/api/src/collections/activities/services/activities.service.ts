@@ -11,6 +11,7 @@ import {
   buildActivityMutation,
   normalizeActivityDocument,
 } from '@api/collections/activities/utils/activity-document.util';
+import { collapsePostActivities } from '@api/collections/activities/utils/activity-post-groups.util';
 import { hydrateGenerationActivity } from '@api/collections/activities/utils/generation-activity.util';
 import { GENERATION_INGREDIENT_SELECT } from '@api/collections/activities/utils/generation-ingredient.select';
 import { normalizeActionOrigin, withActionOriginMetadata } from '@api/index';
@@ -66,6 +67,17 @@ export class ActivitiesService extends BaseService<
       ...result,
       docs: await this.hydrateGenerationActivities(result.docs),
     };
+  }
+
+  /**
+   * Folds each post's lifecycle events into one row, with the trail the post
+   * went through, its text and account, and its first media. Run it on a
+   * listed page before `attachDisplayContext`, under the list's tenant scope.
+   */
+  async collapsePostActivities(
+    activities: ActivityDocument[],
+  ): Promise<ActivityDocument[]> {
+    return await collapsePostActivities(this.prisma, activities);
   }
 
   /**
