@@ -10,6 +10,7 @@ import {
   getTrendNativeFailureReason,
   recordTrendProviderOutcome,
   recordTrendRefreshFailure,
+  skipTrendRefreshAttempt,
   withTrendRefreshAttempt,
 } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -198,6 +199,11 @@ export class TrendVideoService {
         withTrendRefreshAttempt(platform, 'videos', 'global', async () => {
           let isFetched = false;
           try {
+            if (
+              platform === 'tiktok' &&
+              (await this.skipPausedScrape(platform, 'videos'))
+            )
+              return 0;
             const videos = await fetcher();
             if (platform !== 'youtube')
               recordTrendProviderOutcome(
@@ -306,6 +312,25 @@ export class TrendVideoService {
       (evidence) => this.refreshHealth.record(null, evidence),
     );
     return captured.result;
+  }
+
+  /**
+   * True while the paid scrape behind this dataset is paused: empty three
+   * nights running, or its actor is gone. The attempt writes no receipt, so
+   * the pause does not count as a night and the week-old receipt stays the
+   * one the next probe is timed from.
+   */
+  private async skipPausedScrape(
+    platform: string,
+    dataset: 'hashtags' | 'sounds' | 'videos',
+  ): Promise<boolean> {
+    if (!(await this.refreshHealth.isScrapePaused({ dataset, platform })))
+      return false;
+    skipTrendRefreshAttempt();
+    this.loggerService.warn(
+      `Skipping the paused ${platform} ${dataset} Apify scrape`,
+    );
+    return true;
   }
 
   private async fetchYoutubeVideosNativeFirst(
@@ -448,6 +473,7 @@ export class TrendVideoService {
    */
   fetchAndCacheHashtags(platform: string, limit: number = 12): Promise<number> {
     return this.cacheHashtags(platform, async () => {
+      if (await this.skipPausedScrape(platform, 'hashtags')) return [];
       const hashtags = await this.apifyService.getTrendingHashtags(
         platform,
         limit,
@@ -682,6 +708,7 @@ export class TrendVideoService {
         withTrendRefreshAttempt('tiktok', 'sounds', 'global', async () => {
           let isFetched = false;
           try {
+            if (await this.skipPausedScrape('tiktok', 'sounds')) return 0;
             const sounds = await this.apifyService.getTikTokSounds(limit);
 
             recordTrendProviderOutcome(

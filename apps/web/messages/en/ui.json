@@ -83,6 +83,7 @@
       "access_required": "The provider requires additional permission or API access.",
       "budget_exhausted": "Provider credits or the collection budget are exhausted.",
       "rate_limited": "The provider rate limit was reached. Retry later.",
+      "actor_unavailable": "The collection actor no longer exists at the provider. Replace it, then retry.",
       "native_unavailable": "No native provider is available for this dataset.",
       "native_empty": "The native provider returned no observations.",
       "native_failed": "The native provider request failed.",

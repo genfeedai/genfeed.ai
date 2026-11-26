@@ -70,10 +70,14 @@ describe('TrendFetchService', () => {
     getTrends: vi.fn(),
   };
 
-  const refreshHealth = { record: vi.fn().mockResolvedValue(undefined) };
+  const refreshHealth = {
+    isScrapePaused: vi.fn().mockResolvedValue(false),
+    record: vi.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    refreshHealth.isScrapePaused.mockResolvedValue(false);
 
     mockCacheService.get.mockResolvedValue(null);
     mockCacheService.set.mockResolvedValue(undefined);
@@ -769,6 +773,26 @@ describe('TrendFetchService', () => {
         service.fetchPlatformTrends('instagram', 'org-2', 'brand-2'),
       ).resolves.toEqual([expect.objectContaining({ topic: '#shared' })]);
       expect(mockApifyService.getInstagramTrends).not.toHaveBeenCalled();
+    });
+
+    it('does not start a paused Apify scrape and records no receipt for it', async () => {
+      refreshHealth.isScrapePaused.mockResolvedValue(true);
+
+      await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+        platforms: ['instagram'],
+      });
+
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'trends',
+        platform: 'instagram',
+      });
+      expect(mockApifyService.getInstagramTrends).not.toHaveBeenCalled();
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, []);
+      expect(mockCacheService.set).not.toHaveBeenCalledWith(
+        'trends:apify-fallback:instagram',
+        expect.anything(),
+        expect.anything(),
+      );
     });
 
     it('does not share a failed Apify scrape', async () => {
