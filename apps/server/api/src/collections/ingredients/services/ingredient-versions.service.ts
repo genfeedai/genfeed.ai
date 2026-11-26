@@ -23,7 +23,7 @@ export interface IngredientVersionViewer {
   organizationId: string;
 }
 
-export interface IngredientVersionEntryResult {
+interface IngredientVersionEntryResult {
   id: string;
   isActive: boolean;
   number: number;
@@ -79,14 +79,36 @@ export class IngredientVersionsService {
       number: index + 1,
       relation: classifyVersionRelation(row),
     }));
-    const media = await this.prisma.ingredient.findMany({
-      include: { metadata: true },
+    const rows = await this.prisma.ingredient.findMany({
       take: INGREDIENT_VERSION_HISTORY_LIMIT,
       where: scopedWhere(viewer.organizationId, {
         id: { in: ordered.map(({ id }) => id) },
       }),
     });
-    const byId = new Map(media.map((row) => [row.id, row]));
+    // The rows above are already scoped to the organization, so their metadata
+    // ids are too.
+    const metadata = await this.prisma.metadata.findMany({
+      take: INGREDIENT_VERSION_HISTORY_LIMIT,
+      where: {
+        id: {
+          in: rows.flatMap(({ metadataId }) =>
+            metadataId ? [metadataId] : [],
+          ),
+        },
+      },
+    });
+    const metadataById = new Map(metadata.map((row) => [row.id, row]));
+    const byId = new Map(
+      rows.map((row) => [
+        row.id,
+        {
+          ...row,
+          metadata: row.metadataId
+            ? (metadataById.get(row.metadataId) ?? null)
+            : null,
+        },
+      ]),
+    );
 
     return {
       activeVersionId,
