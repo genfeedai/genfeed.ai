@@ -14,6 +14,17 @@ function Harness() {
   );
 }
 
+function ArrowHarness() {
+  const [value, setValue] = useState<string | undefined>('csv');
+  return (
+    <OptionTileGroup ariaLabel="Format" onValueChange={setValue} value={value}>
+      <OptionTile title="CSV" value="csv" />
+      <OptionTile isUnavailable title="PDF" value="pdf" />
+      <OptionTile title="XLSX" value="xlsx" />
+    </OptionTileGroup>
+  );
+}
+
 describe('OptionTile', () => {
   it('selects one tile at a time and shows its text', async () => {
     render(<Harness />);
@@ -33,20 +44,6 @@ describe('OptionTile', () => {
   });
 
   it('checks the tile an arrow key moves focus to, and skips unavailable tiles', async () => {
-    function ArrowHarness() {
-      const [value, setValue] = useState<string | undefined>('csv');
-      return (
-        <OptionTileGroup
-          ariaLabel="Format"
-          onValueChange={setValue}
-          value={value}
-        >
-          <OptionTile title="CSV" value="csv" />
-          <OptionTile isUnavailable title="PDF" value="pdf" />
-          <OptionTile title="XLSX" value="xlsx" />
-        </OptionTileGroup>
-      );
-    }
     render(<ArrowHarness />);
 
     await userEvent.tab();
@@ -123,6 +120,25 @@ describe('OptionTile', () => {
     expect(screen.getByRole('radio', { name: 'Frame A' })).toHaveAttribute(
       'aria-busy',
       'true',
+    );
+  });
+  it('centers the icon of a title-only tile and keeps it on the title line when there is a description', () => {
+    render(
+      <OptionTileGroup ariaLabel="Metric" onValueChange={vi.fn()} value="a">
+        <OptionTile icon={<span>•</span>} title="Views" value="a" />
+        <OptionTile
+          description="Counted per post"
+          icon={<span>•</span>}
+          title="Posts"
+          value="b"
+        />
+      </OptionTileGroup>,
+    );
+    expect(screen.getByRole('radio', { name: /Views/ })).toHaveClass(
+      'items-center',
+    );
+    expect(screen.getByRole('radio', { name: /Posts/ })).toHaveClass(
+      'items-start',
     );
   });
 });
