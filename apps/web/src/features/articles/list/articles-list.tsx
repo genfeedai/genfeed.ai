@@ -29,7 +29,6 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -202,16 +201,16 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         sortDirection={sortDirection}
         onSortChange={onSortChange}
         emptyLabel={translate('emptyLabel')}
-        emptyState={
-          <EmptyState
-            icon={Newspaper}
-            title={translate('emptyTitle')}
-            action={{
-              label: translate('create'),
-              onClick: openCreateArticleModal,
-            }}
-          />
-        }
+        empty={{
+          action: {
+            icon: Plus,
+            label: translate('create'),
+            onClick: openCreateArticleModal,
+          },
+          description: translate('emptyDescription'),
+          icon: Newspaper,
+          title: translate('emptyTitle'),
+        }}
       />
 
       <div className="mt-4">
