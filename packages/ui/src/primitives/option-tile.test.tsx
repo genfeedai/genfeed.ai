@@ -125,4 +125,23 @@ describe('OptionTile', () => {
       'true',
     );
   });
+  it('centers the icon of a title-only tile and keeps it on the title line when there is a description', () => {
+    render(
+      <OptionTileGroup ariaLabel="Metric" onValueChange={vi.fn()} value="a">
+        <OptionTile icon={<span>•</span>} title="Views" value="a" />
+        <OptionTile
+          description="Counted per post"
+          icon={<span>•</span>}
+          title="Posts"
+          value="b"
+        />
+      </OptionTileGroup>,
+    );
+    expect(screen.getByRole('radio', { name: /Views/ })).toHaveClass(
+      'items-center',
+    );
+    expect(screen.getByRole('radio', { name: /Posts/ })).toHaveClass(
+      'items-start',
+    );
+  });
 });
