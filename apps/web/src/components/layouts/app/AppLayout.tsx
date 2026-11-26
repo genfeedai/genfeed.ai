@@ -17,6 +17,7 @@ import {
   useLayoutEffect,
   useRef,
 } from 'react';
+import SidebarStripActions from '@/components/menus/sidebar-strip-actions/SidebarStripActions';
 import NavigationProgress from '@/components/shell/NavigationProgress';
 import type { AppLayoutProps } from '@/props/layout/app-layout.props';
 import {
@@ -45,6 +46,7 @@ export default function AppLayout({
   brandSlug,
   isWorkspaceShell = false,
   lockViewportHeight = false,
+  hasMenuQuickActions = false,
 }: AppLayoutProps) {
   const {
     desktopMenuContent,
@@ -124,12 +126,28 @@ export default function AppLayout({
       sidebarToggle={isSidebarToggleInTitlebar ? desktopSidebarToggle : null}
     />
   );
+  // The menu's New Task and Search sit in its top row. With the macOS controls
+  // there, they are two icons after them; otherwise one row fills the strip.
+  const stripActions = hasMenuQuickActions ? (
+    <SidebarStripActions
+      layout={areTitlebarControlsInSidebar ? 'icons' : 'row'}
+    />
+  ) : null;
   const desktopSidebar = menuComponent ? (
     <DesktopSidebar
       ariaLabel="Navigation"
       collapsedWidth={desktopSidebarCollapsedWidth}
       embedded={hasChrome}
-      header={areTitlebarControlsInSidebar ? titlebarControls : null}
+      header={
+        areTitlebarControlsInSidebar ? (
+          <>
+            {titlebarControls}
+            {stripActions}
+          </>
+        ) : (
+          stripActions
+        )
+      }
       isCollapsed={isDesktopCollapsed}
       isResizing={isSidebarResizing}
       onResizeKeyDown={handleSidebarResizeKeyDown}
@@ -171,6 +189,7 @@ export default function AppLayout({
         </Suspense>
         {railComponent ? (
           <DesktopRail
+            hasInlineTrafficLights={isSidebarToggleInTitlebar}
             hasStaticMark={!menuComponent && !isSidebarToggleInTitlebar}
             sidebarToggle={
               isSidebarToggleInTitlebar ? null : desktopSidebarToggle

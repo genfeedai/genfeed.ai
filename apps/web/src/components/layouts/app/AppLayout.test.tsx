@@ -1,3 +1,4 @@
+import { CommandPaletteProvider } from '@genfeedai/contexts/features/command-palette.provider';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import {
   fireEvent,
@@ -728,6 +729,52 @@ describe('AppLayout', () => {
   });
 });
 
+describe('AppLayout menu quick actions', () => {
+  function renderWithQuickActions() {
+    return render(
+      <CommandPaletteProvider>
+        <AppLayout
+          hasMenuQuickActions
+          menuComponent={<MenuComponent />}
+          railComponent={<RailComponent />}
+          topbarComponent={TopbarMock}
+        >
+          <div>Content</div>
+        </AppLayout>
+      </CommandPaletteProvider>,
+    );
+  }
+
+  it("puts New Task and Search in the menu's top row beside the rail mark", () => {
+    renderWithQuickActions();
+
+    const header = screen.getByTestId('desktop-sidebar-header');
+    expect(
+      within(header).getByRole('button', { name: 'Open new task modal' }),
+    ).toBeInTheDocument();
+    expect(
+      within(header).getByRole('button', { name: 'Search' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('app-rail-mark')).toContainElement(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    );
+  });
+
+  it('leaves the top row empty without quick actions', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={TopbarMock}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(screen.getByTestId('desktop-sidebar-header')).toBeEmptyDOMElement();
+  });
+});
+
 describe('AppLayout desktop titlebar', () => {
   type DesktopGlobal = typeof globalThis & {
     __GENFEED_RUNTIME_CONFIG__?: { clientSurface?: 'desktop' | 'web' };
@@ -814,6 +861,53 @@ describe('AppLayout desktop titlebar', () => {
     fireEvent.click(
       within(collapsedControls).getByRole('button', { name: 'Expand sidebar' }),
     );
+  });
+
+  it('puts the quick actions after the window controls and keeps the rail divider off the traffic lights', () => {
+    desktopGlobal.__GENFEED_RUNTIME_CONFIG__ = { clientSurface: 'desktop' };
+    vi.stubGlobal('navigator', {
+      platform: 'MacIntel',
+      userAgentData: { platform: 'macOS' },
+    });
+
+    render(
+      <CommandPaletteProvider>
+        <AppLayout
+          hasMenuQuickActions
+          menuComponent={<MenuComponent />}
+          railComponent={<RailComponent />}
+          topbarComponent={MenuToggleTopbar}
+        >
+          <div>Content</div>
+        </AppLayout>
+      </CommandPaletteProvider>,
+    );
+
+    const header = screen.getByTestId('desktop-sidebar-header');
+    const controls = within(header).getByTestId('desktop-titlebar-controls');
+    const newTask = within(header).getByRole('button', {
+      name: 'Open new task modal',
+    });
+    const search = within(header).getByRole('button', { name: 'Search' });
+    expect(
+      controls.compareDocumentPosition(newTask) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      newTask.compareDocumentPosition(search) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // The divider starts below the band the lights cover.
+    const rail = screen.getByTestId('desktop-app-rail');
+    expect(rail).not.toHaveClass('border-r');
+    expect(rail.lastElementChild).toHaveClass('border-r');
+  });
+
+  it('keeps the full-height rail divider where no traffic lights float over the band', () => {
+    renderChromeShell();
+
+    expect(screen.getByTestId('desktop-app-rail')).toHaveClass('border-r');
   });
 
   it('keeps the sidebar toggle in the rail on a native window frame', () => {

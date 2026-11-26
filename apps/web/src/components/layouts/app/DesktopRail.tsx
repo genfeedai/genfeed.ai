@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import SidebarLogoMark from '@/components/menus/sidebar-logo-toggle/SidebarLogoMark';
@@ -12,6 +13,12 @@ type DesktopRailSidebarToggle = {
 
 type DesktopRailProps = {
   children: ReactNode;
+  /**
+   * The macOS traffic lights float over the top band and run past the rail's
+   * edge, so the rail's right divider starts below the band instead of
+   * cutting through them.
+   */
+  hasInlineTrafficLights?: boolean;
   /** Show the plain mark (no hover or click) when there is no sidebar to toggle. */
   hasStaticMark?: boolean;
   sidebarToggle?: DesktopRailSidebarToggle | null;
@@ -27,6 +34,7 @@ type DesktopRailProps = {
  */
 export default function DesktopRail({
   children,
+  hasInlineTrafficLights = false,
   hasStaticMark = false,
   sidebarToggle = null,
 }: DesktopRailProps) {
@@ -37,7 +45,10 @@ export default function DesktopRail({
     <aside
       aria-label={translateRail('navigation')}
       data-testid="desktop-app-rail"
-      className="fixed bottom-0 left-0 z-30 hidden w-[var(--desktop-rail-width)] flex-col border-r border-border bg-gray-100 md:flex"
+      className={cn(
+        'fixed bottom-0 left-0 z-30 hidden w-[var(--desktop-rail-width)] flex-col bg-gray-100 md:flex',
+        !hasInlineTrafficLights && 'border-r border-border',
+      )}
       // Flush under the titlebar, full height, same plane as the topbar.
       style={{
         top: 'var(--desktop-titlebar-height)',
@@ -63,7 +74,14 @@ export default function DesktopRail({
           <SidebarLogoMark />
         ) : null}
       </div>
-      {children}
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col',
+          hasInlineTrafficLights && 'border-r border-border',
+        )}
+      >
+        {children}
+      </div>
     </aside>
   );
 }
