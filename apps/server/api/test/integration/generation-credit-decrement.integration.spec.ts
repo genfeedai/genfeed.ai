@@ -166,6 +166,7 @@ const createImageGenerationService = () => {
       secondaryColor: '#000',
       text: 'text',
     }),
+    resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
   };
   const organizationSettingsService = {
     findOne: vi.fn().mockResolvedValue(null),

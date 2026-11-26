@@ -161,8 +161,11 @@ test.describe('Brand accounts and website links', () => {
     ).toHaveCount(0);
 
     await tabs.getByRole('link', { name: 'Settings' }).click();
+    // With no accounts the table's empty state repeats the same action.
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Connect account' }),
+      authenticatedPage
+        .getByRole('button', { name: 'Connect account' })
+        .first(),
     ).toBeVisible({ timeout: 30000 });
   });
 

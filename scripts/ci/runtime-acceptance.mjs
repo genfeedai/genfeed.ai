@@ -84,6 +84,7 @@ export const PG_TITLES = [
   'blocks a newer reward behind actual service locks then invalidates the committed dataset and preserves retry',
   'exclusive consent revocation waits for an actual snapshot then follows the deduplicated edge',
   'pages past ineligible candidates and excludes latest invalid or post-cutoff versions',
+  'links every canonical publication edge in a bounded number of queries, replays them and rolls them back with the transaction',
 ].map((title) => `${DATASET_SUITE} ${title}`);
 export const BRAND_PATH =
   'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts';
@@ -5593,7 +5594,7 @@ export async function execution(identity, env) {
             { file: DATASET_UNIT, count: 23 },
             {
               file: DATASET_PG,
-              count: 10,
+              count: 11,
               titles: PG_TITLES,
               skipped: [MATRIX_TITLE, DIAGNOSTIC_TITLE, SMOKE_TITLE],
             },

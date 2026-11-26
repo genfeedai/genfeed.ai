@@ -131,7 +131,7 @@ test.describe('Connect account modal', () => {
       route.fulfill({ json: { status: 'scheduled' }, status: 202 }),
     );
     await authenticatedPage.goto(
-      `${CONNECTED_ACCOUNTS_ROUTE}?historyImportCredentialId=credential-x-1`,
+      `${CONNECTED_ACCOUNTS_ROUTE}&historyImportCredentialId=credential-x-1`,
     );
 
     await expect(
