@@ -88,6 +88,7 @@ export class TrendsController {
       );
     }
 
+    void this.trendsService.noteBrandRead(organizationId, brandId);
     const result = await this.trendsService.getTrendsWithAccessControl(
       organizationId,
       brandId,
