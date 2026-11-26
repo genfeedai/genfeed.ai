@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
+import { workflowExecutionGenerationBillingSchema } from '@api/helpers/utils/credits/workflow-generation-billing.schema';
 import {
   applyWorkflowOperationEvidence,
   closeWorkflowDispatch,
+  workflowGenerationOperationId,
 } from '@api/helpers/utils/credits/workflow-generation-evidence.util';
 import { workflowFundingFixture } from '@api/helpers/utils/credits/workflow-generation-funding.fixture';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -25,13 +28,65 @@ function transactionGate() {
   return { open, promise };
 }
 
+/** The funded video node as a motion control node, quoted from a measured 8 second reference. */
+function motionControlFunding(
+  executionId: string,
+): WorkflowExecutionGenerationBilling {
+  const plan = workflowFundingFixture(executionId);
+  const [video, ...others] = plan.manifest.allocations;
+  const { billableFingerprint: _frozen, ...frozen } = video.dispatch;
+  const preparationContract = {
+    ...frozen.preparationContract,
+    actionId: 'motionControl' as const,
+  };
+  const compiled = {
+    ...frozen,
+    contractVersion: `workflow-media-v1:${quoteSnapshotHash(preparationContract)}`,
+    preparationContract,
+    quantities: {
+      ...frozen.quantities,
+      duration: 8,
+      referenceEvidenceHash: 'a'.repeat(64),
+    },
+  };
+  const motion = {
+    ...video,
+    actionId: 'motionControl' as const,
+    dispatch: { ...compiled, billableFingerprint: quoteSnapshotHash(compiled) },
+    nodeId: 'motion',
+    quote: video.quote && { ...video.quote, quantities: compiled.quantities },
+    operationId: workflowGenerationOperationId(
+      executionId,
+      'motion',
+      'motionControl',
+    ),
+  };
+  const allocations = [motion, ...others];
+  const manifest = {
+    ...plan.manifest,
+    allocations,
+    graphFingerprint: quoteSnapshotHash(['motion', 'image']),
+    selectedNodeIds: ['motion', 'image'],
+  };
+  return {
+    ...plan,
+    manifest,
+    manifestHash: quoteSnapshotHash(manifest),
+    operations: allocations.map((allocation) => ({
+      operationId: allocation.operationId,
+      phase: 'unclaimed' as const,
+    })),
+  };
+}
+
 async function insertFundedExecution(
   pool: Pool,
   schema: string,
   executionId: string,
+  funding?: WorkflowExecutionGenerationBilling,
 ) {
   const now = new Date();
-  let plan = workflowFundingFixture(executionId);
+  let plan = funding ?? workflowFundingFixture(executionId);
   plan.expiresAt = new Date(now.getTime() + 3_600_000).toISOString();
   plan = applyWorkflowOperationEvidence(
     plan,
@@ -136,6 +191,80 @@ describe.skipIf(!connectionString)(
         }
       ).workflowFunding;
     }
+
+    it('persists a motion control allocation with its reference evidence and fences it like any media node', async () => {
+      const executionId = 'motion-control';
+      const plan = await insertFundedExecution(
+        pool,
+        schema,
+        executionId,
+        motionControlFunding(executionId),
+      );
+      const [motion] = plan.manifest.allocations;
+      const service = billingService();
+
+      await prisma.$transaction((tx) =>
+        service.recordSubmissionIntent(
+          tx,
+          executionId,
+          'org-a',
+          motion.operationId,
+          motion.dispatch.billableFingerprint,
+          'initial-claim',
+        ),
+      );
+      await prisma.$transaction((tx) =>
+        service.closeInTransaction(tx, executionId, 'org-a'),
+      );
+
+      const saved = await savedFunding(plan);
+      expect(workflowExecutionGenerationBillingSchema.parse(saved)).toEqual(
+        saved,
+      );
+      expect(saved.manifest.allocations[0]).toMatchObject({
+        actionId: 'motionControl',
+        dispatch: {
+          quantities: { duration: 8, referenceEvidenceHash: 'a'.repeat(64) },
+        },
+      });
+      expect(saved.dispatchClosed).toBe(true);
+      expect(saved.operations.map((operation) => operation.phase)).toEqual([
+        'submission-intent',
+        'unsubmitted',
+      ]);
+    });
+
+    it('refuses a motion control dispatch whose frozen quantities were edited after funding', async () => {
+      const executionId = 'motion-control-edited';
+      const plan = await insertFundedExecution(
+        pool,
+        schema,
+        executionId,
+        motionControlFunding(executionId),
+      );
+      const [motion] = plan.manifest.allocations;
+
+      await expect(
+        prisma.$transaction((tx) =>
+          billingService().recordSubmissionIntent(
+            tx,
+            executionId,
+            'org-a',
+            motion.operationId,
+            quoteSnapshotHash({
+              ...motion.dispatch,
+              quantities: { duration: 1 },
+            }),
+            'initial-claim',
+          ),
+        ),
+      ).rejects.toThrow();
+      const saved = await savedFunding(plan);
+      expect(saved.operations.map((operation) => operation.phase)).toEqual([
+        'claimed',
+        'unclaimed',
+      ]);
+    });
 
     it('fences a claimed provider dispatch when closure owns the execution mutex first', async () => {
       const plan = await insertFundedExecution(pool, schema, 'closure-wins');

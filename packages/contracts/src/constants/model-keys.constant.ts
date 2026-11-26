@@ -78,6 +78,7 @@ export const MODEL_KEYS = {
   REPLICATE_KWAIVGI_KLING_V4: 'kwaivgi/kling-v4.0',
   REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO: 'kwaivgi/kling-v3-omni-video',
   REPLICATE_KWAIVGI_KLING_AVATAR_V2: 'kwaivgi/kling-avatar-v2',
+  REPLICATE_KWAIVGI_KLING_V3_MOTION_CONTROL: 'kwaivgi/kling-v3-motion-control',
   REPLICATE_PRUNAAI_P_VIDEO: 'prunaai/p-video',
   REPLICATE_PRUNAAI_P_VIDEO_2: 'prunaai/p-video-2',
   REPLICATE_PRUNAAI_P_VIDEO_2_PRO: 'prunaai/p-video-2-pro',
