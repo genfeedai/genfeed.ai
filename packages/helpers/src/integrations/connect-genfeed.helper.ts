@@ -65,11 +65,12 @@ export function toDefaultStandardEndpoint(endpoint: string): string {
 }
 
 /**
- * Claude Code command that adds the standard server, which carries image,
- * video and audio generation, beside the Claude connector.
+ * Claude Code command that adds the standard (full access) server. The
+ * dedicated Claude endpoint exists only for the Claude directory listing, so
+ * surfaces that are not that listing point Claude at the standard endpoint.
  */
-export function buildClaudeCodeMediaMcpCommand(endpoint: string): string {
-  return `claude mcp add --transport http ${GENFEED_CLAUDE_MEDIA_SERVER_NAME} --scope user ${toShellArgument(toDefaultStandardEndpoint(endpoint))}`;
+export function buildClaudeCodeStandardMcpCommand(endpoint: string): string {
+  return `claude mcp add --transport http genfeed --scope user ${toShellArgument(toDefaultStandardEndpoint(endpoint))}`;
 }
 
 /**
@@ -95,6 +96,7 @@ export function buildConnectGenfeedChatPrompt(endpoint: string): string {
 export function buildGenfeedAgentSetupPrompt(
   endpoint: string,
   clientName = 'the local agent I am using',
+  options: { claudeUsesStandardEndpoint?: boolean } = {},
 ): string {
   const mcpEndpoint = toStandardEndpoint(endpoint);
   const standardUrl = new URL(mcpEndpoint);
@@ -105,26 +107,37 @@ export function buildGenfeedAgentSetupPrompt(
     normalizeEndpoint(standardUrl.toString()),
   );
   const codex = buildConnectGenfeedInstructions('codex', mcpEndpoint);
+  const claudeUsesStandardEndpoint =
+    options.claudeUsesStandardEndpoint ?? false;
+  const claudeCommand = claudeUsesStandardEndpoint
+    ? buildClaudeCodeStandardMcpCommand(mcpEndpoint)
+    : claude.primaryCommand;
+  const claudeEndpointLines = claudeUsesStandardEndpoint
+    ? ''
+    : `Claude endpoint: ${claudeEndpoint} (the connector for every Claude client).
+The Claude endpoint covers brands, drafts, scheduling and analytics. For image, video and audio generation in a Claude client, add the standard endpoint above as a second server named ${GENFEED_CLAUDE_MEDIA_SERVER_NAME}.
+`;
+  const otherClients = claudeUsesStandardEndpoint
+    ? 'Claude and Cowork use the standard endpoint above, as every other client does.'
+    : `Claude and Cowork use the Claude endpoint, and add the standard endpoint above as a second server named ${GENFEED_CLAUDE_MEDIA_SERVER_NAME} only when the user asks for image, video or audio generation; other clients use the standard endpoint above.`;
 
   return `Set up the Genfeed MCP server on this machine, with its agent playbook, for ${clientName}.
 
 Endpoint: ${mcpEndpoint}
-Claude endpoint: ${claudeEndpoint} (the connector for every Claude client).
-The Claude endpoint covers brands, drafts, scheduling and analytics. For image, video and audio generation in a Claude client, add the standard endpoint above as a second server named ${GENFEED_CLAUDE_MEDIA_SERVER_NAME}.
-Authentication: browser OAuth (no API key required)
+${claudeEndpointLines}Authentication: browser OAuth (no API key required)
 Setup reference: https://github.com/genfeedai/agent/blob/main/llms-install.md
 
 Do this end to end:
 1. Inspect the selected client's existing Genfeed plugins, skills, and MCP configuration. Preserve unrelated configuration and use the existing Genfeed installation when present. Set up only this client; ask which client to use if you cannot identify it.
 2. For Claude Code, install the dedicated content plugin with /plugin install genfeed --marketplace genfeedai/agent (Claude Code 2.1.275 or newer). For Claude chat, Desktop, Cowork and other Claude clients, skip playbook installation and connect through their supported OAuth flow instead. Never run skills add for any Claude client. For non-Claude clients, install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND} and select only the intended client in the installer. Skip this step if the playbook is already available through an installed Genfeed plugin, extension, or standalone skill. Installing skills alone does not configure or authenticate MCP.
 3. If Genfeed MCP is not already configured, add the remote Streamable HTTP server for the selected client using browser authorization:
-   - Only if the selected client is Claude Code: ${claude.primaryCommand}
+   - Only if the selected client is Claude Code: ${claudeCommand}
    - Only if the selected client is Codex: ${codex.primaryCommand}
    - For Codex only, equivalent user-level ~/.codex/config.toml:
 
 ${codex.configuration}
 
-For other clients, follow their supported remote MCP configuration. Claude and Cowork use the Claude endpoint, and add the standard endpoint above as a second server named ${GENFEED_CLAUDE_MEDIA_SERVER_NAME} only when the user asks for image, video or audio generation; other clients use the standard endpoint above. Do not duplicate a server provided by an installed plugin.
+For other clients, follow their supported remote MCP configuration. ${otherClients} Do not duplicate a server provided by an installed plugin.
 4. Only for Claude Code: ${claude.authorizationInstruction}
    Only for Codex: ${codex.authorizationInstruction}
    For other clients, open their OAuth connection flow. Authenticate only the selected client.

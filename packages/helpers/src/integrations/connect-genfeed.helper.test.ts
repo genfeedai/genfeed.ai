@@ -1,5 +1,5 @@
 import {
-  buildClaudeCodeMediaMcpCommand,
+  buildClaudeCodeStandardMcpCommand,
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
@@ -72,7 +72,7 @@ describe('Claude setup endpoint separation', () => {
   );
 });
 
-describe('generation for Claude clients', () => {
+describe('Claude on the standard endpoint', () => {
   it.each([
     ['https://mcp.genfeed.ai/mcp'],
     ['https://mcp.genfeed.ai/mcp/'],
@@ -80,23 +80,39 @@ describe('generation for Claude clients', () => {
     ['https://mcp.genfeed.ai/MCP/Claude/?profile=full'],
     ['https://mcp.genfeed.ai/mcp?toolsets=content'],
   ])('adds the standard server with its default tools from %s', (endpoint) => {
-    expect(buildClaudeCodeMediaMcpCommand(endpoint)).toBe(
-      'claude mcp add --transport http genfeed-media --scope user https://mcp.genfeed.ai/mcp',
+    expect(buildClaudeCodeStandardMcpCommand(endpoint)).toBe(
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
     );
   });
 
-  it('tells a Claude client where generation lives in the setup prompt', () => {
+  it('keeps the Claude endpoint out of the setup prompt when asked', () => {
+    const prompt = buildGenfeedAgentSetupPrompt(
+      'https://mcp.genfeed.ai/mcp',
+      'Claude Code',
+      { claudeUsesStandardEndpoint: true },
+    );
+
+    expect(prompt).toContain(
+      'Only if the selected client is Claude Code: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp\n',
+    );
+    expect(prompt).toContain(
+      'Claude and Cowork use the standard endpoint above',
+    );
+    expect(prompt).not.toContain('/claude');
+    expect(prompt).not.toContain('genfeed-media');
+    expect(prompt).not.toContain('Genfeed Studio');
+  });
+
+  it('keeps pointing Claude at its endpoint in the default setup prompt', () => {
     const prompt = buildGenfeedAgentSetupPrompt(
       'https://mcp.genfeed.ai/mcp',
       'Claude Code',
     );
 
     expect(prompt).toContain(
-      'For image, video and audio generation in a Claude client, add the standard endpoint above as a second server named genfeed-media.',
+      'Claude endpoint: https://mcp.genfeed.ai/mcp/claude',
     );
-    expect(prompt).toContain(
-      'add the standard endpoint above as a second server named genfeed-media only when the user asks for image, video or audio generation',
-    );
+    expect(prompt).toContain('named genfeed-media');
     expect(prompt).not.toContain('Genfeed Studio');
   });
 });
