@@ -5,7 +5,7 @@ const LOCAL_HTTPS_ORIGIN_PATTERN =
 const CHROME_EXTENSION_ORIGIN_PATTERN = /^chrome-extension:\/\/.*$/;
 const GENFEED_APEX_ORIGIN_PATTERN = /^https:\/\/genfeed\.ai$/;
 const GENFEED_SUBDOMAIN_ORIGIN_PATTERN =
-  /^https:\/\/(admin|app|chatgpt|console|docs|login|marketplace|studio|website|workflows)\.genfeed\.ai$/;
+  /^https:\/\/(admin|app|chatgpt|console|docs|login|shop|studio|website|workflows)\.genfeed\.ai$/;
 
 /**
  * Shared CORS configuration for all Genfeed.ai services
@@ -149,7 +149,7 @@ export const GENFEED_SUBDOMAINS = [
   'console',
   'docs',
   'login',
-  'marketplace',
+  'shop',
   'studio',
   'website',
   'workflows',
