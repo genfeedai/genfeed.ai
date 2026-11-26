@@ -4,7 +4,11 @@ import type { IIngredientVersionHistory } from '@genfeedai/contracts/interfaces'
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import {
+  useAuthedQuery,
+  viewerKeyPart,
+} from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -29,6 +33,7 @@ export function useIngredientVersions(
 ): UseIngredientVersionsResult {
   const translate = useTranslations('pages.library.inspector.versions');
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
   const getIngredientsService = useAuthedService(createIngredientsService);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const [isBusy, setIsBusy] = useState(false);
@@ -64,10 +69,11 @@ export function useIngredientVersions(
         const history = await service.setActiveVersion(ingredientId, versionId);
         // Every member of the history reads the same answer.
         for (const entry of history.versions) {
-          queryClient.setQueryData([VERSIONS_QUERY_KEY, entry.id], {
-            ...history,
-            ingredientId: entry.id,
-          });
+          // The read appends the viewer to its key; the write must match it.
+          queryClient.setQueryData(
+            [VERSIONS_QUERY_KEY, entry.id, viewerKeyPart(userId, orgId)],
+            { ...history, ingredientId: entry.id },
+          );
         }
         const number = history.versions.find((entry) => entry.isActive)?.number;
         notifications.success(translate('activated', { number: number ?? 1 }));
@@ -88,8 +94,10 @@ export function useIngredientVersions(
       getIngredientsService,
       ingredientId,
       notifications,
+      orgId,
       queryClient,
       translate,
+      userId,
     ],
   );
 

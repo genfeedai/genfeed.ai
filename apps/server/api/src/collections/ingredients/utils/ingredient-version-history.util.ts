@@ -70,16 +70,17 @@ export function orderVersionHistory<T extends VersionHistoryRow>(
 
 /**
  * The active entry: the first asset's explicit choice while that asset is still
- * in the history (live), otherwise the newest entry. A choice that points at an
- * asset that was trashed falls back to the newest instead of at nothing.
+ * in the history (live and visible), otherwise the newest entry. A choice that
+ * points at an asset that was trashed falls back to the newest instead of at
+ * nothing. The choice is read from the first asset of the family even when that
+ * asset itself was trashed, so trashing it does not forget the choice.
  */
 export function resolveActiveVersionId(
   ordered: readonly VersionHistoryRow[],
+  chosenId: string | null | undefined,
 ): string {
-  const root = ordered[0];
-  const chosen = root?.activeVersionId;
-  if (chosen && ordered.some((row) => row.id === chosen)) {
-    return chosen;
+  if (chosenId && ordered.some((row) => row.id === chosenId)) {
+    return chosenId;
   }
   return ordered[ordered.length - 1].id;
 }

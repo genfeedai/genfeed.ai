@@ -73,27 +73,20 @@ describe('orderVersionHistory', () => {
 
 describe('resolveActiveVersionId', () => {
   const ordered = [
-    row({ activeVersionId: 'b', id: 'a' }),
+    row({ id: 'a' }),
     row({ id: 'b', version: 2 }),
     row({ id: 'c', version: 3 }),
   ];
 
   it('uses the first asset choice while it is in the history', () => {
-    expect(resolveActiveVersionId(ordered)).toBe('b');
+    expect(resolveActiveVersionId(ordered, 'b')).toBe('b');
   });
 
   it('uses the newest entry when nothing was chosen', () => {
-    expect(
-      resolveActiveVersionId([row({ id: 'a' }), row({ id: 'b', version: 2 })]),
-    ).toBe('b');
+    expect(resolveActiveVersionId(ordered, null)).toBe('c');
   });
 
   it('falls back to the newest entry when the choice left the history', () => {
-    expect(
-      resolveActiveVersionId([
-        row({ activeVersionId: 'gone', id: 'a' }),
-        row({ id: 'c', version: 3 }),
-      ]),
-    ).toBe('c');
+    expect(resolveActiveVersionId(ordered, 'gone')).toBe('c');
   });
 });

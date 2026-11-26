@@ -161,6 +161,19 @@ describe('IngredientVersionHistory', () => {
     expect(screen.queryByRole('button', { name: /Make version/ })).toBeNull();
   });
 
+  it('keeps each row on its own asset when a version has no document', () => {
+    setHistory({ items: [asset('a'), asset('c')] });
+    render(<IngredientVersionHistory ingredientId="c" />);
+
+    expect(
+      screen.getByRole('img', { name: /Version 3/ }).getAttribute('src'),
+    ).toBe('https://cdn.example.test/c.png');
+    expect(
+      screen.getByRole('img', { name: /Version 1/ }).getAttribute('src'),
+    ).toBe('https://cdn.example.test/a.png');
+    expect(screen.queryByRole('img', { name: /Version 2/ })).toBeNull();
+  });
+
   it('renders nothing for an asset with a single, known version', () => {
     setHistory({
       activeVersionId: 'a',

@@ -1125,7 +1125,7 @@ const UI_TEST_MESSAGES = {
           active: 'Active',
           cancel: 'Cancel',
           confirmBody:
-            'The Library and Studio will use this version. Newer versions stay in the history and can be made active again.',
+            'This version becomes the one the Library shows for this asset. Newer versions stay in the history and can be made active again.',
           confirmTitle: 'Make version {number} active?',
           error: 'The versions could not be loaded right now.',
           keepsNewer: 'Selecting a version never deletes a newer one.',

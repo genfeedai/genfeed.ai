@@ -171,9 +171,12 @@ export default function IngredientVersionHistory({
     return null;
   }
 
-  const entries = history.versions.map((entry, index) => ({
+  // Pair by id: a version whose document is missing renders no row and never
+  // shifts the documents of the rows after it.
+  const itemsById = new Map(history.items.map((item) => [item.id, item]));
+  const entries = history.versions.map((entry) => ({
     entry,
-    ingredient: history.items[index],
+    ingredient: itemsById.get(entry.id),
   }));
   const target = pending
     ? entries.find(({ entry }) => entry.id === pending.id)

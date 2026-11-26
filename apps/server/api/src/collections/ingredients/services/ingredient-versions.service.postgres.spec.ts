@@ -45,7 +45,11 @@ describe.skipIf(!connectionString)(
     const crop = id('crop');
     const legacy = id('legacy');
     const loneAsset = id('lone');
-    const viewer = { brandId: brandA1, organizationId: orgA };
+    const viewer = {
+      brandId: brandA1,
+      organizationId: orgA,
+      userIds: [userId],
+    };
 
     let service: IngredientVersionsService;
 
@@ -213,19 +217,122 @@ describe.skipIf(!connectionString)(
       ).rejects.toBeInstanceOf(ValidationException);
     });
 
-    it('recovers to the newest version when the active one is trashed', async () => {
+    it('recovers to the newest version when the active one is trashed, and keeps the versions made from it', async () => {
       await service.setActive(first, second, viewer);
       await database().ingredient.update({
         data: { isDeleted: true },
         where: { id: second },
       });
-      const history = await service.findHistory(first, viewer);
-      expect(history.versions.map((v) => v.id)).toEqual([first]);
-      expect(history.activeVersionId).toBe(first);
-      await database().ingredient.update({
-        data: { isDeleted: false },
-        where: { id: second },
+      try {
+        const history = await service.findHistory(first, viewer);
+        expect(history.versions.map((v) => [v.id, v.number])).toEqual([
+          [first, 1],
+          [third, 2],
+        ]);
+        expect(history.activeVersionId).toBe(third);
+        expect(
+          (await service.findHistory(third, viewer)).versions.map((v) => v.id),
+        ).toEqual([first, third]);
+      } finally {
+        await database().ingredient.update({
+          data: { isDeleted: false },
+          where: { id: second },
+        });
+        await database().ingredient.update({
+          data: { activeVersionId: null },
+          where: { id: first },
+        });
+      }
+    });
+
+    it('lets the owner of the asked-for asset change the version from another selected brand', async () => {
+      const restored = await service.setActive(first, second, {
+        organizationId: orgA,
+        userIds: [userId],
       });
+      try {
+        expect(restored.activeVersionId).toBe(second);
+      } finally {
+        await database().ingredient.update({
+          data: { activeVersionId: null },
+          where: { id: first },
+        });
+      }
+    });
+
+    it('shows a private asset and its private versions to their owner only', async () => {
+      const privateRoot = id('private-root');
+      const privateChild = id('private-child');
+      const shared = {
+        brandId: brandA1,
+        category: IngredientCategory.IMAGE,
+        organizationId: orgA,
+        status: IngredientStatus.GENERATED,
+        userId,
+      };
+      await database().ingredient.createMany({
+        data: [
+          { ...shared, createdAt: day(6), id: privateRoot, scope: 'BRAND' },
+          {
+            ...shared,
+            createdAt: day(7),
+            id: privateChild,
+            parentId: privateRoot,
+            relationKind: 'VERSION',
+            scope: 'USER',
+            version: 2,
+          },
+        ],
+      });
+      const stranger = { brandId: brandA1, organizationId: orgA, userIds: [] };
+
+      expect(
+        (await service.findHistory(privateRoot, viewer)).versions.map(
+          (v) => v.id,
+        ),
+      ).toEqual([privateRoot, privateChild]);
+      expect(
+        (await service.findHistory(privateRoot, stranger)).versions.map(
+          (v) => v.id,
+        ),
+      ).toEqual([privateRoot]);
+      await expect(
+        service.findHistory(privateChild, stranger),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('resolves the first and newest asset of a chain longer than the display limit', async () => {
+      const chain = Array.from({ length: 52 }, (_, index) =>
+        id(`chain-${index + 1}`),
+      );
+      await database().ingredient.createMany({
+        data: chain.map((chainId, index) => ({
+          brandId: brandA1,
+          category: IngredientCategory.IMAGE,
+          createdAt: day(10 + index),
+          id: chainId,
+          organizationId: orgA,
+          parentId: index === 0 ? null : chain[index - 1],
+          relationKind: index === 0 ? null : ('VERSION' as const),
+          scope: 'BRAND' as const,
+          status: IngredientStatus.GENERATED,
+          userId,
+          version: index + 1,
+        })),
+      });
+
+      for (const start of [chain[0], chain[25], chain[51]]) {
+        const history = await service.findHistory(start, viewer);
+        expect(history.rootId).toBe(chain[0]);
+        expect(history.activeVersionId).toBe(chain[51]);
+        expect(history.versions).toHaveLength(50);
+        expect(history.versions[0].number).toBe(3);
+      }
+
+      const restored = await service.setActive(chain[51], chain[0], viewer);
+      expect(restored.activeVersionId).toBe(chain[0]);
+      expect(restored.versions).toHaveLength(51);
+      expect(restored.versions[0].id).toBe(chain[0]);
     });
 
     it('hides an asset from another organization and from another brand', async () => {

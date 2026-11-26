@@ -7,6 +7,7 @@ import { IngredientStackService } from '@api/collections/ingredients/services/in
 import {
   type IngredientVersionHistoryResult,
   IngredientVersionsService,
+  type IngredientVersionViewer,
 } from '@api/collections/ingredients/services/ingredient-versions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -231,8 +232,10 @@ export class IngredientsRelationshipsController {
 
   /**
    * The ordered versions of this asset and which one is active. Visibility
-   * follows the Library like the lineage routes, so there is no
-   * `AssetAccessGuard`: an asset the member cannot list is a 404.
+   * follows the Library like the lineage routes: the selected brand decides
+   * which assets can be asked for, and a `USER` asset (the asked-for one or a
+   * linked version) is shown to its owner only. An asset the member cannot see
+   * is a 404.
    */
   @TenantReadPolicy('selected')
   @Get(':ingredientId/versions')
@@ -252,6 +255,10 @@ export class IngredientsRelationshipsController {
   /**
    * Makes one version of the history the active one. Nothing is deleted:
    * newer versions stay in the history and can be made active again.
+   *
+   * `AssetAccessGuard` has already decided who may change this asset, so the
+   * lookup is not narrowed to the token's brand: the member may be viewing a
+   * brand other than the one in the token, and still owns the asset.
    */
   @Patch(':ingredientId/versions/active')
   @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
@@ -266,17 +273,22 @@ export class IngredientsRelationshipsController {
     const history = await this.versionsService.setActive(
       ingredientId,
       body.versionId,
-      this.versionViewer(user),
+      this.versionViewer(user, {
+        brandId: undefined,
+        organizationId: user.organizationId,
+      }),
     );
     return this.serializeVersions(request, history);
   }
 
-  private versionViewer(user: User, readScope?: ITenantReadScope) {
+  private versionViewer(
+    user: User,
+    scope: Pick<ITenantReadScope, 'brandId' | 'organizationId'>,
+  ): IngredientVersionViewer {
     return {
-      brandId: readScope ? readScope.brandId : user.brandId,
-      organizationId: readScope
-        ? readScope.organizationId
-        : user.organizationId,
+      brandId: scope.brandId,
+      organizationId: scope.organizationId,
+      userIds: [user.userId, user.id].filter((id): id is string => Boolean(id)),
     };
   }
 
