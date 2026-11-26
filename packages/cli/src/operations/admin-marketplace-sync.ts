@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ListingStatus } from '@genfeedai/contracts';
+import { stableStringify } from '@genfeedai/contracts/constants/canonical-json.constant';
 import {
   PRESET_CATALOG,
   type PresetCatalogEntry,
@@ -78,17 +79,12 @@ function plain(value: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 }
 
-/** JSON with sorted keys, so a document read back from Postgres compares equal. */
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .filter(([, entry]) => entry !== undefined)
-      .sort(([left], [right]) => (left < right ? -1 : 1))
-      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
+/** Sorted-key JSON of what the store would hold, so a document read back from Postgres compares equal. */
+function sameDocument(left: unknown, right: unknown): boolean {
+  return (
+    stableStringify(JSON.parse(JSON.stringify(left ?? null))) ===
+    stableStringify(JSON.parse(JSON.stringify(right ?? null)))
+  );
 }
 
 export function buildPresetListing(preset: PresetCatalogEntry): ListingDraft {
@@ -249,9 +245,9 @@ function isSameContent(draft: ListingDraft, existing: AdminMarketplaceListing): 
     existing.description === draft.description &&
     existing.price === draft.price &&
     existing.version === draft.version &&
-    canonicalJson(existing.tags ?? []) === canonicalJson(draft.tags) &&
-    canonicalJson(existing.previewData ?? {}) === canonicalJson(draft.previewData) &&
-    canonicalJson(existing.downloadData ?? {}) === canonicalJson(draft.downloadData)
+    sameDocument(existing.tags ?? [], draft.tags) &&
+    sameDocument(existing.previewData ?? {}, draft.previewData) &&
+    sameDocument(existing.downloadData ?? {}, draft.downloadData)
   );
 }
 
