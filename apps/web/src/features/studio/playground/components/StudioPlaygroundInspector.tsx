@@ -191,6 +191,7 @@ export default function StudioPlaygroundInspector({
       content: (
         <StudioInspectorHistoryPanel
           childAssets={relations.children}
+          ingredientId={ingredientId}
           isLoading={relations.isLoadingHistory}
           onSelect={onSelect}
           siblingJobs={siblingJobs}

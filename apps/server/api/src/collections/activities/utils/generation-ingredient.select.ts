@@ -36,6 +36,7 @@ const GENERATION_INGREDIENT_COLUMNS = {
   promptTemplate: true,
   qualityStatus: true,
   recreateCount: true,
+  relationKind: true,
   reviewStatus: true,
   s3Key: true,
   scope: true,

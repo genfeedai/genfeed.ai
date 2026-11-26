@@ -4,22 +4,30 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import IngredientVersionHistory from '@/components/ingredients/inspector/IngredientVersionHistory';
 import {
   studioAssetAccessibleLabel,
   studioIngredientAccessibleLabel,
 } from '@/features/studio/playground/utils/studio-playground-recipe';
 import type { StudioInspectorHistoryPanelProps } from '@/features/studio/props/studio-playground-inspector.props';
 
-/** The other generations of the same run, and the assets made from this one. */
+/**
+ * The versions of the asset (the same list as the Library inspector), the other
+ * generations of the same run, and the assets made from this one.
+ */
 export default function StudioInspectorHistoryPanel({
   childAssets,
+  ingredientId,
   isLoading,
   onSelect,
   siblingJobs,
 }: StudioInspectorHistoryPanelProps): ReactElement {
   const translate = useTranslations('pages.studioPlayground');
   return (
-    <div className="px-4 py-3">
+    <div className="flex flex-col gap-3 px-4 py-3">
+      {ingredientId ? (
+        <IngredientVersionHistory ingredientId={ingredientId} />
+      ) : null}
       {siblingJobs.length === 0 && childAssets.length === 0 && !isLoading ? (
         <p className="text-xs text-muted-foreground">
           {translate('inspector.emptyHistory')}

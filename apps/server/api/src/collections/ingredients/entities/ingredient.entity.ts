@@ -28,6 +28,8 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly personaSlug: Ingredient['personaSlug'];
   declare readonly contentRating: Ingredient['contentRating'];
   declare readonly origin: Ingredient['origin'];
+  declare readonly relationKind: Ingredient['relationKind'];
+  declare readonly activeVersionId: Ingredient['activeVersionId'];
   declare readonly reviewStatus: Ingredient['reviewStatus'];
   declare readonly assetLabel: Ingredient['assetLabel'];
   declare readonly generationSource: Ingredient['generationSource'];
