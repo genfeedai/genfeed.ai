@@ -5,6 +5,7 @@ import { UpdateLinkDto } from '@api/collections/links/dto/update-link.dto';
 import type { LinkDocument } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -14,6 +15,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiSingleResponse,
   PopulateOption,
@@ -166,6 +168,7 @@ export class LinksController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -187,6 +190,7 @@ export class LinksController extends BaseCRUDController<
   }
 
   @Patch(':linkId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async patch(
     @Req() request: Request,
@@ -205,6 +209,7 @@ export class LinksController extends BaseCRUDController<
   }
 
   @Delete(':linkId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

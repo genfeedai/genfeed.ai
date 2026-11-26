@@ -5,6 +5,7 @@ import { TrackedLinksQueryDto } from '@api/collections/tracked-links/dto/tracked
 import { UpdateTrackedLinkDto } from '@api/collections/tracked-links/dto/update-tracked-link.dto';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -13,6 +14,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { TrackedLinkSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,6 +46,7 @@ export class TrackedLinksController {
    * Generate tracking link
    */
   @Post('links')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateLink(
     @Req() req: ExpressRequest,
@@ -148,6 +151,7 @@ export class TrackedLinksController {
    * Update link
    */
   @Patch('links/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateLink(
     @Req() req: ExpressRequest,
@@ -168,6 +172,7 @@ export class TrackedLinksController {
    * Delete link
    */
   @Delete('links/:id')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async deleteLink(@Param('id') linkId: string, @CurrentUser() user: User) {
     const organization = user.organizationId;

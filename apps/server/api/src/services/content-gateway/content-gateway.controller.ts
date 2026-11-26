@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -10,6 +11,7 @@ import type {
   ContentGatewayResponse,
   ContentGatewayResult,
 } from '@api/services/content-gateway/interfaces/content-gateway.interfaces';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { PostSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -21,6 +23,7 @@ export class ContentGatewayController {
   constructor(private readonly contentGatewayService: ContentGatewayService) {}
 
   @Post('signal')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async routeSignal(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -40,6 +43,7 @@ export class ContentGatewayController {
   }
 
   @Post('execute')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async executeSkill(
     @Req() request: Request,
     @CurrentUser() user: User,
