@@ -333,6 +333,23 @@ async function scheduleTargetInTransaction(
     }
   }
 
+  // The comment posts copy the target's state: a draft release's comment is
+  // still DRAFT, where the publish worker never loads it.
+  await syncReleaseAttachmentPosts(tx, {
+    editableStates: GROUP_ACTION_STATES,
+    group,
+    organizationId: params.organizationId,
+    targets: [
+      await dependencies.persistenceService.getTargetOrThrow(
+        tx,
+        params.organizationId,
+        group.id,
+        params.targetId,
+      ),
+    ],
+    userId: params.userId,
+  });
+
   await dependencies.publishApprovalsService.createForCurrentPost({
     actorUserId: params.userId,
     ...(params.provenance?.agentContextVersion !== undefined && {
