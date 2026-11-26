@@ -61,6 +61,8 @@ import {
   filterPublishingContentLibraryItems,
   formatPublishingContentChannel,
   formatPublishingContentStatus,
+  hasPublishingInFlight,
+  IN_FLIGHT_REFETCH_MS,
   type PublishingContentLibraryItem,
   parsePublishingContentType,
 } from '@/features/posts/library/publishing-content-library.helpers';
@@ -194,6 +196,10 @@ export default function PublishingContentLibrary() {
       return { articles, newsletters, posts, releases };
     },
     queryKey: ['publishing-posts-library', organizationId, brandId],
+    refetchInterval: (query) =>
+      query.state.data && hasPublishingInFlight(query.state.data)
+        ? IN_FLIGHT_REFETCH_MS
+        : false,
   });
 
   // use-effect-audit: ignore reports a load failure to the logger and notifications
@@ -207,8 +213,12 @@ export default function PublishingContentLibrary() {
   }, [error, notificationsService]);
 
   const items = useMemo(
-    () => createPublishingContentLibraryItems(collections),
-    [collections],
+    () =>
+      createPublishingContentLibraryItems({
+        ...collections,
+        credentials: credentials ?? [],
+      }),
+    [collections, credentials],
   );
   const postsById = useMemo(
     () => new Map(collections.posts.map((post) => [post.id, post])),
