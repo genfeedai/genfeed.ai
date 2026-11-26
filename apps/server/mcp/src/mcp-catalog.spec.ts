@@ -38,7 +38,9 @@ describe('curated MCP action catalog', () => {
 
   it('routes every MCP action to a concrete executor', () => {
     const unroutable = eligible
-      .filter((name) => name !== 'resolve_approval')
+      .filter(
+        (name) => name !== 'resolve_approval' && name !== 'answer_approval',
+      )
       .filter((name) => !isMcpCatalogToolName(name))
       .filter((name) => ToolRegistryService.classify(name) === 'unknown');
 

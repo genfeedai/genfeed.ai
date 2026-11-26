@@ -26,6 +26,11 @@ export interface AppLayoutProps {
   orgSlug?: string;
   /** Brand slug for tenant-scoped shell chrome */
   brandSlug?: string;
+  /**
+   * The menu's New Task and Search live in its top row, beside the rail's mark
+   * (and after the macOS window controls). Without a rail there is no such row.
+   */
+  hasMenuQuickActions?: boolean;
   /** Enables geometry and landmarks scoped to the conversation workspace. */
   isWorkspaceShell?: boolean;
   /**

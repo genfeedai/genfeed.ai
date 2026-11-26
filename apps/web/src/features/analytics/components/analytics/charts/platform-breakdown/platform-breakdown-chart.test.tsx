@@ -70,6 +70,12 @@ describe('PlatformBreakdownChart', () => {
       expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     });
 
+    it('gives the chart the full height of its frame', () => {
+      render(<PlatformBreakdownChart data={mockData} />);
+      // The chart's own height is 100%, which is 0 unless the wrapper fills the frame.
+      expect(screen.getByTestId('responsive-container')).toHaveClass('h-full');
+    });
+
     it('renders the pie chart', () => {
       render(<PlatformBreakdownChart data={mockData} />);
       expect(screen.getByTestId('pie-chart')).toBeInTheDocument();

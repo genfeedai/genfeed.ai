@@ -25,9 +25,9 @@ const names = (tools: McpToolOutput[]): string[] =>
   tools.map((tool) => tool.name).sort();
 
 describe('ToolRegistryService real catalog listing', () => {
-  it('lists the same 29 tools to every role on the standard endpoint, inside the cap', () => {
+  it('lists the same 30 tools to every role on the standard endpoint, inside the cap', () => {
     const user = names(build('user').getTools());
-    expect(user).toHaveLength(29);
+    expect(user).toHaveLength(30);
     expect(user.length).toBeLessThanOrEqual(MCP_TOOL_CAP);
     expect(names(build('superadmin').getTools())).toEqual(user);
   });

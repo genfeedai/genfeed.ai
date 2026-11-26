@@ -208,6 +208,9 @@ const UI_TEST_MESSAGES = {
     sidebar: {
       collapse: 'Collapse sidebar',
       expand: 'Expand sidebar',
+      newTask: 'New Task',
+      newTaskAriaLabel: 'Open new task modal',
+      search: 'Search',
     },
     windowChrome: {
       back: 'Back',

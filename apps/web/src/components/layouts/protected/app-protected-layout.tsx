@@ -492,6 +492,7 @@ function AppLayoutWithDynamicMenu({
           breadcrumb={layoutBreadcrumb}
           brandSlug={brandSlug}
           currentApp={currentApp}
+          hasMenuQuickActions
           menuComponent={menuComponent}
           railComponent={railComponent}
           topbarComponent={topbarComponent}
