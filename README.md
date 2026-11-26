@@ -132,10 +132,10 @@ it to yourself over MCP.
    docker compose --env-file .env -f compose.yml up -d
    Wait for http://localhost:3000 to answer. Sign-up is open by default; the
    seed also creates one organization (slug `default`) and brand.
-4. For Claude Code, register its dedicated content connector:
-   claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+4. For Claude Code, register the server:
+   claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp
 5. Open /mcp, select genfeed and complete browser OAuth. For other clients,
-   configure the standard http://localhost:3014/mcp endpoint and authorize in
+   configure the same http://localhost:3014/mcp endpoint and authorize in
    the browser; a scoped API-key fallback is available for those clients.
 6. List the Genfeed tools to confirm the connection, then stop.
 
@@ -144,7 +144,7 @@ Docs index for agents: https://docs.genfeed.ai/llms.txt
 ```
 
 Already on the hosted product? Skip installation and authorize with browser OAuth.
-Claude uses `https://mcp.genfeed.ai/mcp/claude` for brands, drafts, existing assets, scheduling and analytics; create media in [Genfeed Playground](https://app.genfeed.ai/playground). Other clients use `https://mcp.genfeed.ai/mcp` for the full toolset.
+Every client, Claude included, uses `https://mcp.genfeed.ai/mcp`.
 
 The standard MCP preset is approval-first: an agent can generate, draft, and schedule, but
 publishing waits for a human. What each surface exposes and why is in

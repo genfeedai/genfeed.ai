@@ -59,7 +59,7 @@ export default function FeaturesPage(): React.ReactElement {
         heroVisual={HERO_VISUAL}
         isHeroVisualStacked
         title={<>What Genfeed does</>}
-        description="Brief Genfeed from the agent you already use. Start from trends, draft and schedule posts, make video and images on the full Genfeed connector, then publish and see what worked in the dashboard."
+        description="Brief Genfeed from the agent you already use. Start from trends, draft and schedule posts, make video and images, then publish and see what worked in the dashboard."
       >
         <section className="gsap-hero py-12 md:py-20">
           <div className="container mx-auto px-6">

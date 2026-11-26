@@ -4,7 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ConnectGenfeedClient } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
-import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -37,10 +36,7 @@ export default function AgentStep({
   const status = useConnectGenfeedStatus(organizationId ?? '', {
     pollIntervalMs: CONNECTION_POLL_MS,
   });
-  const endpoint =
-    client === 'claude-code'
-      ? deriveClaudeMcpResourceIdentifier(EnvironmentService.mcpEndpoint)
-      : EnvironmentService.mcpEndpoint;
+  const endpoint = EnvironmentService.mcpEndpoint;
   const instructions = buildConnectGenfeedInstructions(client, endpoint);
   const setup = instructions.primaryCommand ?? endpoint;
   const clientLabel = t(`agent.clients.${client}.label`);

@@ -358,7 +358,6 @@
       "description": "Paste this into {client}. What it makes shows up in your workspace.",
       "agentFallback": "your agent",
       "copy": "Copy first prompt",
-      "textDrafts": "Look at my Genfeed brand and this week’s trends. Draft three posts for {brand} and save them for my review. Do not publish them.",
       "textWithImages": "Look at my Genfeed brand and this week’s trends. Draft three posts for {brand}, generate an image for each, and save them for my review. Do not publish them.",
       "credits": {
         "label": "Your credits",
