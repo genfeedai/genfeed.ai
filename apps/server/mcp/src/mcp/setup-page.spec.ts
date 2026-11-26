@@ -238,7 +238,7 @@ describe('MCP setup page', () => {
     expect(html).toContain('id="agent-setup-prompt"');
     expect(html).toContain('data-copy-source="agent-setup-prompt"');
     expect(promptHtml).toContain(
-      'Set up the Genfeed MCP server on this machine,',
+      'Set up the Genfeed MCP server on this machine for the local agent I am using.',
     );
     expect(promptHtml).toContain(
       'Authentication: browser OAuth (no API key required)',
@@ -498,8 +498,8 @@ describe('MCP setup page', () => {
       expect(
         dom.window.document.getElementById('claude-chat-media-url'),
       ).toBeNull();
-      expect(dom.window.document.documentElement.outerHTML).not.toContain(
-        '/mcp/claude',
+      expect(dom.window.document.documentElement.outerHTML).not.toMatch(
+        /\/mcp\/claude|plugin install genfeed/,
       );
       expect(dom.window.document.body.textContent).not.toContain(
         'Genfeed Studio',

@@ -51,7 +51,7 @@ describe('agent clients', () => {
     },
   );
 
-  it('keeps the dedicated install command and requires browser OAuth for Claude Code', () => {
+  it('installs Claude Code with the MCP command and requires browser OAuth', () => {
     const client = getAgentClient('claude-code');
     const labels = getAgentClientCommandBlocks(client).map(
       (block) => block.label,
@@ -59,7 +59,6 @@ describe('agent clients', () => {
 
     expect(client.chatPrompt).toBeUndefined();
     expect(labels).toEqual([
-      'Claude Code plugin',
       'Connect URL',
       'Install command',
       'Configuration',

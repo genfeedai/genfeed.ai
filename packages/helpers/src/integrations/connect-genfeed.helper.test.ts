@@ -68,7 +68,9 @@ describe('Claude uses the full-access endpoint', () => {
       expect(prompt).toContain(
         'Claude and Cowork use the same endpoint as every other client',
       );
-      expect(prompt).not.toMatch(/\/claude|genfeed-media|Genfeed Studio/i);
+      expect(prompt).not.toMatch(
+        /\/claude|genfeed-media|Genfeed Studio|plugin install genfeed/i,
+      );
       expect(prompt).toContain('Claude requires OAuth');
       expect(prompt).toContain('Never run skills add for any Claude client');
       expect(prompt).toContain('For non-Claude clients, install');

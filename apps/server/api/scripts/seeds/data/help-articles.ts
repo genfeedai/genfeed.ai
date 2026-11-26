@@ -708,10 +708,7 @@ browser; there is nothing to install on a server and you do not paste an API key
 and choose to authenticate. Sign in and approve access in your browser, then
 return to Claude Code. Check the result with:</p>
 <pre><code>claude mcp list</code></pre>
-<p>Ask Claude Code to list your Genfeed brands to confirm it works. Genfeed
-also publishes a Claude Code plugin with the Genfeed playbook:
-<code>/plugin install genfeed --marketplace genfeedai/agent</code>.</p>
-<!-- TODO(help): confirm the minimum Claude Code version for the plugin command (the setup prompt says 2.1.275 or newer) before stating one. -->
+<p>Ask Claude Code to list your Genfeed brands to confirm it works.</p>
 
 <h2>Connect Cursor</h2>
 <p>Open the install link on <a href="${SITE}/cursor">genfeed.ai/cursor</a>,
