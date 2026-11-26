@@ -120,6 +120,7 @@ export function deriveRemainingVideoReferenceRoles(
   }
   if (
     nativeFields.includes('reference_video') ||
+    nativeFields.includes('video') ||
     nativeFields.includes('reference_videos') ||
     nativeFields.includes('reference_video_urls')
   ) {

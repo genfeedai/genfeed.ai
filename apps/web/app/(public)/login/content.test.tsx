@@ -2,7 +2,6 @@ import '@testing-library/jest-dom/vitest';
 import MagicLinkLoginPage from '@app/(public)/login/magic-link/page';
 import AppLoginPage from '@app/(public)/login/page';
 import PasswordLoginPage from '@app/(public)/login/password/page';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   act,
   fireEvent,
@@ -27,17 +26,10 @@ const authClientMocks = vi.hoisted(() => ({
 const desktopRuntimeMocks = vi.hoisted(() => ({
   eventOrder: [] as string[],
   completeWithCode: vi.fn(),
-  enableOfflineMode: vi.fn(),
   getDesktopBridge: vi.fn(),
   login: vi.fn(),
   onDidChangeSession: vi.fn(),
   unsubscribe: vi.fn(),
-}));
-
-const desktopLocalWorkspaceFlagMock = vi.hoisted(() => ({
-  isAvailable: true,
-  isEnabled: true,
-  isReady: true,
 }));
 
 let desktopSessionChangeCallback: ((session: object | null) => void) | null =
@@ -56,10 +48,6 @@ vi.mock('@genfeedai/auth-client', async (importOriginal) => ({
 
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
-}));
-
-vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
-  useDesktopLocalWorkspaceFlag: () => desktopLocalWorkspaceFlagMock,
 }));
 
 vi.mock('next-intl', async () => {
@@ -132,11 +120,6 @@ describe('LoginPage', () => {
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
     desktopRuntimeMocks.eventOrder.length = 0;
-    desktopLocalWorkspaceFlagMock.isAvailable = true;
-    desktopLocalWorkspaceFlagMock.isEnabled = true;
-    desktopLocalWorkspaceFlagMock.isReady = true;
-    desktopRuntimeMocks.enableOfflineMode.mockReset();
-    desktopRuntimeMocks.enableOfflineMode.mockResolvedValue({});
     desktopRuntimeMocks.completeWithCode.mockReset();
     desktopRuntimeMocks.completeWithCode.mockResolvedValue(undefined);
     desktopRuntimeMocks.getDesktopBridge.mockReset();
@@ -155,9 +138,6 @@ describe('LoginPage', () => {
     desktopRuntimeMocks.unsubscribe.mockReset();
     desktopSessionChangeCallback = null;
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
-      app: {
-        enableOfflineMode: desktopRuntimeMocks.enableOfflineMode,
-      },
       auth: {
         completeWithCode: desktopRuntimeMocks.completeWithCode,
         login: desktopRuntimeMocks.login,
@@ -340,9 +320,7 @@ describe('LoginPage', () => {
       expect(
         screen.getByRole('button', { name: 'Sign in with Genfeed' }),
       ).toBeEnabled();
-      expect(
-        screen.getByRole('button', { name: 'Use Local Workspace' }),
-      ).toBeEnabled();
+      expect(screen.queryByText(/local workspace/i)).not.toBeInTheDocument();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument();
       expect(
@@ -353,60 +331,6 @@ describe('LoginPage', () => {
       ).not.toBeInTheDocument();
     },
   );
-
-  it('hides the local workspace entry while the PostHog flag is off', () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    desktopLocalWorkspaceFlagMock.isEnabled = false;
-    desktopLocalWorkspaceFlagMock.isReady = true;
-    render(<LoginPage />);
-
-    expect(
-      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
-    ).toBeEnabled();
-    expect(screen.queryByText(/local workspace/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/local mode/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
-    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
-  });
-
-  it('hides every local workspace entry on the desktop sign-in screen in cloud-only builds', () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    desktopLocalWorkspaceFlagMock.isAvailable = false;
-    desktopLocalWorkspaceFlagMock.isEnabled = false;
-    render(<LoginPage />);
-
-    expect(
-      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
-    ).toBeEnabled();
-    expect(screen.queryByText(/local workspace/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/local mode/i)).not.toBeInTheDocument();
-    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
-  });
-
-  it('starts local mode only after the user selects it', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    const locationAssignMock = vi.fn();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {
-        ...originalLocation,
-        assign: locationAssignMock,
-        origin: originalLocation.origin,
-      },
-      writable: true,
-    });
-    render(<LoginPage />);
-
-    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Use Local Workspace' }),
-    );
-
-    await waitFor(() => {
-      expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
-    });
-    expect(locationAssignMock).toHaveBeenCalledWith(APP_ROUTES.DESKTOP.LOCAL);
-  });
 
   it('hands the continuation to the desktop shell sign-in (#6276)', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
@@ -444,9 +368,6 @@ describe('LoginPage', () => {
       screen.getByText(/Source checkouts cannot open automatically/i),
     ).toBeVisible();
     expect(screen.getByLabelText('Sign-in code')).toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: 'Use Local Workspace' }),
-    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
@@ -967,25 +888,6 @@ describe('LoginPage', () => {
         ).not.toBeInTheDocument();
       },
     );
-
-    it('shows a failed local workspace start and lets the user try again', async () => {
-      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-      desktopRuntimeMocks.enableOfflineMode.mockRejectedValueOnce(
-        new Error('Local database could not start.'),
-      );
-      render(<LoginPage />);
-
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Use Local Workspace' }),
-      );
-
-      expect(
-        await screen.findByText('Local database could not start.'),
-      ).toBeVisible();
-      expect(
-        screen.getByRole('button', { name: 'Use Local Workspace' }),
-      ).toBeEnabled();
-    });
 
     it('returns to idle when the system browser cannot be opened', async () => {
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');

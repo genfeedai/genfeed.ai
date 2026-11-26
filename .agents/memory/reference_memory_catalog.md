@@ -33,7 +33,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
 - [claim_work_before_starting](claim_work_before_starting.md) — search open PRs before branching or spawning a fix; push early to claim
 - [feedback_fix_branch_ends_in_pr](feedback_fix_branch_ends_in_pr.md) — a pushed fix branch is done only when a ready PR exists; no "pushed, no PR" handoffs
-- [feedback_desktop_local_workspace_disabled](feedback_desktop_local_workspace_disabled.md) — desktop local/PGlite workspace is a PostHog-gated slice, not a void coming-soon page
 - [feedback_pr_closes_one_issue_per_keyword](feedback_pr_closes_one_issue_per_keyword.md) — one `Closes #N` line per issue; a comma list only auto-closes the first
 - [feedback_stacked_pr_merge_target](feedback_stacked_pr_merge_target.md) — retarget stacked PRs to `master` before merging; closing keywords never fire on a feature-branch base
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
@@ -141,7 +140,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [prefilled-brand-remix-runs](spec-prefilled-brand-remix-runs.md) · [decisions](decisions-prefilled-brand-remix-runs.md) — #3338 Discover/Ads → Studio → Library/Review → Publish/paused campaign
 - [auth-email-delivery-acknowledgement](spec-auth-email-delivery-acknowledgement.md) · [decisions](decisions-auth-email-delivery-acknowledgement.md) — synchronous provider acceptance for auth email
 - [argil-avatar-video](spec-argil-avatar-video.md) · [decisions](decisions-argil-avatar-video.md) — #2849
-- [desktop-local-database-boundary](spec-desktop-local-database-boundary.md) · [decisions](decisions-desktop-local-database-boundary.md) — #2824
 - [multi-type-posts-library](spec-multi-type-posts-library.md) · [decisions](decisions-multi-type-posts-library.md) — #2604
 - [operational-app-home](spec-operational-app-home.md) · [decisions](decisions-operational-app-home.md) — #1866
 - [retire-redundant-product-routes](spec-retire-redundant-product-routes.md) · [decisions](decisions-retire-redundant-product-routes.md) — #1867
@@ -179,8 +177,8 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_backend_typecheck](project_backend_typecheck.md) — `tsconfig.typecheck.json` per backend workspace
 - [project_bullmq](project_bullmq.md) — new processors go to workers or the owning service, not API
 - [project_settings_routing](project_settings_routing.md) — personal/org/brand settings URL shapes
-- [project_desktop_byok_generation](project_desktop_byok_generation.md) — BYOK generation runs in Electron main behind the canonical app UI
-- [project_desktop_first_run](project_desktop_first_run.md) — desktop boots `apps/web` with Genfeed Connect sign-in; sync consent per cloud user
+- [decisions-desktop-local-mode-removed](decisions-desktop-local-mode-removed.md) — Desktop has no local mode (PGlite, BYOK generation, sync were removed in #11460); it is a cloud API client plus local CLIs
+- [project_desktop_first_run](project_desktop_first_run.md) — desktop boots `apps/web` with Genfeed Connect sign-in
 - [project_desktop_cli_agent_runtime](project_desktop_cli_agent_runtime.md) — CLI runtime architecture = Claude Code / Codex CLI + Genfeed MCP + Desktop; threads in Genfeed, external turns never reserve credits; cloud mode, no local workspace
 - [decisions-desktop-skills-run-in-terminal](decisions-desktop-skills-run-in-terminal.md) — a skill tagged `local` runs in a `claude` session in the Desktop terminal (`runsOn: 'desktop'`); never a permission bypass; web shows Get Desktop
 - [project_agent_free_tier_model_lock](project_agent_free_tier_model_lock.md) — unsubscribed hosted orgs run every agent turn on `LLM_DEFAULTS.agentChat` (DeepSeek V4 Flash) unless BYOK pays; no-billing servers never lock

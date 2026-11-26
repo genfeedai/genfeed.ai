@@ -22,16 +22,6 @@ export class CreateSkillCheckoutDto {
 
   @IsString()
   @IsOptional()
-  @MaxLength(120)
-  @ApiProperty({
-    description:
-      'Optional Skills Pro slug for a single-skill purchase. Omit to purchase the bundle.',
-    required: false,
-  })
-  readonly skillSlug?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(2048)
   @ApiProperty({
     description: 'URL to redirect to if checkout is cancelled',

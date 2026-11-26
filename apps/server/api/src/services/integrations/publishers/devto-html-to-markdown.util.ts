@@ -59,6 +59,28 @@ export function readDevtoTags(value: string | undefined): string[] {
   return tags;
 }
 
+/**
+ * The canonical URL channel setting. Dev.to takes an absolute URL; anything
+ * else would leave Dev.to as the original while the author believes otherwise,
+ * so a value that is not a valid https URL is reported, never dropped.
+ */
+export function readDevtoCanonicalUrl(
+  value: string | undefined,
+): { url: string | undefined } | { error: string } {
+  if (!value) {
+    return { url: undefined };
+  }
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol === 'https:') {
+      return { url: parsed.toString() };
+    }
+  } catch {
+    // falls through to the error below
+  }
+  return { error: 'Dev.to canonical URL must be a valid https URL' };
+}
+
 function stripHtmlOutsideFences(markdown: string): string {
   return markdown
     .split(FENCED_CODE_BLOCKS_PATTERN)

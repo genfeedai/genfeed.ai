@@ -3,9 +3,8 @@ import { getLicenseVerificationVerdict } from './license-state';
 
 export interface CreditsVisibilityContext {
   clientSurface?: 'web' | 'desktop';
-  runtimeMode?: 'cloud' | 'local' | 'unknown';
+  /** The selected server, set only once Desktop is signed in and ready. */
   selectedServerKind?: 'cloud' | 'self-hosted' | null;
-  generationExecution?: 'remote' | 'local-byok' | 'unknown';
 }
 
 /**
@@ -61,8 +60,7 @@ export function usesMeteredCredits(): boolean {
  *
  * - SaaS / EE: yes (metered Genfeed credits).
  * - Community self-host: yes (buy managed Cloud credits; not pure local BYOK).
- * - Desktop: only a verified selected cloud server may expose its wallet.
- *   Generation execution does not determine which account owns that wallet.
+ * - Desktop: only a signed-in, ready Genfeed Cloud server exposes its wallet.
  */
 export function shouldShowCreditsNav(
   context?: CreditsVisibilityContext,
@@ -71,9 +69,7 @@ export function shouldShowCreditsNav(
     (context?.clientSurface ?? (isDesktopClient() ? 'desktop' : 'web')) ===
     'desktop'
   ) {
-    return (
-      context?.runtimeMode === 'cloud' && context.selectedServerKind === 'cloud'
-    );
+    return context?.selectedServerKind === 'cloud';
   }
   if (hasOrganizationBilling()) {
     return true;

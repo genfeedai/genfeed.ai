@@ -251,16 +251,7 @@ const creditsCloudContext: IDesktopRuntimeContext = {
   selectedServerId: 'credits-cloud',
   selectedServerKind: 'cloud',
   selectedApiEndpoint: 'https://example.invalid/v1',
-  runtimeMode: 'cloud',
   generationExecution: 'remote',
-  localProvider: null,
-};
-const creditsLocalContext: IDesktopRuntimeContext = {
-  ...creditsCloudContext,
-  revision: 2,
-  runtimeMode: 'local',
-  generationExecution: 'local-byok',
-  localProvider: { provider: 'ollama', networkAccess: 'local' },
 };
 const creditsRuntimeCases = [
   {
@@ -301,43 +292,6 @@ const creditsRuntimeCases = [
     allowed: true,
     selfHosted: false,
     billing: false,
-    price: undefined,
-  },
-  {
-    name: 'local Ollama with remembered cloud and billing hint',
-    runtime: { status: 'ready', context: creditsLocalContext },
-    allowed: false,
-    selfHosted: false,
-    billing: true,
-    price: undefined,
-  },
-  {
-    name: 'local Replicate with remote network',
-    runtime: {
-      status: 'ready',
-      context: {
-        ...creditsLocalContext,
-        localProvider: { provider: 'replicate', networkAccess: 'remote' },
-      },
-    },
-    allowed: false,
-    selfHosted: false,
-    billing: true,
-    price: undefined,
-  },
-  {
-    name: 'local unknown execution',
-    runtime: {
-      status: 'ready',
-      context: {
-        ...creditsLocalContext,
-        generationExecution: 'unknown',
-        localProvider: null,
-      },
-    },
-    allowed: false,
-    selfHosted: true,
-    billing: true,
     price: undefined,
   },
   {
@@ -400,10 +354,16 @@ const creditsRuntimeCases = [
 }[];
 const creditsRuntimeTransitions: DesktopRuntimeSnapshot[] = [
   { status: 'loading', context: null },
-  { status: 'ready', context: creditsLocalContext },
+  {
+    status: 'ready',
+    context: { ...creditsCloudContext, generationExecution: 'unknown' },
+  },
   { status: 'ready', context: creditsCloudContext },
   { status: 'switching', context: creditsCloudContext },
-  { status: 'ready', context: creditsLocalContext },
+  {
+    status: 'ready',
+    context: { ...creditsCloudContext, generationExecution: 'unknown' },
+  },
   { status: 'ready', context: creditsCloudContext },
 ];
 

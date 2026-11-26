@@ -49,7 +49,6 @@ const runtimeScope = (
   JSON.stringify([
     snapshot.status,
     snapshot.context?.runtimeId,
-    snapshot.context?.runtimeMode,
     snapshot.context?.generationExecution,
     snapshot.context?.selectedServerId,
     snapshot.context?.selectedApiEndpoint,
@@ -81,7 +80,6 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
       'topbar-balances',
       context?.runtimeId ?? runtime.status,
       runtime.status,
-      context?.runtimeMode ?? null,
       context?.generationExecution ?? null,
       context?.selectedServerId ?? null,
       context?.selectedApiEndpoint ?? null,
@@ -93,7 +91,6 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     [
       apiEndpoint,
       context?.runtimeId,
-      context?.runtimeMode,
       context?.generationExecution,
       context?.selectedServerId,
       context?.selectedApiEndpoint,
