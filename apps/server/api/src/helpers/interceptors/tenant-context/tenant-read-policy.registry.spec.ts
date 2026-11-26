@@ -336,21 +336,21 @@ const observedTemplates = [
 
 describe('combined tenant read policy registry', () => {
   it('conserves exactly247 original canonical routes,73 prefixes and125 distinct owned controllers', () => {
-    expect(routes).toHaveLength(249);
-    expect(new Set(routes.map((entry) => entry.route)).size).toBe(249);
+    expect(routes).toHaveLength(248);
+    expect(new Set(routes.map((entry) => entry.route)).size).toBe(248);
     expect(new Set(routes.map((entry) => entry.route.split('/')[2])).size).toBe(
       73,
     );
-    expect(new Set(routes.map((entry) => entry.controller)).size).toBe(125);
+    expect(new Set(routes.map((entry) => entry.controller)).size).toBe(124);
     expect(routes.map((entry) => entry.route).sort()).toEqual(
       [...observedTemplates].sort(),
     );
-    expect(cohorts.map((cohort) => cohort.length)).toEqual([55, 62, 132]);
+    expect(cohorts.map((cohort) => cohort.length)).toEqual([55, 62, 131]);
     expect(
       cohorts.map(
         (cohort) => new Set(cohort.map((entry) => entry.controller)).size,
       ),
-    ).toEqual([25, 32, 68]);
+    ).toEqual([25, 32, 67]);
     const owners = new Map<object, number>();
     cohorts.forEach((cohort, index) => {
       cohort.forEach((entry) => {
