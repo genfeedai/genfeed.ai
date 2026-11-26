@@ -88,7 +88,7 @@ export function buildGenfeedAgentSetupPrompt(
   const claude = buildConnectGenfeedInstructions('claude-code', mcpEndpoint);
   const codex = buildConnectGenfeedInstructions('codex', mcpEndpoint);
 
-  return `Set up the Genfeed MCP server on this machine, with its agent playbook, for ${clientName}.
+  return `Set up the Genfeed MCP server on this machine for ${clientName}. Install the agent playbook too where the client supports it; Claude clients connect through OAuth only.
 
 Endpoint: ${mcpEndpoint}
 Authentication: browser OAuth (no API key required)
@@ -96,7 +96,7 @@ Setup reference: https://github.com/genfeedai/agent/blob/main/llms-install.md
 
 Do this end to end:
 1. Inspect the selected client's existing Genfeed plugins, skills, and MCP configuration. Preserve unrelated configuration and use the existing Genfeed installation when present. Set up only this client; ask which client to use if you cannot identify it.
-2. For Claude Code, install the dedicated content plugin with /plugin install genfeed --marketplace genfeedai/agent (Claude Code 2.1.275 or newer). For Claude chat, Desktop, Cowork and other Claude clients, skip playbook installation and connect through their supported OAuth flow instead. Never run skills add for any Claude client. For non-Claude clients, install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND} and select only the intended client in the installer. Skip this step if the playbook is already available through an installed Genfeed plugin, extension, or standalone skill. Installing skills alone does not configure or authenticate MCP.
+2. For Claude Code, Claude chat, Desktop, Cowork and every other Claude client, skip playbook installation and connect through their supported OAuth flow instead. Never run skills add for any Claude client. For non-Claude clients, install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND} and select only the intended client in the installer. Skip this step if the playbook is already available through an installed Genfeed plugin, extension, or standalone skill. Installing skills alone does not configure or authenticate MCP.
 3. If Genfeed MCP is not already configured, add the remote Streamable HTTP server for the selected client using browser authorization:
    - Only if the selected client is Claude Code: ${claude.primaryCommand}
    - Only if the selected client is Codex: ${codex.primaryCommand}
