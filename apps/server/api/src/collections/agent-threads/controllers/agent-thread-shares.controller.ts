@@ -11,6 +11,7 @@ import {
 } from '@api/collections/agent-threads/utils/agent-thread-identity.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
@@ -18,6 +19,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { AgentThreadShareSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -67,6 +69,7 @@ export class AgentThreadSharesController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
     summary: 'Share a thread with a member, a brand or the organization',
@@ -90,6 +93,7 @@ export class AgentThreadSharesController {
   }
 
   @Delete(':shareId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @ApiOperation({ summary: 'Stop sharing a thread with one target' })
   async deleteShare(
     @Param('threadId') threadId: string,
