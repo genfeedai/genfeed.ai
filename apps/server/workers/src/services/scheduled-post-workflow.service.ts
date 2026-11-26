@@ -392,7 +392,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     try {
       const organizationId = readPostString(post, ['organizationId']);
       const brandId = readPostString(post, ['brandId']);
-      const credentialId = readPostString(post, ['credentialId', 'credential']);
+      const credentialId = readPostString(post, ['credentialId']);
       const [brand, organization, credential] = await Promise.all([
         organizationId && brandId
           ? this.prisma.brand.findFirst({
