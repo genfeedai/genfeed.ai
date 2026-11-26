@@ -1,3 +1,4 @@
+import { resetLibraryElementSharingForRelocation } from '@api/collections/library-elements/utils/library-element-relocation.util';
 import { RELOCATION_SYSTEM_ACTOR } from '@api/collections/personas/utils/persona-grant-revocation.util';
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
@@ -95,6 +96,9 @@ export async function resetPersonaSharingForRelocation(
   tx: Prisma.TransactionClient,
   params: PersonaSharingScope & { actorUserId: string | null },
 ): Promise<BrandRelocationSharedPersona[]> {
+  // Library elements share the characters' availability model, so they leave
+  // the source organization's sharing in the same step.
+  await resetLibraryElementSharingForRelocation(tx, params);
   const rows = await readSharedPersonaRows(tx, params);
   if (rows.length === 0) {
     return [];
