@@ -18,7 +18,7 @@ import {
   totalFramesFor,
   validateShapes,
   validateTrajectory,
-} from '../lib/geometry';
+} from '../../engine/utils/geometry';
 import type { ControlGroup } from './types';
 import { useGeometryMessages } from './useGeometryMessages';
 

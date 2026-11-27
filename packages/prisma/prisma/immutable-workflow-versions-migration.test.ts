@@ -79,7 +79,12 @@ const rejectedLegacyStepCategories = [
  * snapshot. The parity test below requires each to be registered and absent
  * from the snapshot, so a listed id cannot hide drift.
  */
-const postHardCutExecutorIds = ['agentEventRun', 'brandCover'] as const;
+const postHardCutExecutorIds = [
+  'agentEventRun',
+  'annotation',
+  'brandCover',
+  'motionControl',
+] as const;
 
 const legacyStepCategories = [
   ...rejectedLegacyStepCategories,

@@ -14,7 +14,7 @@ import { Toggle } from '@genfeedai/ui/primitives/toggle';
 import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
-import { type GeometryIssue, shapeSubject } from '../lib/geometry';
+import { type GeometryIssue, shapeSubject } from '../../engine/utils/geometry';
 import { pointIdAt } from './GeometryStageLayers';
 import { useGeometryMessages } from './useGeometryMessages';
 

@@ -7,8 +7,8 @@ import { renderWithMessages } from '../../controls/testMessages';
 import { useWorkflowStore } from '../../stores/workflow';
 import { MotionControlNode } from './MotionControlNode';
 
-const handleGenerate = vi.fn();
-const toastError = vi.fn();
+const generations: string[] = [];
+const toasts: string[] = [];
 
 vi.mock('../BaseNode', () => ({
   BaseNode: ({
@@ -26,7 +26,10 @@ vi.mock('../BaseNode', () => ({
 }));
 
 vi.mock('../../hooks/useNodeExecution', () => ({
-  useNodeExecution: () => ({ handleGenerate, handleStop: vi.fn() }),
+  useNodeExecution: () => ({
+    handleGenerate: () => generations.push('generate'),
+    handleStop: () => undefined,
+  }),
 }));
 
 vi.mock('../../hooks/useCanGenerate', () => ({
@@ -34,7 +37,7 @@ vi.mock('../../hooks/useCanGenerate', () => ({
 }));
 
 vi.mock('@genfeedai/ui/primitives/toaster', () => ({
-  toast: { error: (message: string) => toastError(message) },
+  toast: { error: (message: string) => toasts.push(message) },
 }));
 
 const IMAGE = 'https://cdn.example.com/product.png';
@@ -82,7 +85,8 @@ function renderNode(trajectoryPoints: TrajectoryPoint[], mode = 'trajectory') {
 
 describe('MotionControlNode', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    generations.length = 0;
+    toasts.length = 0;
     useGeometryEditorStore.setState({ hasAttemptedRun: false, target: null });
   });
 
@@ -112,15 +116,15 @@ describe('MotionControlNode', () => {
     ).toBeTruthy();
   });
 
-  it('refuses to generate with a path that is still empty, and says why', () => {
+  it('refuses to generate a trajectory, and still says what is wrong with an empty path', () => {
     renderNode([]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-    expect(handleGenerate).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith(
-      'Run blocked. Motion Control: The path needs at least 2 points.',
-    );
+    expect(generations).toEqual([]);
+    expect(toasts).toEqual([
+      'Run blocked. Motion Control: Only video transfer runs today. Switch the mode to video transfer.',
+    ]);
     expect(screen.getByRole('alert')).toHaveTextContent(
       'The path needs at least 2 points.',
     );
@@ -134,13 +138,13 @@ describe('MotionControlNode', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-    expect(handleGenerate).not.toHaveBeenCalled();
+    expect(generations).toEqual([]);
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Point 2 extends outside the image.',
     );
   });
 
-  it('generates when the path is valid', () => {
+  it('refuses a valid trajectory path, because only video transfer runs', () => {
     renderNode([
       { frame: 0, x: 0.1, y: 0.1 },
       { frame: 119, x: 0.8, y: 0.6 },
@@ -148,16 +152,27 @@ describe('MotionControlNode', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-    expect(handleGenerate).toHaveBeenCalledTimes(1);
-    expect(toastError).not.toHaveBeenCalled();
+    expect(generations).toEqual([]);
+    expect(toasts).toEqual([
+      'Run blocked. Motion Control: Only video transfer runs today. Switch the mode to video transfer.',
+    ]);
   });
 
-  it('needs no path in camera mode', () => {
+  it('refuses camera mode, because only video transfer runs', () => {
     renderNode([], 'camera');
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-    expect(handleGenerate).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Trajectory')).toBeNull();
+    expect(generations).toEqual([]);
+    expect(toasts).toHaveLength(1);
+  });
+
+  it('generates in video transfer mode without a path', () => {
+    renderNode([], 'video_transfer');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+    expect(generations).toEqual(['generate']);
+    expect(toasts).toEqual([]);
   });
 });

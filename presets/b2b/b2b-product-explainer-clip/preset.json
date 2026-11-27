@@ -1,0 +1,56 @@
+{
+  "aspectRatio": "16:9",
+  "allowedModels": [
+    "bytedance/seedance-2.5",
+    "google/veo-3.1"
+  ],
+  "description": "A 10 second clip that shows what the product does.",
+  "evaluationCriteria": [
+    "The first frame is a real product view.",
+    "One action arc and one camera move.",
+    "Nothing the model draws reads as text, a logo or an interface; on-screen words are added after generation."
+  ],
+  "format": "product-explainer-clip",
+  "hookFormula": "Open on the problem the buyer already feels, then show the product resolving it in one move.",
+  "key": "b2b-product-explainer-clip",
+  "label": "Product explainer clip",
+  "mediaType": "video",
+  "referenceSlots": [
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": true,
+      "key": "product-frame",
+      "kind": "image",
+      "label": "Product frame",
+      "role": "product_frame"
+    },
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": false,
+      "key": "brand-logo",
+      "kind": "image",
+      "label": "Logo",
+      "role": "brand_logo"
+    }
+  ],
+  "shots": [
+    {
+      "direction": "The real product frame, held steady, with the pain visible.",
+      "durationSeconds": 3,
+      "key": "problem",
+      "title": "Problem"
+    },
+    {
+      "direction": "One camera move toward the part of the product that fixes it.",
+      "durationSeconds": 5,
+      "key": "resolve",
+      "title": "Resolve"
+    },
+    {
+      "direction": "Settle on the finished state for a clean end frame.",
+      "durationSeconds": 2,
+      "key": "payoff",
+      "title": "Payoff"
+    }
+  ]
+}

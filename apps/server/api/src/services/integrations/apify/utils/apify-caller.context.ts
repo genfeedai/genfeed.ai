@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /** Name logged for a run whose entry point did not name itself. */
-const UNATTRIBUTED_APIFY_CALLER = 'unattributed';
+export const UNATTRIBUTED_APIFY_CALLER = 'unattributed';
 
 const storage = new AsyncLocalStorage<string>();
 
@@ -17,4 +17,18 @@ export function currentApifyCaller(): string {
 /** Runs `callback` so every Apify run it starts is attributed to `caller`. */
 export function runWithApifyCaller<T>(caller: string, callback: () => T): T {
   return storage.run(caller, callback);
+}
+
+/**
+ * Names the caller only when no outer entry point already did, so a service
+ * reached from a scheduled job keeps the job's name and any other path still
+ * gets its own.
+ */
+export function runWithDefaultApifyCaller<T>(
+  caller: string,
+  callback: () => T,
+): T {
+  return storage.getStore() === undefined
+    ? storage.run(caller, callback)
+    : callback();
 }

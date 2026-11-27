@@ -426,4 +426,96 @@ describe('node type normalization', () => {
       type: 'workflowInput',
     });
   });
+
+  it('persists only the declared inputs of a motion control node', () => {
+    const [restored] = restoreWorkflowNodeTypes([
+      {
+        data: {
+          characterOrientation: 'video',
+          inputImage: 'https://cdn/image.png',
+          label: 'Transfer Motion',
+          mode: 'video_transfer',
+          model: 'kwaivgi/kling-v3-motion-control',
+          outputVideo: null,
+          qualityMode: 'std',
+          status: 'idle',
+          trajectoryPoints: [],
+        },
+        id: 'm',
+        position: { x: 0, y: 0 },
+        type: 'motionControl',
+      },
+    ] as WorkflowNodeLike[]);
+
+    expect(restored.type).toBe('genfeedAction');
+    expect(restored.data?.config).toEqual({
+      actionId: 'motionControl',
+      parameters: {
+        characterOrientation: 'video',
+        model: 'kwaivgi/kling-v3-motion-control',
+        qualityMode: 'std',
+      },
+    });
+  });
+
+  it('loads a saved motion control node with the editor defaults it does not persist', () => {
+    const supported = new Set(['genfeedAction', 'motionControl']);
+    const [loaded] = normalizeWorkflowNodeTypes(
+      [
+        {
+          data: {
+            config: {
+              actionId: 'motionControl',
+              parameters: { qualityMode: 'std' },
+            },
+            label: 'Transfer Motion',
+          },
+          id: 'm',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ] as WorkflowNodeLike[],
+      supported,
+    );
+
+    expect(loaded.type).toBe('motionControl');
+    expect(loaded.data).toMatchObject({
+      actionId: 'motionControl',
+      mode: 'video_transfer',
+      model: 'kwaivgi/kling-v3-motion-control',
+      qualityMode: 'std',
+    });
+  });
+
+  it('round-trips the shapes of an annotation node and drops its previews', () => {
+    const shapes = [
+      { height: 0.2, id: 'a', kind: 'rectangle', width: 0.2, x: 0.1, y: 0.1 },
+    ];
+    const [saved] = restoreWorkflowNodeTypes([
+      {
+        data: {
+          annotations: shapes,
+          hasAnnotations: true,
+          inputImage: 'https://cdn/image.png',
+          label: 'Annotate Image',
+          outputImage: null,
+        },
+        id: 'n',
+        position: { x: 0, y: 0 },
+        type: 'annotation',
+      },
+    ] as WorkflowNodeLike[]);
+
+    expect(saved.data?.config).toEqual({
+      actionId: 'annotation',
+      parameters: { annotations: shapes },
+    });
+
+    const [loaded] = normalizeWorkflowNodeTypes(
+      [saved],
+      new Set(['annotation']),
+    );
+    expect(loaded.type).toBe('annotation');
+    expect(loaded.data).toMatchObject({ annotations: shapes });
+  });
 });

@@ -2,8 +2,6 @@ import {
   AdsPlatform,
   type AdsResearchItem,
   type ISourcePost,
-  type ITrendHashtag,
-  type ITrendSound,
   type ITrendVideo,
   type ResearchFindingReference,
   type ResearchFindingReferenceKind,
@@ -39,15 +37,6 @@ export function isAdsResearchFindingReference(
   reference: ResearchFindingReference,
 ): boolean {
   return reference.kind.startsWith('research-ad-');
-}
-
-export function isSameResearchFindingReference(
-  left: ResearchFindingReference | null,
-  right: ResearchFindingReference | null,
-): boolean {
-  return Boolean(
-    left && right && left.id === right.id && left.kind === right.kind,
-  );
 }
 
 export function toAdsResearchFinding(
@@ -155,36 +144,5 @@ export function toTrendVideoFinding(
     ],
     reference: { id: video.id, kind: 'research-trend-video' },
     title: video.title || video.hook || 'Untitled video',
-  };
-}
-
-export function toTrendHashtagFinding(
-  hashtag: ITrendHashtag,
-): AuthorizedResearchFinding {
-  return {
-    metadata: [
-      { label: 'Platform', value: hashtag.platform },
-      {
-        label: 'Virality',
-        value: String(Math.round(hashtag.viralityScore)),
-      },
-    ],
-    reference: { id: hashtag.id, kind: 'research-trend-hashtag' },
-    title: hashtag.hashtag,
-  };
-}
-
-export function toTrendSoundFinding(
-  sound: ITrendSound,
-): AuthorizedResearchFinding {
-  return {
-    description: sound.authorName,
-    metadata: [
-      { label: 'Platform', value: sound.platform },
-      { label: 'Uses', value: String(sound.usageCount) },
-      { label: 'Virality', value: String(Math.round(sound.viralityScore)) },
-    ],
-    reference: { id: sound.id, kind: 'research-trend-sound' },
-    title: sound.soundName || 'Untitled sound',
   };
 }

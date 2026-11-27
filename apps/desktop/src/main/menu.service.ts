@@ -7,27 +7,10 @@ import {
 
 const isMac = process.platform === 'darwin';
 
-export const buildDesktopMenu = (
-  window: BrowserWindow,
-  onOpenWorkspace: (() => void) | null,
-): void => {
-  // Null in cloud-only builds, where there is no local workspace to open.
-  const openWorkspaceItems: MenuItemConstructorOptions[] = onOpenWorkspace
-    ? [
-        {
-          accelerator: 'CmdOrCtrl+O',
-          click: onOpenWorkspace,
-          label: 'Open Workspace',
-        },
-        { type: 'separator' },
-      ]
-    : [];
+export const buildDesktopMenu = (window: BrowserWindow): void => {
   const fileMenu: MenuItemConstructorOptions = {
     label: 'File',
-    submenu: [
-      ...openWorkspaceItems,
-      isMac ? { role: 'close' } : { role: 'quit' },
-    ],
+    submenu: [isMac ? { role: 'close' } : { role: 'quit' }],
   };
 
   const viewMenu: MenuItemConstructorOptions = {

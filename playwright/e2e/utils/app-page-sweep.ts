@@ -100,9 +100,7 @@ export const onboardingRoutes = routes.filter((route) =>
 
 export const adminRoutes = routes.filter((route) => route.startsWith('/admin'));
 
-const runtimeOwnedRoutes = routes.filter(
-  (route) => route === '/desktop/local' || route === '/~offline',
-);
+const runtimeOwnedRoutes = routes.filter((route) => route === '/~offline');
 
 export const protectedRoutes = routes.filter(
   (route) =>

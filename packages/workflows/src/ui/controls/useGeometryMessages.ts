@@ -2,7 +2,10 @@
 
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
-import type { GeometryIssue, GeometrySubject } from '../lib/geometry';
+import type {
+  GeometryIssue,
+  GeometrySubject,
+} from '../../engine/utils/geometry';
 
 export interface GeometryMessages {
   /** The translated sentence for one issue: "Rectangle 2 has no area. Drag it larger or delete it." */

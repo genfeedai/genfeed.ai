@@ -103,6 +103,24 @@ describe('workflow generation actor boundary', () => {
       expect(f.access.assert).not.toHaveBeenCalled();
     },
   );
+  it('guards a motion control node with the videos:create key scope and the brand grant', async () => {
+    const f = fixture();
+    f.source.workflow.nodes[0].config = {
+      actionId: 'motionControl',
+      parameters: { brandId: 'brand' },
+    };
+    f.prisma.apiKey.findFirst.mockResolvedValue({ scopes: ['images:create'] });
+
+    await expect(f.run()).rejects.toThrow('key permission');
+    expect(f.access.assert).not.toHaveBeenCalled();
+
+    f.prisma.apiKey.findFirst.mockResolvedValue({ scopes: ['videos:create'] });
+    await f.run();
+    expect(f.access.assert).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKeyId: 'key' }),
+      'brand',
+    );
+  });
   it('denies a lost live brand grant', async () => {
     const f = fixture();
     f.access.assert.mockRejectedValue(new Error('Brand access denied'));

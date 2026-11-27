@@ -126,7 +126,6 @@
       "MODEL_UNAVAILABLE": "This model is not available for your workspace.",
       "PRICING_UNRESOLVED": "This model has no confirmed price yet."
     },
-    "serverRequired": "This Studio generator requires a server connection",
     "costContextLoading": "Loading cost context…",
     "costContextUnavailable": "Cost context unavailable"
   },

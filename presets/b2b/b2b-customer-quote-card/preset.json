@@ -1,0 +1,43 @@
+{
+  "aspectRatio": "1:1",
+  "allowedModels": [
+    "google/nano-banana-2",
+    "openai/gpt-image-2"
+  ],
+  "description": "A customer quote as a clean card with the customer shown.",
+  "evaluationCriteria": [
+    "The customer reads as a real person, not a stock face.",
+    "Space is kept clear for the quote text added afterward.",
+    "Nothing the model draws reads as text, a logo or an interface; on-screen words are added after generation."
+  ],
+  "format": "customer-quote-card",
+  "hookFormula": "Lead with the customer result in their words, not the product name.",
+  "key": "b2b-customer-quote-card",
+  "label": "Customer quote card",
+  "mediaType": "image",
+  "referenceSlots": [
+    {
+      "defaultSource": "library",
+      "isRequired": true,
+      "key": "person",
+      "kind": "image",
+      "label": "Customer",
+      "role": "person"
+    },
+    {
+      "defaultSource": "brand-scan",
+      "isRequired": false,
+      "key": "brand-logo",
+      "kind": "image",
+      "label": "Logo",
+      "role": "brand_logo"
+    }
+  ],
+  "shots": [
+    {
+      "direction": "Portrait on the left third, calm background, open space on the right for the quote.",
+      "key": "portrait",
+      "title": "Portrait"
+    }
+  ]
+}

@@ -3,6 +3,10 @@ import type {
   SchedulerPostTarget,
   SchedulerTx,
 } from '@api/collections/post-groups/services/post-group.types';
+import {
+  createPostTable,
+  type PostTableRow,
+} from '@api/collections/post-groups/services/post-group-attachment-sync.testing';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
@@ -42,7 +46,14 @@ describe('applyReleaseTargetUpdates', () => {
     transition = vi.fn().mockResolvedValue({ kind: 'ok' });
     updateMany = vi.fn().mockResolvedValue({ count: 1 });
     transaction = vi.fn();
-    tx = { post: { updateMany } } as unknown as SchedulerTx;
+    tx = {
+      post: { findMany: vi.fn().mockResolvedValue([]), updateMany },
+      postGroup: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ attachments: [], id: 'group-1' }),
+      },
+    } as unknown as SchedulerTx;
     dependencies = {
       contractService,
       ensureReleaseForPost: vi.fn(),
@@ -140,6 +151,7 @@ describe('applyReleaseTargetUpdates', () => {
         groupId: 'group-1',
         isDeleted: false,
         organizationId: 'org-1',
+        parentId: null,
         targetExecutionState: {
           in: [
             TargetExecutionState.DRAFT,
@@ -344,6 +356,7 @@ describe('schedulePostGroupTarget legacy group ids', () => {
   let transaction: ReturnType<typeof vi.fn>;
   let dependencies: PostGroupTargetOperationDependencies;
   let tx: SchedulerTx;
+  let postTable: ReturnType<typeof createPostTable>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -363,7 +376,8 @@ describe('schedulePostGroupTarget legacy group ids', () => {
       }),
     );
     transaction = vi.fn(async (fn: (client: SchedulerTx) => unknown) => fn(tx));
-    tx = {} as SchedulerTx;
+    postTable = createPostTable();
+    tx = postTable as unknown as SchedulerTx;
     dependencies = {
       contractService,
       ensureReleaseForPost,
@@ -411,6 +425,59 @@ describe('schedulePostGroupTarget legacy group ids', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('moves the comment of a draft release to SCHEDULED with its target', async () => {
+    const draftComment: PostTableRow = {
+      description: 'first comment',
+      id: 'comment-1',
+      isDeleted: false,
+      label: 'Base comment',
+      order: 0,
+      organizationId: 'org-1',
+      parentId: 'target-1',
+      targetExecutionState: TargetExecutionState.DRAFT,
+    };
+    postTable = createPostTable([draftComment]);
+    tx = postTable as unknown as SchedulerTx;
+    getGroupOrThrow.mockResolvedValue({
+      ...makeGroup(releaseId),
+      attachments: [{ body: 'first comment', kind: 'comment' }],
+      title: 'Base',
+    });
+    getTargetOrThrow
+      .mockResolvedValueOnce(
+        makeTarget({
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeTarget({
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      );
+
+    await schedulePostGroupTarget(
+      {
+        groupId: releaseId,
+        organizationId: 'org-1',
+        scheduledDate: new Date('2026-07-09T10:00:00.000Z'),
+        targetId: 'target-1',
+        userId: 'user-1',
+        workflowSource: 'scheduled_sweep',
+      },
+      dependencies,
+    );
+
+    expect(postTable.rows).toEqual([
+      expect.objectContaining({
+        description: 'first comment',
+        id: 'comment-1',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
   });
 
   it('resolves a legacy id before scheduling and enqueues that release', async () => {

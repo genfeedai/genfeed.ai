@@ -41,7 +41,7 @@ import {
   validateShapes,
   validateTrajectory,
   withEvenFrames,
-} from '../lib/geometry';
+} from '../../engine/utils/geometry';
 import {
   createGeometryHistory,
   geometryHistoryReducer,

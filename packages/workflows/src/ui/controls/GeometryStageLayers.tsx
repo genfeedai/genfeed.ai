@@ -6,7 +6,7 @@ import type {
   TrajectoryPoint,
 } from '@genfeedai/contracts/types';
 import { useTranslations } from 'next-intl';
-import type { GeometryIssue } from '../lib/geometry';
+import type { GeometryIssue } from '../../engine/utils/geometry';
 
 export const VIEW_WIDTH = 1000;
 const SHAPE_STROKE = 'hsl(var(--destructive))';

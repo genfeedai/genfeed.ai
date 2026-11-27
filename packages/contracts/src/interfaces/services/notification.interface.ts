@@ -165,7 +165,9 @@ export interface IPostPublishedNotificationPayload {
   postId: string;
   /** `CredentialPlatform` value, e.g. `instagram`. */
   platform: string;
-  /** Caption, cut to a preview. */
+  /** Handle of the connected account the post went out on, e.g. `@genfeedai`. */
+  accountHandle?: string;
+  /** Caption as plain text, cut to a preview. */
   caption?: string;
   brandLabel?: string;
   organizationLabel?: string;

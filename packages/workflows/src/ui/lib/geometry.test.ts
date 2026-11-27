@@ -12,7 +12,7 @@ import {
   validateShapes,
   validateTrajectory,
   withEvenFrames,
-} from './geometry';
+} from '../../engine/utils/geometry';
 import {
   createGeometryHistory,
   geometryHistoryReducer,
@@ -215,7 +215,7 @@ describe('validateTrajectory', () => {
 });
 
 describe('collectGeometryIssues', () => {
-  it('names the node of each problem and skips modes that draw no path', () => {
+  it('names the node of each problem and passes a video transfer motion node', () => {
     const issues = collectGeometryIssues([
       {
         data: { annotations: [rect({ x: 0.95 })] },
@@ -232,11 +232,13 @@ describe('collectGeometryIssues', () => {
         id: 'c',
         type: 'motionControl',
       },
+      { data: { mode: 'video_transfer' }, id: 'v', type: 'motionControl' },
       { data: {}, id: 'p', type: 'prompt' },
     ]);
     expect(issues.map((issue) => [issue.nodeId, issue.code])).toEqual([
       ['a', 'outsideImage'],
-      ['m', 'pathTooShort'],
+      ['m', 'unsupportedMode'],
+      ['c', 'unsupportedMode'],
     ]);
   });
 });

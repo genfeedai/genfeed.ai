@@ -1,0 +1,8 @@
+{
+  "key": "studio-edit-restyle",
+  "label": "Change style",
+  "type": "image-edit",
+  "description": "Redraw the image as an illustration, same composition.",
+  "prompt": "Restyle this image as a clean, modern illustration. Keep the composition and subject recognizable.",
+  "values": {}
+}

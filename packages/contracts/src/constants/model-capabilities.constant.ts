@@ -928,6 +928,21 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
+    // Kling v3 motion control (https://replicate.com/kwaivgi/kling-v3-motion-control):
+    // a character image plus one reference video of 3-30 s. The output runs as
+    // long as the reference video (10 s at most when the image sets the
+    // orientation), so there is no duration input.
+    [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_MOTION_CONTROL]: {
+      aspectRatios: ASPECT_RATIOS.KLING,
+      category: ModelCategory.VIDEO_EDIT,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [5],
+      hasDurationEditing: false,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
     [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_O1]: {
       aspectRatios: ASPECT_RATIOS.KLING,
       category: ModelCategory.VIDEO_EDIT,

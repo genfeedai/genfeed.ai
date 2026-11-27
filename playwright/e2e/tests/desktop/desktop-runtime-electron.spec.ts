@@ -22,13 +22,12 @@ import {
 } from '../../utils/route-assertions';
 
 const desktopRoot = path.resolve(__dirname, '../../../../apps/desktop');
-type Control = 'start' | 'defer' | 'confirm' | 'cancel' | 'fail-mode-rename';
+type Control = 'start' | 'defer' | 'confirm' | 'cancel';
 interface AcceptanceAudit {
   dialogCalls: number;
   relaunchCalls: number;
   nodeRequests: string[];
   blocked: string[];
-  savedMode: string;
 }
 interface AcceptanceBoundary {
   __genfeedRuntimeAcceptance: {
@@ -55,11 +54,10 @@ async function audit(electron: ElectronApplication) {
   );
 }
 
-// `cloud` runs the shipped cloud-only build; the local scenarios force local
-// mode on through the launcher's test-only override (see
-// isDesktopLocalModeEnabled in @genfeedai/contracts/desktop).
-for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
-  test(`actual Electron runtime IPC and ${failure} ${failure === 'cloud' ? 'refusal of local mode' : 'recovery'}`, async ({
+// `cancel` declines the native server-switch dialog; `relaunch` confirms it and
+// the launcher's relaunch stub fails, leaving the runtime in `switching`.
+for (const outcome of ['cancel', 'relaunch'] as const) {
+  test(`actual Electron runtime IPC and server switch ${outcome}`, async ({
     baseURL,
   }, testInfo) => {
     if (!baseURL) throw new Error('The isolated shell URL is required.');
@@ -119,9 +117,6 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
           GENFEED_DESKTOP_APP_PORT: new URL(baseURL).port,
           GENFEED_DESKTOP_CDN_URL: apiURL,
           GENFEED_DESKTOP_SENTRY_DSN: '',
-          ...(failure === 'cloud'
-            ? {}
-            : { GENFEED_RUNTIME_ACCEPTANCE_LOCAL_MODE: '1' }),
         },
       });
       const activeElectron = electron;
@@ -145,12 +140,6 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
           return route.fulfill({ json: buildUnhandledApiMockBody(url.href) });
         await route.continue();
       });
-      if (failure !== 'cloud')
-        await context.addInitScript(() => {
-          (globalThis as { [key: symbol]: unknown })[
-            Symbol.for('genfeed.desktop.localModeTestOverride')
-          ] = true;
-        });
       await context.addCookies([
         { name: '__playwright_test', value: 'true', url: baseURL },
         {
@@ -175,11 +164,9 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       );
       expect(initial).toMatchObject({
         status: 'ready',
-        runtimeMode: 'cloud',
         selectedServerKind: 'cloud',
         generationExecution: 'remote',
       });
-      expect(initial.localProvider).toBeNull();
       await page.evaluate(() => {
         const target = window as AcceptanceWindow;
         target.runtimeEvents = [];
@@ -212,65 +199,9 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       await expect(await openAccountCredits(page)).toContainText('500');
       await page.keyboard.press('Escape');
       await page.screenshot({
-        path: testInfo.outputPath(`electron-${failure}-cloud.png`),
+        path: testInfo.outputPath(`electron-${outcome}-cloud.png`),
         fullPage: true,
       });
-      if (failure === 'cloud') {
-        const refusal = await page.evaluate(() =>
-          (window as AcceptanceWindow).genfeedDesktop.app
-            .enableOfflineMode()
-            .then(
-              () => 'unexpected success',
-              (error: Error) => error.message,
-            ),
-        );
-        expect(refusal).toContain('Local mode is not available');
-        const stillCloud = await page.evaluate(() =>
-          (window as AcceptanceWindow).genfeedDesktop.app.getRuntimeContext(),
-        );
-        expect(stillCloud).toMatchObject({
-          status: 'ready',
-          runtimeMode: 'cloud',
-        });
-        expect((await audit(electron)).savedMode).toBe('cloud');
-        expect(pageErrors).toEqual([]);
-        return;
-      }
-      await page.evaluate(async () => {
-        const bridge = (window as AcceptanceWindow).genfeedDesktop;
-        await bridge.app.enableOfflineMode();
-        await bridge.generation.saveProviderConfig({
-          provider: 'ollama',
-          baseUrl: 'http://127.0.0.1:11434',
-          model: 'fixture',
-        });
-      });
-      const local = await page.evaluate(() =>
-        (window as AcceptanceWindow).genfeedDesktop.app.getRuntimeContext(),
-      );
-      expect(local).toMatchObject({
-        status: 'ready',
-        runtimeMode: 'local',
-        generationExecution: 'local-byok',
-        localProvider: { provider: 'ollama', networkAccess: 'local' },
-      });
-      await page.route('**/v1/public/platform-flags**', (route) =>
-        route.fulfill({ json: { desktop_local_workspace: true } }),
-      );
-      await page.goto(new URL('/desktop/local', baseURL).href);
-      await expect(
-        page.getByTestId('desktop-local-generation-cost'),
-      ).toHaveText('Local generation · no Genfeed credits');
-      await expect(
-        page.getByTestId('desktop-provider-generation-cost'),
-      ).toHaveText('Local generation · no Genfeed credits');
-      await page.screenshot({
-        path: testInfo.outputPath(`electron-${failure}-local.png`),
-        fullPage: true,
-      });
-      await page.goto(new URL('/test-org/brand-1/playground', baseURL).href);
-      await expect(await openAccountCredits(page)).toHaveCount(0);
-      await page.keyboard.press('Escape');
       const walletBeforeRecovery = walletRequests;
       await control(electron, 'defer');
       await page.evaluate((apiURL) => {
@@ -301,45 +232,38 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
           ),
       );
       expect(overlap).toContain('already pending');
-      if (failure === 'rename') await control(electron, 'fail-mode-rename');
-      const transitionError = await page.evaluate(() =>
-        (window as AcceptanceWindow).genfeedDesktop.app
-          .switchToCloudMode()
-          .then(
-            () => 'unexpected success',
-            (error: Error) => error.message,
-          ),
-      );
-      expect(transitionError).toContain(
-        failure === 'rename' ? 'persistence failure' : 'relaunch failure',
-      );
-      await control(electron, 'confirm');
+      await control(electron, outcome === 'cancel' ? 'cancel' : 'confirm');
       const selectionError = await page.evaluate(
         () => (window as AcceptanceWindow).selectionResult,
       );
       expect(selectionError).toContain(
-        failure === 'rename' ? 'Restart Genfeed Desktop' : 'switching servers',
+        outcome === 'cancel' ? 'cancelled' : 'relaunch failure',
       );
-      const recovered = await page.evaluate(() =>
+      const after = await page.evaluate(() =>
         (window as AcceptanceWindow).genfeedDesktop.app.getRuntimeContext(),
       );
-      expect(recovered).toMatchObject({
-        status: failure === 'rename' ? 'unavailable' : 'switching',
-        runtimeMode: failure === 'rename' ? 'local' : 'cloud',
+      expect(after.runtimeId).toBe(initial.runtimeId);
+      if (outcome === 'cancel') {
+        expect(after).toMatchObject({
+          status: 'ready',
+          selectedServerKind: 'cloud',
+          generationExecution: 'remote',
+        });
+        const receipt = await audit(electron);
+        expect(receipt.dialogCalls).toBe(1);
+        expect(receipt.relaunchCalls).toBe(0);
+        expect(pageErrors).toEqual([]);
+        return;
+      }
+      expect(after).toMatchObject({
+        status: 'switching',
         generationExecution: 'unknown',
       });
-      expect(recovered.runtimeId).toBe(initial.runtimeId);
-      expect(recovered.revision).toBeGreaterThan(local.revision);
-      expect(recovered.localProvider).toEqual(
-        failure === 'rename' ? local.localProvider : null,
-      );
+      expect(after.revision).toBeGreaterThan(initial.revision);
       const blocked = await page.evaluate(async () => {
         const bridge = (window as AcceptanceWindow).genfeedDesktop;
         const operations = [
-          () => bridge.app.enableOfflineMode(),
-          () => bridge.app.switchToCloudMode(),
           () => bridge.server.select({ kind: 'cloud' }),
-          () => bridge.generation.getProviderConfig(),
           () =>
             bridge.cloud.generateContent({
               platform: 'linkedin',
@@ -358,11 +282,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
         );
       });
       for (const message of blocked)
-        expect(message).toContain(
-          failure === 'rename'
-            ? 'Restart Genfeed Desktop'
-            : 'switching servers',
-        );
+        expect(message).toContain('switching servers');
       await expect(await openAccountCredits(page)).toHaveCount(0);
       await page.keyboard.press('Escape');
       await expect(
@@ -372,7 +292,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       const events = await page.evaluate(
         () => (window as AcceptanceWindow).runtimeEvents,
       );
-      expect(events.length).toBeGreaterThanOrEqual(2);
+      expect(events.length).toBeGreaterThanOrEqual(1);
       expect(
         events.every(
           (value, index) =>
@@ -381,24 +301,26 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       ).toBe(true);
       const receipt = await audit(electron);
       expect(receipt.dialogCalls).toBe(1);
-      expect(receipt.savedMode).toBe(failure === 'rename' ? 'local' : 'cloud');
-      expect(apiRequests.every((value) => value.endsWith('/auth/whoami'))).toBe(
-        true,
-      );
+      expect(receipt.relaunchCalls).toBe(1);
+      // Only the session check and the self-hosted server's health probe.
+      expect(
+        apiRequests.every(
+          (value) => value.endsWith('/auth/whoami') || value === '/v1/health',
+        ),
+      ).toBe(true);
       expect(pageErrors).toEqual([]);
       await expectNoErrorOverlay(page);
       await assertNoErrorBoundaryFallback(page, page.url());
       await page.screenshot({
-        path: testInfo.outputPath(`electron-${failure}-recovery.png`),
+        path: testInfo.outputPath(`electron-${outcome}-recovery.png`),
         fullPage: true,
       });
       fs.writeFileSync(
-        testInfo.outputPath(`electron-${failure}-receipt.json`),
+        testInfo.outputPath(`electron-${outcome}-receipt.json`),
         JSON.stringify(
           {
             initial,
-            local,
-            recovered,
+            after,
             events,
             receipt,
             apiRequests,
