@@ -1,6 +1,7 @@
 import { SubscriptionTier } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  describeResearchScans,
   formatResearchScanLimit,
   getResearchScanLimitForTier,
   RESEARCH_SCAN_LIMITS,
@@ -48,5 +49,20 @@ describe('formatResearchScanLimit', () => {
         formatResearchScanLimit(getResearchScanLimitForTier(tier)),
       ),
     ).toEqual(['1 a week', '5 a day', '25 a day', 'Unlimited']);
+  });
+});
+
+describe('describeResearchScans', () => {
+  it('words the scans of each tier as one sentence', () => {
+    expect(
+      Object.values(SubscriptionTier).map((tier) =>
+        describeResearchScans(tier),
+      ),
+    ).toEqual([
+      '1 trend scan and 1 competitor ad scan a week',
+      '5 trend scans and 5 competitor ad scans a day',
+      '25 trend scans and 25 competitor ad scans a day',
+      'Unlimited trend and competitor ad scans',
+    ]);
   });
 });

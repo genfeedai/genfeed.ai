@@ -3,6 +3,11 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
+import {
+  describeResearchScans,
+  formatResearchScanLimit,
+  RESEARCH_SCAN_LIMITS,
+} from './research-scan-limits';
 import { FREE_API_RATE_LIMIT, SCALE_API_RATE_LIMIT } from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
@@ -29,6 +34,7 @@ import { FREE_API_RATE_LIMIT, SCALE_API_RATE_LIMIT } from './tier-entitlements';
  * @updated 2026-11-15
  */
 
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
 import { PUBLISHING_QUOTA_CEILINGS } from '@genfeedai/contracts/constants/publishing-quota.constant';
 import type {
@@ -543,6 +549,7 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=payg`,
     description: 'No subscription: buy credits when you need them',
     features: [
+      describeResearchScans(SubscriptionTier.FREE),
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
       `${FREE_API_RATE_LIMIT} API requests/min`,
@@ -564,8 +571,9 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
     description: 'Every app for one creator or brand',
     features: [
-      'Trends in your niche',
-      'Competitor ads: save, watch, remix',
+      `Trend scans in your niche: ${formatResearchScanLimit(RESEARCH_SCAN_LIMITS[SubscriptionTier.PRO])}`,
+      `Competitor ad scans: ${formatResearchScanLimit(RESEARCH_SCAN_LIMITS[SubscriptionTier.PRO])}`,
+      'Watched competitors rescanned for you',
       'Play trend videos in Genfeed',
       'Inbox and workflows',
       `${PLAN_POSTS_PER_DAY_RANGE} posts a day per account`,
@@ -591,7 +599,7 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      'Trends in your niche and competitor ads',
+      `Trend scans and competitor ad scans: ${formatResearchScanLimit(RESEARCH_SCAN_LIMITS[SubscriptionTier.SCALE])} each`,
       'Everything else in Pro',
       'Unlimited seats and client workspaces',
       'Ultra quality, model training',

@@ -1,13 +1,30 @@
+import { SubscriptionTier } from '@genfeedai/contracts';
+import {
+  formatResearchScanLimit,
+  RESEARCH_SCAN_LIMITS,
+} from '@genfeedai/pricing';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 
 /**
- * The paid differentiator, in words until the real Trends capture is added. What each side holds
- * matches the rows of the pricing page's compare table: every account gets the
- * shared market trends feed; a plan adds the niche feed, competitor ads and
- * trend videos that play inside Genfeed.
+ * What a scan limit means, in words until the real Trends capture is added.
+ * What each side holds matches the rows of the pricing page's compare table:
+ * every account gets the shared market trends feed, a few scans and the saving
+ * and remixing of what they find; a plan adds more scans, rescans of watched
+ * competitors and trend videos that play inside Genfeed. The numbers are read
+ * from `@genfeedai/pricing`, the same place the API reads them.
  */
+const FREE_SCANS = formatResearchScanLimit(
+  RESEARCH_SCAN_LIMITS[SubscriptionTier.FREE],
+);
+const PRO_SCANS = formatResearchScanLimit(
+  RESEARCH_SCAN_LIMITS[SubscriptionTier.PRO],
+);
+const SCALE_SCANS = formatResearchScanLimit(
+  RESEARCH_SCAN_LIMITS[SubscriptionTier.SCALE],
+);
+
 export default function HomeMarket(): React.ReactElement {
   return (
     <section
@@ -40,7 +57,9 @@ export default function HomeMarket(): React.ReactElement {
               Every account
             </Text>
             <Text className="text-sm leading-6 text-foreground/80">
-              The shared market trends feed.
+              The shared market trends feed, a trend scan and a competitor ad
+              scan of your own ({FREE_SCANS} each), and saving and remixing what
+              they find.
             </Text>
           </div>
           <div className="flex flex-col gap-1 bg-background p-6">
@@ -48,8 +67,9 @@ export default function HomeMarket(): React.ReactElement {
               On a plan
             </Text>
             <Text className="text-sm leading-6 text-foreground/80">
-              Trends in your niche, competitor ads to save and remix, and trend
-              videos that play inside Genfeed.{' '}
+              More scans: {PRO_SCANS} on Pro, {SCALE_SCANS} on Scale. Watched
+              competitors rescanned for you, and trend videos that play inside
+              Genfeed.{' '}
               <Link
                 className="font-semibold underline underline-offset-4"
                 href="/pricing"

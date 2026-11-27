@@ -5,12 +5,14 @@ import {
   videoRetentionDays,
 } from '@genfeedai/contracts/constants';
 import {
+  formatResearchScanLimit,
   getPlanByTier,
   getPlanLabel,
   PAYG_POSTS_PER_DAY,
   PLAN_LIMIT_UNLIMITED,
   PLAN_POSTS_PER_DAY_RANGE,
   type PlanTier,
+  RESEARCH_SCAN_LIMITS,
   TIER_PLAN_ENTITLEMENTS,
   type TierLimit,
   type TierPlanEntitlement,
@@ -92,6 +94,11 @@ function unlocksModule(
   );
 }
 
+/** Scans each library allows a tier: "1 a week", "5 a day", "Unlimited". */
+function formatScans(tier: PlanTier): string {
+  return formatResearchScanLimit(RESEARCH_SCAN_LIMITS[ENTITLEMENT_TIER[tier]]);
+}
+
 function formatPostsPerDay(tier: PlanTier): string {
   return hasPaidApps(tier)
     ? PLAN_POSTS_PER_DAY_RANGE
@@ -136,15 +143,24 @@ export function buildPricingCompareRows(): PricingCompareRow[] {
       values: cells(() => formatFlag(true)),
     },
     {
-      label: 'Trends in your niche',
-      values: cells((tier) => formatFlag(unlocksModule(tier, 'discovery'))),
+      label: 'Trend scans in your niche',
+      values: cells(formatScans),
+    },
+    {
+      label: 'Competitor ad scans',
+      values: cells(formatScans),
+    },
+    {
+      // Saving and remixing what a scan finds is open to every account.
+      label: 'Save and remix what a scan finds',
+      values: cells(() => formatFlag(true)),
+    },
+    {
+      label: 'Watched competitors rescanned for you',
+      values: cells((tier) => formatFlag(hasPaidApps(tier))),
     },
     {
       label: 'Play trend videos in Genfeed',
-      values: cells((tier) => formatFlag(unlocksModule(tier, 'discovery'))),
-    },
-    {
-      label: 'Competitor ads: save, watch, remix',
       values: cells((tier) => formatFlag(unlocksModule(tier, 'discovery'))),
     },
     {

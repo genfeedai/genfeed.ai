@@ -54,12 +54,34 @@ export function getResearchScanLimitForTier(
   return RESEARCH_SCAN_LIMITS[SubscriptionTier.FREE];
 }
 
+/** "a week" or "a day": the window a limit counts in. */
+function formatWindow(limit: ResearchScanLimit): string | null {
+  if (limit.windowMs === WEEK_MS) return 'a week';
+  if (limit.windowMs === DAY_MS) return 'a day';
+  return null;
+}
+
 /** "1 a week", "5 a day", "Unlimited": the limit as the pricing page words it. */
 export function formatResearchScanLimit(
   limit: ResearchScanLimit | null,
 ): string {
   if (limit === null) return 'Unlimited';
-  if (limit.windowMs === WEEK_MS) return `${limit.maxScans} a week`;
-  if (limit.windowMs === DAY_MS) return `${limit.maxScans} a day`;
+  const window = formatWindow(limit);
+  if (window) return `${limit.maxScans} ${window}`;
   return `${limit.maxScans} per ${Math.round(limit.windowMs / 3_600_000)} hours`;
+}
+
+/**
+ * What a tier's scans are, as one sentence for a plan card:
+ * "1 trend scan and 1 competitor ad scan a week".
+ */
+export function describeResearchScans(tier: SubscriptionTier): string {
+  const limit = RESEARCH_SCAN_LIMITS[tier];
+  if (limit === null) return 'Unlimited trend and competitor ad scans';
+  const noun = limit.maxScans === 1 ? 'scan' : 'scans';
+  const window = formatWindow(limit);
+  const count = `${limit.maxScans} trend ${noun} and ${limit.maxScans} competitor ad ${noun}`;
+  return window
+    ? `${count} ${window}`
+    : `${count} per ${Math.round(limit.windowMs / 3_600_000)} hours`;
 }
