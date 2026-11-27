@@ -28,6 +28,7 @@ import type {
   McpAuthContext,
   McpRequest,
 } from '@mcp/shared/interfaces/mcp-request.interface';
+import { McpSharedLookups } from '@mcp/shared/utils/mcp-shared-lookups';
 import { filterBrandKitTools } from '@mcp/tools/brand-kit.tool';
 import {
   CallToolResultSchema,
@@ -61,6 +62,9 @@ export class StreamableHttpService {
    * them. Health and manifest endpoints report this, and nothing else.
    */
   private isTransportMounted = false;
+
+  /** Account reads that parallel calls on one connection share. */
+  private readonly sharedLookups = new McpSharedLookups();
 
   constructor(
     private readonly logger: LoggerService,
@@ -262,6 +266,7 @@ export class StreamableHttpService {
       this.logger,
       this.httpService,
       this.configService,
+      this.sharedLookups,
     );
 
     if (bearerToken) {

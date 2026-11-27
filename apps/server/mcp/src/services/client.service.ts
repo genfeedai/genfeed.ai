@@ -120,6 +120,7 @@ import type {
   WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
+import type { McpSharedLookups } from '@mcp/shared/utils/mcp-shared-lookups';
 import type { Models3dToolInput } from '@mcp/tools/models3d.schemas';
 import type { RemixToolInput } from '@mcp/tools/remix.schemas';
 import {
@@ -164,6 +165,7 @@ export class ClientService {
     logger: LoggerService,
     httpService: HttpService,
     configService: ConfigService,
+    sharedLookups?: McpSharedLookups,
   ) {
     this.base = new BaseApiClient(logger, httpService, configService);
     this.agent = new AgentClient(this.base);
@@ -180,7 +182,10 @@ export class ClientService {
     this.models3d = new Models3dClient(this.base);
     this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
-    this.workspace = new WorkspaceClient(this.base);
+    this.workspace = new WorkspaceClient(
+      this.base,
+      sharedLookups?.organizationLists,
+    );
     this.ads = new AdsClient(this.base);
     this.socialMessages = new SocialMessagesClient(this.base);
     this.skillsPro = new SkillsProClient(this.base);
