@@ -247,15 +247,23 @@ export function useAppLayout({
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
         // Width is for mobile drawer / stories; desktop MenuShared fills the rail.
         sidebarWidth: sidebarExpandedWidth,
-        onClose: (...args: unknown[]) => {
-          if (extraOnClose) {
-            extraOnClose(...args);
-          }
+        // Only a menu that has something to close gets `onClose`: the desktop
+        // rail has none, and a menu that is handed one renders its quick
+        // actions as rows (the mobile drawer, which has no strip).
+        onClose:
+          extraOnClose || typeof originalOnClose === 'function'
+            ? (...args: unknown[]) => {
+                if (extraOnClose) {
+                  extraOnClose(...args);
+                }
 
-          if (typeof originalOnClose === 'function') {
-            (originalOnClose as (...innerArgs: unknown[]) => void)(...args);
-          }
-        },
+                if (typeof originalOnClose === 'function') {
+                  (originalOnClose as (...innerArgs: unknown[]) => void)(
+                    ...args,
+                  );
+                }
+              }
+            : undefined,
         // The mobile drawer owns its close action and must not duplicate the
         // desktop collapse control inside its cloned menu tree.
         onToggleCollapse:
