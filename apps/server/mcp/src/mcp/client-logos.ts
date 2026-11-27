@@ -5,7 +5,7 @@
 import { CLIENT_LOGO_SVGS } from '@genfeedai/helpers/integrations/connect-client-logos.helper';
 import type { ConnectClientMarkId } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 
-export type ClientLogoId = ConnectClientMarkId;
+type ClientLogoId = ConnectClientMarkId;
 
 export const CLIENT_LOGO_PATH_PREFIX = '/assets/clients/';
 

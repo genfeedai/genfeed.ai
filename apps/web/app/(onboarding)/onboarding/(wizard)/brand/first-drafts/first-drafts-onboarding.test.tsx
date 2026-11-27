@@ -227,7 +227,7 @@ async function startFromLink(link = 'acme.co') {
 async function goToChannels() {
   await screen.findByText('twitter draft text');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  await screen.findByRole('radio', { name: /Claude Code/ });
+  await screen.findByRole('radio', { name: /Claude/ });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   await screen.findByTestId('connect-card-instagram');
 }
@@ -357,7 +357,7 @@ describe('FirstDraftsOnboarding', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Connect Agent' }));
     expect(
-      await screen.findByRole('radio', { name: /Claude Code/ }),
+      await screen.findByRole('radio', { name: /Claude/ }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'See your output' }));
     expect(screen.getByText('twitter draft text')).toBeInTheDocument();
@@ -498,7 +498,7 @@ describe('FirstDraftsOnboarding', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(
-      await screen.findByRole('radio', { name: /Claude Code/ }),
+      await screen.findByRole('radio', { name: /Claude/ }),
     ).toBeInTheDocument();
     expect(mocks.scheduleTarget).not.toHaveBeenCalled();
     expect(mocks.patchPost).not.toHaveBeenCalled();
@@ -539,7 +539,7 @@ describe('FirstDraftsOnboarding', () => {
       await screen.findByText(/claude mcp add --transport http genfeed/),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Waiting for Claude Code to connect'),
+      screen.getByText('Waiting for Claude to connect'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('radio', { name: /Codex/ }));
     expect(
@@ -566,7 +566,7 @@ describe('FirstDraftsOnboarding', () => {
     render(<FirstDraftsOnboarding />);
     await screen.findByText('twitter draft text');
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await screen.findByRole('radio', { name: /Claude Code/ });
+    await screen.findByRole('radio', { name: /Claude/ });
     fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await screen.findByRole('button', { name: 'Connect Instagram' });
     fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
@@ -642,7 +642,7 @@ describe('FirstDraftsOnboarding', () => {
     );
     render(<FirstDraftsOnboarding />);
     expect(
-      await screen.findByRole('radio', { name: /Claude Code/ }),
+      await screen.findByRole('radio', { name: /Claude/ }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Connect Agent' }),
@@ -745,7 +745,7 @@ describe('FirstDraftsOnboarding', () => {
     render(<FirstDraftsOnboarding />);
     await screen.findByTestId('connect-card-instagram');
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    await screen.findByRole('radio', { name: /Claude Code/ });
+    await screen.findByRole('radio', { name: /Claude/ });
     expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
   });
 

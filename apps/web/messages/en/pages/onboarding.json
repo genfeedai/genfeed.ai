@@ -328,7 +328,7 @@
       "clientLabel": "Agent client",
       "clients": {
         "claude-code": {
-          "description": "Run one command, then sign in from /mcp."
+          "description": "Run one command in Claude Code, then sign in from /mcp."
         },
         "codex": {
           "description": "Run one command, then sign in from your browser."

@@ -42,7 +42,6 @@ const ORIGINAL_NAMES = [
   'brandPublishingSettings',
   'brandSocialMedia',
   'brandVideoKit',
-  'connectGenfeed',
   'connectSocial',
   'connectors',
   'costUsage',

@@ -2,6 +2,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { CLIENT_LOGO_SVGS } from '@genfeedai/helpers/integrations/connect-client-logos.helper';
 import type { ConnectClientMarkId } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 import type { ConnectClientMarksProps } from '@genfeedai/props/ui/feedback/connect-client-marks.props';
+import Image from 'next/image';
 
 /** Official marks sit on their owner's backing so they read in either theme. */
 const BACKINGS: Record<ConnectClientMarkId, string> = {
@@ -35,7 +36,8 @@ export default function ConnectClientMarks({
           key={mark}
           style={{ backgroundColor: BACKINGS[mark], colorScheme: 'light' }}
         >
-          <img
+          <Image
+            unoptimized
             alt=""
             className="size-3.5"
             height={14}

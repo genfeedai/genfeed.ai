@@ -5,8 +5,7 @@ export type ConnectClientMarkId = 'claude' | 'codex' | 'grok' | 'meta';
 
 export type ConnectClientTabId =
   | 'agent-prompt'
-  | 'claude-chat'
-  | 'claude-code'
+  | 'claude'
   | 'codex'
   | 'grok'
   | 'meta-muse'
@@ -29,27 +28,17 @@ export interface ConnectClientEntry {
  * Connectors page and the onboarding step all read it, so a label, a mark or a
  * new client changes in one place.
  *
- * Claude Code and Claude & Cowork stay separate: the first registers the
- * server with `claude mcp add` and authorizes through `/mcp`, the second adds a
- * custom connector in the Claude UI. Both use the same full-access URL as every
- * other client.
+ * Claude is one client: its steps cover the Claude and Cowork apps (a custom
+ * connector) and Claude Code (`claude mcp add`), which use the same URL.
  */
 export const CONNECT_CLIENTS: readonly ConnectClientEntry[] = [
   {
     helperClient: 'claude-code',
-    id: 'claude-code',
-    label: 'Claude Code',
+    id: 'claude',
+    label: 'Claude',
     marks: ['claude'],
-    path: '/claude-code',
-    summary: 'Register Genfeed, then authorize in your browser.',
-  },
-  {
-    helperClient: null,
-    id: 'claude-chat',
-    label: 'Claude & Cowork',
-    marks: ['claude'],
-    path: '/claude-cowork',
-    summary: 'Add Genfeed as a custom connector in Claude.',
+    path: '/claude',
+    summary: 'Claude, Cowork or Claude Code, then authorize in your browser.',
   },
   {
     helperClient: 'codex',

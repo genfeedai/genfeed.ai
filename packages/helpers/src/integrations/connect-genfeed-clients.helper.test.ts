@@ -27,7 +27,7 @@ describe('CONNECT_CLIENTS', () => {
   );
 
   it.each([
-    ['claude-code', 'Claude Code'],
+    ['claude-code', 'Claude'],
     ['codex', 'Codex'],
     ['generic', 'Other clients'],
   ] as const)(

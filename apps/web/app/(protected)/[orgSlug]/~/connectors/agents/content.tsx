@@ -1,52 +1,35 @@
 'use client';
 
 import { CardPadding } from '@genfeedai/contracts';
-import {
-  CONNECT_CLIENTS,
-  type ConnectClientTabId,
-} from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
+import { CONNECT_CLIENTS } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 import { buildConnectSetupGuide } from '@genfeedai/helpers/integrations/connect-genfeed-setup-guide.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
-import ConnectClientMarks from '@ui/feedback/connect-client-marks/ConnectClientMarks';
 import ConnectSetupGuide from '@ui/feedback/connect-setup-guide/ConnectSetupGuide';
-import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  CONNECTORS_AGENT_PARAM,
+  DEFAULT_CONNECTORS_AGENT,
+} from '@/config/connectors-menu-items.config';
 
 /**
- * The same clients and steps as the MCP setup page: both read
+ * One agent's setup steps, picked from the Connectors sidebar. The steps are
+ * the ones the MCP setup page shows for the same agent: both read
  * `CONNECT_CLIENTS` and `buildConnectSetupGuide`, so they never differ.
  */
 export default function ConnectorsAgentsContent() {
-  const translate = useTranslations('pages.connectGenfeed');
-  const [clientId, setClientId] = useState<ConnectClientTabId>('claude-code');
-  const guide = buildConnectSetupGuide(clientId, {
+  const requested = useSearchParams().get(CONNECTORS_AGENT_PARAM);
+  const client =
+    CONNECT_CLIENTS.find((entry) => entry.id === requested)?.id ??
+    DEFAULT_CONNECTORS_AGENT;
+  const guide = buildConnectSetupGuide(client, {
     connectUrl: `${EnvironmentService.apps.app}/connectors`,
     mcpUrl: EnvironmentService.mcpEndpoint,
   });
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <OptionTileGroup
-        ariaLabel={translate('clientLabel')}
-        columns={3}
-        onValueChange={(value) => setClientId(value as ConnectClientTabId)}
-        value={clientId}
-      >
-        {CONNECT_CLIENTS.map((client) => (
-          <OptionTile
-            description={client.summary}
-            icon={<ConnectClientMarks marks={client.marks} />}
-            key={client.id}
-            title={client.label}
-            value={client.id}
-          />
-        ))}
-      </OptionTileGroup>
-      <Card padding={CardPadding.LG}>
-        <ConnectSetupGuide guide={guide} />
-      </Card>
-    </div>
+    <Card padding={CardPadding.LG}>
+      <ConnectSetupGuide guide={guide} />
+    </Card>
   );
 }

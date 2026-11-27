@@ -45,7 +45,7 @@ describe('buildConnectSetupGuide', () => {
 
   it('puts the MCP URL in the Claude Code command', () => {
     expect(
-      buildConnectSetupGuide('claude-code', URLS).steps[0]?.parts[1],
+      buildConnectSetupGuide('claude', URLS).steps[0]?.parts[3],
     ).toMatchObject({
       text: 'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
     });

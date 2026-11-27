@@ -107,13 +107,17 @@ export function buildConnectSetupGuide(
   { connectUrl, mcpUrl }: ConnectSetupGuideUrls,
 ): ConnectSetupGuide {
   switch (id) {
-    case 'claude-code':
+    case 'claude':
       return {
-        badge: 'HTTP transport',
+        badge: null,
         steps: [
           {
             parts: [
-              text('Registers Genfeed in user scope with browser OAuth.'),
+              text(
+                'In Claude or Cowork, add a custom connector with this URL.',
+              ),
+              command('claude-chat-url', 'Copy Genfeed MCP URL', mcpUrl),
+              text('In Claude Code, run this command instead.'),
               command(
                 'claude-code-command',
                 'Copy Claude Code command',
@@ -121,40 +125,18 @@ export function buildConnectSetupGuide(
                   .primaryCommand ?? '',
               ),
             ],
-            title: 'Add the MCP server',
+            title: 'Add Genfeed',
           },
           {
             parts: [
               text(
-                'Open `/mcp` in Claude Code, select genfeed, and sign in. Then ask it to list your Genfeed brands.',
+                'Approve access in your browser. In Claude Code, open `/mcp`, select genfeed, and sign in. Then ask Claude to list your Genfeed brands.',
               ),
             ],
             title: 'Authorize and verify',
           },
         ],
-        title: 'Claude Code',
-      };
-    case 'claude-chat':
-      return {
-        badge: 'Custom connector',
-        steps: [
-          {
-            parts: [
-              text('Add a custom connector in Claude with this URL.'),
-              command('claude-chat-url', 'Copy Genfeed MCP URL', mcpUrl),
-            ],
-            title: 'Add the connector',
-          },
-          {
-            parts: [
-              text(
-                'Complete browser OAuth, then ask Claude to list your Genfeed brands.',
-              ),
-            ],
-            title: 'Authorize and verify',
-          },
-        ],
-        title: 'Claude & Cowork',
+        title: 'Claude',
       };
     case 'codex':
       return {

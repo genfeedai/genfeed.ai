@@ -60,7 +60,7 @@ export type SetupTabId = ConnectClientTabId;
 const SETUP_TABS = CONNECT_CLIENTS;
 type SetupTab = ConnectClientEntry;
 
-const DEFAULT_SETUP_TAB_ID: SetupTabId = 'claude-code';
+const DEFAULT_SETUP_TAB_ID: SetupTabId = 'claude';
 
 /**
  * Maps a request path to the setup tab it opens. `/` and `/docs` open the
@@ -798,7 +798,7 @@ ${postHogSnippet}
   // page works without JavaScript. With JavaScript the tab switches in place
   // and the address bar follows via the History API.
   function selectTab(tab) {
-    setActiveTab(tab.getAttribute('data-tab') || 'claude-code');
+    setActiveTab(tab.getAttribute('data-tab') || 'claude');
     window.history.pushState(null, '', tab.getAttribute('href'));
   }
 
@@ -832,7 +832,7 @@ ${postHogSnippet}
       var match = Array.prototype.slice
         .call(document.querySelectorAll('[role="tab"][data-tab]'))
         .filter(function (tab) { return tab.getAttribute('href') === path; })[0];
-      setActiveTab(match ? match.getAttribute('data-tab') : 'claude-code');
+      setActiveTab(match ? match.getAttribute('data-tab') : 'claude');
     });
   }
 

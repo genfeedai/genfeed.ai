@@ -404,11 +404,10 @@ describe('MCP setup page', () => {
 
   describe('per-client routes', () => {
     it.each([
-      ['/', 'claude-code'],
-      ['/docs', 'claude-code'],
-      ['/claude-code', 'claude-code'],
-      ['/claude-code/', 'claude-code'],
-      ['/claude-cowork', 'claude-chat'],
+      ['/', 'claude'],
+      ['/docs', 'claude'],
+      ['/claude', 'claude'],
+      ['/claude/', 'claude'],
       ['/codex', 'codex'],
       ['/grok', 'grok'],
       ['/meta-muse', 'meta-muse'],
@@ -418,7 +417,7 @@ describe('MCP setup page', () => {
       expect(resolveSetupPageTab(path)).toBe(tab);
     });
 
-    it.each(['/nope', '/claude', '/v1/docs', '/mcp'])(
+    it.each(['/nope', '/claude-code', '/claude-cowork', '/v1/docs', '/mcp'])(
       'does not claim %s',
       (path) => {
         expect(resolveSetupPageTab(path)).toBeNull();
@@ -432,8 +431,7 @@ describe('MCP setup page', () => {
       );
 
       expect(hrefs).toEqual([
-        '/claude-code',
-        '/claude-cowork',
+        '/claude',
         '/codex',
         '/grok',
         '/meta-muse',
@@ -449,10 +447,10 @@ describe('MCP setup page', () => {
         document
           .querySelector('[role="tab"][aria-selected="true"]')
           ?.getAttribute('data-tab'),
-      ).toBe('claude-code');
+      ).toBe('claude');
       expect(
         document.querySelector('.tabpanel.is-active')?.getAttribute('id'),
-      ).toBe('panel-claude-code');
+      ).toBe('panel-claude');
       expect(document.title).toBe('Genfeed MCP Server — connect any AI agent');
     });
 
@@ -462,7 +460,7 @@ describe('MCP setup page', () => {
 
       expect(tabs.some((tab) => tab.hasAttribute('tabindex'))).toBe(false);
       expect(
-        document.querySelector('#tab-claude-code')?.getAttribute('data-title'),
+        document.querySelector('#tab-claude')?.getAttribute('data-title'),
       ).toBe(document.title);
     });
 
@@ -515,11 +513,13 @@ describe('MCP setup page', () => {
       dom.window.close();
     });
 
-    it('keeps Claude Code and Claude & Cowork as separate tabs', () => {
+    it('covers Claude, Cowork and Claude Code in one Claude tab', () => {
       const document = new JSDOM(renderSetupPage()).window.document;
+      const panel = document.getElementById('panel-claude');
 
-      expect(document.getElementById('panel-claude-code')).not.toBeNull();
-      expect(document.getElementById('panel-claude-chat')).not.toBeNull();
+      expect(panel?.querySelector('#claude-chat-url')).not.toBeNull();
+      expect(panel?.querySelector('#claude-code-command')).not.toBeNull();
+      expect(document.getElementById('panel-claude-code')).toBeNull();
     });
 
     it('serves official client marks from the MCP origin', () => {
