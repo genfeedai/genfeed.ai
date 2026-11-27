@@ -98,6 +98,7 @@ export async function runInNamedOrganization<T extends McpAppResult>(
     }
     const { id, label, slug } = await resolveRequestedOrganization(
       client,
+      canSwitchOrganizations,
       scoped.organization,
     );
     return await client.runInOrganization(id, async () => {

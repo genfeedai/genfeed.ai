@@ -33,7 +33,7 @@ import {
 } from '@libs/prisma/platform-scope';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-import Handlebars from 'handlebars';
+import type * as HandlebarsModule from 'handlebars';
 
 const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
 const UNDERSCORES_PATTERN = /_/g;
@@ -92,6 +92,8 @@ function toTemplateDocument(
 @Traced()
 @Injectable()
 export class TemplatesService {
+  private handlebars: typeof HandlebarsModule | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly templateUsageService: TemplateUsageService,
@@ -99,18 +101,30 @@ export class TemplatesService {
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
-  ) {
-    this.registerHandlebarsHelpers();
+  ) {}
+
+  /**
+   * Handlebars is large and only prompt rendering uses it, so it loads on the
+   * first render instead of when the API bundle loads (boot heap budget, #11148).
+   */
+  private getHandlebars(): typeof HandlebarsModule {
+    if (this.handlebars) {
+      return this.handlebars;
+    }
+    const handlebars = require('handlebars') as typeof HandlebarsModule;
+    this.registerHandlebarsHelpers(handlebars);
+    this.handlebars = handlebars;
+    return handlebars;
   }
 
   /**
    * Register custom Handlebars helpers
    */
-  private registerHandlebarsHelpers(): void {
-    Handlebars.registerHelper(
+  private registerHandlebarsHelpers(handlebars: typeof HandlebarsModule): void {
+    handlebars.registerHelper(
       'ifAny',
       function (this: unknown, ...args: unknown[]) {
-        const options = args[args.length - 1] as Handlebars.HelperOptions;
+        const options = args[args.length - 1] as HandlebarsModule.HelperOptions;
         const values = args.slice(0, -1);
 
         for (const value of values) {
@@ -587,7 +601,7 @@ export class TemplatesService {
    */
   renderPrompt(template: string, variables: Record<string, unknown>): string {
     try {
-      const compiledTemplate = Handlebars.compile(template);
+      const compiledTemplate = this.getHandlebars().compile(template);
 
       let rendered = compiledTemplate(variables);
 

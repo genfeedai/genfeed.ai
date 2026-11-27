@@ -2,7 +2,7 @@ name: Publish Shared Packages
 
 # Publishes the shared design layer (styles, ui, helpers, contracts) to npm on
 # demand, without cutting a release. console.genfeed.ai and
-# marketplace.genfeed.ai install these through deps:update instead of
+# shop.genfeed.ai install these through deps:update instead of
 # vendoring them.
 #
 # npm trusted publishing matches this caller's filename and allows one trusted
