@@ -311,7 +311,7 @@ describe('AppLayout', () => {
       'md:overflow-hidden',
     );
     expect(contentShell).not.toHaveClass(
-      'xl:pr-[var(--workspace-inspector-width,0px)]',
+      'md:pr-[var(--workspace-inspector-width,0px)]',
     );
     expect(contentShell).not.toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
@@ -320,7 +320,7 @@ describe('AppLayout', () => {
     // topbar stays outside it.
     expect(panel).toHaveClass(
       'bg-background',
-      'xl:mr-[var(--workspace-inspector-width,0px)]',
+      'md:mr-[var(--workspace-inspector-width,0px)]',
       'md:flex-row',
       'md:overflow-hidden',
     );
@@ -357,7 +357,7 @@ describe('AppLayout', () => {
     expect(topbar).toHaveClass(
       'bg-background',
       'border-b',
-      'xl:mr-[var(--workspace-inspector-width,0px)]',
+      'md:mr-[var(--workspace-inspector-width,0px)]',
     );
     expect(topbar).not.toHaveClass('md:border-b-0');
     expect(topbar.style.transition).toContain('margin-right');

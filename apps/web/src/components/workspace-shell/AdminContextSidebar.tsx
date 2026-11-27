@@ -19,7 +19,7 @@ const ADMIN_SIDEBAR_WIDTH = 384;
 /**
  * The right context sidebar for admin pages. The workspace shell mounts it for
  * the app; admin is a separate control plane without that shell, so its tables
- * and details get the same column here: a fixed rail from `xl`, a drawer below.
+ * and details get the same column here: a fixed rail from `md`, a drawer on phones.
  * Publishes its width the way the shell does, so the topbar and content panel
  * make room for it.
  */
@@ -66,7 +66,7 @@ export default function AdminContextSidebar() {
         aria-hidden={activeSidebar ? undefined : true}
         aria-label={translate('label')}
         className={cn(
-          'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+          'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background md:flex',
           isOpen && 'border-l border-border',
         )}
         data-motion="layout"

@@ -132,7 +132,7 @@ export function WorkspaceContextSidebarRail({
   );
 }
 
-/** Drawer variant for widths below `xl`: same selection, same content. */
+/** Drawer variant for phone widths below `md`: same selection, same content. */
 export function WorkspaceContextSidebarDrawerBody({
   contextSidebar,
 }: WorkspaceContextSidebarProps) {

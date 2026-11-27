@@ -12,8 +12,8 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
  * Product-page agent chrome is the Agent tab of the right-hand side panel. The
  * panel runs the full window height beside the page; the topbar toggle and
  * ⌘J / Ctrl+J open and close it. `/agent` is the conversation itself, so the
- * panel closes and the topbar toggle is hidden there. Below `xl` the agent is
- * a bottom sheet.
+ * panel closes and the topbar toggle is hidden there. The panel stays a side
+ * panel down to `md`; only on phones is the agent a bottom sheet.
  *
  * @module agent-dock.spec
  */
@@ -138,6 +138,24 @@ test.describe('Agent dock', () => {
 
     await openLibrary(page);
     await expect(dock).toHaveCount(0);
+  });
+
+  test('stays a side panel at a narrow desktop width', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1024 });
+    await openLibrary(page);
+
+    await page.getByTestId('topbar-agent-dock-toggle').click();
+
+    const dock = page.getByRole('region', { name: 'Agent' });
+    await expect(dock).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Agent' })).toHaveCount(0);
+    const panel = page.locator('#workspace-context-inspector');
+    await expect(panel).toBeVisible();
+    const box = await panel.boundingBox();
+    expect(box?.x).toBeGreaterThan(400);
+    await expectNoErrorOverlay(page);
   });
 
   test('opens as a bottom sheet on mobile', async ({

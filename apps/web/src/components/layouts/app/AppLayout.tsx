@@ -279,7 +279,7 @@ export default function AppLayout({
                     : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
                 )
               : cn(
-                  'bg-background md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:pr-[var(--workspace-inspector-width,0px)]',
+                  'bg-background md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pr-[var(--workspace-inspector-width,0px)]',
                   lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
                 ),
           )}
@@ -295,8 +295,8 @@ export default function AppLayout({
                   hasChrome
                     ? // The topbar ends at the panel's left edge: the panel
                       // runs the full window height beside it.
-                      'md:static md:z-auto md:shrink-0 xl:mr-[var(--workspace-inspector-width,0px)]'
-                    : 'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
+                      'md:static md:z-auto md:shrink-0 md:mr-[var(--workspace-inspector-width,0px)]'
+                    : 'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:right-[var(--workspace-inspector-width,0px)]',
                 )}
                 style={{
                   top: 'var(--desktop-titlebar-height)',
@@ -332,7 +332,7 @@ export default function AppLayout({
                 // the topbar. The inspector sits against its right edge:
                 // opening it narrows this block to the panel's left border.
                 hasChrome &&
-                  'md:min-h-0 md:flex-row md:overflow-hidden xl:mr-[var(--workspace-inspector-width,0px)]',
+                  'md:min-h-0 md:flex-row md:overflow-hidden md:mr-[var(--workspace-inspector-width,0px)]',
               )}
             >
               <main

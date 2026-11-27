@@ -86,7 +86,7 @@ export interface AgentDockProps {
    * stays mounted so drafts and streams survive a switch to Details.
    */
   readonly isTabActive?: boolean;
-  /** Below `xl` the panel renders as a bottom sheet. */
+  /** Below `md` (phones) the panel renders as a bottom sheet. */
   readonly isCompact: boolean;
   /** Organization and brand scope for the conversation, plus page context chips. */
   readonly scopeControls?: ReactNode;

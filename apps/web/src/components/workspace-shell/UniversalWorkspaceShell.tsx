@@ -663,7 +663,7 @@ function UniversalWorkspaceShellContent({
   const closeAgentDock = agentDock?.close;
   const openAgentDock = agentDock?.open;
   const isAgentDockOpen = agentDock?.isOpen ?? false;
-  // Below `xl` the agent is a bottom sheet, so only the rail counts here.
+  // On phones (below `md`) the agent is a bottom sheet, so only the rail counts here.
   const isAgentPanelOpen =
     isAgentDockHost && isAgentDockOpen && !isCompactViewport;
   // A split page shows its selection inside the output pane, so the right
@@ -739,7 +739,7 @@ function UniversalWorkspaceShellContent({
       if (tab === 'notifications') {
         setHasOpenedNotifications(true);
         setIsNotificationsOpen(true);
-        // Below `xl` the conversation is its own sheet: only one sheet at a time.
+        // On phones the conversation is its own sheet: only one sheet at a time.
         if (isCompactViewport) {
           closeAgentDock?.();
         }
@@ -810,7 +810,7 @@ function UniversalWorkspaceShellContent({
   ]);
 
   // The topbar's Notifications, Chat and Context toggles drive this panel through the dock.
-  // Below `xl` the rail does not render, so a context left open at a wider
+  // Below `md` the rail does not render, so a context left open at a wider
   // size is not visible: only the sheet (dock or mobile context) is.
   const isPanelVisible =
     isNotificationsOpen ||
@@ -1078,7 +1078,7 @@ function UniversalWorkspaceShellContent({
   // The rail is fixed-positioned, so it no longer occupies a grid track. Publishing
   // its width on the AppLayout root instead — the topbar and main content offset
   // themselves by it, exactly as they do for the left sidebar. Consumers apply the
-  // offset only at `xl:`, which is also the only breakpoint where the rail renders.
+  // offset only at `md:`, which is also the first breakpoint where the rail renders.
   // Layout effect, not effect: publishing before first paint keeps the reserved
   // space correct on mount so the offset transition never plays on page load.
   useLayoutEffect(() => {
@@ -1367,7 +1367,7 @@ function UniversalWorkspaceShellContent({
             aria-hidden={isPanelOpen ? undefined : true}
             aria-label={translateSidePanel('label')}
             className={cn(
-              'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+              'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background md:flex',
               isPanelOpen && 'border-l border-border',
             )}
             id="workspace-context-inspector"

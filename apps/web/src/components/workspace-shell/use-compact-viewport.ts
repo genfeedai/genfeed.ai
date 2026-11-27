@@ -24,7 +24,7 @@ function getSnapshot(): boolean {
   );
 }
 
-/** Below `xl`, where shell side panels render as drawers. */
+/** Below `md` (phones), where shell side panels render as drawers. */
 export function useIsCompactViewport(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
