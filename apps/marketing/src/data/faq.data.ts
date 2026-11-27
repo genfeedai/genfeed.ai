@@ -94,7 +94,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'What are the pricing tiers?',
       },
       {
-        answer: `Yes. API access is included on every plan at the same credit price. Generate from your agent, in the app or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} get higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
+        answer: `Yes. API access is included on every plan at the same credit price. Generate from your agent, in the app or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} get higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits.`,
         question: 'Is there an API?',
       },
       {
@@ -152,7 +152,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: `What extra features come with ${PLAN_COPY.scale.name}?`,
       },
       {
-        answer: `${PLAN_COPY.enterprise.name} includes custom output terms, unlimited organizations and brand kits, full API access, white-label deployment, SSO, dedicated Slack support, account management, and SLA terms.`,
+        answer: `${PLAN_COPY.enterprise.name} includes custom output terms, unlimited organizations and brand kits, full API access with custom rate limits, dedicated Slack support, and an account manager.`,
         question: `What is included in ${PLAN_COPY.enterprise.name}?`,
       },
       {

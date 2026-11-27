@@ -1,8 +1,14 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { videoRetentionDays } from '@genfeedai/contracts/constants';
-import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
+import {
+  FREE_TRIAL_DURATION_HOURS,
+  videoRetentionDays,
+} from '@genfeedai/contracts/constants';
+import {
+  ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_TRIAL_CREDITS,
+} from '@genfeedai/contracts/types';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,
@@ -22,7 +28,6 @@ import {
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { Button } from '@ui/primitives/button';
 import {
   Table,
   TableBody,
@@ -33,6 +38,7 @@ import {
 } from '@ui/primitives/table';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
   CtaSection,
@@ -55,10 +61,13 @@ import {
 
 /**
  * Subscription cards, in order. Names resolve from @genfeedai/pricing. The
- * third card is Enterprise, which includes our team making the content, and
+ * third card is the done-for-you service, which includes our team making the content, and
  * PAYG sits in its own block below.
  */
 const PLAN_ORDER: PlanTier[] = ['pro', 'scale'];
+
+/** One tracking name for every plan button; `plan` in the event says which. */
+const PRICING_PLAN_CLICK = 'pricing_plan_click';
 const FEATURED_TIER: PlanTier = 'scale';
 
 // Only offered while the launch price is on the card, so the term never
@@ -76,9 +85,16 @@ function getLaunchPriceFaqItems(): Array<{ answer: string; question: string }> {
       ];
 }
 
+/**
+ * What a new account gets, read from the constants the API grants from: the
+ * sign-up gift needs no card, the trial credits need a verified card, and both
+ * expire with the free trial for an organization that never pays.
+ */
+const FREE_CREDITS_COPY = `${ONBOARDING_SIGNUP_GIFT_CREDITS} credits when you sign up, ${ONBOARDING_TRIAL_CREDITS} more when you add a card. Free credits last ${FREE_TRIAL_DURATION_HOURS} hours.`;
+
 const FAQ_ITEMS_BEFORE_LAUNCH = [
   {
-    answer: `You get ${ONBOARDING_STARTER_CREDITS} free credits when you finish onboarding.`,
+    answer: FREE_CREDITS_COPY,
     question: 'Is there a free trial?',
   },
   {
@@ -253,10 +269,12 @@ export default function PricingContent() {
                     ))}
                   </ul>
 
-                  <Button
+                  <ButtonTracked
                     asChild
                     className="mt-8 w-full justify-center"
                     size={ButtonSize.PUBLIC}
+                    trackingData={{ plan: plan.tier }}
+                    trackingName={PRICING_PLAN_CLICK}
                     variant={
                       isFeatured
                         ? ButtonVariant.DEFAULT
@@ -266,7 +284,7 @@ export default function PricingContent() {
                     <a href={ctaHref} target="_blank" rel="noopener noreferrer">
                       {plan.cta || 'Get Started'}
                     </a>
-                  </Button>
+                  </ButtonTracked>
                 </NeuralGridItem>
               );
             })}
@@ -274,8 +292,8 @@ export default function PricingContent() {
             <NeuralGridItem
               padding="lg"
               className="relative gsap-card flex min-w-0 flex-col p-6 sm:p-6"
-              title={getPlanLabel('enterprise')}
-              aria-label={getPlanLabel('enterprise')}
+              title={serviceOffering.name}
+              aria-label={serviceOffering.name}
             >
               <div className="absolute right-6 top-6">
                 <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
@@ -306,14 +324,16 @@ export default function PricingContent() {
                 ))}
               </ul>
 
-              <Button
+              <ButtonTracked
                 asChild
                 className="mt-8 w-full justify-center"
                 size={ButtonSize.PUBLIC}
+                trackingData={{ plan: 'done_for_you' }}
+                trackingName={PRICING_PLAN_CLICK}
                 variant={ButtonVariant.SECONDARY}
               >
                 <Link href={BOOKING_HREF}>{serviceOffering.cta}</Link>
-              </Button>
+              </ButtonTracked>
             </NeuralGridItem>
           </NeuralGrid>
         </WebSection>
@@ -323,8 +343,7 @@ export default function PricingContent() {
             <div className="min-w-0">
               <h2 className="text-lg font-semibold">{getPlanLabel('payg')}</h2>
               <p className="mt-1 text-sm text-foreground/60">
-                {getPriceQualifier(getPlanByTier('payg'))} ·{' '}
-                {ONBOARDING_STARTER_CREDITS} free credits after onboarding
+                {getPriceQualifier(getPlanByTier('payg'))} · {FREE_CREDITS_COPY}
               </p>
               <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
                 {getPlanByTier('payg').features.map((feature) => (
@@ -337,10 +356,12 @@ export default function PricingContent() {
                 ))}
               </ul>
             </div>
-            <Button
+            <ButtonTracked
               asChild
               className="w-full justify-center sm:w-auto"
               size={ButtonSize.PUBLIC}
+              trackingData={{ plan: 'payg' }}
+              trackingName={PRICING_PLAN_CLICK}
               variant={ButtonVariant.SECONDARY}
             >
               <a
@@ -350,7 +371,7 @@ export default function PricingContent() {
               >
                 {getPlanByTier('payg').cta || 'Get Started'}
               </a>
-            </Button>
+            </ButtonTracked>
           </div>
         </WebSection>
 

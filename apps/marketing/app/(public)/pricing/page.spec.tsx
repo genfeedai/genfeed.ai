@@ -7,14 +7,14 @@ import { describe, expect, it } from 'vitest';
 runPageModuleTests('apps/marketing/app/(public)/pricing/page', PageModule);
 
 describe('pricing metadata', () => {
-  it('names Pro, Scale and the Enterprise price', async () => {
+  it('names Pro, Scale and the Done for you price', async () => {
     const parent = Promise.resolve({}) as ResolvingMetadata;
 
     const result = await PageModule.generateMetadata({}, parent);
 
     expect(result.description).toContain('Pro ($49/month)');
     expect(result.description).toContain('Scale ($499/month)');
-    expect(result.description).toContain('Enterprise from $2,500/month');
+    expect(result.description).toContain('Done for you from $2,500/month');
   });
 
   it('keeps the meta description inside the search-snippet budget', async () => {
@@ -36,7 +36,7 @@ describe('pricing metadata', () => {
     expect(jsonLd.description).toContain(
       'Scale ($499/month) adds unlimited seats and client workspaces',
     );
-    expect(jsonLd.description).toContain('Enterprise is from $2,500/month');
+    expect(jsonLd.description).toContain('Done for you is from $2,500/month');
   });
   it('lists PAYG as free and Pro as a monthly offer, with the managed retainer as a separate service', () => {
     const jsonLd = PageModule.buildPricingJsonLd();

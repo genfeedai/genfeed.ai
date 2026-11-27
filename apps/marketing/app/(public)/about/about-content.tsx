@@ -160,7 +160,7 @@ const HOW_IT_WORKS = [
     title: 'Who you work with',
   },
   {
-    description: `Priority support on ${PLAN_COPY.scale.name}, and a dedicated Slack channel with SLA terms on ${PLAN_COPY.enterprise.name}. Self-hosted users get community support on GitHub and Discord.`,
+    description: `Priority support on ${PLAN_COPY.scale.name}, and a dedicated Slack channel on ${PLAN_COPY.enterprise.name}. Self-hosted users get community support on GitHub and Discord.`,
     title: 'Support channels',
   },
 ] as const;

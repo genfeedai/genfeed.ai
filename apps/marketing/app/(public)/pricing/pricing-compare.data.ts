@@ -10,6 +10,7 @@ import {
   type TierPlanEntitlement,
 } from '@genfeedai/pricing';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import { serviceOffering } from '@web-components/landing/service-offering.data';
 
 /** Plans shown as columns of the compare table, in display order. */
 export const COMPARE_TIERS: readonly PlanTier[] = [
@@ -131,6 +132,12 @@ export function buildPricingCompareRows(): PricingCompareRow[] {
   ];
 }
 
+/**
+ * The fourth column is the done-for-you service, and the pricing card that sells
+ * it carries the same name (`serviceOffering.name`), so a buyer sees one offer.
+ */
 export function getCompareColumnLabels(): string[] {
-  return COMPARE_TIERS.map((tier) => getPlanLabel(tier));
+  return COMPARE_TIERS.map((tier) =>
+    tier === 'enterprise' ? serviceOffering.name : getPlanLabel(tier),
+  );
 }
