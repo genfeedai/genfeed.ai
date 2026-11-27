@@ -9,11 +9,11 @@
  * The API enforces these numbers and the pricing page prints them, both from
  * here, so the page cannot promise a scan the API refuses.
  */
-import {
-  type ResearchScanLibrary,
-  type ResearchScanLimitWindow,
-  SubscriptionTier,
-} from '@genfeedai/contracts';
+import { SubscriptionTier } from '@genfeedai/contracts';
+import type {
+  ResearchScanLibrary,
+  ResearchScanLimitWindow,
+} from '@genfeedai/contracts/interfaces';
 
 export const RESEARCH_SCAN_LIBRARIES: readonly ResearchScanLibrary[] = [
   'trends',
@@ -48,7 +48,7 @@ export const RESEARCH_SCAN_LIMITS: Record<
 export function getResearchScanLimitForTier(
   tier: string | null | undefined,
 ): ResearchScanLimit | null {
-  if (tier && Object.hasOwn(RESEARCH_SCAN_LIMITS, tier)) {
+  if (tier && (Object.values(SubscriptionTier) as string[]).includes(tier)) {
     return RESEARCH_SCAN_LIMITS[tier as SubscriptionTier];
   }
   return RESEARCH_SCAN_LIMITS[SubscriptionTier.FREE];
