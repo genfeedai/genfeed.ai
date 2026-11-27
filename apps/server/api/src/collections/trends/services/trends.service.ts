@@ -48,6 +48,10 @@ import {
   observedHashtags,
   observedSounds,
 } from '@api/collections/trends/utils/observed-trends.util';
+import {
+  hasEnoughMarketMentions,
+  isLiveTrend,
+} from '@api/collections/trends/utils/trend-read-filter.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
@@ -56,13 +60,6 @@ import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts'
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-
-/**
- * The Market view is the shared chart every account reads, so a topic seen once
- * or twice (a generic hashtag on one post) is noise there, not a trend. Brand
- * discovery keeps its own niche matching and is not cut by this floor.
- */
-export const MARKET_MIN_TREND_MENTIONS = 5;
 
 /**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
@@ -342,20 +339,9 @@ export class TrendsService {
       },
     );
 
-    if (options.relevance === 'market') {
-      trends = trends.filter(
-        (trend) => (trend.mentions ?? 0) >= MARKET_MIN_TREND_MENTIONS,
-      );
-    }
-
-    if (options.relevance !== 'market') {
-      trends = trends.filter(
-        (trend) =>
-          trend.isCurrent !== false &&
-          (!trend.expiresAt ||
-            new Date(trend.expiresAt).getTime() > Date.now()),
-      );
-    }
+    trends = trends.filter(
+      options.relevance === 'market' ? hasEnoughMarketMentions : isLiveTrend,
+    );
     if (options.timeframe) {
       trends = trends.filter((trend) =>
         isWithinTimeframe(

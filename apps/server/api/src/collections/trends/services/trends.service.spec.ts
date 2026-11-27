@@ -18,10 +18,8 @@ import { TrendSourcePreviewService } from '@api/collections/trends/services/modu
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import {
-  MARKET_MIN_TREND_MENTIONS,
-  TrendsService,
-} from '@api/collections/trends/services/trends.service';
+import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { MARKET_MIN_TREND_MENTIONS } from '@api/collections/trends/utils/trend-read-filter.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';

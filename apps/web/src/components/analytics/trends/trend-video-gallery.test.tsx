@@ -1,3 +1,4 @@
+import { Timeframe } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
@@ -34,7 +35,7 @@ describe('TrendVideoGallery', () => {
         onClearHashtag={vi.fn()}
         onVideoClick={vi.fn()}
         selectedHashtag=""
-        timeframe="72h"
+        timeframe={Timeframe.H72}
         videos={[video('a', 'https://cdn.example.com/a.jpg'), video('b')]}
       />,
     );
@@ -50,7 +51,7 @@ describe('TrendVideoGallery', () => {
         onClearHashtag={vi.fn()}
         onVideoClick={vi.fn()}
         selectedHashtag=""
-        timeframe="72h"
+        timeframe={Timeframe.H72}
         videos={[video('b')]}
       />,
     );
