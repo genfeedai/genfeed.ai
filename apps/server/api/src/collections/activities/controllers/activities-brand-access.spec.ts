@@ -135,11 +135,16 @@ describe('activity feed brand access', () => {
   it('hides activity from brands a restricted member cannot access in the organization feed', async () => {
     const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
 
-    expect(await idsListedFor(controller, member)).toEqual([
-      'allowed-brand',
+    expect(await idsListedFor(controller, member)).toEqual(['allowed-brand']);
+  });
+
+  it('hides activity that belongs to no brand from a restricted member', async () => {
+    const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
+
+    expect(await idsListedFor(controller, member)).not.toContain(
       'credit-ledger',
-      'org-level',
-    ]);
+    );
+    expect(await idsListedFor(controller, member)).not.toContain('org-level');
   });
 
   it('returns no activity from a brand the member cannot access when they ask for it by id', async () => {
@@ -147,7 +152,7 @@ describe('activity feed brand access', () => {
 
     expect(
       await idsListedFor(controller, member, { brandId: 'brand-b' }),
-    ).toEqual(['credit-ledger']);
+    ).toEqual([]);
   });
 
   it('does not let a stale active brand widen a restricted member to a brand they lost', async () => {
@@ -155,7 +160,7 @@ describe('activity feed brand access', () => {
 
     expect(
       await idsListedFor(controller, { ...member, brandId: 'brand-b' }),
-    ).toEqual(['credit-ledger']);
+    ).toEqual([]);
   });
 
   it('shows a brand the member can access when they ask for it by id', async () => {
@@ -163,7 +168,7 @@ describe('activity feed brand access', () => {
 
     expect(
       await idsListedFor(controller, member, { brandId: 'brand-a' }),
-    ).toEqual(['allowed-brand', 'credit-ledger']);
+    ).toEqual(['allowed-brand']);
   });
 
   it('counts unread activity only inside the brands the member can access', async () => {
@@ -171,7 +176,7 @@ describe('activity feed brand access', () => {
 
     const result = await controller.unreadCount({} as Request, query(), member);
 
-    expect(result.unreadCount).toBe(3);
+    expect(result.unreadCount).toBe(1);
   });
 
   it('keeps every brand in the organization visible to an organization admin', async () => {

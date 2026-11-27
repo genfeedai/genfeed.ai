@@ -109,21 +109,23 @@ export class ActivitiesController {
         ? (await this.brandAccess.resolve(resolveKnowledgeActor(user))).brandIds
         : undefined;
 
-    if (where.brandId && organizationId) {
+    if (accessibleBrandIds) {
+      // A limited member reads only the brands they can access. Activity that
+      // belongs to no brand (the credit ledger, organization events) is not
+      // theirs to read, and a brand they cannot access returns nothing.
       const requestedBrandId = where.brandId;
+      where.brandId = {
+        in: requestedBrandId
+          ? accessibleBrandIds.filter((id) => id === requestedBrandId)
+          : accessibleBrandIds,
+      };
+    } else if (where.brandId && organizationId) {
       where.organizationId = organizationId;
       where.OR = [
-        {
-          brandId: accessibleBrandIds
-            ? { in: accessibleBrandIds.filter((id) => id === requestedBrandId) }
-            : requestedBrandId,
-        },
+        { brandId: where.brandId },
         { brandId: null, entityModel: 'CreditTransaction' },
       ];
       delete where.brandId;
-    } else if (where.organizationId && accessibleBrandIds) {
-      // The organization feed: the member's brands, plus what belongs to no brand.
-      where.OR = [{ brandId: { in: accessibleBrandIds } }, { brandId: null }];
     }
 
     // An operator can narrow any list to one user, across organizations. A
