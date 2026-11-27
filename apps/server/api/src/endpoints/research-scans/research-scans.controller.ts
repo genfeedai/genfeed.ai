@@ -3,6 +3,8 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ResearchScanService } from '@api/services/research-access/research-scan.service';
 import type { ResearchScanStatus } from '@genfeedai/contracts/interfaces';
 import { Controller, ForbiddenException, Get, UseGuards } from '@nestjs/common';
@@ -19,18 +21,20 @@ export class ResearchScansController {
    * and when the next one opens. Reading this starts no run and counts as no
    * scan.
    */
+  @TenantReadPolicy('selected')
   @Get()
   async list(@CurrentUser() user: User): Promise<{
     data: ResearchScanStatus[];
   }> {
-    if (!user.organizationId) {
+    const { organizationId } = resolveTenantReadScope(user);
+    if (!organizationId) {
       throw new ForbiddenException({
         detail: 'An authenticated organization is required',
         title: 'Forbidden',
       });
     }
     return {
-      data: await this.researchScanService.getStatuses(user.organizationId),
+      data: await this.researchScanService.getStatuses(organizationId),
     };
   }
 }

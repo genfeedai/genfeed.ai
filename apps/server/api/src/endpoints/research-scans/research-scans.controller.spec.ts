@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ResearchScansController } from './research-scans.controller';
@@ -22,6 +23,23 @@ describe('ResearchScansController', () => {
       controller.list({ organizationId: 'org-1' } as AuthenticatedUser),
     ).resolves.toEqual({ data: statuses });
     expect(getStatuses).toHaveBeenCalledWith('org-1');
+  });
+
+  it('reads the organization a superadmin selected, not their own', async () => {
+    const getStatuses = vi.fn().mockResolvedValue([]);
+    const controller = new ResearchScansController({ getStatuses } as never);
+
+    await runWithTenantReadScope(
+      {
+        brandId: undefined,
+        isOrganizationOverride: true,
+        organizationId: 'org-selected',
+      },
+      () =>
+        controller.list({ organizationId: 'org-home' } as AuthenticatedUser),
+    );
+
+    expect(getStatuses).toHaveBeenCalledWith('org-selected');
   });
 
   it('refuses a caller with no organization', async () => {
