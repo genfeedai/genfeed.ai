@@ -1,12 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  notifyError: vi.fn(),
-  notifyInfo: vi.fn(),
-  notifySuccess: vi.fn(),
-  refreshScans: vi.fn().mockResolvedValue(undefined),
-  refreshTrends: vi.fn(),
+/** What the person saw and what was re-read, in order. */
+const world = vi.hoisted(() => ({
+  events: [] as string[],
+  refreshTrends: undefined as unknown as () => Promise<unknown>,
 }));
 
 vi.mock('next-intl', () => ({
@@ -15,7 +13,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    refreshTrends: mocks.refreshTrends,
+    refreshTrends: () => world.refreshTrends(),
   }),
 }));
 
@@ -26,16 +24,18 @@ vi.mock('@genfeedai/services/social/trends.service', () => ({
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
-      error: mocks.notifyError,
-      info: mocks.notifyInfo,
-      success: mocks.notifySuccess,
+      error: (message: string) => world.events.push(`error: ${message}`),
+      info: (message: string) => world.events.push(`info: ${message}`),
+      success: (message: string) => world.events.push(`success: ${message}`),
     }),
   },
 }));
 
 vi.mock('@/features/research/scans/use-research-scans', () => ({
   useResearchScans: () => ({
-    refresh: mocks.refreshScans,
+    refresh: async () => {
+      world.events.push('scans re-read');
+    },
     statusFor: () => ({ library: 'trends', remaining: 1 }),
   }),
 }));
@@ -60,51 +60,50 @@ function limitError() {
 
 describe('useNicheScan', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.refreshScans.mockResolvedValue(undefined);
+    world.events = [];
   });
 
-  it('refreshes the desk and the counts after a scan starts', async () => {
-    mocks.refreshTrends.mockResolvedValue({ count: 3, success: true });
-    const refreshDesk = vi.fn().mockResolvedValue(undefined);
+  async function scan() {
+    const refreshDesk = async () => {
+      world.events.push('desk refreshed');
+    };
     const { result } = renderHook(() => useNicheScan(refreshDesk));
-
     await act(async () => {
       await result.current.scan();
     });
+    return result.current;
+  }
 
-    expect(mocks.notifySuccess).toHaveBeenCalledWith('started');
-    expect(refreshDesk).toHaveBeenCalledTimes(1);
-    expect(mocks.refreshScans).toHaveBeenCalledTimes(1);
-    expect(result.current.isScanning).toBe(false);
+  it('refreshes the desk and the counts after a scan starts', async () => {
+    world.refreshTrends = async () => ({ count: 3, success: true });
+
+    const hook = await scan();
+
+    expect(world.events).toEqual([
+      'success: started',
+      'desk refreshed',
+      'scans re-read',
+    ]);
+    expect(hook.isScanning).toBe(false);
   });
 
   it('tells the person a refused scan is a limit, and re-reads the counts', async () => {
-    mocks.refreshTrends.mockRejectedValue(limitError());
-    const refreshDesk = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useNicheScan(refreshDesk));
+    world.refreshTrends = async () => {
+      throw limitError();
+    };
 
-    await act(async () => {
-      await result.current.scan();
-    });
+    await scan();
 
-    expect(mocks.notifyInfo).toHaveBeenCalledWith('limitReached');
-    expect(mocks.notifyError).not.toHaveBeenCalled();
-    expect(refreshDesk).not.toHaveBeenCalled();
-    expect(mocks.refreshScans).toHaveBeenCalledTimes(1);
+    expect(world.events).toEqual(['info: limitReached', 'scans re-read']);
   });
 
   it('reports any other failure as an error', async () => {
-    mocks.refreshTrends.mockRejectedValue(new Error('scraper down'));
-    const { result } = renderHook(() =>
-      useNicheScan(vi.fn().mockResolvedValue(undefined)),
-    );
+    world.refreshTrends = async () => {
+      throw new Error('scraper down');
+    };
 
-    await act(async () => {
-      await result.current.scan();
-    });
+    await scan();
 
-    expect(mocks.notifyError).toHaveBeenCalledWith('scraper down');
-    expect(mocks.notifyInfo).not.toHaveBeenCalled();
+    expect(world.events).toEqual(['error: scraper down', 'scans re-read']);
   });
 });

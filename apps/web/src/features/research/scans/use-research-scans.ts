@@ -10,9 +10,9 @@ import { ResearchScansService } from '@services/social/research-scans.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-export const RESEARCH_SCANS_QUERY_KEY = 'research-scans';
+const RESEARCH_SCANS_QUERY_KEY = 'research-scans';
 
-export interface UseResearchScansReturn {
+interface UseResearchScansReturn {
   /** Re-reads the counts; call it after anything that may have spent a scan. */
   refresh: () => Promise<void>;
   statusFor: (library: ResearchScanLibrary) => ResearchScanStatus | undefined;

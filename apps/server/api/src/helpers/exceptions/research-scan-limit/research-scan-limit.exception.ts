@@ -1,7 +1,7 @@
 import type { ResearchScanLibrary } from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-export const RESEARCH_SCAN_LIMIT_REACHED = 'research_scan_limit_reached';
+const RESEARCH_SCAN_LIMIT_REACHED = 'research_scan_limit_reached';
 
 /**
  * What the error response carries in `meta`, as primitives the web app's

@@ -71,6 +71,11 @@ type Harness = {
   service: PaidCreativeResearchIngestionService;
 };
 
+/** The scans the ingestion asked for, in order. */
+function scansTaken(harness: Harness): unknown[] {
+  return harness.scan.runScan.mock.calls.map(([input]) => input);
+}
+
 function buildHarness(
   watched: Record<string, unknown>[],
   readiness: PaidCreativeReadiness = READY,
@@ -572,13 +577,12 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
         );
 
         expect(result).toMatchObject({ status: 'success' });
-        expect(harness.scan.runScan).toHaveBeenCalledWith(
+        expect(scansTaken(harness)).toEqual([
           { library: 'ads', organizationId: 'org-1', subjectKey: 'watch-1' },
-          expect.any(Function),
-        );
+        ]);
         expect(
-          harness.autonomousProducerInstallService.installOnOptIn,
-        ).not.toHaveBeenCalled();
+          harness.autonomousProducerInstallService.installOnOptIn.mock.calls,
+        ).toEqual([]);
       });
 
       it('answers a refused scan with when the next one opens, before any run and without touching the last snapshot', async () => {
@@ -606,13 +610,19 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
           recordCount: 0,
           status: 'unavailable',
         });
-        expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
-        expect(
-          harness.adPerformanceService.markResearchSnapshotStale,
-        ).not.toHaveBeenCalled();
-        expect(
-          harness.adWatchedAdvertisersService.recordIngestionResult,
-        ).not.toHaveBeenCalled();
+        // No run started, and the last snapshot and its row were left alone.
+        expect({
+          rowsWritten:
+            harness.adWatchedAdvertisersService.recordIngestionResult.mock
+              .calls,
+          runsStarted: harness.adapter.fetchCreatives.mock.calls,
+          snapshotsMarkedStale:
+            harness.adPerformanceService.markResearchSnapshotStale.mock.calls,
+        }).toEqual({
+          rowsWritten: [],
+          runsStarted: [],
+          snapshotsMarkedStale: [],
+        });
       });
 
       it('fails a poll closed when the plan cannot be read', async () => {
@@ -631,7 +641,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
           errorCode: 'research_subscription_unverified',
           status: 'unavailable',
         });
-        expect(harness.scan.runScan).not.toHaveBeenCalled();
+        expect(scansTaken(harness)).toEqual([]);
       });
 
       it('leaves a scheduled rescan of an organization without a plan unrun', async () => {
@@ -643,7 +653,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
         expect(result).toMatchObject({
           errorCode: 'research_paid_access_required',
         });
-        expect(harness.scan.runScan).not.toHaveBeenCalled();
+        expect(scansTaken(harness)).toEqual([]);
       });
     });
 

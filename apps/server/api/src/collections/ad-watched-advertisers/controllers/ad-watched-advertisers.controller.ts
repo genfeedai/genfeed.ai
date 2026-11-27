@@ -130,6 +130,7 @@ export class AdWatchedAdvertisersController extends BaseCRUDController<
   // organization may add, change and remove its own watchlist (#11623).
   @Post()
   @OrganizationModule('discovery', 'read')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   override async create(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -1,9 +1,11 @@
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
+import { ResearchScanLimitReachedException } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import { CacheService } from '@api/services/cache/cache.service';
 import { runWithApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
+import { ResearchScanService } from '@api/services/research-access/research-scan.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 const BRAND_READ_PREFIX = 'trends:brand-read';
 const BRAND_NICHE_CLAIM_PREFIX = 'trends:brand-niche-claim';
@@ -29,6 +31,7 @@ export class TrendBrandReadService {
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
     private readonly nicheVideoService: TrendBrandNicheVideoService,
+    private readonly researchScanService: ResearchScanService,
   ) {}
 
   private readKey(organizationId: string, brandId: string): string {
@@ -98,7 +101,7 @@ export class TrendBrandReadService {
         return;
       if (!(await this.claimNicheRefresh(organizationId, brandId))) return;
       void runWithApifyCaller('trends.niche-on-read', () =>
-        refreshNiche(organizationId, brandId),
+        this.scanNicheOnRead(organizationId, brandId, refreshNiche),
       ).catch((error: unknown) => {
         this.loggerService.warn('On-demand brand niche refresh failed', {
           error: error instanceof Error ? error.message : 'unknown',
@@ -108,6 +111,39 @@ export class TrendBrandReadService {
       this.loggerService.warn('Could not note a brand trends read', {
         error: error instanceof Error ? error.message : 'unknown',
       });
+    }
+  }
+
+  /**
+   * The search a first read may start. It is a scan like any other, but it
+   * starts on its own, so it runs only for an organization on a plan and
+   * leaves the weekly scan of an organization without one for the person to
+   * spend (#11623). Both refusals are expected, not failures.
+   */
+  private async scanNicheOnRead(
+    organizationId: string,
+    brandId: string,
+    refreshNiche: (organizationId: string, brandId: string) => Promise<number>,
+  ): Promise<number> {
+    try {
+      return await this.researchScanService.runScan(
+        {
+          library: 'trends',
+          organizationId,
+          requiresPlan: true,
+          subjectKey: brandId,
+        },
+        () => refreshNiche(organizationId, brandId),
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof ResearchScanLimitReachedException ||
+        (error instanceof ServiceUnavailableException &&
+          error.message === 'research_paid_access_required')
+      ) {
+        return 0;
+      }
+      throw error;
     }
   }
 }

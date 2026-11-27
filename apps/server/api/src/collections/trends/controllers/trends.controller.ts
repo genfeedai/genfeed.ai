@@ -33,6 +33,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ResearchScanService } from '@api/services/research-access/research-scan.service';
 import {
   ActivitySource,
   ApiKeyScope,
@@ -67,6 +68,7 @@ export class TrendsController {
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
     private readonly apiKeysService: ApiKeysService,
+    private readonly researchScanService: ResearchScanService,
   ) {}
 
   @TenantReadPolicy('selected')
@@ -224,9 +226,11 @@ export class TrendsController {
     const organizationId = user.organizationId;
     const brandId = user.brandId;
 
-    const refreshedTrends = await this.trendsService.refreshTrends(
-      organizationId,
-      brandId,
+    // The scan is taken before anything is touched: a refused scan leaves the
+    // current trends as they are.
+    const refreshedTrends = await this.researchScanService.runScan(
+      { library: 'trends', organizationId, subjectKey: brandId },
+      () => this.trendsService.refreshTrends(organizationId, brandId),
     );
 
     return {

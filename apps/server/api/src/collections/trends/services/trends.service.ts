@@ -49,15 +49,13 @@ import {
   observedSounds,
 } from '@api/collections/trends/utils/observed-trends.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { ResearchScanLimitReachedException } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import { scopedWhere } from '@api/index';
 import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
-import { ResearchScanService } from '@api/services/research-access/research-scan.service';
 import { Timeframe } from '@genfeedai/contracts';
 import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
@@ -86,7 +84,6 @@ export class TrendsService {
     private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
     private readonly trendBrandDigestService: TrendBrandDigestService,
     private readonly trendBrandReadService: TrendBrandReadService,
-    private readonly researchScanService: ResearchScanService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -505,19 +502,12 @@ export class TrendsService {
     organizationId?: string,
     brandId?: string,
   ): Promise<TrendEntity[]> {
-    // The scan is taken first: a refused scan must leave the current trends
-    // as they are.
-    return this.researchScanService.runScan(
-      { library: 'trends', organizationId, subjectKey: brandId },
-      async () => {
-        await this.trendAnalysisService.markCurrentTrendsAsHistorical(
-          organizationId,
-          brandId,
-        );
-        return runWithDefaultApifyCaller('trends.refresh-manual', () =>
-          this.fetchAndHydrateTrends(organizationId, brandId),
-        );
-      },
+    await this.trendAnalysisService.markCurrentTrendsAsHistorical(
+      organizationId,
+      brandId,
+    );
+    return runWithDefaultApifyCaller('trends.refresh-manual', () =>
+      this.fetchAndHydrateTrends(organizationId, brandId),
     );
   }
 
@@ -850,40 +840,8 @@ export class TrendsService {
     return this.trendBrandReadService.noteRead(
       organizationId,
       brandId,
-      (org, brand) => this.scanBrandNicheOnRead(org, brand),
+      (org, brand) => this.fetchAndCacheBrandNicheVideos(org, brand),
     );
-  }
-
-  /**
-   * The search a first read may start. It is a scan like any other, but it
-   * starts on its own, so it runs only for an organization on a plan and
-   * leaves the weekly scan of an organization without one for the person to
-   * spend. Both refusals are expected, not failures.
-   */
-  private async scanBrandNicheOnRead(
-    organizationId: string,
-    brandId: string,
-  ): Promise<number> {
-    try {
-      return await this.researchScanService.runScan(
-        {
-          library: 'trends',
-          organizationId,
-          requiresPlan: true,
-          subjectKey: brandId,
-        },
-        () => this.fetchAndCacheBrandNicheVideos(organizationId, brandId),
-      );
-    } catch (error: unknown) {
-      if (
-        error instanceof ResearchScanLimitReachedException ||
-        (error instanceof ServiceUnavailableException &&
-          error.message === 'research_paid_access_required')
-      ) {
-        return 0;
-      }
-      throw error;
-    }
   }
 
   hasBrandReadRecently(organizationId: string, brandId: string) {

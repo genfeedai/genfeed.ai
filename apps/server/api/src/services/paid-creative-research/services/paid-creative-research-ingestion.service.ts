@@ -321,6 +321,25 @@ export class PaidCreativeResearchIngestionService {
       );
     }
 
+    return this.storeSnapshot(
+      organizationId,
+      advertiser,
+      platform,
+      creatives,
+      observedAt,
+      snapshotId,
+    );
+  }
+
+  /** Replaces the competitor's snapshot with what the scan found and records the outcome. */
+  private async storeSnapshot(
+    organizationId: string,
+    advertiser: WatchedAdvertiserScope,
+    platform: PaidCreativePlatform,
+    creatives: NormalizedPaidCreativeRecord[],
+    observedAt: Date,
+    snapshotId: string,
+  ): Promise<PaidCreativeIngestionResult> {
     try {
       const replacement =
         await this.adPerformanceService.replaceResearchSnapshot({

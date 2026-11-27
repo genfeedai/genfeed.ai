@@ -77,6 +77,7 @@ describe('TrendsController', () => {
   } as unknown as User;
 
   const mockReq = {} as Request;
+  const runScan = vi.fn();
 
   const mockTrendsService = {
     fetchAndCacheHashtags: vi.fn(),
@@ -134,6 +135,9 @@ describe('TrendsController', () => {
       findOne: vi.fn(),
       findOneSelect: delegateFindOneSelect(),
     };
+    runScan.mockImplementation((_input: unknown, run: () => Promise<unknown>) =>
+      run(),
+    );
     controller = new TrendsController(
       mockTrendsService as never,
       mockTrendPreferencesService as never,
@@ -142,6 +146,7 @@ describe('TrendsController', () => {
       brandsService as never,
       membersService as never,
       apiKeysService as never,
+      { runScan } as never,
     );
     discoveryController = new TrendsDiscoveryController(
       mockTrendsService as never,
@@ -342,6 +347,37 @@ describe('TrendsController', () => {
       expect(result).toBeDefined();
       expect(result).toHaveProperty('data');
       expect(result.data).toEqual(mockResult.trends);
+    });
+
+    describe('POST /trends/refresh as one trends scan (#11623)', () => {
+      it('refreshes inside a scan for the caller brand', async () => {
+        mockTrendsService.refreshTrends.mockResolvedValue([mockTrend]);
+
+        const result = await controller.refreshTrends(mockUser);
+
+        expect(runScan).toHaveBeenCalledWith(
+          {
+            library: 'trends',
+            organizationId: mockUser.organizationId,
+            subjectKey: mockUser.brandId,
+          },
+          expect.any(Function),
+        );
+        expect(result).toEqual({
+          count: 1,
+          message: 'Trends refreshed successfully',
+          success: true,
+        });
+      });
+
+      it('leaves the current trends alone when the scan is refused', async () => {
+        const refusal = new Error('Scan limit reached');
+        runScan.mockRejectedValue(refusal);
+
+        await expect(controller.refreshTrends(mockUser)).rejects.toBe(refusal);
+
+        expect(mockTrendsService.refreshTrends).not.toHaveBeenCalled();
+      });
     });
 
     it('rejects refresh on trend reads without starting ingestion', async () => {
