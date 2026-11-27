@@ -19,6 +19,11 @@ vi.mock('@services/external/public.service', () => ({
   },
 }));
 
+const getPublishedReleases =
+  vi.fn<() => Promise<{ publishedAt: string; tag: string }[]>>();
+
+vi.mock('@data/releases.data', () => ({ getPublishedReleases }));
+
 const { default: sitemap, revalidate } = await import('./sitemap');
 
 beforeEach(() => {
@@ -27,6 +32,8 @@ beforeEach(() => {
   findPublicBrands.mockResolvedValue([]);
   findPublicPosts.mockReset();
   findPublicPosts.mockResolvedValue([]);
+  getPublishedReleases.mockReset();
+  getPublishedReleases.mockResolvedValue([]);
 });
 
 describe('website sitemap', () => {
@@ -221,5 +228,38 @@ describe('website sitemap', () => {
     const urls = new Set((await sitemap()).map((route) => route.url));
 
     expect(urls.has('https://genfeed.ai/@genfeedai')).toBe(true);
+  });
+
+  it('lists every release page with the date it was published', async () => {
+    findAllPublicArticles.mockResolvedValue([]);
+    getPublishedReleases.mockResolvedValue([
+      { publishedAt: '2026-11-20T08:00:00Z', tag: 'v0.3.8' },
+      { publishedAt: '2026-11-13T08:00:00Z', tag: 'v0.3.7' },
+    ]);
+
+    const routes = await sitemap();
+    const releaseRoutes = routes.filter((route) =>
+      route.url.startsWith('https://genfeed.ai/changelog/'),
+    );
+
+    expect(releaseRoutes.map((route) => route.url)).toEqual([
+      'https://genfeed.ai/changelog/v0.3.8',
+      'https://genfeed.ai/changelog/v0.3.7',
+    ]);
+    expect(releaseRoutes[0]?.lastModified).toEqual(
+      new Date('2026-11-20T08:00:00Z'),
+    );
+    expect(
+      routes.some((route) => route.url === 'https://genfeed.ai/changelog'),
+    ).toBe(true);
+  });
+
+  it('keeps the changelog list listed when the releases source is unavailable', async () => {
+    findAllPublicArticles.mockResolvedValue([]);
+    getPublishedReleases.mockRejectedValue(new Error('rate limited'));
+
+    const urls = new Set((await sitemap()).map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/changelog')).toBe(true);
   });
 });

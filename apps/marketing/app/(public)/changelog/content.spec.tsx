@@ -1,51 +1,52 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import ChangelogContent from './content';
 
+const RELEASES = [
+  {
+    body: '## [1.0.0](https://github.com/genfeedai/genfeed.ai/releases/tag/v1.0.0) - 2026-09-01\n\n### Features\n\n- **app:** palette\n\n## Fixed\n\n**Safe** [unsafe](javascript:alert(1))',
+    publishedAt: '2026-09-01T00:00:00Z',
+    tag: 'v1.0.0',
+    url: 'https://github.com/genfeedai/genfeed.ai/releases/tag/v1.0.0',
+  },
+  {
+    body: '',
+    publishedAt: '2026-08-01T00:00:00Z',
+    tag: 'v0.9.0',
+    url: 'https://github.com/genfeedai/genfeed.ai/releases/tag/v0.9.0',
+  },
+];
+
 describe('Changelog', () => {
-  it('collapses release notes, renders markdown safely, and keeps releases linked', () => {
-    const { container } = render(
-      <ChangelogContent
-        releases={[
-          {
-            tag: 'v1.0.0',
-            publishedAt: '2026-09-01T00:00:00Z',
-            url: 'https://github.com/genfeedai/genfeed.ai/releases/tag/v1.0.0',
-            body: '## [1.0.0](https://github.com/genfeedai/genfeed.ai/releases/tag/v1.0.0) - 2026-09-01\n\n### Features\n\n- **app:** palette\n\n## Fixed\n\n**Safe** [unsafe](javascript:alert(1))\n\n<script>alert(1)</script>',
-          },
-          {
-            tag: 'v0.9.0',
-            publishedAt: '2026-08-01T00:00:00Z',
-            url: 'https://github.com/genfeedai/genfeed.ai/releases/tag/v0.9.0',
-            body: '',
-          },
-        ]}
-      />,
-    );
-    const notes = screen.getByRole('heading', { name: 'Fixed' });
-    const panel = notes.closest('[data-state]');
-    expect(panel?.getAttribute('data-state')).toBe('closed');
-    expect(panel?.className).toContain('data-[state=closed]:hidden');
-    expect(screen.queryByRole('heading', { name: /2026-09-01/ })).toBeNull();
+  it('links every release to its own page and leaves the notes off the list', () => {
+    const { container } = render(<ChangelogContent releases={RELEASES} />);
+
     expect(
-      screen.getByRole('button', { name: /v1\.0\.0/ }).textContent,
+      screen.getByRole('link', { name: /v1\.0\.0/ }).getAttribute('href'),
+    ).toBe('/changelog/v1.0.0');
+    expect(
+      screen.getByRole('link', { name: /v0\.9\.0/ }).getAttribute('href'),
+    ).toBe('/changelog/v0.9.0');
+    expect(
+      screen.getByRole('link', { name: /v1\.0\.0/ }).textContent,
     ).toContain('Features');
-    fireEvent.click(screen.getByRole('button', { name: /v1\.0\.0/ }));
-    expect(notes.closest('[data-state]')?.getAttribute('data-state')).toBe(
-      'open',
-    );
-    expect(screen.queryByRole('heading', { name: /2026-09-01/ })).toBeNull();
-    expect(
-      screen.getByRole('link', { name: 'v0.9.0' }).getAttribute('href'),
-    ).toContain('/releases/tag/v0.9.0');
-    expect(
-      screen
-        .getByRole('link', { name: 'v1.0.0 on GitHub' })
-        .getAttribute('href'),
-    ).toContain('/releases/tag/v1.0.0');
-    expect(container.querySelector('script')).toBeNull();
-    expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
     expect(screen.getByText('September 1, 2026')).toBeTruthy();
+    expect(screen.queryByText('Fixed')).toBeNull();
+    expect(container.textContent).not.toContain('palette');
+  });
+
+  it('stays small with a release history that keeps growing', () => {
+    const releases = Array.from({ length: 200 }, (_, index) => ({
+      body: `### Features\n\n${'- a change that shipped in this release\n'.repeat(400)}`,
+      publishedAt: '2026-09-01T00:00:00Z',
+      tag: `v0.${index}.0`,
+      url: `https://github.com/genfeedai/genfeed.ai/releases/tag/v0.${index}.0`,
+    }));
+
+    const { container } = render(<ChangelogContent releases={releases} />);
+
+    expect(container.querySelectorAll('li')).toHaveLength(200);
+    expect(container.innerHTML.length).toBeLessThan(200_000);
   });
 
   it('says release notes are unavailable instead of rendering an empty list', () => {
