@@ -1,6 +1,7 @@
 import {
   assertArticleIsReaderCopy,
   findArticleProcessNote,
+  findLegacyArticleLink,
 } from '@api/collections/articles/utils/article-reader-copy.util';
 import { BadRequestException } from '@nestjs/common';
 
@@ -71,6 +72,60 @@ describe('assertArticleIsReaderCopy', () => {
   it('passes clean copy', () => {
     expect(() =>
       assertArticleIsReaderCopy('<h2>Sources</h2><p>Anthropic</p>'),
+    ).not.toThrow();
+  });
+});
+
+describe('findLegacyArticleLink', () => {
+  it.each([
+    [
+      '<a href="https://genfeed.ai/articles/how-credits-and-billing-work">x</a>',
+      'https://genfeed.ai/articles/how-credits-and-billing-work',
+    ],
+    [
+      "<a href='https://www.genfeed.ai/articles/a-b'>x</a>",
+      'https://www.genfeed.ai/articles/a-b',
+    ],
+    [
+      '<a href="http://genfeed.ai/articles/a-b#top">x</a>',
+      'http://genfeed.ai/articles/a-b',
+    ],
+    ['<a href="/articles/a-b">x</a>', '/articles/a-b'],
+  ])('finds the retired path in %s', (html, link) => {
+    expect(findLegacyArticleLink(html)).toBe(link);
+  });
+
+  it.each([
+    '<a href="https://genfeed.ai/@genfeedai/articles/how-credits-and-billing-work">x</a>',
+    '<a href="/@genfeedai/articles/a-b">x</a>',
+    '<a href="https://other.example/articles/a-b">x</a>',
+    '<a href="https://genfeed.ai/pricing">x</a>',
+    '<p>Plain text about genfeed.ai/articles/a-b with no link.</p>',
+  ])('leaves %s alone', (html) => {
+    expect(findLegacyArticleLink(html)).toBeUndefined();
+  });
+
+  it.each([[undefined], [null], ['']])('accepts empty content %j', (html) => {
+    expect(findLegacyArticleLink(html)).toBeUndefined();
+  });
+});
+
+describe('assertArticleIsReaderCopy and retired article links', () => {
+  it('refuses a link to the retired path and names the replacement', () => {
+    const html =
+      '<p>See <a href="https://genfeed.ai/articles/getting-started">the guide</a>.</p>';
+
+    expect(() => assertArticleIsReaderCopy(html)).toThrow(BadRequestException);
+    expect(() => assertArticleIsReaderCopy(html)).toThrow(
+      'cannot link to https://genfeed.ai/articles/getting-started',
+    );
+  });
+
+  it('accepts the creator-profile path', () => {
+    expect(() =>
+      assertArticleIsReaderCopy(
+        '<a href="https://genfeed.ai/@genfeedai/articles/getting-started">x</a>',
+      ),
     ).not.toThrow();
   });
 });
