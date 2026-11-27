@@ -67,6 +67,12 @@ export function useAgentDockThreads(
   const hasStartedFreshThread = useRef(false);
   // The record whose conversation the dock currently holds.
   const openedThreadKey = useRef<string | null>(null);
+  // The master read in flight, shared across runs of the effect that opens it.
+  const masterRequest = useRef<{
+    controller: AbortController;
+    pending: Promise<AgentThread>;
+    service: typeof apiService;
+  } | null>(null);
 
   // use-effect-audit: ignore abortable request
   useEffect(() => {
@@ -252,10 +258,15 @@ export function useAgentDockThreads(
 
   // The dock opens on the master conversation unless a thread is already open,
   // the operator asked for a blank one, or the page holds a record's thread.
+  // The read is shared by every run of this effect: a dependency that changes
+  // while it is in flight (the thread store settling on load) must not abort
+  // it and ask the server again, so the master is requested once per load.
   // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled) {
       hasStartedFreshThread.current = false;
+      masterRequest.current?.controller.abort();
+      masterRequest.current = null;
       return;
     }
     if (
@@ -268,11 +279,29 @@ export function useAgentDockThreads(
       return;
     }
 
-    const controller = new AbortController();
-    apiService
-      .getMasterThread(controller.signal)
+    let request = masterRequest.current;
+    if (!request || request.service !== apiService) {
+      request?.controller.abort();
+      const controller = new AbortController();
+      const pending = apiService.getMasterThread(controller.signal);
+      request = { controller, pending, service: apiService };
+      masterRequest.current = request;
+      const started = request;
+      void pending
+        .catch(() => undefined)
+        .finally(() => {
+          if (masterRequest.current === started) {
+            masterRequest.current = null;
+          }
+        });
+    }
+
+    const { controller, pending } = request;
+    let isCurrent = true;
+    pending
       .then((master) => {
         if (
+          !isCurrent ||
           controller.signal.aborted ||
           // A master with no id has nothing to open: selecting it would read
           // the messages and transfers of thread `undefined`.
@@ -291,7 +320,9 @@ export function useAgentDockThreads(
       })
       .catch(() => undefined);
 
-    return () => controller.abort();
+    return () => {
+      isCurrent = false;
+    };
   }, [
     activeThreadId,
     apiService,

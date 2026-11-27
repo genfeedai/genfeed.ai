@@ -147,6 +147,35 @@ describe('useAgentDockThreads history and lifecycle', () => {
       expect(idless).toHaveBeenCalledTimes(1);
     });
 
+    it('asks for the master once when a dependency changes while it is in flight', async () => {
+      let resolveMaster: (thread: AgentThread) => void = () => undefined;
+      const slowMaster = vi.fn(
+        () =>
+          new Promise<AgentThread>((resolve) => {
+            resolveMaster = resolve;
+          }),
+      );
+      const slowApi = { getMasterThread: slowMaster, getMessages, getThreads };
+
+      const { result, rerender } = renderHook(
+        ({ shouldOpenMaster }) =>
+          useAgentDockThreads(slowApi, true, shouldOpenMaster),
+        { initialProps: { shouldOpenMaster: true } },
+      );
+      await waitFor(() => expect(slowMaster).toHaveBeenCalledTimes(1));
+
+      rerender({ shouldOpenMaster: false });
+      rerender({ shouldOpenMaster: true });
+      await act(async () => undefined);
+      expect(slowMaster).toHaveBeenCalledTimes(1);
+
+      await act(async () => resolveMaster(master));
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('master-1'),
+      );
+      expect(slowMaster).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps a thread that is already open', async () => {
       useAgentChatStore.getState().setActiveThread('thread-1');
 
