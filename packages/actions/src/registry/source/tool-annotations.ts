@@ -1,7 +1,4 @@
-import type {
-  ToolAnnotations,
-  ToolMutationPolicy,
-} from '../../interfaces/tool-definition.interface';
+import type { ToolAnnotations, ToolMutationPolicy } from '@genfeedai/mcp-kit';
 import {
   curatedActionNames,
   getCuratedAction,

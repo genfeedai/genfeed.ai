@@ -154,6 +154,7 @@ describe('planPreflight', () => {
       'spec-build',
       'spec-typecheck:api',
       'contracts-build',
+      'mcp-kit-build',
       'executable-contracts',
     ]);
   });
@@ -175,6 +176,7 @@ describe('planPreflight', () => {
       'skill-allowlist',
       'env-check',
       'contracts-build',
+      'mcp-kit-build',
       'executable-contracts',
     ]);
   });

@@ -36,7 +36,6 @@ import type {
 } from '@genfeedai/actions';
 import {
   AGENT_ACTION_CLASS,
-  evaluateMutationPolicy,
   getAgentActionClass,
   getToolByName,
   getVisualGenerationReviewType,
@@ -52,6 +51,7 @@ import {
   normalizeAgentAutonomyMode,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { evaluateMutationPolicy } from '@genfeedai/mcp-kit';
 import {
   type McpApproval,
   McpApprovalStatus,

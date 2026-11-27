@@ -5,12 +5,16 @@ import {
   estimateTurboRunCredits,
   TURBO_RUN_CAPTION_BASE_CREDITS,
 } from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
+import type { ToolCreditPricing } from '@genfeedai/mcp-kit';
+import {
+  fixedCreditPricing,
+  isSpendingCreditPricing,
+} from '@genfeedai/mcp-kit';
 import { describe, expect, it } from 'vitest';
 import {
   MCP_CREDIT_PRICING_META_KEY,
   toMcpTool,
 } from '../adapters/to-mcp-tool';
-import type { ToolCreditPricing } from '../interfaces/tool-definition.interface';
 import {
   getMcpCatalogOperations,
   isMcpCatalogToolName,
@@ -18,8 +22,6 @@ import {
 import { MEDIA_GENERATION_CREDIT_FLOORS } from './media-generation';
 import {
   estimateToolCreditCost,
-  fixedCreditPricing,
-  isSpendingCreditPricing,
   requiresMcpApproval,
 } from './tool-credit-pricing';
 import { getToolByName, getToolsForSurface } from './tool-registry';

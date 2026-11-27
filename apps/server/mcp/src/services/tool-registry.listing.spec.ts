@@ -8,7 +8,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * hides tools a caller cannot invoke from discovery (the authoritative gate is
  * the per-call role check in `handleToolCall`). Both the JSON-RPC path
  * (`getTools`) and the REST mirror (`GET /v1/tools`) must go through the same
- * filter, so we assert the shared primitive `filterToolsByRole` plus the
+ * filter (`filterToolsByRole` from `@genfeedai/mcp-kit`), so we assert the
  * per-instance `getToolsForRole`.
  *
  * The tools below are synthetic fixtures chosen to exercise each role tier:
@@ -77,26 +77,6 @@ function build(
 
 const names = (tools: McpToolOutput[]): string[] =>
   tools.map((tool) => tool.name).sort();
-
-describe('ToolRegistryService.filterToolsByRole', () => {
-  it('gives a user only user-tier tools', () => {
-    expect(
-      names(ToolRegistryService.filterToolsByRole(ALL_TOOLS, 'user')),
-    ).toEqual(['get_posts']);
-  });
-
-  it('gives an admin user- and admin-tier tools, not superadmin', () => {
-    expect(
-      names(ToolRegistryService.filterToolsByRole(ALL_TOOLS, 'admin')),
-    ).toEqual(['admin_scoped_tool', 'get_posts']);
-  });
-
-  it('gives a superadmin every tool', () => {
-    expect(
-      names(ToolRegistryService.filterToolsByRole(ALL_TOOLS, 'superadmin')),
-    ).toEqual(['admin_scoped_tool', 'get_posts', 'resolve_approval']);
-  });
-});
 
 describe('ToolRegistryService listing filters by the caller role', () => {
   it('getToolsForRole scopes discovery to the requested role', () => {

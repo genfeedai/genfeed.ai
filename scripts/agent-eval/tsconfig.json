@@ -10,6 +10,7 @@
       "@eval-actions/*": ["../../packages/actions/src/*"],
       "@eval-contracts/*": ["../../packages/contracts/src/*"],
       "@eval-agent/*": ["../../packages/agent/src/*"],
+      "@genfeedai/mcp-kit": ["../../packages/mcp-kit/src/index.ts"],
       "@eval-workflows/*": ["../../packages/workflows/src/*"]
     }
   },

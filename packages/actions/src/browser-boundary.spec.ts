@@ -9,7 +9,6 @@ describe('actions browser boundary', () => {
   it('keeps Node-only hashing out of the public runtime exports', () => {
     expect(browserActions).not.toHaveProperty('buildLogicalWriteKey');
     expect(browserActions.getActionDefinition('create_post')).toBeDefined();
-    expect(browserActions.evaluateMutationPolicy).toBeTypeOf('function');
   });
 
   it('bundles the complete public graph for browsers without builtin shims', async () => {

@@ -16,6 +16,9 @@ export default defineConfig({
       '@eval-agent': fileURLToPath(
         new URL('../../packages/agent/src', import.meta.url),
       ),
+      '@genfeedai/mcp-kit': fileURLToPath(
+        new URL('../../packages/mcp-kit/src/index.ts', import.meta.url),
+      ),
     },
   },
   test: {

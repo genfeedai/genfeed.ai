@@ -317,6 +317,7 @@
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "@genfeedai/libs": "workspace:*",
+        "@genfeedai/mcp-kit": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
@@ -487,6 +488,7 @@
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/libs": "workspace:*",
+        "@genfeedai/mcp-kit": "workspace:*",
         "@genfeedai/styles": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@genfeedai/utils": "workspace:*",
@@ -713,6 +715,7 @@
       "version": "0.1.4",
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
+        "@genfeedai/mcp-kit": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "26.6.6",
@@ -1078,6 +1081,14 @@
       },
       "devDependencies": {
         "socket.io-client": "4.8.4",
+      },
+    },
+    "packages/mcp-kit": {
+      "name": "@genfeedai/mcp-kit",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/node": "26.6.6",
+        "@typescript/native": "npm:typescript@7.0.2",
       },
     },
     "packages/models": {
@@ -2041,6 +2052,8 @@
     "@genfeedai/marketing": ["@genfeedai/marketing@workspace:apps/marketing"],
 
     "@genfeedai/mcp": ["@genfeedai/mcp@workspace:apps/server/mcp"],
+
+    "@genfeedai/mcp-kit": ["@genfeedai/mcp-kit@workspace:packages/mcp-kit"],
 
     "@genfeedai/mobile": ["@genfeedai/mobile@workspace:apps/mobile"],
 

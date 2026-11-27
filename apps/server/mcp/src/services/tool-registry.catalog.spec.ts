@@ -1,4 +1,5 @@
-import { MCP_TOOL_CAP, type McpToolOutput } from '@genfeedai/actions';
+import { type McpToolOutput } from '@genfeedai/actions';
+import { MCP_TOOL_CAP } from '@genfeedai/mcp-kit';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';

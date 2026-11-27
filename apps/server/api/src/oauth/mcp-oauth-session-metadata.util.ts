@@ -1,15 +1,15 @@
 import {
-  type McpAccessMode,
-  mostRestrictiveMcpAccessMode,
-  parseMcpAccessMode,
-} from '@genfeedai/actions';
-import {
   MCP_ACCESS_MODE_METADATA_KEY,
   MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
   MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+  parseMcpAccessMode,
+} from '@genfeedai/mcp-kit';
 
 /**
  * Identity of one OAuth consent, kept on every session key it produces.

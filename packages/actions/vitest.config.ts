@@ -5,6 +5,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@genfeedai\/mcp-kit$/,
+        replacement: path.resolve(__dirname, '../mcp-kit/src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },

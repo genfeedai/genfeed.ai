@@ -1,3 +1,4 @@
+import { appendCreditPricingDescription } from '@genfeedai/mcp-kit';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { materializeJsonDocumentSchema } from './contracts/schema-builders';
 import {
@@ -14,10 +15,7 @@ import {
 import { SOURCE_TOOLS } from './source/index';
 import { deriveMcpToolPresentation } from './source/tool-annotations';
 import { toolDataSource } from './source/tool-data-sources';
-import {
-  appendCreditPricingDescription,
-  toolCreditPricingFor,
-} from './tool-credit-pricing';
+import { toolCreditPricingFor } from './tool-credit-pricing';
 
 /**
  * Assembles `ALL_TOOLS` from the curated catalog and the hand-authored tool

@@ -3,14 +3,11 @@ import { getActionDefinition } from './action-registry';
 import { CURATED_ACTION_CATALOG } from './curated-action-catalog';
 import { isMcpCatalogToolName } from './mcp-catalog-calls';
 import {
-  evaluateMutationPolicy,
   getDeclaredMutationPolicy,
   isApprovalRequiredToolName,
   isReadOnlyToolName,
   MUTATION_POLICY_BY_NAME,
-  POLICY_REVOKED_ERROR,
   toolRequiresMutationPolicy,
-  UNSUPPORTED_APPROVAL_ERROR,
 } from './mutation-policy';
 import { ALL_TOOLS, getToolByName } from './tool-registry';
 
@@ -159,112 +156,6 @@ describe('discovery meta tools', () => {
       expect(getDeclaredMutationPolicy(name), name).toBeUndefined();
       expect(getToolByName(name)?.mutationPolicy, name).toBeUndefined();
     }
-  });
-});
-
-describe('evaluateMutationPolicy', () => {
-  it('executes direct mutations without an approval host', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: false,
-        hostSupportsApproval: false,
-        isAvailableOnSurface: true,
-        policy: 'direct',
-      }),
-    ).toEqual({ kind: 'execute' });
-  });
-
-  it.each(['direct', undefined] as const)(
-    'executes policy %s when host capability is omitted',
-    (policy) => {
-      expect(
-        evaluateMutationPolicy({
-          hasTrustedApproval: false,
-          isAvailableOnSurface: true,
-          policy,
-        }),
-      ).toEqual({ kind: 'execute' });
-    },
-  );
-
-  it('rejects approval-required calls when host capability is omitted', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: false,
-        isAvailableOnSurface: true,
-        policy: 'approval-required',
-      }),
-    ).toEqual({ error: UNSUPPORTED_APPROVAL_ERROR, kind: 'reject' });
-  });
-
-  it('queues approval-required calls on a host that can approve', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: false,
-        hostSupportsApproval: true,
-        isAvailableOnSurface: true,
-        policy: 'approval-required',
-      }),
-    ).toEqual({ kind: 'queue' });
-  });
-
-  it('rejects approval-required calls when the host cannot approve', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: false,
-        hostSupportsApproval: false,
-        isAvailableOnSurface: true,
-        policy: 'approval-required',
-      }),
-    ).toEqual({ error: UNSUPPORTED_APPROVAL_ERROR, kind: 'reject' });
-  });
-
-  it.each([true, false, undefined])(
-    'executes after a trusted approval with host capability %s',
-    (hostSupportsApproval) => {
-      expect(
-        evaluateMutationPolicy({
-          hasTrustedApproval: true,
-          hostSupportsApproval,
-          isAvailableOnSurface: true,
-          policy: 'approval-required',
-        }),
-      ).toEqual({ kind: 'execute' });
-    },
-  );
-
-  it('replays an already-executed approved logical write', () => {
-    expect(
-      evaluateMutationPolicy({
-        existing: { result: { id: 'post-1' }, status: 'APPROVED' },
-        hasTrustedApproval: true,
-        hostSupportsApproval: true,
-        isAvailableOnSurface: true,
-        policy: 'approval-required',
-      }),
-    ).toEqual({ kind: 'replay', result: { id: 'post-1' } });
-  });
-
-  it('refreshes availability before a subsequent call executes', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: true,
-        hostSupportsApproval: true,
-        isAvailableOnSurface: false,
-        policy: 'approval-required',
-      }),
-    ).toEqual({ error: POLICY_REVOKED_ERROR, kind: 'reject' });
-  });
-
-  it('executes when policy is no longer approval-required', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: false,
-        hostSupportsApproval: true,
-        isAvailableOnSurface: true,
-        policy: 'direct',
-      }),
-    ).toEqual({ kind: 'execute' });
   });
 });
 

@@ -1,5 +1,4 @@
 import process from 'node:process';
-import type { McpAccessMode } from '@genfeedai/actions';
 import {
   API_KEY_SCOPE_PRESETS,
   MCP_CLAUDE_SCOPE_CEILING,
@@ -18,6 +17,7 @@ import {
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 import { staticSurfaceFontCss } from '@genfeedai/ui/static/font';
 import {
   staticSurfaceClassNames,

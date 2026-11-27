@@ -1,9 +1,8 @@
+import type { ToolAnnotations, ToolMutationPolicy } from '@genfeedai/mcp-kit';
 import type {
-  ToolAnnotations,
   ToolCategory,
   ToolDataSource,
   ToolMcpCardKind,
-  ToolMutationPolicy,
   ToolUiActionType,
 } from '../interfaces/tool-policy.interface';
 import type { ToolsetName } from './toolset-names';

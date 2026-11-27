@@ -1,5 +1,4 @@
-import type { McpAccessMode } from '@genfeedai/actions';
-import type { McpRole } from '@mcp/services/auth.service';
+import type { McpAccessMode, McpRole } from '@genfeedai/mcp-kit';
 import type { Request } from 'express';
 
 /**

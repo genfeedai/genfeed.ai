@@ -1,6 +1,7 @@
 import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/mcp-kit';
 import 'reflect-metadata';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import {
@@ -9,7 +10,6 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
-import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';

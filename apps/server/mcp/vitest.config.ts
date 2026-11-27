@@ -39,6 +39,13 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@genfeedai\/mcp-kit$/,
+        replacement: path.resolve(
+          mcpDir,
+          '../../../packages/mcp-kit/src/index.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/helpers$/,
         replacement: path.resolve(
           mcpDir,

@@ -1,6 +1,6 @@
+import type { McpRole } from '@genfeedai/mcp-kit';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
-import type { McpRole } from '@mcp/services/auth.service';
 import type { Server } from '@modelcontextprotocol/server';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { instrument, PostHog } from '@posthog/mcp';

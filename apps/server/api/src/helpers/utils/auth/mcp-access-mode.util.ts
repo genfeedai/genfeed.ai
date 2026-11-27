@@ -1,8 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  isToolAllowedInMcpAccessMode,
-  parseMcpAccessMode,
-} from '@genfeedai/actions';
+import { isToolAllowedInMcpAccessMode } from '@genfeedai/actions';
+import { parseMcpAccessMode } from '@genfeedai/mcp-kit';
 import { ForbiddenException } from '@nestjs/common';
 
 export function assertMcpAccessModeAllowsTool(

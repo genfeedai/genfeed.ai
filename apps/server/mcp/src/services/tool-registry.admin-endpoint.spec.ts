@@ -1,8 +1,5 @@
-import {
-  ADMIN_MCP_TOOL_NAMES,
-  getToolsForSurface,
-  type McpAccessMode,
-} from '@genfeedai/actions';
+import { ADMIN_MCP_TOOL_NAMES, getToolsForSurface } from '@genfeedai/actions';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';

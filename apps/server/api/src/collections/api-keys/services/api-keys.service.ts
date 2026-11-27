@@ -11,10 +11,6 @@ import {
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import {
-  type McpAccessMode,
-  mostRestrictiveMcpAccessMode,
-} from '@genfeedai/actions';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   ActionOrigin,
@@ -31,6 +27,10 @@ import {
   readApiKeyAllowedBrandIds,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+} from '@genfeedai/mcp-kit';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';

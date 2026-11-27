@@ -31,8 +31,6 @@ export type ToolUiActionType = Extract<
   | 'next_steps_card'
 >;
 
-export type ToolMutationPolicy = 'approval-required' | 'direct';
-
 /**
  * Where a read gets its data. `stored` reads our own database. `provider`
  * calls a live third party at no cost to the caller. `provider-paid` calls a
@@ -40,17 +38,6 @@ export type ToolMutationPolicy = 'approval-required' | 'direct';
  * cost confirmation and is named `fetch_*`. See `tool-data-sources.ts`.
  */
 export type ToolDataSource = 'provider' | 'provider-paid' | 'stored';
-
-/**
- * MCP `tools/list` hints. Clients treat these as hints, not authorization.
- * Every MCP-surfaced tool sets all four; omitting `readOnlyHint` fails load.
- */
-export interface ToolAnnotations {
-  destructiveHint: boolean;
-  idempotentHint: boolean;
-  openWorldHint: boolean;
-  readOnlyHint: boolean;
-}
 
 export type ToolCategory =
   | 'generation'

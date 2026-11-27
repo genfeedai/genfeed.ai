@@ -1,4 +1,4 @@
-import type { McpAccessMode } from '@genfeedai/actions';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import type { NextFunction, Response } from 'express';
 

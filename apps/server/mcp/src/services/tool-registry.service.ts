@@ -4,7 +4,6 @@ import {
   isMcpBrandRequiredTool,
   isMcpBrandRequiredWhenMultipleTool,
   isToolAllowedInMcpAccessMode,
-  type McpAccessMode,
   type McpToolOutput,
   readMcpBrandId,
   toMcpTools,
@@ -16,6 +15,11 @@ import {
   type IScheduledReleaseBatchItemError,
 } from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
+import {
+  filterToolsByRole,
+  type McpAccessMode,
+  type McpRole,
+} from '@genfeedai/mcp-kit';
 import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { readKnowledgeSearchReceipts } from '@genfeedai/utils/knowledge/knowledge-receipt.util';
@@ -35,7 +39,6 @@ import {
   isTikTokAdsTool,
 } from '@mcp/services/ads-tool-names.util';
 import { agentToolTimeoutMs } from '@mcp/services/agent-tool-timeouts';
-import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { withAccountOrganizations } from '@mcp/services/mcp-account-organizations.util';
 import {
@@ -243,23 +246,6 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   /**
-   * Tools the given role is allowed to invoke. This is a UX/least-surprise
-   * filter for `tools/list` (and the REST mirror) — the authoritative gate is
-   * the per-call {@link McpAuthGuard.checkToolRole} in {@link handleToolCall}
-   * and, ultimately, the API's own role guards.
-   */
-  static filterToolsByRole(
-    tools: McpToolOutput[],
-    role: McpRole,
-  ): McpToolOutput[] {
-    return tools.filter(
-      (tool) =>
-        !tool.requiredRole ||
-        AuthService.hasRequiredRole(role, tool.requiredRole),
-    );
-  }
-
-  /**
    * Every tool a role may invoke on an endpoint. Every connection lists the
    * whole catalog, so this is what `tools/list` and the REST mirror advertise.
    * `handleToolCall` still gates each call by role.
@@ -268,7 +254,7 @@ export class ToolRegistryService implements OnModuleInit {
     role: McpRole,
     accessMode: McpAccessMode = this.requestAccessMode,
   ): McpToolOutput[] {
-    return ToolRegistryService.filterToolsByRole(
+    return filterToolsByRole(
       toMcpTools(getToolsForSurface('mcp'))
         .filter((tool) => isToolAllowedInMcpAccessMode(accessMode, tool.name))
         .map(withCardMetadata),

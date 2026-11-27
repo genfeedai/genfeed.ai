@@ -1,9 +1,9 @@
 import { MCP_TOOL_OUTPUT_SCHEMA, type McpToolOutput } from '@genfeedai/actions';
+import type { McpRole } from '@genfeedai/mcp-kit';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
-import type { McpRole } from '@mcp/services/auth.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';

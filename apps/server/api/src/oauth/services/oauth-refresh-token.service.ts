@@ -9,10 +9,6 @@ import {
 import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  type McpAccessMode,
-  mostRestrictiveMcpAccessMode,
-} from '@genfeedai/actions';
-import {
   ActionOrigin,
   ApiKeyCategory,
   ApiKeyScope,
@@ -22,6 +18,10 @@ import {
   readApiKeyAllowedBrandIds,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+} from '@genfeedai/mcp-kit';
 import type { McpOAuthRefreshToken, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';

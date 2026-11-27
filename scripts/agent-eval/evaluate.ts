@@ -6,10 +6,7 @@ import {
   CURATED_ACTION_CATALOG,
   type CuratedActionCatalogEntry,
 } from '@eval-actions/registry/curated-action-catalog';
-import {
-  evaluateMutationPolicy,
-  getDeclaredMutationPolicy,
-} from '@eval-actions/registry/mutation-policy';
+import { getDeclaredMutationPolicy } from '@eval-actions/registry/mutation-policy';
 import { buildLogicalWriteKey } from '@eval-actions/server';
 import { hasRenderableThreadState } from '@eval-agent/utils/has-renderable-thread-state';
 import {
@@ -21,6 +18,7 @@ import {
   ActionContractValidationError,
   compileActionContract,
 } from '@eval-workflows/engine/validation/action-contract';
+import { evaluateMutationPolicy } from '@genfeedai/mcp-kit';
 import type { EvaluationResult, TaskFixture } from './contracts';
 
 const envelopeSchema: Readonly<Record<string, unknown>> = {

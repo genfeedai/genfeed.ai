@@ -71,6 +71,10 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/actions/src/index.ts'),
       },
       {
+        find: /^@genfeedai\/mcp-kit$/,
+        replacement: path.resolve(repoRoot, './packages/mcp-kit/src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/agent$/,
         replacement: path.resolve(repoRoot, './packages/agent/src/index.ts'),
       },
