@@ -95,6 +95,16 @@ export const DESKTOP_IPC_CHANNELS = {
   toggleSidebar: 'desktop:view:toggleSidebar',
   windowChromeChanged: 'desktop:window:chromeChanged',
   windowChromeState: 'desktop:window:chromeState',
+  workspaceChanged: 'desktop:workspace:changed',
+  workspaceChooseProjectsHome: 'desktop:workspace:chooseProjectsHome',
+  workspaceCreateProject: 'desktop:workspace:createProject',
+  workspaceGetState: 'desktop:workspace:getState',
+  workspaceLinkContext: 'desktop:workspace:linkContext',
+  workspaceListDirectory: 'desktop:workspace:listDirectory',
+  workspaceOpenFolder: 'desktop:workspace:openFolder',
+  workspaceRemove: 'desktop:workspace:remove',
+  workspaceReveal: 'desktop:workspace:reveal',
+  workspaceSetActive: 'desktop:workspace:setActive',
 } as const;
 
 /* Environment */
@@ -557,6 +567,51 @@ export interface IDesktopWorkflowRunResult {
   status: 'pending' | 'running';
 }
 
+/* Workspace folders */
+
+/** The organization and brand whose Library a workspace folder belongs to. */
+export interface IDesktopWorkspaceContext {
+  brandId: string | null;
+  organizationId: string | null;
+}
+
+/**
+ * A folder on this machine that Desktop works in. It belongs to one server
+ * (Genfeed Cloud or one self-hosted API), so a folder opened against one
+ * server is not offered against another.
+ */
+export interface IDesktopWorkspace extends IDesktopWorkspaceContext {
+  createdAt: string;
+  id: string;
+  lastOpenedAt: string;
+  name: string;
+  /** Absolute path of the folder. */
+  path: string;
+  serverId: string;
+}
+
+export interface IDesktopWorkspaceState {
+  /** Null when no workspace is active, or its folder no longer exists. */
+  activeWorkspaceId: string | null;
+  /** Where "new project" creates folders. One folder per project. */
+  projectsHome: string;
+  /** Workspaces of the selected server, most recently opened first. */
+  workspaces: IDesktopWorkspace[];
+}
+
+export interface IDesktopWorkspaceEntry {
+  isDirectory: boolean;
+  name: string;
+  /** Path relative to the workspace root, with `/` separators. */
+  path: string;
+  size: number;
+}
+
+export interface IDesktopWorkspaceCreateProjectRequest
+  extends IDesktopWorkspaceContext {
+  name: string;
+}
+
 /* Bridge (renderer ↔ main) */
 
 /** An installed CLI that is too old to run Genfeed agent turns. */
@@ -679,4 +734,32 @@ export interface IGenfeedDesktopBridge {
     write: (sessionId: string, data: string) => Promise<void>;
   };
   onQuickGenerate: (callback: () => void) => () => void;
+  workspace: {
+    /** Moves where new projects are created; existing folders stay put. */
+    chooseProjectsHome: () => Promise<IDesktopWorkspaceState>;
+    createProject: (
+      request: IDesktopWorkspaceCreateProjectRequest,
+    ) => Promise<IDesktopWorkspace>;
+    getState: () => Promise<IDesktopWorkspaceState>;
+    linkContext: (
+      workspaceId: string,
+      context: IDesktopWorkspaceContext,
+    ) => Promise<IDesktopWorkspace>;
+    /** Direct children of a folder inside the workspace; refuses paths outside it. */
+    listDirectory: (
+      workspaceId: string,
+      relativePath?: string,
+    ) => Promise<IDesktopWorkspaceEntry[]>;
+    /** Native folder picker; resolves null when the user cancels. */
+    openFolder: (
+      context: IDesktopWorkspaceContext,
+    ) => Promise<IDesktopWorkspace | null>;
+    onDidChange: (
+      callback: (state: IDesktopWorkspaceState) => void,
+    ) => () => void;
+    /** Forgets the workspace. The folder and its files stay on disk. */
+    remove: (workspaceId: string) => Promise<void>;
+    revealInFileManager: (workspaceId: string) => Promise<void>;
+    setActive: (workspaceId: string | null) => Promise<IDesktopWorkspaceState>;
+  };
 }

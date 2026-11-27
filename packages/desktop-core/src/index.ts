@@ -40,3 +40,44 @@ export function resolvePathInsideRoot(root: string, rel: string): string {
 
   return resolved;
 }
+
+/**
+ * `resolvePathInsideRoot` compares text only, so a symlink inside the folder
+ * that points elsewhere passes it. This also follows links: the deepest part
+ * of the path that exists must resolve to somewhere inside the folder's real
+ * location, and a link that cannot be resolved is refused.
+ */
+export function resolveRealPathInsideRoot(root: string, rel: string): string {
+  const realRoot = fs.realpathSync(root);
+  const resolved = resolvePathInsideRoot(realRoot, rel);
+
+  let probe = resolved;
+  for (;;) {
+    try {
+      fs.lstatSync(probe);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw new Error('Path escapes workspace root');
+      }
+      const parent = path.dirname(probe);
+      if (parent === probe) {
+        throw new Error('Path escapes workspace root');
+      }
+      probe = parent;
+    }
+  }
+
+  let realProbe: string;
+  try {
+    realProbe = fs.realpathSync(probe);
+  } catch {
+    throw new Error('Path escapes workspace root');
+  }
+
+  if (realProbe !== realRoot && !realProbe.startsWith(realRoot + path.sep)) {
+    throw new Error('Path escapes workspace root');
+  }
+
+  return resolved;
+}
