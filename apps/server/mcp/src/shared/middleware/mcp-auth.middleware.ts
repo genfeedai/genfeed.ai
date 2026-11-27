@@ -1,4 +1,4 @@
-import type { McpAccessMode } from '@genfeedai/actions';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 import { rejectMcpRequestIfApiKeyInUrl } from '@libs/auth/url-credentials';
 import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
 import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';

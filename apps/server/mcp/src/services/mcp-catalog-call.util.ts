@@ -5,13 +5,12 @@ import {
   getToolByName,
   isMcpCatalogToolName,
   isToolAllowedInMcpAccessMode,
-  type McpAccessMode,
   type ResolvedMcpCatalogCall,
   resolveMcpCatalogCall,
   validateMcpCatalogBindings,
 } from '@genfeedai/actions';
+import type { McpAccessMode, McpRole } from '@genfeedai/mcp-kit';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
-import type { McpRole } from '@mcp/services/auth.service';
 
 export function resolveAuthorizedMcpCatalogCall(
   name: string,

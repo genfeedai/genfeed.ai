@@ -1,13 +1,14 @@
+import {
+  hasRequiredRole,
+  type ToolAnnotations,
+  type ToolCreditPricing,
+  type ToolMutationPolicy,
+} from '@genfeedai/mcp-kit';
 import type {
   CanonicalToolDefinition,
-  ToolAnnotations,
-  ToolCreditPricing,
   ToolDataSource,
-  ToolMutationPolicy,
   ToolRequiredRole,
 } from '../../interfaces/tool-definition.interface';
-
-const ROLE_RANK = { admin: 1, superadmin: 2, user: 0 } as const;
 
 export interface McpCatalogPolicy {
   annotations: ToolAnnotations;
@@ -105,8 +106,6 @@ export function deriveMcpCatalogPolicy(
     mutationPolicy: deriveMutationPolicy(targets),
     requiredRole: targets
       .map((tool) => tool.requiredRole)
-      .reduce((least, role) =>
-        ROLE_RANK[role] < ROLE_RANK[least] ? role : least,
-      ),
+      .reduce((least, role) => (hasRequiredRole(role, least) ? least : role)),
   };
 }

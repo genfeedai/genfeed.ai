@@ -1,9 +1,10 @@
 {
-  "$schema-note": "Single source of truth for which public packages the automated npm release lane publishes. Every package under packages/ with a public publishConfig must appear in exactly one of enrolled/dedicated/excluded, so adding a publishable package is a deliberate release decision instead of a silent one. Enforced by scripts/npm-release-plan.mjs (bun run check:npm-release). enrolled packages publish from release.yml with every stable release: the installable products (the CLI and the self-hosted scaffolder). dedicated packages publish from their own workflow file (the value), dispatched on demand: the design layer that console.genfeed.ai and marketplace.genfeed.ai install instead of vendoring (styles, ui, helpers and contracts). npm allows one trusted publisher per package, so a package is in exactly one lane. Everything else in packages/ stays internal (private: true) and resolves through workspace:*.",
+  "$schema-note": "Single source of truth for which public packages the automated npm release lane publishes. Every package under packages/ with a public publishConfig must appear in exactly one of enrolled/dedicated/excluded, so adding a publishable package is a deliberate release decision instead of a silent one. Enforced by scripts/npm-release-plan.mjs (bun run check:npm-release). enrolled packages publish from release.yml with every stable release: the installable products (the CLI and the self-hosted scaffolder). dedicated packages publish from their own workflow file (the value), dispatched on demand: the design layer that console.genfeed.ai and marketplace.genfeed.ai install instead of vendoring (styles, ui, helpers and contracts) and mcp-kit, the MCP plumbing a second MCP server installs. npm allows one trusted publisher per package, so a package is in exactly one lane. Everything else in packages/ stays internal (private: true) and resolves through workspace:*.",
   "enrolled": ["packages/cli", "packages/create"],
   "dedicated": {
     "packages/contracts": "publish-shared-packages.yml",
     "packages/helpers": "publish-shared-packages.yml",
+    "packages/mcp-kit": "publish-shared-packages.yml",
     "packages/styles": "publish-shared-packages.yml",
     "packages/ui": "publish-shared-packages.yml"
   },

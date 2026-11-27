@@ -236,6 +236,13 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/actions/src'),
       },
       {
+        find: /^@genfeedai\/mcp-kit$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/mcp-kit/src/index.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/auth-client\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

@@ -1,3 +1,4 @@
+import { assertMcpToolCap, hasRequiredRole } from '@genfeedai/mcp-kit';
 import type {
   CanonicalToolDefinition,
   ToolCategory,
@@ -8,12 +9,6 @@ import { ALL_TOOLS } from './tool-assembly';
 import { isToolsetName, TOOLSETS } from './toolset-names';
 
 export { ALL_TOOLS } from './tool-assembly';
-
-const roleWeight: Record<ToolRequiredRole, number> = {
-  admin: 1,
-  superadmin: 2,
-  user: 0,
-};
 
 const toolsByName = new Map<string, CanonicalToolDefinition>(
   ALL_TOOLS.map((tool) => [tool.name, tool]),
@@ -37,14 +32,6 @@ if (toolsetsWithoutEntries.length > 0) {
   );
 }
 
-/**
- * The most tools any connection lists to an ordinary caller. Every connection
- * lists every tool, so this is the size of the whole user-facing MCP catalog.
- * Merge related actions into an existing `{action, input}` tool instead of
- * raising it.
- */
-export const MCP_TOOL_CAP = 30;
-
 // The cap counts what an ordinary caller sees; admin-only tools are not listed to them.
 const listedMcpToolCount = ALL_TOOLS.filter(
   (tool) =>
@@ -52,11 +39,7 @@ const listedMcpToolCount = ALL_TOOLS.filter(
     isMcpListedToolName(tool.name) &&
     tool.requiredRole === 'user',
 ).length;
-if (listedMcpToolCount > MCP_TOOL_CAP) {
-  throw new Error(
-    `MCP catalog exceeds the ${MCP_TOOL_CAP}-tool cap: lists ${listedMcpToolCount}`,
-  );
-}
+assertMcpToolCap(listedMcpToolCount);
 
 export function getToolByName(
   name: string,
@@ -85,8 +68,7 @@ export function getToolsForRole(
   surface: 'agent' | 'mcp' | 'cli',
   role: ToolRequiredRole,
 ): CanonicalToolDefinition[] {
-  const roleLevel = roleWeight[role];
-  return getToolsForSurface(surface).filter(
-    (tool) => roleWeight[tool.requiredRole] <= roleLevel,
+  return getToolsForSurface(surface).filter((tool) =>
+    hasRequiredRole(role, tool.requiredRole),
   );
 }

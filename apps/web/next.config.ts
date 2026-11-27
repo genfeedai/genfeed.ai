@@ -394,6 +394,7 @@ config.turbopack = {
       '../../packages/ui/src/components/modals/modal/Modal.tsx',
     '@components/modals/ModalRole': './src/features/admin/modals/ModalRole.tsx',
     '@genfeedai/actions': '../../packages/actions/src/index.ts',
+    '@genfeedai/mcp-kit': '../../packages/mcp-kit/src/index.ts',
     '@genfeedai/agent': '../../packages/agent/src/index.ts',
     '@genfeedai/client': '../../packages/client/src/index.ts',
     '@genfeedai/contracts/constants':
@@ -462,6 +463,7 @@ config.transpilePackages = [
   ...(config.transpilePackages ?? []),
   'fullcalendar',
   '@genfeedai/actions',
+  '@genfeedai/mcp-kit',
   '@genfeedai/contracts/desktop',
   '@genfeedai/hooks',
   '@genfeedai/serializers',

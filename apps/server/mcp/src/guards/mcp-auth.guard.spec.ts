@@ -331,14 +331,4 @@ describe('McpAuthGuard', () => {
       );
     });
   });
-
-  describe('hasRequiredRole (hierarchy)', () => {
-    it('honors the user < admin < superadmin hierarchy', () => {
-      expect(AuthService.hasRequiredRole('admin', 'admin')).toBe(true);
-      expect(AuthService.hasRequiredRole('superadmin', 'admin')).toBe(true);
-      expect(AuthService.hasRequiredRole('admin', 'user')).toBe(true);
-      expect(AuthService.hasRequiredRole('user', 'admin')).toBe(false);
-      expect(AuthService.hasRequiredRole('admin', 'superadmin')).toBe(false);
-    });
-  });
 });

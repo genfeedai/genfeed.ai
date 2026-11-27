@@ -1,6 +1,10 @@
+import type { ToolAnnotations } from '@genfeedai/mcp-kit';
+import {
+  appendCreditPricingDescription,
+  fixedCreditPricing,
+} from '@genfeedai/mcp-kit';
 import type {
   CanonicalToolDefinition,
-  ToolAnnotations,
   ToolParameterSchema,
 } from '../interfaces/tool-definition.interface';
 import {
@@ -19,10 +23,6 @@ import { compactMcpInputDocumentation } from '../registry/mcp-input-documentatio
 import { withMcpOrganizationArgument } from '../registry/mcp-organization';
 import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
-import {
-  appendCreditPricingDescription,
-  fixedCreditPricing,
-} from '../registry/tool-credit-pricing';
 
 /**
  * `_meta` key carrying the minimum credit charge for one call of the tool.

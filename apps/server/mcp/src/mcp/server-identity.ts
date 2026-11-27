@@ -1,4 +1,4 @@
-import type { McpAccessMode } from '@genfeedai/actions';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 import type { Implementation } from '@modelcontextprotocol/server';
 import { MCP_BRAND_ICON_FILES } from './brand-icons';
 

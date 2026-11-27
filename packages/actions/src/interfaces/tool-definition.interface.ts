@@ -1,10 +1,13 @@
+import type {
+  ToolAnnotations,
+  ToolCreditPricing,
+  ToolMutationPolicy,
+} from '@genfeedai/mcp-kit';
 import type { CuratedActionName } from '../registry/curated-action-catalog';
 import type { ToolsetName } from '../registry/toolset-names';
 import type {
-  ToolAnnotations,
   ToolCategory,
   ToolDataSource,
-  ToolMutationPolicy,
   ToolUiActionType,
 } from './tool-policy.interface';
 
@@ -24,16 +27,6 @@ export interface ToolSurfaceConfig {
 }
 
 export type ToolRequiredRole = 'user' | 'admin' | 'superadmin';
-
-/**
- * What one call can cost. `creditCost` stays the orchestrator floor so a
- * delegated handler is not charged twice. This field is the amount clients
- * and approval cards show, taken from the same helpers the debit path uses.
- */
-export type ToolCreditPricing =
-  | { amount: number; mode: 'fixed' }
-  | { maximum: number; minimum: number; mode: 'variable'; unit: string }
-  | { mode: 'quote'; quoteTool: string };
 
 export interface CanonicalToolDefinition {
   name: CuratedActionName;
@@ -70,9 +63,7 @@ export interface CanonicalToolDefinition {
 }
 
 export type {
-  ToolAnnotations,
   ToolCategory,
   ToolDataSource,
-  ToolMutationPolicy,
   ToolUiActionType,
 } from './tool-policy.interface';

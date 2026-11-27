@@ -1,3 +1,4 @@
+import { hasRequiredRole, type McpRole } from '@genfeedai/mcp-kit';
 import {
   requestPresentsApiKeyInUrl,
   URL_API_CREDENTIAL_REJECTION,
@@ -7,7 +8,6 @@ import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
 import {
   AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
   AuthService,
-  type McpRole,
 } from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
@@ -129,7 +129,7 @@ export class McpAuthGuard implements CanActivate {
         'Tool access denied: no role defined (deny-by-default)',
       );
     }
-    if (!AuthService.hasRequiredRole(userRole, requiredRole)) {
+    if (!hasRequiredRole(userRole, requiredRole)) {
       throw new ForbiddenException(
         `Tool requires '${requiredRole}' role, but user has '${userRole}'`,
       );

@@ -1,15 +1,12 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import {
-  describeCreditPricing,
-  estimateToolCreditCost,
-  getToolByName,
-} from '@genfeedai/actions';
+import { estimateToolCreditCost, getToolByName } from '@genfeedai/actions';
 import type {
   AgentGenerationQuote,
   AgentMutationApprovalData,
   AgentMutationApprovalPostPreview,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import { describeCreditPricing } from '@genfeedai/mcp-kit';
 import {
   readNonBlankString,
   readRecord,

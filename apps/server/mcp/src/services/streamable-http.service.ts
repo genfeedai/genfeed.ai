@@ -2,9 +2,11 @@ import {
   getMcpToolOutputSchema,
   getToolByName,
   MCP_TOOL_OUTPUT_SCHEMA,
+} from '@genfeedai/actions';
+import {
   type McpAccessMode,
   mostRestrictiveMcpAccessMode,
-} from '@genfeedai/actions';
+} from '@genfeedai/mcp-kit';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import {

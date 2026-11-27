@@ -19,6 +19,7 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "@genfeedai/libs": "workspace:*",
+    "@genfeedai/mcp-kit": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/serializers": "workspace:*",

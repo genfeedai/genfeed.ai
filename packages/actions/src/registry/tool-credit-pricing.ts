@@ -12,10 +12,13 @@ import {
   TURBO_RUN_COUNT_MAXIMUM,
   turboRunItemCredits,
 } from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
-import type {
-  CanonicalToolDefinition,
-  ToolCreditPricing,
-} from '../interfaces/tool-definition.interface';
+import {
+  describeCreditPricing,
+  fixedCreditPricing,
+  isSpendingCreditPricing,
+  type ToolCreditPricing,
+} from '@genfeedai/mcp-kit';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { isMcpApprovalScopeTool } from './agent-action-class';
 import { getCuratedAction } from './curated-action-catalog';
 import {
@@ -89,10 +92,6 @@ export function describeAvatarVideoPricing(): string {
   });
 }
 
-export function fixedCreditPricing(amount: number): ToolCreditPricing {
-  return { amount, mode: 'fixed' };
-}
-
 export function toolCreditPricingFor(
   name: string,
   creditCost: number,
@@ -143,16 +142,6 @@ export function toolCreditPricingFor(
   return fixedCreditPricing(creditCost);
 }
 
-export function isSpendingCreditPricing(
-  pricing: ToolCreditPricing,
-  creditCost: number,
-): boolean {
-  if (creditCost > 0) return true;
-  if (pricing.mode === 'quote') return true;
-  if (pricing.mode === 'variable') return pricing.maximum > 0;
-  return pricing.amount > 0;
-}
-
 /**
  * `/mcp` confirms posting and media generation, even when the shared catalog
  * leaves the tool `direct`, so in-app auto and plan can still run that tool.
@@ -171,28 +160,6 @@ export function requiresMcpApproval(
   const creditCost = tool.creditCost ?? 0;
   if (!tool.creditPricing) return creditCost > 0;
   return isSpendingCreditPricing(tool.creditPricing, creditCost);
-}
-
-export function describeCreditPricing(pricing: ToolCreditPricing): string {
-  if (pricing.mode === 'variable') {
-    return `Variable cost: ${pricing.minimum}–${pricing.maximum} credits per ${pricing.unit}.`;
-  }
-  if (pricing.mode === 'quote') {
-    return `Cost comes from the approved ${pricing.quoteTool} quote.`;
-  }
-  return pricing.amount === 0
-    ? 'Costs 0 credits.'
-    : `Costs ${pricing.amount} credits.`;
-}
-
-export function appendCreditPricingDescription(
-  description: string,
-  pricing: ToolCreditPricing | undefined,
-): string {
-  if (!pricing || pricing.mode === 'fixed') return description;
-  const sentence = describeCreditPricing(pricing);
-  if (description.includes(sentence)) return description;
-  return `${description} ${sentence}`;
 }
 
 function quoteAmount(args: Record<string, unknown>): number | null {

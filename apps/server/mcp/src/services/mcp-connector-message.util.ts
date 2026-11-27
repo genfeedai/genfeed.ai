@@ -1,4 +1,5 @@
-import { ADMIN_MCP_TOOL_NAMES, type McpAccessMode } from '@genfeedai/actions';
+import { ADMIN_MCP_TOOL_NAMES } from '@genfeedai/actions';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 
 /** What a caller is told when a tool is not served on the endpoint they used. */
 export function unavailableInConnectorMessage(

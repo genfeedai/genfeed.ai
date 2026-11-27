@@ -1,10 +1,11 @@
+import { MCP_TOOL_CAP } from '@genfeedai/mcp-kit';
 import { describe, expect, it } from 'vitest';
 import {
   CLAUDE_MCP_TOOL_NAMES,
   isToolAllowedInMcpAccessMode,
 } from './mcp-access-modes';
 import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
-import { getToolsForRole, MCP_TOOL_CAP } from './tool-registry';
+import { getToolsForRole } from './tool-registry';
 
 describe('MCP tool cap', () => {
   const listed = () => getToolsForRole('mcp', 'user');

@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "@genfeedai/mcp-kit": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

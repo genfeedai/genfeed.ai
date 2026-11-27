@@ -28,6 +28,7 @@ const BASELINE_PATH = 'scripts/architecture/package-layering.baseline.json';
 export const PACKAGE_LAYERS: Readonly<Record<string, number>> = {
   // 0: contracts and static assets
   contracts: 0,
+  'mcp-kit': 0,
   errors: 0,
   fonts: 0,
   styles: 0,

@@ -1,10 +1,7 @@
-import {
-  describeCreditPricing,
-  estimateToolCreditCost,
-  getToolByName,
-} from '@genfeedai/actions';
+import { estimateToolCreditCost, getToolByName } from '@genfeedai/actions';
 import { McpApprovalStatus } from '@genfeedai/contracts';
 import type { IScheduledReleaseBatchPending } from '@genfeedai/contracts/interfaces';
+import { describeCreditPricing } from '@genfeedai/mcp-kit';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import type { CardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';

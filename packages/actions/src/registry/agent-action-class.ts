@@ -1,4 +1,4 @@
-import type { ToolMutationPolicy } from '../interfaces/tool-definition.interface';
+import type { ToolMutationPolicy } from '@genfeedai/mcp-kit';
 import { curatedActionNames } from './curated-action-catalog';
 import {
   getVisualMediaGenerationType,

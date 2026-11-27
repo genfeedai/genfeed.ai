@@ -35,10 +35,7 @@ export type {
 } from './interfaces/mcp-catalog-call.interface';
 export type {
   CanonicalToolDefinition,
-  ToolAnnotations,
   ToolCategory,
-  ToolCreditPricing,
-  ToolMutationPolicy,
   ToolParameterSchema,
   ToolRequiredRole,
   ToolSurfaceConfig,
@@ -89,14 +86,11 @@ export {
   isCuratedActionName,
   isPublishingApprovalRequired,
 } from './registry/curated-action-catalog';
-export type { McpAccessMode } from './registry/mcp-access-modes';
 export {
   ADMIN_MCP_TOOL_NAMES,
   CLAUDE_MCP_AGENT_TOOL_NAMES,
   CLAUDE_MCP_TOOL_NAMES,
   isToolAllowedInMcpAccessMode,
-  mostRestrictiveMcpAccessMode,
-  parseMcpAccessMode,
 } from './registry/mcp-access-modes';
 export type { McpBrandOption } from './registry/mcp-brand-required';
 export {
@@ -159,28 +153,16 @@ export {
   type MediaOutputTransformOperation,
   type MediaTransformOperation,
 } from './registry/media-transform';
-export type {
-  MutationApprovalStatus,
-  MutationPolicyDecision,
-} from './registry/mutation-policy';
 export {
-  evaluateMutationPolicy,
   getDeclaredMutationPolicy,
   isApprovalRequiredToolName,
   isReadOnlyToolName,
   MUTATION_POLICY_BY_NAME,
-  POLICY_REVOKED_ERROR,
-  TOOL_MUTATION_POLICY,
   toolRequiresMutationPolicy,
-  UNSUPPORTED_APPROVAL_ERROR,
 } from './registry/mutation-policy';
 export {
-  appendCreditPricingDescription,
   describeAvatarVideoPricing,
-  describeCreditPricing,
   estimateToolCreditCost,
-  fixedCreditPricing,
-  isSpendingCreditPricing,
   requiresMcpApproval,
   toolCreditPricingFor,
 } from './registry/tool-credit-pricing';
@@ -190,7 +172,6 @@ export {
   getToolsByCategory,
   getToolsForRole,
   getToolsForSurface,
-  MCP_TOOL_CAP,
 } from './registry/tool-registry';
 export type {
   ToolsetDefinition,

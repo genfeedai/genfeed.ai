@@ -1,11 +1,11 @@
 import type { CuratedActionSurface } from '@eval-actions/registry/curated-action-catalog';
-import type {
-  MutationApprovalStatus,
-  MutationPolicyDecision,
-} from '@eval-actions/registry/mutation-policy';
 import type { RenderableThreadStateInput } from '@eval-agent/utils/has-renderable-thread-state';
 import type { AgentRuntimeStateInput } from '@eval-contracts/enums/agent-runtime-state.enum';
 import type { ValidatedAgentScope } from '@eval-contracts/interfaces/ai/agent-scope-context.interface';
+import type {
+  MutationApprovalStatus,
+  MutationPolicyDecision,
+} from '@genfeedai/mcp-kit';
 
 export interface FixtureMetadata {
   fixtureVersion: 1;
