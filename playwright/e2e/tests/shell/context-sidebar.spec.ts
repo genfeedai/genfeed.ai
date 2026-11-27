@@ -140,9 +140,10 @@ test.describe('Context sidebar — selection driven', () => {
       authenticatedPage.getByTestId('agent-output-agent-pane'),
     ).toBeVisible();
     await expect(contextView(authenticatedPage)).toBeHidden();
+    // Nothing is selected, so there is no Context toggle to open.
     await expect(
       authenticatedPage.getByTestId('topbar-context-toggle'),
-    ).toHaveAttribute('aria-expanded', 'false');
+    ).toHaveCount(0);
     // One agent: the Playground has no product dock beside its own prompt.
     await expect(
       authenticatedPage.getByTestId('topbar-agent-dock-toggle'),
@@ -242,7 +243,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
     await setContextOpen(authenticatedPage, false);
     await expect(card).toHaveAttribute('data-selected', 'false');
-    await expect(contextToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(contextToggle).toHaveCount(0);
     await card.getByText(ASSET_PROMPT).click();
     await expect(
       context.getByTestId('studio-playground-inspector'),
