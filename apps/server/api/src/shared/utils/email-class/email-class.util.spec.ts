@@ -1,6 +1,6 @@
 import {
   classifyEmail,
-  PERSONAL_EMAIL_DOMAIN_LIST,
+  getPersonalEmailDomainList,
   resolveDefaultOrganizationCategory,
 } from '@api/shared/utils/email-class/email-class.util';
 import { OrganizationCategory } from '@genfeedai/contracts';
@@ -27,8 +27,8 @@ describe('classifyEmail', () => {
   });
 
   it('keeps the domain list lowercase and free of duplicates', () => {
-    expect(PERSONAL_EMAIL_DOMAIN_LIST).toEqual(
-      [...new Set(PERSONAL_EMAIL_DOMAIN_LIST)].map((domain) =>
+    expect(getPersonalEmailDomainList()).toEqual(
+      [...new Set(getPersonalEmailDomainList())].map((domain) =>
         domain.toLowerCase(),
       ),
     );
