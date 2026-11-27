@@ -1284,5 +1284,31 @@
   "modelSelectorFilters": {
     "capabilities": "Model capabilities",
     "categories": "Model categories"
+  },
+  "creditTopUp": {
+    "amountLabel": "Amount",
+    "chooseAmountPrompt": "Choose an amount to continue.",
+    "creditsCount": "{count} credits",
+    "creditsUnit": "credits",
+    "customAmountGroup": "Custom amount in dollars",
+    "customAmountInput": "Custom credit top-up amount in dollars",
+    "customAmountLabel": "Custom amount",
+    "customAmountRange": "Whole dollars from {min} to {max}. $1 buys {rate} credits.",
+    "customErrorMax": "The maximum is {max}. Contact support for more.",
+    "customErrorMin": "The minimum is {min}.",
+    "customErrorWholeDollars": "Enter a whole-dollar amount.",
+    "customTileLabel": "Custom credit amount",
+    "customTileRange": "{min} to {max}",
+    "customTileTitle": "Custom",
+    "decreaseAmount": "Decrease amount by {amount}",
+    "description": "Credits land within a few minutes and expire after one year.",
+    "enterAmountPrompt": "Enter an amount to continue.",
+    "forAmount": "for {amount}",
+    "increaseAmount": "Increase amount by {amount}",
+    "openingCheckout": "Opening checkout...",
+    "paymentBody": "Checkout opens Stripe securely. Card details are collected there — not stored in Genfeed.",
+    "paymentLabel": "Payment",
+    "submitLabel": "Add credit",
+    "title": "Add credits"
   }
 }

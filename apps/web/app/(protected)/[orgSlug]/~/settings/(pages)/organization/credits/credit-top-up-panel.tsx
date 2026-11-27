@@ -38,7 +38,7 @@ function parseUsd(value: string): number | null {
 }
 
 function formatUsd(value: number): string {
-  return `$${value.toLocaleString()}`;
+  return `$${value.toLocaleString('en-US')}`;
 }
 
 const CUSTOM_AMOUNT = 'custom';
@@ -48,11 +48,12 @@ export default function CreditTopUpPanel({
   isSubmitDisabled = false,
   isStartingCheckout,
   secondaryAction,
-  submitLabel = 'Add credit',
-  title = 'Add credits',
+  submitLabel,
+  title,
   onSubmit,
 }: CreditTopUpPanelProps): ReactElement {
   const selectionLabels = useTranslations('ui.selectionGroups');
+  const translate = useTranslations('ui.creditTopUp');
   const [selectedUsd, setSelectedUsd] = useState<number | null>(null);
   const [isCustom, setIsCustom] = useState(false);
   const [customValue, setCustomValue] = useState('');
@@ -69,13 +70,17 @@ export default function CreditTopUpPanel({
       return null;
     }
     if (customUsd === null) {
-      return 'Enter a whole-dollar amount.';
+      return translate('customErrorWholeDollars');
     }
     if (isBelowMin) {
-      return `The minimum is ${formatUsd(PAYG_MIN_PURCHASE_USD)}.`;
+      return translate('customErrorMin', {
+        min: formatUsd(PAYG_MIN_PURCHASE_USD),
+      });
     }
     if (isAboveMax) {
-      return `The maximum is ${formatUsd(PAYG_MAX_PURCHASE_USD)}. Contact support for more.`;
+      return translate('customErrorMax', {
+        max: formatUsd(PAYG_MAX_PURCHASE_USD),
+      });
     }
     return null;
   })();
@@ -103,12 +108,14 @@ export default function CreditTopUpPanel({
 
   return (
     <Card
-      label={title}
-      description="Credits land within a few minutes and expire after one year."
+      label={title ?? translate('title')}
+      description={translate('description')}
     >
       <div className="space-y-3">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">Amount</p>
+          <p className="text-sm font-medium text-foreground">
+            {translate('amountLabel')}
+          </p>
           <OptionTileGroup
             ariaLabel={selectionLabels('creditAmount')}
             columns="auto"
@@ -132,7 +139,7 @@ export default function CreditTopUpPanel({
               <OptionTile
                 ariaLabel={`${pack.label}, ${pack.credits.toLocaleString('en-US')} credits`}
                 className="w-auto"
-                description={`${pack.credits.toLocaleString()} credits`}
+                description={`${pack.credits.toLocaleString('en-US')} credits`}
                 key={pack.label}
                 layout="stack"
                 size="sm"
@@ -141,12 +148,15 @@ export default function CreditTopUpPanel({
               />
             ))}
             <OptionTile
-              ariaLabel="Custom credit amount"
+              ariaLabel={translate('customTileLabel')}
               className="w-auto"
-              description={`${formatUsd(PAYG_MIN_PURCHASE_USD)} to ${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
+              description={translate('customTileRange', {
+                max: formatUsd(PAYG_MAX_PURCHASE_USD),
+                min: formatUsd(PAYG_MIN_PURCHASE_USD),
+              })}
               layout="stack"
               size="sm"
-              title="Custom"
+              title={translate('customTileTitle')}
               value={CUSTOM_AMOUNT}
             />
           </OptionTileGroup>
@@ -154,18 +164,22 @@ export default function CreditTopUpPanel({
 
         {isCustom ? (
           <div className="flex max-w-sm flex-col gap-1.5">
-            <Label htmlFor="custom-credit-amount">Custom amount</Label>
+            <Label htmlFor="custom-credit-amount">
+              {translate('customAmountLabel')}
+            </Label>
             <InputGroup
-              aria-label="Custom amount in dollars"
+              aria-label={translate('customAmountGroup')}
               className={cn(
-                'h-10 [&>*+*]:border-l-0',
+                'h-10 [&>*+*]:border-l-0 [&>button:last-child]:border-l [&>button:last-child]:border-border',
                 customError
                   ? 'border-destructive'
                   : 'focus-within:border-border-strong',
               )}
             >
               <Button
-                ariaLabel={`Decrease amount by ${formatUsd(CUSTOM_STEP_USD)}`}
+                ariaLabel={translate('decreaseAmount', {
+                  amount: formatUsd(CUSTOM_STEP_USD),
+                })}
                 className={cn(inputGroupButtonClassName, 'h-full w-10')}
                 icon={<Minus className="size-4" />}
                 isDisabled={(customUsd ?? 0) <= PAYG_MIN_PURCHASE_USD}
@@ -183,7 +197,7 @@ export default function CreditTopUpPanel({
               <Input
                 aria-describedby="custom-credit-amount-hint"
                 aria-invalid={Boolean(customError)}
-                aria-label="Custom credit top-up amount in dollars"
+                aria-label={translate('customAmountInput')}
                 autoFocus
                 className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2 text-base font-medium tabular-nums shadow-none focus-visible:border-0 focus-visible:ring-0"
                 hasError={Boolean(customError)}
@@ -194,14 +208,17 @@ export default function CreditTopUpPanel({
                 value={customValue}
               />
               <InputGroupAddon className="text-xs font-normal tabular-nums text-muted-foreground">
-                {isValid ? `${credits.toLocaleString()} credits` : 'credits'}
+                {isValid
+                  ? translate('creditsCount', {
+                      count: credits.toLocaleString('en-US'),
+                    })
+                  : translate('creditsUnit')}
               </InputGroupAddon>
               <Button
-                ariaLabel={`Increase amount by ${formatUsd(CUSTOM_STEP_USD)}`}
-                className={cn(
-                  inputGroupButtonClassName,
-                  'h-full w-10 border-l border-border',
-                )}
+                ariaLabel={translate('increaseAmount', {
+                  amount: formatUsd(CUSTOM_STEP_USD),
+                })}
+                className={cn(inputGroupButtonClassName, 'h-full w-10')}
                 icon={<Plus className="size-4" />}
                 isDisabled={(customUsd ?? 0) >= PAYG_MAX_PURCHASE_USD}
                 onClick={() => stepCustomAmount(CUSTOM_STEP_USD)}
@@ -218,7 +235,11 @@ export default function CreditTopUpPanel({
               id="custom-credit-amount-hint"
             >
               {customError ??
-                `Whole dollars from ${formatUsd(PAYG_MIN_PURCHASE_USD)} to ${formatUsd(PAYG_MAX_PURCHASE_USD)}. $1 buys ${PAYG_CREDITS_PER_USD} credits.`}
+                translate('customAmountRange', {
+                  max: formatUsd(PAYG_MAX_PURCHASE_USD),
+                  min: formatUsd(PAYG_MIN_PURCHASE_USD),
+                  rate: PAYG_CREDITS_PER_USD,
+                })}
             </p>
           </div>
         ) : null}
@@ -226,10 +247,11 @@ export default function CreditTopUpPanel({
         {helperContent}
 
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Payment</p>
+          <p className="text-sm font-medium text-foreground">
+            {translate('paymentLabel')}
+          </p>
           <p className="text-xs leading-5 text-muted-foreground">
-            Checkout opens Stripe securely. Card details are collected there —
-            not stored in Genfeed.
+            {translate('paymentBody')}
           </p>
         </div>
 
@@ -238,14 +260,16 @@ export default function CreditTopUpPanel({
             {isValid ? (
               <>
                 <span className="font-medium text-foreground">
-                  {credits.toLocaleString()} credits
+                  {translate('creditsCount', {
+                    count: credits.toLocaleString('en-US'),
+                  })}
                 </span>{' '}
-                for {formatUsd(usd ?? 0)}
+                {translate('forAmount', { amount: formatUsd(usd ?? 0) })}
               </>
             ) : isCustom ? (
-              'Enter an amount to continue.'
+              translate('enterAmountPrompt')
             ) : (
-              'Choose an amount to continue.'
+              translate('chooseAmountPrompt')
             )}
           </p>
 
@@ -258,7 +282,9 @@ export default function CreditTopUpPanel({
               isLoading={isStartingCheckout}
               icon={<CreditCard className="size-4" />}
             >
-              {isStartingCheckout ? 'Opening checkout...' : submitLabel}
+              {isStartingCheckout
+                ? translate('openingCheckout')
+                : (submitLabel ?? translate('submitLabel'))}
             </Button>
           </div>
         </div>
