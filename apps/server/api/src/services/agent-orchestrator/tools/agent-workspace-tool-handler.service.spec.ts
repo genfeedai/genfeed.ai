@@ -86,7 +86,10 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
         expiresIn: 3600,
       }),
     };
-    const brands = { findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }) };
+    const brands = {
+      findAll: vi.fn().mockResolvedValue({ docs: [{ id: 'brand-1' }] }),
+      findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+    };
     // #5219: resolveGenerationBrand's per-member fallback. Defaults to the
     // brand the pre-#5219 isSelected fixtures used, so tests that don't care
     // about member resolution keep working unchanged.
@@ -203,6 +206,23 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
       expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
       expect.anything(),
     );
+  });
+
+  it('asks a headless caller to name the brand when the organization has several', async () => {
+    const { brands, handler, uploads } = fixture();
+    brands.findAll.mockResolvedValue({
+      docs: [
+        { id: 'brand-1', label: 'Shayla' },
+        { id: 'brand-2', label: 'Koro' },
+      ],
+    });
+    const result = await handler.requestMediaUpload(params, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Koro (brand-2)');
+    expect(uploads.getPresignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('rejects an explicit brand outside the organization without falling back', async () => {
