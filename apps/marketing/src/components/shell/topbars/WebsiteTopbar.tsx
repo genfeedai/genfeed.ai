@@ -14,6 +14,7 @@ import {
 import { useDeferredIsSignedIn } from '@web-hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in';
 import {
   Bot,
+  Braces,
   Building2,
   ChartColumn,
   Clapperboard,
@@ -136,6 +137,13 @@ const AGENT_LINKS = [
     href: '/agent',
     icon: Plug,
     label: 'All agents',
+  },
+  {
+    description: 'REST API, CLI and MCP from your code',
+    group: 'Build on it',
+    href: '/developers',
+    icon: Braces,
+    label: 'Developers',
   },
   {
     description: 'Connect any MCP client',

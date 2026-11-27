@@ -92,6 +92,7 @@ describe('WebsiteTopbar', () => {
       ['Codex', '/codex'],
       ['Cursor', '/cursor'],
       ['All agents', '/agent'],
+      ['Developers', '/developers'],
       ['MCP server', '/mcp'],
       ['Agent skills', '/skills'],
       ['See every way to connect', '/agent'],

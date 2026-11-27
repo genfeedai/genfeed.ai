@@ -312,6 +312,7 @@ async function scheduleTargetInTransaction(
             validation,
             dependencies.contractService,
           ),
+          ...dependencies.contractService.freshAttemptMutation(target),
           ...(platform === CredentialPlatform.TIKTOK && {
             targetSettings: tikTokDeliverySettings(
               dependencies.contractService.asRecord(target.targetSettings),

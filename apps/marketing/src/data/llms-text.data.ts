@@ -6,6 +6,7 @@
  *   `app/llms-full.txt/route.ts` so its model list comes from the live public
  *   catalog (the same registry read as `/models`), never a hand-kept key list.
  */
+
 import { renderAgentConnectMarkdown } from '@data/agent-clients.data';
 import {
   APP_PRODUCT_ACCESS_LABELS,
@@ -15,6 +16,10 @@ import { BEST_LISTS } from '@data/best-lists.data';
 import { competitors } from '@data/competitors.data';
 import { FAQ_CATEGORIES } from '@data/faq.data';
 import { integrations } from '@data/integrations.data';
+import {
+  buildMcpChannelPage,
+  MCP_CHANNEL_SLUGS,
+} from '@data/mcp-channels.data';
 import { products } from '@data/products.data';
 import { useCases } from '@data/use-cases.data';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -210,6 +215,15 @@ export function buildLlmsIndex(): string {
   lines.push(
     '- [MCP server](https://mcp.genfeed.ai/mcp): Streamable HTTP tools and resources for agents',
   );
+  lines.push(
+    `- [Developer hub](${BASE_URL}/developers): Quick start for the REST API, the CLI and MCP, with the limits stated`,
+  );
+  for (const slug of MCP_CHANNEL_SLUGS) {
+    const page = buildMcpChannelPage(slug);
+    lines.push(
+      `- [${page.name} MCP server](${BASE_URL}/mcp/${slug}): ${page.description}`,
+    );
+  }
   lines.push(
     `- [Agent authentication](${BASE_URL}/auth.md): Scoped API-key and OAuth instructions`,
   );

@@ -1,3 +1,5 @@
+import { getIntegrationBySlug } from '@data/integrations.data';
+import { MCP_CHANNEL_SLUGS } from '@data/mcp-channels.data';
 import type { PlanTier } from '@genfeedai/pricing';
 
 export interface Product {
@@ -29,6 +31,8 @@ export interface Product {
   }[];
   targetAudience: string[];
   integrations?: string[];
+  /** Pages that go deeper on this product, shown under its audience card. */
+  relatedLinks?: { description: string; href: string; label: string }[];
   pricing: {
     /** Stable tier id; the display name is resolved via getPlanLabel at render. */
     recommended: PlanTier;
@@ -408,6 +412,19 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'MCP access comes with every plan. Tool calls have no usage cap, only a standard per-minute rate limit; agents spend credits on what they generate.',
     },
+    relatedLinks: [
+      {
+        description:
+          'Call Genfeed from your own code: REST, CLI and MCP, with a quick start and the API reference.',
+        href: '/developers',
+        label: 'Developer hub',
+      },
+      ...MCP_CHANNEL_SLUGS.map((channel) => ({
+        description: `What an agent can do on ${getIntegrationBySlug(channel)?.name ?? channel} through Genfeed, and its limits.`,
+        href: `/mcp/${channel}`,
+        label: `${getIntegrationBySlug(channel)?.name ?? channel} MCP server`,
+      })),
+    ],
     relatedProducts: ['chatgpt', 'hire-agents'],
     seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',
     slug: 'mcp',

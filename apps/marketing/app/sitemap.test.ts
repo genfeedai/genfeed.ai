@@ -104,6 +104,27 @@ describe('website sitemap', () => {
     expect(urls.size).toBe(routes.length);
   });
 
+  it('lists one MCP page per supported channel and none for the others', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+    const urls = new Set(routes.map((route) => route.url));
+
+    for (const channel of [
+      'linkedin',
+      'instagram',
+      'youtube',
+      'x-twitter',
+      'tiktok',
+      'facebook',
+    ]) {
+      expect(urls.has(`https://genfeed.ai/mcp/${channel}`)).toBe(true);
+    }
+    for (const channel of ['pinterest', 'reddit', 'threads', 'bluesky']) {
+      expect(urls.has(`https://genfeed.ai/mcp/${channel}`)).toBe(false);
+    }
+  });
+
   it('lists the X landing page and leaves the player card off the sitemap', async () => {
     findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
 

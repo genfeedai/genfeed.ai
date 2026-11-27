@@ -33,13 +33,13 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   },
   {
     links: [
+      { href: '/developers', label: 'Developer hub' },
       { href: 'https://docs.genfeed.ai', label: 'Docs' },
       { href: '/mcp', label: 'MCP server' },
       { href: '/agent', label: 'Connect Agent' },
       { href: '/self-hosted', label: 'Self-host' },
       { href: '/claude', label: 'Claude' },
       { href: '/skills', label: 'Agent skills' },
-      { href: '/codex', label: 'Codex' },
     ],
     title: 'Developers',
   },

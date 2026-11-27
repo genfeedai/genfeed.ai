@@ -219,6 +219,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/integrations/:slug',
     '/launch-content',
     '/linkedin',
+    '/mcp/:channel',
     '/models',
     '/muse',
     '/muse/:channel',
