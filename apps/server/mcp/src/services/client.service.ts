@@ -128,7 +128,7 @@ import {
   storyboardToolSchemas,
 } from '@mcp/tools/storyboard.schemas';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Composition root for the MCP → Genfeed API client. Per-domain clients share
@@ -165,7 +165,7 @@ export class ClientService {
     logger: LoggerService,
     httpService: HttpService,
     configService: ConfigService,
-    sharedLookups?: McpSharedLookups,
+    @Optional() sharedLookups?: McpSharedLookups,
   ) {
     this.base = new BaseApiClient(logger, httpService, configService);
     this.agent = new AgentClient(this.base);
