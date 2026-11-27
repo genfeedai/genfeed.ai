@@ -40,6 +40,8 @@ function createHarness() {
     findEligiblePost: vi.fn().mockResolvedValue(null),
     findPost: vi.fn().mockResolvedValue({
       brandId: 'brand-1',
+      credentialId: 'credential-1',
+      description: '<p>Studio &amp; day</p><p>Second line</p>',
       id: 'post-1',
       organizationId: 'org-1',
       userId: 'user-1',
@@ -60,6 +62,12 @@ function createHarness() {
     notifyPublishUnverified: vi.fn().mockResolvedValue(undefined),
   };
   const prisma = {
+    credential: {
+      findFirst: vi.fn().mockResolvedValue({
+        externalHandle: 'genfeedai',
+        username: null,
+      }),
+    },
     brand: {
       findFirst: vi.fn().mockResolvedValue({ label: 'Shayla' }),
     },
@@ -219,8 +227,9 @@ describe('ScheduledPostWorkflowService', () => {
         message: {
           action: 'post_published',
           payload: {
+            accountHandle: '@genfeedai',
             brandLabel: 'Shayla',
-            caption: undefined,
+            caption: 'Studio & day\n\nSecond line',
             organizationLabel: 'Genfeed',
             platform: 'instagram',
             postId: 'post-1',

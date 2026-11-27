@@ -2452,50 +2452,6 @@ describe('proxy', () => {
     );
   });
 
-  it('lets unsigned desktop local onboarding reach provider CLI checks', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeDesktopRequest('/onboarding/providers', { hasSession: false }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('keeps the explicit desktop local surface reachable without a cloud session', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeDesktopRequest('/desktop/local', { hasSession: false }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('does not expose similarly prefixed desktop routes without a cloud session', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeDesktopRequest('/desktop/local-preview', { hasSession: false }),
-    );
-
-    expect(response.status).toBe(307);
-    const location = new URL(response.headers.get('location') ?? '');
-    expect(location.pathname).toBe('/login');
-    // `/desktop` is a reserved root segment and only `/desktop/local[/…]` is an
-    // allowed continuation, so a look-alike path is gated *and* refused as a
-    // post-login destination rather than being pinned as a callback.
-    expect(location.searchParams.get('callbackUrl')).toBeNull();
-  });
-
   it('lets signed-in desktop onboarding render', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     vi.resetModules();

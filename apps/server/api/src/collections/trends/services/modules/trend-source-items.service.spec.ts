@@ -310,6 +310,24 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
+    it('shows a TikTok video by its cover, not its author avatar', async () => {
+      apify.searchTikTokByHashtag.mockResolvedValue([
+        {
+          authorMeta: { avatar: 'https://cdn.test/avatar.jpg', name: 'tk' },
+          id: 'tk-1',
+          videoMeta: { coverUrl: 'https://cdn.test/cover.jpg' },
+          webVideoUrl: 'https://tiktok.com/v/1',
+        },
+      ]);
+
+      const result = await service.fetchTrendSourceItems(
+        makeTrend({ platform: 'tiktok' }),
+        5,
+      );
+
+      expect(result[0]?.thumbnailUrl).toBe('https://cdn.test/cover.jpg');
+    });
+
     it('dispatches YouTube and drops videos without a url', async () => {
       apify.searchYouTubeVideos.mockResolvedValue([
         {

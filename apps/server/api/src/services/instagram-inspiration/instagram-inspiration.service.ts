@@ -13,6 +13,7 @@ import {
   sortInstagramPosts,
 } from '@api/services/instagram-inspiration/instagram-inspiration.util';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/contracts';
 import type {
   InstagramInspirationBrandContext,
@@ -104,9 +105,11 @@ export class InstagramInspirationService {
     const startedAt = Date.now();
     const settledPostsBySeed = await Promise.allSettled(
       seedResult.seeds.map((seed) =>
-        this.apifyService.searchInstagramByHashtag(seed, {
-          limit: DISCOVERY_POSTS_PER_SEED,
-        }),
+        runWithDefaultApifyCaller('instagram-inspiration', () =>
+          this.apifyService.searchInstagramByHashtag(seed, {
+            limit: DISCOVERY_POSTS_PER_SEED,
+          }),
+        ),
       ),
     );
     const postsBySeed = seedResult.seeds.map((seed, index) => {
@@ -186,9 +189,13 @@ export class InstagramInspirationService {
       return { ...cached, source: 'cache' };
     }
 
-    const rawPosts = await this.apifyService.getInstagramUserPosts(username, {
-      limit: MAX_DETAIL_LIMIT,
-    });
+    const rawPosts = await runWithDefaultApifyCaller(
+      'instagram-inspiration',
+      () =>
+        this.apifyService.getInstagramUserPosts(username, {
+          limit: MAX_DETAIL_LIMIT,
+        }),
+    );
     const posts = sortInstagramPosts(
       filterInstagramPosts(
         rawPosts

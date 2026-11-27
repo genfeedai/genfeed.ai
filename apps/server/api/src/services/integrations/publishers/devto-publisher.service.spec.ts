@@ -137,6 +137,36 @@ describe('DevtoPublisherService', () => {
     );
   });
 
+  it('passes the canonical URL and series channel settings to Dev.to', async () => {
+    await service.publish(
+      makeContext({
+        settings: {
+          canonicalUrl: 'https://genfeed.ai/articles/launch-notes',
+          series: ' Genfeed, from brief to feed ',
+        },
+      }),
+    );
+
+    expect(devtoService.createArticle).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        canonicalUrl: 'https://genfeed.ai/articles/launch-notes',
+        series: 'Genfeed, from brief to feed',
+      }),
+    );
+  });
+
+  it('rejects a canonical URL that is not https instead of publishing a Dev.to original', async () => {
+    const result = await service.publish(
+      makeContext({ settings: { canonicalUrl: 'genfeed.ai/articles/x' } }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/canonical URL/);
+    expect(result.errorKind).toBe(PublishErrorKind.CONTENT_REJECTED);
+    expect(devtoService.createArticle).not.toHaveBeenCalled();
+  });
+
   it('fails without calling Dev.to when the credential has no API key', async () => {
     const result = await service.publish(
       makeContext({

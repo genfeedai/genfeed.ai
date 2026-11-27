@@ -28,16 +28,13 @@ const cloud: IDesktopRuntimeContext = {
   selectedServerId: 'cloud-a',
   selectedServerKind: 'cloud',
   selectedApiEndpoint: 'https://api.genfeed.ai/v1',
-  runtimeMode: 'cloud',
   generationExecution: 'remote',
-  localProvider: null,
 };
 type FixtureWindow = Window & {
   genfeedDesktop: Pick<IGenfeedDesktopBridge, 'app'>;
   desktopRuntimeEmit: (context: IDesktopRuntimeContext) => void;
   desktopRuntimeResolve: () => void;
   desktopRuntimeReads: number;
-  desktopOfflineModeActivated: () => Promise<void>;
 };
 
 interface DesktopFixtureOptions {
@@ -45,7 +42,6 @@ interface DesktopFixtureOptions {
   pending: boolean;
 }
 interface DesktopNetworkObservation {
-  offlineModeActivations: number;
   walletRequests: number;
   generationRequests: number;
   pageErrors: string[];
@@ -66,7 +62,6 @@ const test = authenticatedTest.extend<{
       walletRequests: 0,
       generationRequests: 0,
       pageErrors: [],
-      offlineModeActivations: 0,
     });
   },
   desktopSetup: [
@@ -83,9 +78,6 @@ const test = authenticatedTest.extend<{
           desktopNetwork.pageErrors.push(error.message),
         ),
       );
-      await context.exposeBinding('desktopOfflineModeActivated', () => {
-        desktopNetwork.offlineModeActivations += 1;
-      });
       await installBridge(
         context,
         desktopRuntime.context,
@@ -181,22 +173,6 @@ async function installBridge(
           };
         },
       };
-      const bootstrap = {
-        isOfflineMode: context.runtimeMode === 'local',
-        activeWorkspaceId: null,
-        workspaces: [],
-      };
-      Object.assign(app, {
-        getBootstrap: async () => bootstrap,
-        enableOfflineMode: async () => {
-          await target.desktopOfflineModeActivated();
-          if (context.status === 'unavailable')
-            throw new Error(
-              'Restart Genfeed Desktop to recover the local workspace.',
-            );
-          return bootstrap;
-        },
-      });
       Object.defineProperty(target, 'genfeedDesktop', {
         value: {
           app,
@@ -210,15 +186,6 @@ async function installBridge(
               };
             },
           } satisfies Pick<IGenfeedDesktopBridge['auth'], 'onDidChangeSession'>,
-          generation: {
-            getProviderConfig: async () => {
-              if (context.status === 'unavailable')
-                throw new Error(
-                  'Restart Genfeed Desktop to recover the local workspace.',
-                );
-              return null;
-            },
-          },
         },
         configurable: true,
       });
@@ -479,27 +446,11 @@ for (const theme of ['light', 'dark'] as const)
       },
     );
   }
-for (const mode of [
-  'self-hosted',
-  'local',
-  'unknown',
-  'unavailable',
-] as const) {
+for (const mode of ['self-hosted', 'unknown'] as const) {
   const context: IDesktopRuntimeContext = {
     ...cloud,
     selectedServerKind: mode === 'self-hosted' ? 'self-hosted' : 'cloud',
-    runtimeMode: mode === 'local' || mode === 'unavailable' ? 'local' : 'cloud',
-    status: mode === 'unavailable' ? 'unavailable' : 'ready',
-    generationExecution:
-      mode === 'unknown' || mode === 'unavailable'
-        ? 'unknown'
-        : mode === 'local'
-          ? 'local-byok'
-          : 'remote',
-    localProvider:
-      mode === 'local' || mode === 'unavailable'
-        ? { provider: 'replicate', networkAccess: 'remote' }
-        : null,
+    generationExecution: mode === 'unknown' ? 'unknown' : 'remote',
   };
   desktopTest(context)(
     `desktop ${mode} never infers a managed wallet`,
@@ -513,9 +464,7 @@ for (const mode of [
       await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
       let summary = await openGenerationSummary(page);
       await expect(summary.getByRole('status')).toHaveText(
-        mode === 'local'
-          ? 'This Studio generator requires a server connection'
-          : 'Cost context unavailable',
+        'Cost context unavailable',
       );
       await expectNoAccountCredits(page);
       expect(walletRequests).toBe(0);
@@ -553,130 +502,3 @@ for (const mode of [
     },
   );
 }
-
-for (const networkAccess of [
-  'local',
-  'remote',
-  'unknown',
-  'missing',
-  'unavailable',
-] as const) {
-  const context: IDesktopRuntimeContext = {
-    ...cloud,
-    runtimeMode: 'local',
-    status: networkAccess === 'unavailable' ? 'unavailable' : 'ready',
-    generationExecution:
-      networkAccess === 'missing' || networkAccess === 'unavailable'
-        ? 'unknown'
-        : 'local-byok',
-    localProvider:
-      networkAccess === 'missing'
-        ? null
-        : {
-            provider: 'openai-compatible',
-            networkAccess:
-              networkAccess === 'unavailable' ? 'local' : networkAccess,
-          },
-  };
-  desktopTest(context)(
-    `desktop local route cost ${networkAccess}`,
-    async ({ authenticatedPage: page, context: browser, desktopNetwork }) => {
-      await browser.addInitScript(() => {
-        (globalThis as { [key: symbol]: unknown })[
-          Symbol.for('genfeed.desktop.localModeTestOverride')
-        ] = true;
-      });
-      await page.route('**/v1/public/platform-flags**', async (route) =>
-        route.fulfill({ json: { desktop_local_workspace: true } }),
-      );
-      let walletRequests = 0;
-      await page.route('**/v1/credits/topbar-balances**', async (route) => {
-        walletRequests++;
-        await route.fulfill({ json: walletBody });
-      });
-      await page.goto('/desktop/local');
-      const labels = {
-        local: 'Local generation · no Genfeed credits',
-        remote: 'Your provider · no Genfeed credits. Provider fees may apply',
-        unknown: 'Provider cost unavailable',
-        missing: 'Choose a local provider',
-        unavailable: 'Provider cost unavailable',
-      };
-      await expect(
-        page.getByTestId('desktop-local-generation-cost'),
-      ).toHaveText(labels[networkAccess]);
-      if (networkAccess === 'unavailable') {
-        // The existing local route mounts provider settings only after a
-        // successful bootstrap. Recovery must not pretend that succeeded.
-        await expect(
-          page.getByTestId('desktop-provider-generation-cost'),
-        ).toHaveCount(0);
-        await expect(page.getByText('Choose a local provider')).toHaveCount(0);
-      } else {
-        await expect(
-          page.getByTestId('desktop-provider-generation-cost'),
-        ).toHaveText(labels[networkAccess]);
-      }
-      expect(walletRequests).toBe(0);
-      expect(desktopNetwork.walletRequests).toBe(0);
-      if (networkAccess === 'unavailable')
-        await expect(
-          page.getByRole('alert').filter({
-            hasText: 'Restart Genfeed Desktop to recover the local workspace.',
-          }),
-        ).toBeVisible();
-      expect(desktopNetwork.pageErrors).toEqual([]);
-      await expectNoErrorOverlay(page);
-      await assertNoErrorBoundaryFallback(page, page.url());
-      await captureRuntimeState(
-        page,
-        desktopNetwork,
-        `desktop-provider-${networkAccess}`,
-      );
-    },
-  );
-}
-
-desktopTest({
-  ...cloud,
-  runtimeMode: 'local',
-  status: 'ready',
-  generationExecution: 'local-byok',
-  localProvider: { provider: 'openai-compatible', networkAccess: 'local' },
-})(
-  'desktop local route stays closed without the test override',
-  async ({ unauthenticatedPage: page, desktopNetwork }) => {
-    await page.route('**/v1/public/platform-flags**', async (route) =>
-      route.fulfill({ json: { desktop_local_workspace: true } }),
-    );
-    await page.goto('/desktop/local');
-    await expect(page).toHaveURL((url) => url.pathname === '/login');
-    await expect(
-      page.getByRole('button', { name: 'Sign in with Genfeed' }),
-    ).toBeVisible();
-    await expect(page.getByTestId('desktop-local-generation-cost')).toHaveCount(
-      0,
-    );
-    await expect(
-      page.getByTestId('desktop-provider-generation-cost'),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole('button', { name: /use a local workspace/i }),
-    ).toHaveCount(0);
-    await expect(page.getByText(/local workspace|local mode/i)).toHaveCount(0);
-    expect(
-      await page.evaluate(
-        () =>
-          (globalThis as { [key: symbol]: unknown })[
-            Symbol.for('genfeed.desktop.localModeTestOverride')
-          ],
-      ),
-    ).toBeUndefined();
-    expect(desktopNetwork.offlineModeActivations).toBe(0);
-    await captureRuntimeState(
-      page,
-      desktopNetwork,
-      'desktop-local-gate-closed',
-    );
-  },
-);

@@ -1,6 +1,9 @@
+import { NODE_DEFINITIONS, type NodeType } from '@genfeedai/contracts/types';
 import {
   getWorkflowActionIdForNodeType,
   getWorkflowPresentationNodeType,
+  hasEditorNodeType,
+  pickActionInputParameters,
 } from '@genfeedai/workflows/nodes';
 import { extendedNodeDefinitions, saasNodeDefinitions } from './definitions';
 
@@ -145,6 +148,18 @@ function readPersistedActionId(
   return typeof actionId === 'string' && actionId.length > 0 ? actionId : null;
 }
 
+/**
+ * An editor node keeps data the action does not persist (modes, previews), so a loaded node starts
+ * from the same defaults as a new one.
+ */
+function editorNodeDefaults(actionId: string): Record<string, unknown> {
+  if (!hasEditorNodeType(actionId)) {
+    return {};
+  }
+  const definition = NODE_DEFINITIONS[actionId as NodeType];
+  return definition ? { ...definition.defaultData } : {};
+}
+
 function toEditorActionNodeData(
   data: Record<string, unknown>,
   actionId: string,
@@ -154,6 +169,7 @@ function toEditorActionNodeData(
   const inputVariableKeys = readInputVariableKeys(data);
 
   return {
+    ...editorNodeDefaults(actionId),
     ...parameters,
     ...(inputVariableKeys ? { inputVariableKeys } : {}),
     [WORKFLOW_ACTION_ID_KEY]: actionId,
@@ -178,11 +194,11 @@ function toPersistedActionNodeData(
     ...(inputVariableKeys ? { inputVariableKeys } : {}),
     config: {
       actionId,
-      parameters: {
+      parameters: pickActionInputParameters(actionId, {
         ...existingParameters,
         ...existingConfig,
         ...extracted,
-      },
+      }),
     },
     label: typeof record.label === 'string' ? record.label : actionId,
   };

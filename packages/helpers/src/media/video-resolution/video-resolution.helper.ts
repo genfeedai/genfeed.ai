@@ -90,6 +90,14 @@ export const videoModelResolutions: VideoModelResolution[] = [
     ],
   },
   {
+    default: 'std',
+    model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_MOTION_CONTROL,
+    resolutions: [
+      { label: 'Standard', value: 'std' },
+      { label: 'Pro', value: 'pro' },
+    ],
+  },
+  {
     default: 'standard',
     model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
     resolutions: [

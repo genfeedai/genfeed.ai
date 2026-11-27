@@ -208,6 +208,12 @@ export function planPreflight(input: PreflightPlanInput): PreflightStep[] {
       stage: 'static',
     },
     {
+      command: ['bun', 'run', 'check:presets-pin'],
+      id: 'presets-pin',
+      label: 'Pinned presets catalog',
+      stage: 'static',
+    },
+    {
       command: ['bun', 'run', 'check:skill-trusted-builtin-allowlist'],
       id: 'skill-allowlist',
       label: 'Skill trusted-builtin allowlist',

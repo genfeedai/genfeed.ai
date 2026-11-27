@@ -31,15 +31,28 @@ describe('Discovery media resolution', () => {
       '/embed/dQw4w9WgXcQ',
     );
   });
-  it('plays TikTok muted inline', () => {
+  it('never builds a TikTok embed, which would load its cookie wall', () => {
     expect(
       getDeskMediaSource(
         item({
           sourceUrl:
             'https://www.tiktok.com/@creator/video/6718335390845095173',
         }),
-      ).embedUrl,
-    ).toContain('autoplay=1&muted=1');
+      ),
+    ).toMatchObject({ directUrl: null, embedUrl: null });
+  });
+  it('plays a saved TikTok copy natively', () => {
+    expect(
+      getDeskMediaSource(
+        item({
+          mediaUrl: 'https://cdn.genfeed.ai/assets/trend-playback/1-1.mp4',
+          sourceUrl: 'https://www.tiktok.com/@creator/video/1',
+        }),
+      ),
+    ).toMatchObject({
+      directUrl: 'https://cdn.genfeed.ai/assets/trend-playback/1-1.mp4',
+      embedUrl: null,
+    });
   });
   it.each([
     'instagram',
@@ -117,7 +130,14 @@ describe('Discovery media resolution', () => {
     [{ contentType: 'tweet', sourceUrl: 'https://x.com/a/status/1' }, false],
     [{ contentType: 'post', platform: 'reddit' }, false],
     [{ contentType: 'image', mediaUrl: 'https://cdn.example.com/a.jpg' }, true],
-    [{ sourceUrl: 'https://www.tiktok.com/@creator/video/1' }, true],
+    [{ sourceUrl: 'https://www.tiktok.com/@creator/video/1' }, false],
+    [
+      {
+        sourceUrl: 'https://www.tiktok.com/@creator/video/1',
+        thumbnailUrl: 'https://cdn.example.com/cover.jpg',
+      },
+      true,
+    ],
   ] as const)('treats %o as media: %s', (values, expected) => {
     expect(hasDeskMedia(item(values))).toBe(expected);
   });

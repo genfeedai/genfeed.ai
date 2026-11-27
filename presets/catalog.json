@@ -1,0 +1,32 @@
+{
+  "groups": {
+    "studio": [
+      "studio-profile-picture",
+      "studio-banner",
+      "studio-youtube-thumbnail",
+      "studio-meme",
+      "studio-animation",
+      "studio-dance",
+      "studio-edit-remove-background",
+      "studio-edit-enhance",
+      "studio-edit-retouch",
+      "studio-edit-restyle"
+    ],
+    "ad": [
+      "ad-ugc-selfie",
+      "ad-talking-head",
+      "ad-screen-demo"
+    ],
+    "cinematic": [
+      "cinematic-anime-short"
+    ],
+    "b2b": [
+      "b2b-product-explainer-clip",
+      "b2b-founder-talking-clip",
+      "b2b-customer-quote-card",
+      "b2b-stat-insight-card",
+      "b2b-case-study-slide",
+      "b2b-ad-variation"
+    ]
+  }
+}

@@ -2,18 +2,15 @@
 
 import { BrandProvider } from '@contexts/user/brand-context/brand-context';
 import { UserProvider } from '@contexts/user/user-context/user-context';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
-import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import { ProtectedAuthGate } from '@/providers/protected-providers/protected-providers';
@@ -25,15 +22,6 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
   const translateUnavailable = useTranslations(
     'pages.platformFlags.unavailable',
   );
-  const pathname = usePathname();
-  const isDesktop = useIsDesktopClient();
-  const isDesktopLocalOnboarding =
-    isDesktop &&
-    (pathname === APP_ROUTES.ONBOARDING.BRAND ||
-      pathname.startsWith(`${APP_ROUTES.ONBOARDING.BRAND}/`) ||
-      pathname === APP_ROUTES.ONBOARDING.PROVIDERS ||
-      pathname.startsWith(`${APP_ROUTES.ONBOARDING.PROVIDERS}/`));
-
   // Admin flags (#5468): onboarding routes by the `agent` module flag, so it
   // waits for the first read rather than routing on the all-on default.
   const {
@@ -77,10 +65,6 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
       </ApiStatusProvider>
     </FeatureFlagProvider>
   );
-
-  if (isDesktopLocalOnboarding) {
-    return content;
-  }
 
   return (
     <ProtectedAuthGate fallback={<OnboardingShellFallback />}>

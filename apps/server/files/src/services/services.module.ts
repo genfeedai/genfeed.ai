@@ -12,6 +12,7 @@ import { RemotionRenderJobService } from '@files/services/remotion/remotion-rend
 import { RemotionRendererService } from '@files/services/remotion/remotion-renderer.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { ThumbnailsModule } from '@files/services/thumbnails/thumbnails.module';
+import { TrendPlaybackModule } from '@files/services/trend-playback/trend-playback.module';
 import { UploadModule } from '@files/services/upload/upload.module';
 import { VideoCompletionPublisherService } from '@files/services/video-completion/video-completion-publisher.service';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
@@ -39,6 +40,7 @@ import { Module } from '@nestjs/common';
     RemotionRendererService,
     S3Service,
     ThumbnailsModule,
+    TrendPlaybackModule,
     UploadModule,
     VideoCompletionPublisherService,
     VideoMergeJobService,
@@ -53,6 +55,7 @@ import { Module } from '@nestjs/common';
     HookRemixModule,
     PerceptionModule,
     ThumbnailsModule,
+    TrendPlaybackModule,
     UploadModule,
     YtDlpModule,
     BullModule.registerQueue(

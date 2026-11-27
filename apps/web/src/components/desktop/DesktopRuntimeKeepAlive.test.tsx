@@ -13,9 +13,7 @@ const context: IDesktopRuntimeContext = {
   selectedServerId: 'cloud',
   selectedServerKind: 'cloud',
   selectedApiEndpoint: 'https://api.genfeed.ai/v1',
-  runtimeMode: 'cloud',
   generationExecution: 'remote',
-  localProvider: null,
 };
 
 const getRuntimeContext = vi.fn(() => Promise.resolve(context));

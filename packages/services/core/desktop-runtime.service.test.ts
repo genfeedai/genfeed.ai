@@ -4,7 +4,6 @@ import {
   canSubmitStudioGeneration,
   DesktopRuntimeService,
   getDesktopCreditsVisibility,
-  getDesktopLocalCostState,
 } from './desktop-runtime.service';
 
 const context: IDesktopRuntimeContext = {
@@ -15,9 +14,7 @@ const context: IDesktopRuntimeContext = {
   selectedServerId: 'cloud',
   selectedServerKind: 'cloud',
   selectedApiEndpoint: 'https://api.genfeed.ai/v1',
-  runtimeMode: 'cloud',
   generationExecution: 'remote',
-  localProvider: null,
 };
 function fixture() {
   let event!: (value: IDesktopRuntimeContext) => void;
@@ -74,13 +71,8 @@ describe('shared authoritative runtime store', () => {
       const newer = {
         ...context,
         revision: 4,
-        status: 'unavailable' as const,
+        status: 'switching' as const,
         generationExecution: 'unknown' as const,
-        runtimeMode: 'local' as const,
-        localProvider: {
-          provider: 'ollama' as const,
-          networkAccess: 'local' as const,
-        },
       };
       if (phase === 'before cleanup') f.event(newer);
       off();
@@ -96,10 +88,9 @@ describe('shared authoritative runtime store', () => {
       expect(f.rpc).toHaveBeenCalledTimes(1);
       expect(f.detach).not.toHaveBeenCalled();
       expect(f.service.getSnapshot()).toEqual({
-        status: 'unavailable',
+        status: 'switching',
         context: newer,
       });
-      expect(getDesktopLocalCostState(f.service.getSnapshot())).toBe('unknown');
       remount();
       await flush();
       expect(f.detach).toHaveBeenCalledTimes(1);
@@ -255,48 +246,18 @@ describe('shared authoritative runtime store', () => {
     expect(f.service.getSnapshot().status).toBe('unavailable');
     stop();
   });
-  it('keeps selected profile/mode separate from transport and provider fees', () => {
-    expect(
-      getDesktopCreditsVisibility({ status: 'ready', context }),
-    ).toMatchObject({
+  it('exposes the selected server only once a signed-in runtime is ready', () => {
+    expect(getDesktopCreditsVisibility({ status: 'ready', context })).toEqual({
       clientSurface: 'desktop',
       selectedServerKind: 'cloud',
-      runtimeMode: 'cloud',
     });
-    const local = {
-      ...context,
-      runtimeMode: 'local' as const,
-      generationExecution: 'local-byok' as const,
-      localProvider: {
-        provider: 'replicate' as const,
-        networkAccess: 'remote' as const,
-      },
-    };
-    expect(canSubmitStudioGeneration({ status: 'ready', context: local })).toBe(
-      false,
-    );
-    expect(getDesktopLocalCostState({ status: 'ready', context: local })).toBe(
-      'remote',
-    );
+    const signedOut = { ...context, generationExecution: 'unknown' as const };
     expect(
-      getDesktopLocalCostState({
-        status: 'ready',
-        context: {
-          ...local,
-          localProvider: { provider: 'ollama', networkAccess: 'local' },
-        },
-      }),
-    ).toBe('local');
+      getDesktopCreditsVisibility({ status: 'ready', context: signedOut }),
+    ).toEqual({ clientSurface: 'desktop', selectedServerKind: null });
     expect(
-      getDesktopLocalCostState({
-        status: 'ready',
-        context: {
-          ...local,
-          localProvider: null,
-          generationExecution: 'unknown',
-        },
-      }),
-    ).toBe('missing');
+      canSubmitStudioGeneration({ status: 'ready', context: signedOut }),
+    ).toBe(false);
     expect(canSubmitStudioGeneration({ status: 'switching', context })).toBe(
       false,
     );

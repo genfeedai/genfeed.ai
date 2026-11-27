@@ -2,6 +2,7 @@ import type { SeedanceNativeOutputQuoteEvidence } from '@api/collections/videos/
 import type { SeedanceReferenceQuoteEvidence } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import type { PreparedFalVideoDispatch } from '@api/collections/videos/services/video-generation.types';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import type { MotionControlQuoteEvidence } from '@api/collections/workflows/utils/motion-control-reference.util';
 import type { RunImageGenerationBriefResult } from '@api/services/generation-brief/run-image-generation-brief';
 import type { RunVideoGenerationBriefResult } from '@api/services/generation-brief/run-video-generation-brief';
 import type { ReplicatePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
@@ -72,6 +73,21 @@ export type WorkflowVideoProviderPlan =
   | WorkflowReplicateVideoProviderPlan
   | WorkflowFalVideoProviderPlan;
 
+/**
+ * Image plus motion reference video on Replicate. The output runs as long as
+ * the measured reference, so the quote takes its seconds from that evidence
+ * and not from the provider input, which carries no duration.
+ */
+export interface WorkflowMotionControlProviderPlan
+  extends WorkflowMediaProviderPlanBase {
+  actionId: 'motionControl';
+  generationBriefEvidence: RunVideoGenerationBriefResult['evidence'];
+  provider: 'replicate';
+  referenceQuoteEvidence: MotionControlQuoteEvidence;
+  target: ReplicatePredictionTarget;
+}
+
 export type WorkflowMediaProviderPlan =
   | WorkflowImageProviderPlan
-  | WorkflowVideoProviderPlan;
+  | WorkflowVideoProviderPlan
+  | WorkflowMotionControlProviderPlan;

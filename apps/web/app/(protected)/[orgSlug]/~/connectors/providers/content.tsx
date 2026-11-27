@@ -21,7 +21,6 @@ import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import DesktopServerSettings from '@/components/desktop/DesktopServerSettings';
 import type {
   IntegrationsAction,
@@ -238,7 +237,6 @@ export default function SettingsIntegrationsPage() {
       <h1 className="sr-only">Integrations</h1>
 
       {desktop ? <DesktopServerSettings /> : null}
-      {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
 
       {!desktop && (!isReady || isLoading) ? (
         <div className="flex min-h-40 items-center justify-center">

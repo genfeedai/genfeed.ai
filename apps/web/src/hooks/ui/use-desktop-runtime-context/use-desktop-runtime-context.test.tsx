@@ -20,9 +20,7 @@ it('hydrates from stable unknown and deduplicates bridge reads across consumers'
     selectedServerId: 'cloud',
     selectedServerKind: 'cloud',
     selectedApiEndpoint: 'https://api.genfeed.ai/v1',
-    runtimeMode: 'cloud',
     generationExecution: 'remote',
-    localProvider: null,
   };
   let resolve!: (value: IDesktopRuntimeContext) => void;
   const listeners = new Set<(context: unknown) => void>();

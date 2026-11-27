@@ -64,7 +64,6 @@ import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/contr
 import { MetaAdsOptimizationController } from '@api/services/integrations/meta-ads/controllers/meta-ads-optimization.controller';
 import { UnipileController } from '@api/services/integrations/unipile/controllers/unipile.controller';
 import { WhatsappController } from '@api/services/integrations/whatsapp/controllers/whatsapp.controller';
-import { DesktopSyncController } from '@api/services/sync/desktop-sync.controller';
 import { SyncController } from '@api/services/sync/sync.controller';
 
 export const TENANT_READ_CONTENT_ROUTES = [
@@ -714,12 +713,6 @@ export const TENANT_READ_CONTENT_ROUTES = [
     controller: WhatsappController,
     handler: 'getMessageStatus',
     route: '/v1/services/whatsapp/status/{messageSid}',
-    policy: 'selected',
-  },
-  {
-    controller: DesktopSyncController,
-    handler: 'getBrandManifest',
-    route: '/v1/sync/desktop/brand-manifest',
     policy: 'selected',
   },
   {

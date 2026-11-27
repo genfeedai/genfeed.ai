@@ -30,6 +30,16 @@ export function readPostString(
   return undefined;
 }
 
+const LEADING_AT_SIGNS_PATTERN = /^@+/;
+
+/** `@name` for a connected account's handle; undefined when it has none. */
+export function formatAccountHandle(
+  handle: string | null | undefined,
+): string | undefined {
+  const name = handle?.trim().replace(LEADING_AT_SIGNS_PATTERN, '');
+  return name ? `@${name}` : undefined;
+}
+
 type UnverifiedDeferral = {
   backoffSeconds: number;
   code: string;

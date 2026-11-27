@@ -16,7 +16,11 @@ import { ReactFlowProvider } from '@xyflow/react';
 import type { WorkflowDetailPageClientProps } from '@/features/automation/props/workflow-detail-page-client.props';
 import '@xyflow/react/dist/style.css';
 
-import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
+import {
+  GeometryNodeInspector,
+  useGeometryRunGuard,
+  WorkflowEditorShell,
+} from '@genfeedai/workflows/ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
@@ -104,6 +108,7 @@ export default function WorkflowDetailPageClient({
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
   const workflowName = useWorkflowStore((state) => state.workflowName);
   const hasRunInputs = inputVariables.length > 0;
+  const checkGeometry = useGeometryRunGuard();
 
   const initialExecutionPanelOpen =
     !isLoading &&
@@ -223,6 +228,10 @@ export default function WorkflowDetailPageClient({
       inputValues: Record<string, unknown> = {},
       options: { saveDefaults: boolean } = { saveDefaults: false },
     ): Promise<void> => {
+      // Invalid annotation or trajectory geometry blocks the run, with the problem named.
+      if (!checkGeometry()) {
+        return;
+      }
       let runStarted = false;
 
       try {
@@ -276,6 +285,7 @@ export default function WorkflowDetailPageClient({
     [
       activeThread?.contextVersion,
       activeThreadId,
+      checkGeometry,
       currentWorkflowId,
       getWorkflowService,
       saveInputDefaults,
@@ -359,7 +369,10 @@ export default function WorkflowDetailPageClient({
                       runId={visibleExecutionPanelId}
                     />
                   ) : (
-                    <CloudActionNodeInspector />
+                    <>
+                      <GeometryNodeInspector />
+                      <CloudActionNodeInspector />
+                    </>
                   )
                 }
               />

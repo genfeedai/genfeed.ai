@@ -12,6 +12,7 @@ import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { useReactFlow } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { hasEditorNodeType } from '../../nodes/action-node-persistence';
 import { NODE_DEFINITIONS } from '../../nodes/registry/merged-registry';
 import type { ExtendedNodeCategory } from '../../nodes/types';
 import {
@@ -148,7 +149,10 @@ function ConnectionDropMenuComponent() {
       });
 
       const action = getActionDefinition(nodeType);
-      const newNodeId = addNode(action ? 'genfeedAction' : nodeType, position);
+      const newNodeId = addNode(
+        action && !hasEditorNodeType(action.id) ? 'genfeedAction' : nodeType,
+        position,
+      );
       if (!newNodeId) return;
       if (action) {
         updateNodeData(newNodeId, {

@@ -19,15 +19,12 @@ import ProvidersContent from './providers-content';
 
 const {
   assignMock,
-  getDesktopBridgeMock,
   getInstallReadinessMock,
   handleStepCompleteMock,
   patchSettingsMock,
   pushMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
-  // The bridge the desktop shell exposes, or null in a browser.
-  getDesktopBridgeMock: vi.fn((): unknown => null),
   getInstallReadinessMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),
   patchSettingsMock: vi.fn(),
@@ -38,10 +35,6 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
   }),
-}));
-
-vi.mock('@genfeedai/config/deployment', () => ({
-  isDesktopClient: () => process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1',
 }));
 
 vi.mock('@contexts/onboarding/onboarding-context', () => ({
@@ -97,10 +90,6 @@ vi.mock('@services/organization/users.service', () => ({
       patchSettings: patchSettingsMock,
     })),
   },
-}));
-
-vi.mock('@/lib/desktop/runtime', () => ({
-  getDesktopBridge: () => getDesktopBridgeMock(),
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -175,8 +164,6 @@ describe('ProvidersContent behavior', () => {
   beforeEach(() => {
     assignMock.mockReset();
     vi.unstubAllEnvs();
-    getDesktopBridgeMock.mockReset();
-    getDesktopBridgeMock.mockReturnValue(null);
     getInstallReadinessMock.mockReset();
     handleStepCompleteMock.mockReset();
     patchSettingsMock.mockReset();
@@ -486,59 +473,6 @@ describe('ProvidersContent behavior', () => {
     expect(redirectUrl.searchParams.get('brandName')).toBe('Acme');
     expect(redirectUrl.searchParams.get('source')).toBe('oss-onboarding');
     expect(pushMock).not.toHaveBeenCalledWith('/onboarding/summary');
-  });
-
-  it('detects local CLIs on desktop local mode and continues to the workspace', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    getDesktopBridgeMock.mockReturnValue({
-      app: {
-        detectLocalTools: vi.fn().mockResolvedValue({
-          anyDetected: true,
-          claude: true,
-          codex: false,
-          detected: ['claude'],
-          grok: true,
-        }),
-        getBootstrap: vi.fn().mockResolvedValue({ isOfflineMode: true }),
-      },
-    });
-
-    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
-
-    expect(await screen.findByText('Claude CLI')).toBeVisible();
-    expect(screen.getByText('Codex CLI')).toBeVisible();
-    expect(screen.getByText('Grok CLI')).toBeVisible();
-    expect(
-      screen.queryByText('Server-configured providers'),
-    ).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue to workspace' }),
-    );
-    expect(pushMock).toHaveBeenCalledWith('/desktop/local');
-  });
-
-  it('never shows the server readiness as this Mac’s CLIs when local detection fails', async () => {
-    const client = createTestQueryClient();
-    const remoteVisit = render(<ProvidersContent />, {
-      wrapper: queryClientWrapper(client),
-    });
-    expect(
-      await screen.findByText('Runtime: server defaults are ready'),
-    ).toBeInTheDocument();
-    remoteVisit.unmount();
-
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    getDesktopBridgeMock.mockReturnValue({
-      app: {
-        detectLocalTools: vi.fn().mockRejectedValue(new Error('no bridge')),
-        getBootstrap: vi.fn().mockResolvedValue({ isOfflineMode: true }),
-      },
-    });
-    render(<ProvidersContent />, { wrapper: queryClientWrapper(client) });
-
-    expect(await screen.findByText('Grok CLI')).toBeVisible();
-    expect(screen.getAllByText('Not detected')).toHaveLength(3);
-    expect(screen.queryByText('Detected')).not.toBeInTheDocument();
   });
 
   it('paints the cached provider readiness at once when the step is revisited', async () => {

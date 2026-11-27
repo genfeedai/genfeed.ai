@@ -14,18 +14,18 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
 
 const item = {
   contentType: 'video',
-  platform: 'tiktok',
+  platform: 'youtube',
   title: 'Preview',
   mediaUrl: 'https://cdn.example.com/expired.mp4',
-  sourceUrl: 'https://www.tiktok.com/@creator/video/6718335390845095173',
+  sourceUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
 } as DiscoveryDeskItem;
 
 describe('Discovery preview fallback', () => {
-  it('falls back from a failed direct media URL to its muted platform embed', async () => {
+  it('falls back from a failed direct media URL to its muted YouTube embed', async () => {
     const { rerender } = render(<DeskMediaPreview item={item} isActive />);
     fireEvent.error(await screen.findByLabelText('Native preview'));
     const embed = await screen.findByTitle('Preview');
-    expect(embed).toHaveAttribute('src', expect.stringContaining('muted=1'));
+    expect(embed).toHaveAttribute('src', expect.stringContaining('mute=1'));
     expect(screen.queryByLabelText('Native preview')).not.toBeInTheDocument();
     rerender(<DeskMediaPreview item={item} isActive={false} />);
     expect(screen.queryByTitle('Preview')).not.toBeInTheDocument();
@@ -38,6 +38,18 @@ describe('Discovery preview fallback', () => {
     expect(screen.queryByTitle('Preview')).not.toBeInTheDocument();
     rerender(<DeskMediaPreview item={item} isActive />);
     expect(await screen.findByTitle('Preview')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Native preview')).not.toBeInTheDocument();
+  });
+  it('never loads a TikTok frame for a card with no saved copy', () => {
+    const tiktok = {
+      ...item,
+      mediaUrl: 'https://www.tiktok.com/@creator/video/6718335390845095173',
+      platform: 'tiktok',
+      sourceUrl: 'https://www.tiktok.com/@creator/video/6718335390845095173',
+      thumbnailUrl: 'https://cdn.example.com/cover.jpg',
+    } as DiscoveryDeskItem;
+    const { container } = render(<DeskMediaPreview item={tiktok} isActive />);
+    expect(container.querySelector('iframe')).toBeNull();
     expect(screen.queryByLabelText('Native preview')).not.toBeInTheDocument();
   });
 });

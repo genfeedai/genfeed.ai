@@ -4,7 +4,6 @@ import { isHostOrSubdomain } from '../utils/host.util';
 const YOUTUBE_SHORTS_EMBED_OR_LIVE_PATH_PATTERN =
   /^\/(?:shorts|embed|live)\/([^/]+)/;
 const YOUTUBE_VIDEO_ID_PATTERN = /^[\w-]{11}$/;
-const VIDEO_ID_PATH_PATTERN = /\/(?:video|player\/v1)\/(\d+)/;
 
 export function getSafeExternalUrl(
   value: string | null | undefined,
@@ -46,13 +45,10 @@ export function getSocialMediaSource(
               )?.[1];
         if (id && YOUTUBE_VIDEO_ID_PATTERN.test(id))
           embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${interactive ? 0 : 1}&playsinline=1&controls=${interactive ? 1 : 0}&rel=0`;
-      } else if (isHostOrSubdomain(host, 'tiktok.com')) {
-        const id = url.pathname.match(VIDEO_ID_PATH_PATTERN)?.[1];
-        if (id)
-          embedUrl = `https://www.tiktok.com/player/v1/${id}?autoplay=1&muted=${interactive ? 0 : 1}&loop=${interactive ? 0 : 1}&controls=${interactive ? 1 : 0}&description=0&music_info=0`;
       } else if (
         candidate === media &&
         ![
+          'tiktok.com',
           'instagram.com',
           'facebook.com',
           'x.com',
@@ -72,4 +68,19 @@ export function getSocialMediaSource(
     sourceUrl: source,
     thumbnail: thumbnail || (item.contentType !== 'video' ? media : null),
   };
+}
+
+/**
+ * TikTok and Instagram pages have no playable file in the trend data. The
+ * server saves the clip for these two on first play, so the player asks for it
+ * instead of embedding the platform's page.
+ */
+export function isPlaybackSourceUrl(value: string | null | undefined): boolean {
+  const safe = getSafeExternalUrl(value);
+  if (!safe) return false;
+  const host = new URL(safe).hostname;
+  return (
+    isHostOrSubdomain(host, 'tiktok.com') ||
+    isHostOrSubdomain(host, 'instagram.com')
+  );
 }
