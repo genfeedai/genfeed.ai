@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -17,6 +18,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
  * mistake is one row again, not a second release.
  */
 @Injectable()
+@Traced()
 export class PostGroupReopenService {
   constructor(
     private readonly prisma: PrismaService,
