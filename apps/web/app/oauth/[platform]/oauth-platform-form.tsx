@@ -19,6 +19,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
 import FacebookPageSelector from '@/features/auth/components/modals/brands/facebook/FacebookPageSelector';
+import GoogleAdsAccountSelector from '@/features/auth/components/modals/brands/google-ads/GoogleAdsAccountSelector';
 import GoogleBusinessLocationSelector from '@/features/auth/components/modals/brands/google-business/GoogleBusinessLocationSelector';
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
 import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
@@ -52,6 +53,9 @@ function AccountSelector({
   platform,
   ...props
 }: InstagramAccountSelectorProps & { platform: string }) {
+  if (platform === 'google-ads') {
+    return <GoogleAdsAccountSelector {...props} />;
+  }
   if (platform === 'google-business') {
     return <GoogleBusinessLocationSelector {...props} />;
   }

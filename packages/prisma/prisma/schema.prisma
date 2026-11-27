@@ -110,6 +110,15 @@ enum TransformationCategory {
   REFRAMED
 }
 
+// How a child asset relates to its parent (#7395). Null means the link was
+// written before relations were recorded: it is never guessed.
+enum IngredientRelationKind {
+  VERSION
+  TRANSFORMATION
+  DERIVATIVE
+  SOURCE
+}
+
 enum ContentRating {
   SFW
   SUGGESTIVE
@@ -451,6 +460,13 @@ enum PersonaAvailabilityMode {
   SELECTED_BRANDS
 }
 
+/// What a reusable Library element is (#7374). Characters stay in `Persona`.
+enum LibraryElementType {
+  LOCATION
+  STYLE
+  PROP
+}
+
 enum AgentTransferDeliveryMode {
   SEND
   SEND_AND_RUN
@@ -755,6 +771,7 @@ contentLearningOperations ContentLearningOperation[]
   newsletterPublishes       Newsletter[]              @relation("newsletter_published_by")
   trainings                 Training[]
   personas                  Persona[]
+  libraryElements           LibraryElement[]
   agentStrategies           AgentStrategy[]
   agentCampaigns            AgentCampaign[]
   agentGoals                AgentGoal[]
@@ -916,6 +933,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   postProviderPublishReceipts   PostProviderPublishReceipt[]
   postIngredientLinks           PostIngredient[]
   personaReferences             PersonaReference[]
+  libraryElements               LibraryElement[]
+  libraryElementReferences      LibraryElementReference[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
   slotReservations              SlotReservation[]
@@ -1238,6 +1257,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   creatorSubscriptions        CreatorSubscription[]
   trainings                  Training[]
   personas                   Persona[]
+  libraryElements            LibraryElement[]
   agentStrategies            AgentStrategy[]
   agentCampaigns             AgentCampaign[]
   agentGoals                 AgentGoal[]
@@ -2110,7 +2130,6 @@ model PlatformSetting {
   untrustedContentDecisionMode     String    @default("off")
   untrustedContentMinConfidence    Float     @default(0.95)
   isAgentContextCompressionEnabled Boolean   @default(true)
-  isAgentTokenStreamingEnabled     Boolean   @default(true)
   isBrandVisualAnalysisEnabled     Boolean   @default(false)
   // Catalog models (`models.key`) that read text from and detect logo or product
   // regions in branded visuals (#6727). Null leaves the analysis unavailable.
@@ -2179,6 +2198,11 @@ contentLearningPolicyVersions ContentLearningPolicyVersion[]
   /// token belongs to (Instagram Unified Login). An Instagram credential
   /// without one is a retired Facebook-Login connection and must reconnect.
   externalBusinessId              String?
+  /// Google Ads: the manager account a client account was reached through.
+  /// Every read of the client sends it as the login-customer-id header. NULL
+  /// for an account the Google login can open directly, and on every other
+  /// platform.
+  externalParentId                String?
   oauthState                      String?
   oauthToken                      String?
   oauthTokenHash                  String?
@@ -2581,6 +2605,13 @@ model Ingredient {
   transformations       TransformationCategory[] @default([])
   order                 Int                      @default(0)
   version               Int                      @default(1)
+  // Relation to `parentId` (#7395); null for links written before it existed.
+  relationKind          IngredientRelationKind?
+  // On a version family's first asset: the member that is active (#7397).
+  // Null means the newest member. Version walks use the partial index
+  // `ingredients_version_parent_idx` (parentId where relationKind is VERSION or
+  // TRANSFORMATION), which only the migration declares.
+  activeVersionId       String?
   isHighlighted         Boolean                  @default(false)
   isDefault             Boolean                  @default(false)
   scope                 AssetScope               @default(USER)
@@ -2688,6 +2719,7 @@ model Ingredient {
   trainingSources           Training[]                 @relation("training_sources")
   personaAvatars            Persona[]                  @relation("persona_avatar")
   personaReferences         PersonaReference[]         @relation("ingredient_persona_references")
+  libraryElementReferences  LibraryElementReference[]  @relation("ingredient_library_element_references")
   personaVoices             Persona[]                  @relation("persona_voice")
   captions                  Caption[]
   editorProjectVideos       EditorProject[]            @relation("editor_project_video")
@@ -5100,6 +5132,59 @@ model PersonaReference {
   @@index([ingredientId], map: "persona_references_ingredient_idx")
   @@index([organizationId], map: "persona_references_organization_idx")
   @@map("persona_references")
+}
+
+/// A reusable building block a generation can mention by handle (#7374):
+/// a location, style or prop with a description and ordered reference files.
+/// Characters are `Persona` rows; handles share one namespace per brand, so the
+/// service checks both tables under the `persona-handle` advisory lock.
+model LibraryElement {
+  id                String                  @id @default(cuid())
+  userId            String
+  user              User                    @relation(fields: [userId], references: [id])
+  organizationId    String
+  organization      Organization            @relation(fields: [organizationId], references: [id])
+  brandId           String?
+  brand             Brand?                  @relation(fields: [brandId], references: [id])
+  type              LibraryElementType
+  label             String
+  handle            String
+  description       String?
+  availabilityMode  PersonaAvailabilityMode @default(OWNING_BRAND)
+  availableBrandIds String[]                @default([])
+  isDeleted         Boolean                 @default(false)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  references LibraryElementReference[]
+
+  @@index([organizationId, isDeleted, type])
+  @@index([brandId, organizationId, isDeleted])
+  @@index([organizationId, isDeleted, availabilityMode])
+  @@index([availableBrandIds], type: Gin, map: "library_elements_available_brand_ids_idx")
+  // Partial unique (organizationId, brandId, handle) WHERE isDeleted = false
+  // lives in 20261126140000_library_elements.
+  @@map("library_elements")
+}
+
+/// Ordered reference files of an element. Rows link to Library assets; a file
+/// is never copied, and removing a row never deletes the asset.
+model LibraryElementReference {
+  id             String         @id @default(cuid())
+  elementId      String
+  element        LibraryElement @relation(fields: [elementId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ingredientId   String
+  ingredient     Ingredient     @relation("ingredient_library_element_references", fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  position       Int
+  createdAt      DateTime       @default(now())
+
+  @@unique([elementId, ingredientId], map: "library_element_references_element_ingredient_key")
+  @@index([elementId, position], map: "library_element_references_element_position_idx")
+  @@index([ingredientId], map: "library_element_references_ingredient_idx")
+  @@index([organizationId], map: "library_element_references_organization_idx")
+  @@map("library_element_references")
 }
 
 /// Use-only grant of a character to another organization (#6037). Only one

@@ -189,9 +189,10 @@ export function toDeskItemFromViralVideo(
     key: `viral_video:${id}`,
     kind: 'viral_video',
     matchedTrends: video.topic ? [video.topic] : [],
-    mediaUrl: video.playUrl || video.videoUrl,
+    mediaUrl: video.playbackUrl || video.playUrl || video.videoUrl,
     metrics,
     platform: video.platform,
+    playbackUrl: video.playbackUrl,
     publishedAt: video.publishedAt,
     raw: { kind: 'viral_video', video },
     // Viral videos have no durable brand-remix source reference — they

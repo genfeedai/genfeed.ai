@@ -2,9 +2,7 @@
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IDesktopLocalToolReadiness } from '@genfeedai/contracts/desktop';
 import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
@@ -13,9 +11,8 @@ import type { InstallReadinessResponse } from '@services/onboarding/onboarding.s
 import { UsersService } from '@services/organization/users.service';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type MouseEvent, useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, useMemo, useState } from 'react';
 import { useInstallReadiness } from '@/hooks/data/onboarding/use-install-readiness/use-install-readiness';
-import { getDesktopBridge } from '@/lib/desktop/runtime';
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
@@ -54,9 +51,6 @@ const TIMELINE_STEPS = [
     stagger: 0.08,
   },
 ];
-
-/** A desktop shell first asks its bridge whether it runs offline. */
-type DesktopProbe = 'pending' | 'local' | 'remote';
 
 function formatAccessStatus(readiness: InstallReadinessResponse): string {
   if (readiness.access.selectedMode === 'cloud') {
@@ -99,71 +93,11 @@ export default function ProvidersContent() {
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
-  const [desktopLocalTools, setDesktopLocalTools] =
-    useState<IDesktopLocalToolReadiness | null>(null);
-  const [desktopProbe, setDesktopProbe] = useState<DesktopProbe>(() =>
-    isDesktopClient() ? 'pending' : 'remote',
-  );
-  const isDesktopLocal = desktopProbe === 'local';
   const {
-    isLoading: isLoadingReadiness,
+    isLoading: loading,
     markAccessModeSaved,
     readiness,
-  } = useInstallReadiness({ enabled: desktopProbe === 'remote' });
-  const loading =
-    desktopProbe === 'pending' ||
-    (desktopProbe === 'remote' && isLoadingReadiness);
-
-  // An offline desktop shell detects its local CLIs through the bridge; every
-  // other client reads the install readiness from the API.
-  // use-effect-audit: ignore abortable request
-  useEffect(() => {
-    if (desktopProbe !== 'pending') {
-      return;
-    }
-    const abortController = new AbortController();
-
-    const probeDesktop = async () => {
-      const bridge = getDesktopBridge();
-      if (!bridge) {
-        setDesktopProbe('remote');
-        return;
-      }
-
-      try {
-        const bootstrap = await bridge.app.getBootstrap();
-        if (abortController.signal.aborted) {
-          return;
-        }
-        if (!bootstrap.isOfflineMode) {
-          setDesktopProbe('remote');
-          return;
-        }
-
-        let tools: IDesktopLocalToolReadiness | null = null;
-        try {
-          tools = await bridge.app.detectLocalTools();
-        } catch (error) {
-          logger.error('Failed to detect local CLIs', error);
-        }
-        if (!abortController.signal.aborted) {
-          setDesktopLocalTools(tools);
-          setDesktopProbe('local');
-        }
-      } catch (error) {
-        if (!abortController.signal.aborted) {
-          logger.error('Failed to detect the desktop runtime', error);
-          setDesktopProbe('remote');
-        }
-      }
-    };
-
-    void probeDesktop();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [desktopProbe]);
+  } = useInstallReadiness({ enabled: true });
 
   const providerRows = useMemo(
     () => [
@@ -192,12 +126,9 @@ export default function ProvidersContent() {
   );
 
   const localToolRows = useMemo(() => {
-    // On the offline desktop only the bridge knows this Mac's CLIs: a failed
-    // probe shows none detected, never the server's cached readiness.
-    const tools = isDesktopLocal ? desktopLocalTools : readiness.localTools;
-    const claude = tools?.claude ?? false;
-    const codex = tools?.codex ?? false;
-    const rows = [
+    const claude = readiness.localTools?.claude ?? false;
+    const codex = readiness.localTools?.codex ?? false;
+    return [
       {
         description: 'Recommended for local agent chat and desktop workflows.',
         enabled: claude,
@@ -209,23 +140,11 @@ export default function ProvidersContent() {
         key: 'Codex CLI',
       },
     ];
+  }, [readiness.localTools]);
 
-    if (isDesktopLocal) {
-      rows.push({
-        description: 'Recommended for local Grok agent chat on this Mac.',
-        enabled: desktopLocalTools?.grok ?? false,
-        key: 'Grok CLI',
-      });
-    }
-
-    return rows;
-  }, [desktopLocalTools, isDesktopLocal, readiness.localTools]);
-
-  const accessSurface: ProvidersAccessSurface = isDesktopLocal
-    ? 'desktop-local'
-    : readiness.ui.showCredits
-      ? 'saas'
-      : 'self-hosted';
+  const accessSurface: ProvidersAccessSurface = readiness.ui.showCredits
+    ? 'saas'
+    : 'self-hosted';
 
   const accessStatusLabel = useMemo(() => {
     if (loading) {
@@ -275,10 +194,6 @@ export default function ProvidersContent() {
     push(APP_ROUTES.CONNECTORS.API_KEYS);
   };
 
-  const handleDesktopContinue = () => {
-    push('/desktop/local');
-  };
-
   const handleCloudContinue = async () => {
     setPendingMode('cloud');
     await persistAccessMode('cloud');
@@ -302,9 +217,7 @@ export default function ProvidersContent() {
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-muted-foreground">
         {accessSurface === 'saas'
           ? 'Use Genfeed Cloud for hosted generation, or bring your own provider keys with a Scale plan.'
-          : accessSurface === 'desktop-local'
-            ? 'Genfeed looks for Claude, Codex, and Grok CLIs on this Mac. Detected tools can run locally without a cloud session.'
-            : 'Genfeed uses the server-configured providers by default. Add your own provider API keys only if you want to override hosted access, or switch to Genfeed Cloud if you want the managed path instead.'}
+          : 'Genfeed uses the server-configured providers by default. Add your own provider API keys only if you want to override hosted access, or switch to Genfeed Cloud if you want the managed path instead.'}
       </p>
 
       <div className="space-y-5">
@@ -312,7 +225,7 @@ export default function ProvidersContent() {
           <ProvidersStatusCard accessStatusLabel={accessStatusLabel} />
         ) : null}
 
-        {accessSurface === 'desktop-local' || readiness.ui.showLocalTools ? (
+        {readiness.ui.showLocalTools ? (
           <ProvidersToolList localToolRows={localToolRows} />
         ) : null}
 
@@ -334,14 +247,7 @@ export default function ProvidersContent() {
           onCloudContinue={() => {
             void handleCloudContinue();
           }}
-          onDesktopContinue={handleDesktopContinue}
-          onBack={() =>
-            push(
-              accessSurface === 'desktop-local'
-                ? '/login'
-                : APP_ROUTES.ONBOARDING.BRAND,
-            )
-          }
+          onBack={() => push(APP_ROUTES.ONBOARDING.BRAND)}
         />
       </div>
     </div>

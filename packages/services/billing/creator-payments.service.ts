@@ -4,6 +4,7 @@ import type {
   ICreatorSubscriptionOffer,
   ICreatorSubscriptionPlan,
   ICreatorSubscriptionSummary,
+  ICreatorTeamSubscription,
   ICreatorTipRequest,
   ICreatorTipResult,
   ICreatorTipTarget,
@@ -92,6 +93,28 @@ export class CreatorPaymentsService extends HTTPBaseService {
   ): Promise<ICreatorSubscriptionSummary> {
     const response = await this.instance.patch<ICreatorSubscriptionSummary>(
       `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      { cancelAtPeriodEnd },
+    );
+    return response.data;
+  }
+
+  /** Every creator subscription the workspace pays for; owners and admins only (#9793). */
+  public async listTeamSubscriptions(
+    signal?: AbortSignal,
+  ): Promise<ICreatorTeamSubscription[]> {
+    const response = await this.instance.get<ICreatorTeamSubscription[]>(
+      '/subscriptions/outgoing',
+      { signal },
+    );
+    return response.data;
+  }
+
+  public async setTeamSubscriptionCancelAtPeriodEnd(
+    subscriptionId: string,
+    cancelAtPeriodEnd: boolean,
+  ): Promise<ICreatorTeamSubscription> {
+    const response = await this.instance.patch<ICreatorTeamSubscription>(
+      `/subscriptions/outgoing/${encodeURIComponent(subscriptionId)}`,
       { cancelAtPeriodEnd },
     );
     return response.data;

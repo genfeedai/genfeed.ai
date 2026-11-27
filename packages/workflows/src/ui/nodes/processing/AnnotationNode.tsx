@@ -2,50 +2,37 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AnnotationNodeData } from '@genfeedai/contracts/types';
-import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, Pencil, Shapes } from 'lucide-react';
-import Image from 'next/image';
+import { Expand } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
-import { useAnnotationStore } from '../../stores/annotationStore';
+import { readShapes } from '../../../engine/utils/geometry';
+import GeometryThumb from '../../controls/GeometryThumb';
+import GroupedControls from '../../controls/GroupedControls';
+import { useGeometryEditorStore } from '../../controls/geometryEditorStore';
+import { useAnnotationControlGroups } from '../../controls/nodeControlGroups';
+import { useNodeImage } from '../../controls/useNodeImage';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 function AnnotationNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as AnnotationNodeData;
-  const openAnnotation = useAnnotationStore((state) => state.openAnnotation);
+  const translate = useTranslations('pages.workflows.nodeControls');
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
-  const getConnectedInputs = useWorkflowStore(
-    (state) => state.getConnectedInputs,
+  const openEditor = useGeometryEditorStore((state) => state.openEditor);
+  const inputImage = useNodeImage(id);
+  const annotations = useMemo(
+    () => readShapes(nodeData.annotations),
+    [nodeData.annotations],
   );
-
-  const connectedInputs = getConnectedInputs(id);
-  const inputImage =
-    (connectedInputs.get('image') as string) ?? nodeData.inputImage;
-
-  const handleEditAnnotations = useCallback(() => {
-    if (!inputImage) return;
-
-    // Convert stored annotations to the format expected by the annotation store
-    const shapes =
-      nodeData.annotations?.map((ann) => ({
-        fillColor: ann.fillColor,
-        id: ann.id,
-        strokeColor: ann.strokeColor,
-        strokeWidth: ann.strokeWidth,
-        type: ann.type,
-        ...ann.props,
-      })) ?? [];
-
-    openAnnotation(
-      id,
-      inputImage,
-      shapes as Parameters<typeof openAnnotation>[2],
-    );
-  }, [id, inputImage, nodeData.annotations, openAnnotation]);
+  const { groups } = useAnnotationControlGroups({
+    annotations,
+    hasImage: inputImage !== null,
+    onEdit: () => openEditor({ mode: 'annotation', nodeId: id }),
+    scope: 'node',
+  });
 
   const handleExpand = useCallback(() => {
     openNodeDetailModal(id, 'preview');
@@ -55,70 +42,34 @@ function AnnotationNodeComponent(props: NodeProps) {
     () =>
       inputImage ? (
         <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
+          ariaLabel={translate('expandPreview')}
+          icon={<Expand className="size-3.5" />}
           onClick={handleExpand}
-          title="Expand preview"
-        >
-          <Expand className="size-3.5" />
-        </Button>
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
       ) : null,
-    [inputImage, handleExpand],
+    [inputImage, handleExpand, translate],
   );
 
   return (
-    <BaseNode {...props} headerActions={headerActions}>
-      <div className="flex flex-col gap-3">
+    <BaseNode
+      {...props}
+      headerActions={headerActions}
+      minHeight={240}
+      minWidth={300}
+    >
+      <div className="nodrag nopan nowheel flex flex-col gap-3 px-0.5">
         {inputImage ? (
-          <div className="relative">
-            <Image
-              src={inputImage}
-              alt="Input image"
-              width={200}
-              height={128}
-              className="h-32 w-full rounded-md object-cover"
-              unoptimized
-            />
-            {nodeData.hasAnnotations && (
-              <Badge
-                className="absolute left-2 top-2"
-                icon={<Shapes />}
-                isSolid
-                size="lg"
-              >
-                {nodeData.annotations?.length ?? 0}
-              </Badge>
-            )}
-          </div>
-        ) : (
-          <div className="flex h-32 flex-col items-center justify-center border-2 border-dashed border-border text-muted-foreground">
-            <Pencil className="mb-2 size-8 opacity-50" />
-            <p className="text-xs">Connect an image</p>
-          </div>
-        )}
-
-        <Button
-          withWrapper={false}
-          onClick={handleEditAnnotations}
-          disabled={!inputImage}
-          className="w-full"
-          variant={
-            nodeData.hasAnnotations
-              ? ButtonVariant.DEFAULT
-              : ButtonVariant.SECONDARY
-          }
-        >
-          <Pencil className="mr-2 size-4" />
-          {nodeData.hasAnnotations ? 'Edit Annotations' : 'Add Annotations'}
-        </Button>
-
-        {nodeData.hasAnnotations && (
-          <p className="text-center text-xs text-muted-foreground">
-            {nodeData.annotations?.length ?? 0} annotation
-            {(nodeData.annotations?.length ?? 0) !== 1 ? 's' : ''}
-          </p>
-        )}
+          <GeometryThumb shapes={annotations} src={inputImage} />
+        ) : null}
+        <GroupedControls
+          groups={groups}
+          idPrefix={`node-${id}-`}
+          onChange={() => undefined}
+          values={{}}
+        />
       </div>
     </BaseNode>
   );

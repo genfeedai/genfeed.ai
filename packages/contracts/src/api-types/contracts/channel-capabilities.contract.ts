@@ -34,6 +34,7 @@ import {
   validateSettingType,
 } from './channel-setting-validation.contract';
 import { communityChannelCapabilities } from './community-channel-capabilities.contract';
+import { DEVTO_PUBLISHING_SETTINGS } from './devto-publishing.contract';
 import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
 import { INSTAGRAM_PUBLISHING_SETTINGS } from './instagram-publishing.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
@@ -869,14 +870,7 @@ const channelCapabilities = [
     },
     platform: CredentialPlatform.DEV_TO,
     publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description: 'Up to 4 comma-separated tags. Later tags are dropped.',
-        key: 'tags',
-        label: 'Tags',
-        type: 'string',
-      },
-    ],
+    settings: DEVTO_PUBLISHING_SETTINGS,
     status: 'supported',
   },
   {

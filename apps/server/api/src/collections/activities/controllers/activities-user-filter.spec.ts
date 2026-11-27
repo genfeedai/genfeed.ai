@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { ActivitiesController } from '@api/collections/activities/controllers/activities.controller';
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -46,6 +47,7 @@ const activitiesService = {
 const controller = new ActivitiesController(
   { error: vi.fn(), log: vi.fn() } as unknown as LoggerService,
   activitiesService as unknown as ActivitiesService,
+  brandAccessFixture(),
 );
 const operator = {
   brandId: '',

@@ -212,9 +212,7 @@ describe('AccountCredits', () => {
         selectedServerId: 'cloud',
         selectedServerKind: 'cloud',
         selectedApiEndpoint: 'https://api.genfeed.ai/v1',
-        runtimeMode: 'cloud',
         generationExecution: 'remote',
-        localProvider: null,
       },
     };
     renderBar();

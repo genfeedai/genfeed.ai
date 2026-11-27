@@ -110,11 +110,6 @@ describe('workspace shell trusted registry', () => {
       'Discovery',
       'Trend Detail',
     ],
-    [
-      '/acme/moonrise/discovery/trends/platforms/instagram',
-      'Discovery',
-      'Instagram Trends',
-    ],
     ['/acme/moonrise/automation/workflows', 'Automation', 'Workflows'],
     ['/acme/moonrise/automation/workflows/new', 'Automation', 'New Workflow'],
     [

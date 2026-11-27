@@ -1,14 +1,14 @@
 ---
 name: cinematic-prompting
-description: Rewrite naive image and video prompts with precise cinematography vocabulary. Triggers on "cinematic prompt", "film language", "camera movement", "make it cinematic", "shot from above", "enhance this image prompt", "enhance this video prompt", "cinematography vocabulary", "rewrite with camera terms".
+description: Rewrite naive image and video prompts with precise cinematography vocabulary. Triggers on "cinematic prompt", "film language", "camera movement", "make it cinematic", "shot from above", "enhance this image prompt", "enhance this video prompt", "cinematography vocabulary", "rewrite with camera terms", "which lens", "color grade words".
 license: MIT
 metadata:
   author: genfeedai
-  version: 1.0.0
-  short-description: "Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, editing, and style."
-  tags: cinematography, prompt-engineering, image-generation, video-generation, camera, lighting, framing
+  version: 1.1.1
+  short-description: "Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, lens, color grade, editing, and style."
+  tags: cinematography, prompt-engineering, image-generation, video-generation, camera, lighting, framing, lens, color-grade
   outputs: text
-  triggers: "cinematic prompt; film language; camera movement; make it cinematic; shot from above; enhance this image prompt; enhance this video prompt; cinematography vocabulary; rewrite with camera terms; high angle shot"
+  triggers: "cinematic prompt; film language; camera movement; make it cinematic; shot from above; enhance this image prompt; enhance this video prompt; cinematography vocabulary; rewrite with camera terms; high angle shot; lens and aperture words; color grade words"
 ---
 
 # Cinematic Prompting
@@ -127,6 +127,37 @@ When a generation misses, do not say "I don't like it." Structure the next reque
 | top light | A source directly above, pooling on shoulders and burying the eyes. | Menace, factory floors, and interrogation rooms. |
 | underlighting | A source from below the face, inverting the usual daylight pattern. | Campfire stories, horror, and unnatural presence. |
 | volumetric light | Visible beams carved through haze, dust, or smoke. | When the air itself should feel thick and directional. |
+| front light | The key sits close to the lens axis, lighting the face evenly with few shadows. | Use for flat, flattering beauty and phone-camera looks; avoid it when the brief wants sculpted depth. |
+| side light | The key hits the subject from 90 degrees, splitting light and shadow and raising texture. | Use to show skin, fabric, muscle and surface detail, or a moody half-lit portrait. |
+| catchlight | A small reflection of the light source in the eyes that makes them look alive. | Use to keep eyes lit in portraits; name the source shape (window, ring, softbox) when it matters. |
+| lighting ratio | The balance between key and fill, such as 2:1 for gentle shadows or 8:1 for deep ones. | Use to state how contrasty a scene is, instead of only saying dramatic or soft. |
+
+## Lens and optics
+
+| Technique | Definition | When to use |
+| --- | --- | --- |
+| wide-angle lens | A short focal length (about 16 to 28 mm) that takes in a lot of the scene and stretches near objects. | Use for interiors, landscapes, and energetic close action; keep faces away from the edges. |
+| 85mm portrait lens | A short telephoto that flatters faces and softens the background. | Use for head-and-shoulders portraits and fashion with a gently blurred backdrop. |
+| telephoto compression | A long lens (135 mm or more) that flattens depth so distant objects look stacked close to the subject. | Use for crowded city backdrops, sports and moody isolation from far away. |
+| macro lens | A lens that focuses very close so tiny subjects fill the frame in fine detail. | Use for textures, jewelry, food, eyes and other small details. |
+| fisheye lens | An ultra-wide lens with strong barrel distortion and a curved horizon. | Use for skate, action-camera and playful, warped points of view. |
+| anamorphic lens | A cinema lens that squeezes a wide image, giving oval bokeh, horizontal flare and a widescreen feel. | Use for cinematic widescreen looks with streaked highlights. |
+| wide aperture | A low f-number (about f/1.4 to f/2.8) that lets in much light and gives a thin plane of focus. | Use for portraits, low light and a strongly blurred background. |
+| stopped-down aperture | A high f-number (about f/8 to f/16) that keeps most of the scene sharp. | Use for landscapes, architecture and product shots where everything must read. |
+
+## Color and grade
+
+| Technique | Definition | When to use |
+| --- | --- | --- |
+| warm grade | Colors lean toward amber and orange, with golden whites and skin. | Use for comfort, sunset, nostalgia and friendly lifestyle content. |
+| cool grade | Colors lean toward blue and cyan, with cold whites and shadows. | Use for night, winter, tech and detached or clinical moods. |
+| desaturated palette | Colors are pulled back toward grey so they read muted and subdued. | Use for serious, documentary, gritty or melancholic images. |
+| lifted blacks | Shadows are raised off true black into a soft grey or tinted fade. | Use for a faded, matte, film-like or indie look. |
+| high-contrast grade | Deep blacks and bright whites with a steep tonal curve. | Use for punchy, graphic and dramatic images. |
+| split toning | Highlights and shadows are tinted different colors, for example warm highlights over cool shadows. | Use to give a look a signature color mood without recoloring skin. |
+| complementary palette | Two colors opposite on the color wheel, such as blue and orange, set against each other. | Use to make a subject stand out by color contrast. |
+| black and white | The image is rendered without color, with tone and texture carrying the picture. | Use for timeless portraits, documentary and graphic compositions. |
+| print film look | A color response like scanned 35mm print film: soft contrast, gentle highlights, natural skin and a touch of grain. | Use for warm, authentic photography that does not look digital. |
 
 ## Editing and transitions
 
@@ -193,6 +224,11 @@ When a generation misses, do not say "I don't like it." Structure the next reque
 | make it look dramatic | chiaroscuro |
 | like a dream | haze |
 | two people talking, wide | two shot, wide shot, two people talking |
+| cosy warm colors | warm grade, golden hour |
+| faded film look | lifted blacks, print film look |
+| zoomed in with a squashed background | telephoto compression |
+| soft flattering light on her face | soft light, Rembrandt lighting, catchlight |
+| everything sharp, landscape | stopped-down aperture, deep focus |
 
 ## Output
 

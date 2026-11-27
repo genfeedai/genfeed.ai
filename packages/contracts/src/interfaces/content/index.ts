@@ -27,6 +27,7 @@ export * from './dashboard-layout.interface';
 export * from './enhancement-response.interface';
 export * from './generation-entry.interface';
 export * from './generation-payload.interface';
+export * from './library-element.interface';
 export * from './model.interface';
 export * from './mood-board.interface';
 export * from './newsletter-module.interface';

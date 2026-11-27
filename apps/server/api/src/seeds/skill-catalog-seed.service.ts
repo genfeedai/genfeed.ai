@@ -23,6 +23,13 @@ export type SkillCatalogSeedResult = {
   updated: number;
 };
 
+export type SkillCatalogReconcileOptions = {
+  /** Report what a live run would write, and write nothing. */
+  dryRun?: boolean;
+  /** Called once per skill with what happened (or would happen) to it. */
+  onOutcome?: (slug: string, outcome: keyof SkillCatalogSeedResult) => void;
+};
+
 @Traced()
 @Injectable()
 export class SkillCatalogSeedService {
@@ -40,6 +47,7 @@ export class SkillCatalogSeedService {
 
   async reconcileCatalog(
     catalog: readonly FirstPartySkillDefinition[] = loadFirstPartySkillDefinitions(),
+    options: SkillCatalogReconcileOptions = {},
   ): Promise<SkillCatalogSeedResult> {
     const result: SkillCatalogSeedResult = {
       inserted: 0,
@@ -50,8 +58,12 @@ export class SkillCatalogSeedService {
 
     for (const definition of catalog) {
       try {
-        const outcome = await this.upsertDefinition(definition);
+        const outcome = await this.upsertDefinition(
+          definition,
+          options.dryRun === true,
+        );
         result[outcome] += 1;
+        options.onOutcome?.(definition.slug, outcome);
       } catch (error) {
         failedSlugs.push(definition.slug);
         this.logger.error(
@@ -69,7 +81,7 @@ export class SkillCatalogSeedService {
     }
 
     this.logger.log(
-      `First-party skill catalog reconciled (inserted=${result.inserted}, updated=${result.updated}, skipped=${result.skipped})`,
+      `First-party skill catalog ${options.dryRun ? 'dry run' : 'reconciled'} (inserted=${result.inserted}, updated=${result.updated}, skipped=${result.skipped})`,
       this.context,
     );
 
@@ -127,6 +139,7 @@ export class SkillCatalogSeedService {
 
   private async upsertDefinition(
     definition: FirstPartySkillDefinition,
+    isDryRun: boolean,
   ): Promise<keyof SkillCatalogSeedResult> {
     // tenant-scope-ignore: catalog provisioner reads migration-owned global ids
     const existing = await this.prisma.skill.findUnique({
@@ -134,6 +147,7 @@ export class SkillCatalogSeedService {
     });
 
     if (!existing) {
+      if (isDryRun) return 'inserted';
       await withSkillWriteSession(
         this.prisma,
         { origin: 'provisioning' },
@@ -192,6 +206,8 @@ export class SkillCatalogSeedService {
     ) {
       return 'skipped';
     }
+
+    if (isDryRun) return 'updated';
 
     await withSkillWriteSession(this.prisma, { origin: 'provisioning' }, (tx) =>
       // tenant-scope-ignore: updates the same migration-owned global catalog id

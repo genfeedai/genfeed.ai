@@ -50,6 +50,7 @@ import {
 } from '@api/collections/trends/utils/observed-trends.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { Timeframe } from '@genfeedai/contracts';
 import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -157,11 +158,13 @@ export class TrendsService {
     brandId?: string,
     options: TrendFetchBatchOptions = {},
   ): Promise<TrendEntity[]> {
-    const trends = await this.trendFetchService.fetchAndCacheTrends(
-      organizationId,
-      brandId,
-      (trend) => this.trendFilteringService.calculateViralityScore(trend),
-      options,
+    const trends = await runWithDefaultApifyCaller('trends.fetch', () =>
+      this.trendFetchService.fetchAndCacheTrends(
+        organizationId,
+        brandId,
+        (trend) => this.trendFilteringService.calculateViralityScore(trend),
+        options,
+      ),
     );
     const hydratedTrends =
       await this.trendSourcePreviewService.precomputeTrendSourcePreview(
@@ -503,7 +506,9 @@ export class TrendsService {
       organizationId,
       brandId,
     );
-    return this.fetchAndHydrateTrends(organizationId, brandId);
+    return runWithDefaultApifyCaller('trends.refresh-manual', () =>
+      this.fetchAndHydrateTrends(organizationId, brandId),
+    );
   }
 
   async precomputeGlobalTrendSourcePreview(): Promise<{ processed: number }> {

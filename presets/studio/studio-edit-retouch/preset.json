@@ -1,0 +1,8 @@
+{
+  "key": "studio-edit-retouch",
+  "label": "Retouch",
+  "type": "image-edit",
+  "description": "Remove blemishes and distractions, change nothing else.",
+  "prompt": "Remove blemishes, dust and small distractions. Leave everything else exactly as it is.",
+  "values": {}
+}

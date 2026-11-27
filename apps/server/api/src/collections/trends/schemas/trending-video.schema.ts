@@ -14,6 +14,9 @@ export interface TrendingVideoDocument {
   soundName?: string | null;
   videoUrl?: string;
   playUrl?: string;
+  playbackUrl?: string;
+  playbackKey?: string;
+  playbackExpiresAtMs?: number;
   coverUrl?: string | null;
   authorName?: string | null;
   viewCount?: number;

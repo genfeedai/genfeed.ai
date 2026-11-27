@@ -1,4 +1,5 @@
 import { ALL_ACTIONS } from '@genfeedai/actions';
+import { hasEditorNodeType } from '@genfeedai/workflows/nodes';
 import type { PaletteNodeDefinition } from '@genfeedai/workflows/ui';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -7,7 +8,8 @@ export const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
 
 /**
  * Cloud workflow node catalog: engine primitives plus catalog-generated action
- * entries. Product actions all create the same `genfeedAction` node shape.
+ * entries. Product actions create the same `genfeedAction` node shape, except
+ * the ones with their own editor node (annotation, motion control).
  */
 export function useCloudNodeCatalog(): PaletteNodeDefinition[] {
   const translate = useTranslations('pages.workflows.nodePalette');
@@ -44,7 +46,7 @@ export function useCloudNodeCatalog(): PaletteNodeDefinition[] {
         description: action.description,
         icon: action.workflowIcon,
         label: action.label,
-        type: 'genfeedAction',
+        type: hasEditorNodeType(action.id) ? action.id : 'genfeedAction',
       };
     });
 

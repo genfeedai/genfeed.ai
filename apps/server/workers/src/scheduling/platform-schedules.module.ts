@@ -8,6 +8,7 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
+import { AdDialogueVerificationModule } from '@api/services/ad-dialogue-verification/ad-dialogue-verification.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { CrunModule } from '@api/services/integrations/crun/crun.module';
@@ -16,6 +17,7 @@ import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/work
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import {
   PLATFORM_SCHEDULE_QUEUE,
+  PUBLISH_SWEEP_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
@@ -65,6 +67,7 @@ import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-r
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
+import { PublishSweepsProcessor } from '@workers/scheduling/publish-sweeps.processor';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
@@ -88,6 +91,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     WebhooksCoreModule,
     WorkspaceTaskRollupModule,
     AgentTransferRollupModule,
+    AdDialogueVerificationModule,
     BullModule.registerQueue(
       {
         defaultJobOptions: {
@@ -96,6 +100,14 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
           removeOnFail: 50,
         },
         name: PLATFORM_SCHEDULE_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 20,
+          removeOnFail: 50,
+        },
+        name: PUBLISH_SWEEP_QUEUE,
       },
       // The registry drains platform-sweep jobs queued here before #5162.
       { name: WORKFLOW_EXECUTION_QUEUE },
@@ -144,6 +156,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     PlatformPublishingTaskHandlers,
     PlatformAccountTaskHandlers,
     PlatformSchedulesProcessor,
+    PublishSweepsProcessor,
     PlatformWorkflowSchedulesService,
     PendingWorkflowExecutionReconcileService,
     WorkflowContinuationReconcileService,

@@ -106,8 +106,10 @@ async function openStudioList(page: Page): Promise<void> {
   // Below `xl` one pane shows at a time, and the prompt comes first.
   const results = await showOutputPane(page);
   // List rows expose the prompt as plain text, a stable non-control target.
-  // The gallery's View menu is the one inside the results pane.
-  await viewMenuTrigger(results).click();
+  // The gallery's View menu is the one inside the results pane. Below `xl` the
+  // pane header also carries the Agent / Output switch, which is named
+  // `View: Output` too, so name the gallery's layout, not any `View: ` button.
+  await viewMenuTrigger(results, 'Grid').click();
   await page.getByRole('menuitemradio', { exact: true, name: 'List' }).click();
   await expect(viewMenuTrigger(results, 'List')).toBeVisible();
   await expect(page.getByText(ASSET_PROMPT)).toBeVisible();
@@ -140,9 +142,10 @@ test.describe('Context sidebar — selection driven', () => {
       authenticatedPage.getByTestId('agent-output-agent-pane'),
     ).toBeVisible();
     await expect(contextView(authenticatedPage)).toBeHidden();
+    // Nothing is selected, so there is no Context toggle to open.
     await expect(
       authenticatedPage.getByTestId('topbar-context-toggle'),
-    ).toHaveAttribute('aria-expanded', 'false');
+    ).toHaveCount(0);
     // One agent: the Playground has no product dock beside its own prompt.
     await expect(
       authenticatedPage.getByTestId('topbar-agent-dock-toggle'),
@@ -242,7 +245,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
     await setContextOpen(authenticatedPage, false);
     await expect(card).toHaveAttribute('data-selected', 'false');
-    await expect(contextToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(contextToggle).toHaveCount(0);
     await card.getByText(ASSET_PROMPT).click();
     await expect(
       context.getByTestId('studio-playground-inspector'),

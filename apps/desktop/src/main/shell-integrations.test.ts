@@ -61,11 +61,7 @@ describe('desktop shell integrations', () => {
   });
 
   it('builds the desktop application menu and emits sidebar toggles', () => {
-    let openWorkspaceCalls = 0;
-
-    buildDesktopMenu(window as unknown as BrowserWindow, () => {
-      openWorkspaceCalls += 1;
-    });
+    buildDesktopMenu(window as unknown as BrowserWindow);
 
     const openWorkspaceItem = findMenuItem(
       electronMockState.menu.applicationMenu,
@@ -76,10 +72,9 @@ describe('desktop shell integrations', () => {
       'Toggle Workspace Sidebar',
     );
 
-    openWorkspaceItem?.click?.();
     toggleSidebarItem?.click?.();
 
-    expect(openWorkspaceCalls).toBe(1);
+    expect(openWorkspaceItem).toBeUndefined();
     expect(window.webContents.sentChannels).toEqual([
       DESKTOP_IPC_CHANNELS.toggleSidebar,
     ]);

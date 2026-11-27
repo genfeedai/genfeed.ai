@@ -117,6 +117,40 @@ describe('AdsGatewayRequestContextService', () => {
     });
   });
 
+  it('reads a manager-linked Google Ads client through its connected manager', async () => {
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: EncryptionUtil.encrypt('google-access-token'),
+      externalParentId: '220-767-1117',
+    });
+
+    const context = await service.createAdapterContext(
+      user,
+      AdsPlatform.GOOGLE,
+      { adAccountId: '318-402-9951', credentialId },
+    );
+
+    expect(context.loginCustomerId).toBe('220-767-1117');
+  });
+
+  it('lets an explicit login customer win over the connected manager', async () => {
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: EncryptionUtil.encrypt('google-access-token'),
+      externalParentId: '220-767-1117',
+    });
+
+    const context = await service.createAdapterContext(
+      user,
+      AdsPlatform.GOOGLE,
+      {
+        adAccountId: '318-402-9951',
+        credentialId,
+        loginCustomerId: '999-999-9999',
+      },
+    );
+
+    expect(context.loginCustomerId).toBe('999-999-9999');
+  });
+
   it.each([
     [null, `Credential ${credentialId} not found or missing access token`],
     [

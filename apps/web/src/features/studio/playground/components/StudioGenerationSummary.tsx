@@ -190,13 +190,9 @@ export default function StudioGenerationSummary({
               </div>
             ) : runtime.status !== 'web' ? (
               <span role="status">
-                {runtime.status === 'ready' &&
-                runtime.context?.runtimeMode === 'local'
-                  ? translate('summary.serverRequired')
-                  : runtime.status === 'loading' ||
-                      runtime.status === 'switching'
-                    ? translate('summary.costContextLoading')
-                    : translate('summary.costContextUnavailable')}
+                {runtime.status === 'loading' || runtime.status === 'switching'
+                  ? translate('summary.costContextLoading')
+                  : translate('summary.costContextUnavailable')}
               </span>
             ) : null}
             {showCredits && !isEstimateHidden && retryCreditBackCredits > 0 ? (

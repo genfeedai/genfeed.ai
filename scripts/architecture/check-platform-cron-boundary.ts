@@ -210,7 +210,7 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
     id: 'posts-publish',
     methodName: 'publishScheduledPosts',
-    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
+    reason: 'Platform schedule handler invoked by PublishSweepsProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts',

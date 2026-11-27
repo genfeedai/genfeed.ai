@@ -31,6 +31,7 @@ export const ingredientAttributes = createEntityAttributes([
   'category',
   'status',
   'origin',
+  'relationKind',
   'reviewStatus',
   'qualityStatus',
   'transformations',

@@ -20,6 +20,7 @@ describe('CharacterOwnershipService', () => {
       findMany: ReturnType<typeof vi.fn>;
     };
     member: { findFirst: ReturnType<typeof vi.fn> };
+    libraryElement: { findMany: ReturnType<typeof vi.fn> };
     persona: {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
@@ -48,6 +49,7 @@ describe('CharacterOwnershipService', () => {
         findMany: vi.fn().mockResolvedValue([]),
       },
       member: { findFirst: vi.fn() },
+      libraryElement: { findMany: vi.fn().mockResolvedValue([]) },
       persona: {
         findFirst: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),

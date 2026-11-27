@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { UnderlineNav } from './underline-nav';
 
 const ITEMS = [
@@ -23,5 +23,23 @@ describe('UnderlineNav', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('switches in place on a plain click and leaves a modified click to the browser', () => {
+    const onSelect = vi.fn();
+    render(
+      <UnderlineNav
+        ariaLabel="Sections"
+        items={[{ href: '/a', isActive: false, label: 'First', onSelect }]}
+      />,
+    );
+    const link = screen.getByRole('link', { name: 'First' });
+
+    fireEvent.click(link);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(link, { metaKey: true });
+    fireEvent.click(link, { button: 1 });
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });

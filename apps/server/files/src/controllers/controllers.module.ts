@@ -6,6 +6,7 @@ import { FilesMetadataController } from '@files/controllers/files-metadata.contr
 import { FilesPerceptionController } from '@files/controllers/files-perception.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
+import { FilesTrendPlaybackController } from '@files/controllers/files-trend-playback.controller';
 import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
 import { CronModule } from '@files/cron/cron.module';
 import { QueuesModule } from '@files/queues/queues.module';
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
     FilesAudioOverlayController,
     FilesProcessingController,
     FilesStorageController,
+    FilesTrendPlaybackController,
     // Its only route (`files/watermark-export`) is a static segment that
     // cannot be shadowed by any wildcard/param route above (e.g.
     // FilesStorageController's `download/:type/*key`), so it is safe to

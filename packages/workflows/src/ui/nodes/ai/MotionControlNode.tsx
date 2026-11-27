@@ -1,23 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type {
-  CharacterOrientation,
-  KlingQualityMode,
-  MotionControlMode,
-  MotionControlNodeData,
-} from '@genfeedai/contracts/types';
+import type { MotionControlNodeData } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
-import { Label } from '@genfeedai/ui/primitives/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@genfeedai/ui/primitives/select';
-import { Slider } from '@genfeedai/ui/primitives/slider';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import {
@@ -28,291 +13,44 @@ import {
   Square,
   Video,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
+import {
+  modeUsesTrajectory,
+  readTrajectoryPoints,
+} from '../../../engine/utils/geometry';
+import { coerceControlValue } from '../../controls/controlValues';
+import GeometryThumb from '../../controls/GeometryThumb';
+import GroupedControls from '../../controls/GroupedControls';
+import { useGeometryEditorStore } from '../../controls/geometryEditorStore';
+import { useMotionControlGroups } from '../../controls/nodeControlGroups';
+import { useGeometryRunGuard } from '../../controls/useGeometryRunGuard';
+import { useNodeImage } from '../../controls/useNodeImage';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
-const QUALITY_MODES: {
-  value: KlingQualityMode;
-  label: string;
-  description: string;
-}[] = [
-  { description: 'Faster processing', label: 'Standard', value: 'std' },
-  { description: 'Higher quality', label: 'Pro', value: 'pro' },
-];
-
-const CHARACTER_ORIENTATIONS: { value: CharacterOrientation; label: string }[] =
-  [
-    { label: 'From Image', value: 'image' },
-    { label: 'From Video', value: 'video' },
-  ];
-
-const MOTION_MODES: {
-  value: MotionControlMode;
-  label: string;
-  description: string;
-}[] = [
-  {
-    description: 'Apply motion from reference video',
-    label: 'Video Transfer',
-    value: 'video_transfer',
-  },
-  { description: 'Apply camera movements', label: 'Camera', value: 'camera' },
-  {
-    description: 'Define motion path',
-    label: 'Trajectory',
-    value: 'trajectory',
-  },
-  { description: 'Camera + Trajectory', label: 'Combined', value: 'combined' },
-];
-
-const ASPECT_RATIOS: { value: '16:9' | '9:16' | '1:1'; label: string }[] = [
-  { label: '16:9 (Landscape)', value: '16:9' },
-  { label: '9:16 (Portrait)', value: '9:16' },
-  { label: '1:1 (Square)', value: '1:1' },
-];
-
-const DURATIONS: { value: 5 | 10; label: string }[] = [
-  { label: '5 seconds', value: 5 },
-  { label: '10 seconds', value: 10 },
-];
-
-function MotionModeSelect({
-  id,
-  mode,
-  onModeChange,
-}: {
-  id: string;
-  mode: MotionControlMode;
-  onModeChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <Label
-        className="text-xs text-muted-foreground font-normal"
-        htmlFor={`motion-mode-${id}`}
-      >
-        Mode
-      </Label>
-      <Select value={mode} onValueChange={onModeChange}>
-        <SelectTrigger id={`motion-mode-${id}`} className="nodrag h-8 w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {MOTION_MODES.map((motionMode) => (
-            <SelectItem key={motionMode.value} value={motionMode.value}>
-              {motionMode.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-interface VideoTransferSettingsProps {
-  id: string;
-  nodeData: MotionControlNodeData;
-  onCharacterOrientationChange: (value: string) => void;
-  onKeepOriginalSoundToggle: (checked: boolean | 'indeterminate') => void;
-  onQualityModeChange: (value: string) => void;
-}
-
-function VideoTransferSettings({
-  id,
-  nodeData,
-  onCharacterOrientationChange,
-  onKeepOriginalSoundToggle,
-  onQualityModeChange,
-}: VideoTransferSettingsProps) {
-  return (
-    <>
-      <div>
-        <Label
-          className="text-xs text-muted-foreground font-normal"
-          htmlFor={`motion-quality-${id}`}
-        >
-          Quality
-        </Label>
-        <Select
-          value={nodeData.qualityMode}
-          onValueChange={onQualityModeChange}
-        >
-          <SelectTrigger
-            id={`motion-quality-${id}`}
-            className="nodrag h-8 w-full"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {QUALITY_MODES.map((qualityMode) => (
-              <SelectItem key={qualityMode.value} value={qualityMode.value}>
-                {qualityMode.label} - {qualityMode.description}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label
-          className="text-xs text-muted-foreground font-normal"
-          htmlFor={`motion-character-orientation-${id}`}
-        >
-          Character Orientation
-        </Label>
-        <Select
-          value={nodeData.characterOrientation}
-          onValueChange={onCharacterOrientationChange}
-        >
-          <SelectTrigger
-            id={`motion-character-orientation-${id}`}
-            className="nodrag h-8 w-full"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CHARACTER_ORIENTATIONS.map((orientation) => (
-              <SelectItem key={orientation.value} value={orientation.value}>
-                {orientation.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center gap-2 nodrag">
-        <Checkbox
-          id={`keep-sound-${id}`}
-          checked={nodeData.keepOriginalSound}
-          onCheckedChange={onKeepOriginalSoundToggle}
-        />
-        <Label
-          htmlFor={`keep-sound-${id}`}
-          className="text-foreground cursor-pointer font-normal"
-        >
-          Keep Original Sound
-        </Label>
-      </div>
-    </>
-  );
-}
-
-interface StandardMotionSettingsProps {
-  id: string;
-  nodeData: MotionControlNodeData;
-  onAspectRatioChange: (value: string) => void;
-  onDurationChange: (value: string) => void;
-  onMotionStrengthChange: (value: number[]) => void;
-}
-
-function StandardMotionSettings({
-  id,
-  nodeData,
-  onAspectRatioChange,
-  onDurationChange,
-  onMotionStrengthChange,
-}: StandardMotionSettingsProps) {
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label
-            className="text-xs text-muted-foreground font-normal"
-            htmlFor={`motion-duration-${id}`}
-          >
-            Duration
-          </Label>
-          <Select
-            value={String(nodeData.duration)}
-            onValueChange={onDurationChange}
-          >
-            <SelectTrigger
-              id={`motion-duration-${id}`}
-              className="nodrag h-8 w-full"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DURATIONS.map((duration) => (
-                <SelectItem key={duration.value} value={String(duration.value)}>
-                  {duration.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label
-            className="text-xs text-muted-foreground font-normal"
-            htmlFor={`motion-aspect-ratio-${id}`}
-          >
-            Aspect Ratio
-          </Label>
-          <Select
-            value={nodeData.aspectRatio}
-            onValueChange={onAspectRatioChange}
-          >
-            <SelectTrigger
-              id={`motion-aspect-ratio-${id}`}
-              className="nodrag h-8 w-full"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ASPECT_RATIOS.map((ratio) => (
-                <SelectItem key={ratio.value} value={ratio.value}>
-                  {ratio.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div>
-        <Label className="text-xs text-muted-foreground font-normal">
-          Motion Strength: {nodeData.motionStrength}%
-        </Label>
-        <Slider
-          value={[nodeData.motionStrength]}
-          min={0}
-          max={100}
-          step={5}
-          onValueChange={onMotionStrengthChange}
-          className="nodrag w-full"
-        />
-        <div className="flex justify-between text-2xs text-muted-foreground">
-          <span>Subtle</span>
-          <span>Strong</span>
-        </div>
-      </div>
-    </>
-  );
-}
-
 function MotionOutputPreview({
-  outputVideo,
   isProcessing,
   onGenerate,
+  outputVideo,
 }: {
   isProcessing: boolean;
   onGenerate: () => void;
   outputVideo?: string | null;
 }) {
-  if (!outputVideo) return null;
+  const translate = useTranslations('pages.workflows.nodeControls.motion');
+  if (!outputVideo) {
+    return null;
+  }
 
   return (
     <div className="relative">
       <VideoPlayer
-        src={outputVideo}
-        ariaLabel="Motion-controlled video output"
-        mediaClassName="object-cover"
-        className="nodrag nowheel w-full h-20 rounded overflow-hidden"
+        ariaLabel={translate('outputLabel')}
+        className="nodrag nowheel h-20 w-full overflow-hidden rounded"
         config={{
           autoPlay: false,
           controls: true,
@@ -321,17 +59,19 @@ function MotionOutputPreview({
           playsInline: true,
           preload: 'metadata',
         }}
+        mediaClassName="object-cover"
+        src={outputVideo}
       />
       <Button
-        withWrapper={false}
-        variant={ButtonVariant.OVERLAY}
-        size={ButtonSize.ICON}
-        onClick={onGenerate}
+        ariaLabel={translate('regenerate')}
+        className="absolute right-1 top-1 size-6"
         disabled={isProcessing}
-        className="absolute top-1 right-1 size-6"
-      >
-        <RefreshCw className="size-3.5" />
-      </Button>
+        icon={<RefreshCw className="size-3.5" />}
+        onClick={onGenerate}
+        size={ButtonSize.ICON}
+        variant={ButtonVariant.OVERLAY}
+        withWrapper={false}
+      />
     </div>
   );
 }
@@ -345,21 +85,20 @@ function MotionRequirementHint({
   isProcessing: boolean;
   isVideoTransferMode: boolean;
 }) {
+  const translate = useTranslations('pages.workflows.nodeControls.motion');
   return (
     <>
       {!canGenerate && !isProcessing && (
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <CircleAlert className="size-3.5" />
-          {isVideoTransferMode
-            ? 'Connect an image and motion video'
-            : 'Connect an image to generate'}
+          {translate(isVideoTransferMode ? 'needsImageAndVideo' : 'needsImage')}
         </div>
       )}
 
       {isVideoTransferMode && (
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Video className="size-3.5" />
-          Motion video: 3-30 seconds
+          {translate('videoLength')}
         </div>
       )}
     </>
@@ -369,169 +108,138 @@ function MotionRequirementHint({
 function MotionControlNodeComponent(props: NodeProps) {
   const { id, type, data } = props;
   const nodeData = data as MotionControlNodeData;
+  const translate = useTranslations('pages.workflows.nodeControls');
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
+  const openEditor = useGeometryEditorStore((state) => state.openEditor);
+  const hasAttemptedRun = useGeometryEditorStore(
+    (state) => state.hasAttemptedRun,
+  );
   const { handleGenerate, handleStop } = useNodeExecution(id);
   const { canGenerate } = useCanGenerate({
     nodeId: id,
     nodeType: type as 'motionControl',
   });
+  const checkGeometry = useGeometryRunGuard();
+  const inputImage = useNodeImage(id);
+  const points = useMemo(
+    () => readTrajectoryPoints(nodeData.trajectoryPoints),
+    [nodeData.trajectoryPoints],
+  );
+  const { groups } = useMotionControlGroups({
+    data: nodeData,
+    hasAttemptedRun,
+    hasImage: inputImage !== null,
+    onEditTrajectory: () => openEditor({ mode: 'trajectory', nodeId: id }),
+    scope: 'node',
+  });
 
-  const handleModeChange = useCallback(
-    (value: string) => {
+  const handleChange = useCallback(
+    (fieldId: string, value: unknown) => {
       updateNodeData<MotionControlNodeData>(id, {
-        mode: value as MotionControlMode,
+        [fieldId]: coerceControlValue(fieldId, value),
       });
     },
     [id, updateNodeData],
   );
 
-  const handleQualityModeChange = useCallback(
-    (value: string) => {
-      updateNodeData<MotionControlNodeData>(id, {
-        qualityMode: value as KlingQualityMode,
-      });
-    },
-    [id, updateNodeData],
-  );
-
-  const handleCharacterOrientationChange = useCallback(
-    (value: string) => {
-      updateNodeData<MotionControlNodeData>(id, {
-        characterOrientation: value as CharacterOrientation,
-      });
-    },
-    [id, updateNodeData],
-  );
-
-  const handleAspectRatioChange = useCallback(
-    (value: string) => {
-      updateNodeData<MotionControlNodeData>(id, {
-        aspectRatio: value as '16:9' | '9:16' | '1:1',
-      });
-    },
-    [id, updateNodeData],
-  );
-
-  const handleDurationChange = useCallback(
-    (value: string) => {
-      updateNodeData<MotionControlNodeData>(id, {
-        duration: Number.parseInt(value, 10) as 5 | 10,
-      });
-    },
-    [id, updateNodeData],
-  );
-
-  const handleKeepOriginalSoundToggle = useCallback(
-    (checked: boolean | 'indeterminate') => {
-      if (typeof checked === 'boolean') {
-        updateNodeData<MotionControlNodeData>(id, {
-          keepOriginalSound: checked,
-        });
-      }
-    },
-    [id, updateNodeData],
-  );
-
-  const handleMotionStrengthChange = useCallback(
-    ([value]: number[]) => {
-      updateNodeData<MotionControlNodeData>(id, { motionStrength: value });
-    },
-    [id, updateNodeData],
-  );
+  // A run with invalid geometry is refused here, with the problem named, before anything is sent.
+  const handleGenerateChecked = useCallback(() => {
+    if (checkGeometry(id)) {
+      handleGenerate();
+    }
+  }, [checkGeometry, handleGenerate, id]);
 
   const handleExpand = useCallback(() => {
     openNodeDetailModal(id, 'preview');
   }, [id, openNodeDetailModal]);
 
   const isVideoTransferMode = nodeData.mode === 'video_transfer';
+  const isProcessing = nodeData.status === 'processing';
 
   const headerActions = useMemo(
     () => (
       <>
         {nodeData.outputVideo && (
           <Button
-            withWrapper={false}
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
+            ariaLabel={translate('expandPreview')}
+            icon={<Expand className="size-3.5" />}
             onClick={handleExpand}
-            title="Expand preview"
-          >
-            <Expand className="size-3.5" />
-          </Button>
-        )}
-        {nodeData.status === 'processing' ? (
-          <Button
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
             withWrapper={false}
-            variant={ButtonVariant.DESTRUCTIVE}
-            size={ButtonSize.SM}
+          />
+        )}
+        {isProcessing ? (
+          <Button
+            icon={<Square className="size-4 fill-current" />}
             onClick={handleStop}
+            size={ButtonSize.SM}
+            textTransform="none"
+            variant={ButtonVariant.DESTRUCTIVE}
+            withWrapper={false}
           >
-            <Square className="size-4 fill-current" />
-            Generating
+            {translate('motion.generating')}
           </Button>
         ) : (
           <Button
-            withWrapper={false}
+            disabled={!canGenerate}
+            icon={<Play className="size-4 fill-current" />}
+            onClick={handleGenerateChecked}
+            size={ButtonSize.SM}
+            textTransform="none"
             variant={
               canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
             }
-            size={ButtonSize.SM}
-            onClick={handleGenerate}
-            disabled={!canGenerate}
+            withWrapper={false}
           >
-            <Play className="size-4 fill-current" />
-            Generate
+            {translate('motion.generate')}
           </Button>
         )}
       </>
     ),
     [
       nodeData.outputVideo,
-      nodeData.status,
-      handleGenerate,
+      isProcessing,
+      handleGenerateChecked,
       handleStop,
       handleExpand,
       canGenerate,
+      translate,
     ],
   );
 
   return (
-    <BaseNode {...props} headerActions={headerActions} hideStatusIndicator>
-      <div className="space-y-3">
-        <MotionModeSelect
-          id={id}
-          mode={nodeData.mode}
-          onModeChange={handleModeChange}
+    <BaseNode
+      {...props}
+      headerActions={headerActions}
+      hideStatusIndicator
+      minHeight={260}
+      minWidth={300}
+    >
+      <div className="nodrag nopan nowheel flex flex-col gap-3 px-0.5">
+        {inputImage &&
+        modeUsesTrajectory(nodeData.mode) &&
+        points.length > 0 ? (
+          <GeometryThumb points={points} src={inputImage} />
+        ) : null}
+        <GroupedControls
+          groups={groups}
+          idPrefix={`node-${id}-`}
+          onChange={handleChange}
+          values={nodeData}
         />
-        {isVideoTransferMode && (
-          <VideoTransferSettings
-            id={id}
-            nodeData={nodeData}
-            onCharacterOrientationChange={handleCharacterOrientationChange}
-            onKeepOriginalSoundToggle={handleKeepOriginalSoundToggle}
-            onQualityModeChange={handleQualityModeChange}
-          />
-        )}
-
-        {!isVideoTransferMode && (
-          <StandardMotionSettings
-            id={id}
-            nodeData={nodeData}
-            onAspectRatioChange={handleAspectRatioChange}
-            onDurationChange={handleDurationChange}
-            onMotionStrengthChange={handleMotionStrengthChange}
-          />
-        )}
-
+        <p className="text-xs text-muted-foreground">
+          {translate('moreInInspector')}
+        </p>
         <MotionOutputPreview
+          isProcessing={isProcessing}
+          onGenerate={handleGenerateChecked}
           outputVideo={nodeData.outputVideo}
-          isProcessing={nodeData.status === 'processing'}
-          onGenerate={handleGenerate}
         />
         <MotionRequirementHint
           canGenerate={canGenerate}
-          isProcessing={nodeData.status === 'processing'}
+          isProcessing={isProcessing}
           isVideoTransferMode={isVideoTransferMode}
         />
       </div>

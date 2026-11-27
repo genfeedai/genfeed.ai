@@ -1,17 +1,19 @@
 # Desktop App
 
-`apps/desktop` is the Electron native shell for the macOS-first installed app release. It runs the real `apps/web` Next.js frontend and provides desktop-local backend actions through typed IPC.
+`apps/desktop` is the Electron native shell for the macOS-first installed app release. It runs the real `apps/web` Next.js frontend and provides native actions (session, server picker, terminal, agent CLIs) through typed IPC.
 
 There is no desktop-local React/Next.js renderer. Development and release builds
 run the canonical `apps/web` codebase, while Electron owns native lifecycle,
-the opt-in PGlite runtime, BYOK generation, sync services, terminal, tray, and
-updates.
+sign-in, server selection, the terminal, the Claude Code / Codex agent runtime,
+tray, and updates.
 
-Cloud mode is the default. It starts the web shell and encrypted desktop session
-store without constructing PGlite or touching `pglite-db`. The embedded database
-and its dependent services start only after the user selects a local workspace.
-No system PostgreSQL, Redis, Homebrew package, or separately managed backend is
-installed or started.
+Desktop always talks to a Genfeed server: Genfeed Cloud or the self-hosted
+server picked in Desktop. Generation, credits and the Library stay on that
+server; Desktop adds access to the CLIs and tools on this computer. It has no
+local database and runs no local generation. The local workspace mode that
+earlier builds carried was removed in #11460. A `desktop-v0.1.2` install may
+still hold its `pglite-db` folder and `.genfeed` workspace files; current builds
+leave them on disk untouched.
 
 Installed builds auto-update through `electron-updater`. The feed is the
 generic provider configured in `package.json` `build.publish`: the assets of
@@ -37,7 +39,7 @@ bun run dev
 
 Environment variables:
 
-- `GENFEED_DESKTOP_API_URL` (optional): API to use when cloud/self-hosted sync is enabled. Installed and release builds default to `https://api.genfeed.ai/v1`; the dev script explicitly uses `http://localhost:3010/v1` unless this variable is set.
+- `GENFEED_DESKTOP_API_URL` (optional): API of the default server. Installed and release builds default to `https://api.genfeed.ai/v1`; the dev script explicitly uses `http://localhost:3010/v1` unless this variable is set.
 - `GENFEED_DESKTOP_APP_URL` (optional): external app shell URL for development. When unset, desktop starts/uses its embedded app shell on `http://127.0.0.1:3230`.
 - `GENFEED_DESKTOP_AUTH_URL` (optional): defaults to `https://app.genfeed.ai/oauth/cli`
 - `GENFEED_DESKTOP_WS_URL` (optional): defaults to `https://notifications.genfeed.ai`
@@ -75,7 +77,7 @@ real API origin. This keeps the Better Auth cookie scoped to the shell origin.
 Genfeed Connect sign-in opens the system browser with PKCE. The callback returns
 through `genfeedai-desktop://auth`; Electron exchanges the code for a main-only
 `gf_` API key and an exact signed Better Auth session cookie. Electron stores
-both together using the small PGlite-independent encrypted session store and installs the
+both together using the small encrypted session store and installs the
 HttpOnly cookie as a host-only cookie on the selected app origin. The API key is
 never exposed to `apps/web`; main only adds it to trusted shell requests as
 `x-genfeed-desktop-token`. Every trusted shell request also carries the app
@@ -87,45 +89,9 @@ launch screen with an animated Genfeed mark is shown while the selected app
 shell boots. If neither shell can start, Electron keeps the same black surface
 and shows a short failure message instead of exposing an unstyled renderer.
 
-Generation defaults to Genfeed Cloud after desktop sign-in. Users without
-Replicate, fal.ai, or other provider keys should buy/use Genfeed credits; the
-server owns provider credentials and billing. Offline or bring-your-own-key
-generation is optional. Electron stores local provider settings in its PGlite
-database and exposes generation actions to `apps/web` through
-`window.genfeedDesktop`. The Electron main process calls an OpenAI-compatible
-`/chat/completions` endpoint directly. Supported first-class presets:
-
-- Ollama: `http://localhost:11434/v1`
-- LM Studio: `http://localhost:1234/v1`
-- any OpenAI-compatible endpoint
-
-The local provider API key stays in desktop local storage and is not returned to
-the page after save. Local text/workflow generation runs are recorded as
-durable `generation` jobs. Generic cloud actions are never queued with a promise
-to run after sign-in; cloud-only actions instead expose an in-context connect
-affordance.
-
-Desktop also supports BYOK image asset generation for Replicate and fal.ai. The
-user supplies their own provider key, Electron main queues the job locally,
-downloads the returned image, writes it into the workspace asset directory, and
-registers it as a `local-generation` asset with `local-only` residency and
-`never` upload policy by default. Better Auth and the Genfeed API are not
-required for this local/BYOK path; Better Auth is only needed for explicit
-Genfeed Cloud sync.
-
-The Phase-2 thread/metadata sync backend remains in Electron, but the canonical
-app does not yet consume its bridge. The old renderer-owned sync trigger now
-returns a structured unavailable result instead of firing an orphan event.
-
-The local user and device IDs remain stable when cloud accounts connect or
-change. A connection attributes that stable local identity to the current cloud
-account without rewriting local ownership. Consent and sync cursors are scoped
-per cloud user, so another account always requires a new decision and a fresh
-sync boundary. Connecting later does not erase a persisted account-less choice;
-signing out returns that user to the local workspace.
-
-Ollama and LM Studio remain text/workflow providers until a concrete local image
-runtime is wired separately.
+Generation runs on the selected Genfeed server after sign-in. Users without
+provider keys use Genfeed credits; the server owns provider credentials and
+billing.
 
 To test cloud or self-hosted API paths, run the backend separately and point the
 desktop app at it:
@@ -187,7 +153,7 @@ servers there also needs `GENFEED_DESKTOP_API_URL` for the dev shell.
 In Desktop, the agent can run each turn on the user's **own** Claude Code or
 Codex CLI instead of the hosted model. Threads, brand context, and memory stay
 in Genfeed (Cloud or self-hosted); the model turn costs no Genfeed credits.
-It works in cloud mode — no local workspace, PGlite, or local backend needed.
+It needs no local workspace or local backend.
 
 Setup:
 
@@ -245,10 +211,9 @@ no stable headless JSON event stream to drive and parse.
 ## Terminal
 
 The agent panel terminal (Shell, Genfeed CLI, Claude CLI, Codex CLI) uses
-`node-pty` in Electron main through `window.genfeedDesktop.terminal`, in cloud
-and local mode. Sessions start only when picked from **New**; the first one per
-launch in cloud mode asks for a native confirmation, because the shell origin
-is remote. The browser/self-hosted web build keeps the socket.io terminal
+`node-pty` in Electron main through `window.genfeedDesktop.terminal`. Sessions
+start only when picked from **New**; the first one per launch asks for a native
+confirmation, because the shell origin is remote. The browser/self-hosted web build keeps the socket.io terminal
 gateway.
 
 The Genfeed CLI session starts `gf` through a small wrapper
@@ -272,25 +237,17 @@ and fails any route whose client-reference manifest passes 512 KiB (#11280,
 
 The desktop app embeds the app shell, not the full NestJS API. The full API
 requires its own process and operational dependencies such as the database,
-queues, workers, provider keys, and integration callbacks. Desktop should talk
-to one of three API modes:
+queues, workers, provider keys, and integration callbacks. Desktop talks to one
+of two servers:
 
-- no API: local/offline desktop mode
 - self-hosted API: `GENFEED_DESKTOP_API_URL=http://localhost:3010/v1` or a
   self-hosted domain
 - Genfeed Cloud API: default, or
   `GENFEED_DESKTOP_API_URL=https://api.genfeed.ai/v1`
 
-Do not make a downloaded desktop app require a local clone of the API. If a
-local background API is added later, it should be a packaged desktop-local
-service with explicit lifecycle management, not an implicit `nest start` from
-the repository.
-
-For offline desktop generation, do not add a second REST API and do not fork the
-frontend. Keep reusable generation logic in packages, keep cloud/self-hosted
-behavior behind the NestJS REST API, and keep desktop-only execution in Electron
-main-process services exposed to `apps/web` through IPC. That keeps the
-downloaded app useful without requiring Redis, BullMQ, or the server repo.
+Do not make a downloaded desktop app require a local clone of the API, and do
+not add local generation to Desktop: generation stays behind the server's REST
+API (owner decision, 26 November 2026, #11460).
 
 ## Release
 
@@ -323,8 +280,6 @@ Optional signing and notarization environment variables:
 
 - Electron desktop shell embedding the real `apps/web` frontend
 - No parallel desktop-local renderer or desktop-local Next.js configuration
-- Active typed IPC for system-browser sign-in, explicit cloud/local mode switching, Genfeed server selection, local workspaces, local generation, local terminals, and the Claude Code / Codex agent runtime
-- PGlite-backed local state for workspaces, recents, provider settings, and sync/generation jobs; cloud session and selected mode live outside PGlite
-- Workspace-backed content run drafts stored in `.genfeed/content-runs.json`
-- Genfeed Cloud generation by default after sign-in, with optional offline generation through user-configured OpenAI-compatible local providers
+- Active typed IPC for system-browser sign-in, Genfeed server selection, local terminals, and the Claude Code / Codex agent runtime
+- Generation on the selected Genfeed server after sign-in
 - macOS artifact generation via `electron-builder`, icon generation, and optional notarization hook

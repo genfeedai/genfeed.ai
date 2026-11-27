@@ -26,6 +26,8 @@ export interface AdsGatewayAdapterContextInput {
 interface AdsCredentialAuth {
   accessToken: string;
   accessTokenSecret?: string;
+  /** Google Ads: the manager a client account was reached through. */
+  loginCustomerId?: string;
 }
 
 @Traced()
@@ -60,7 +62,9 @@ export class AdsGatewayRequestContextService {
       adAccountId: input.adAccountId,
       brandId: undefined,
       credentialId: input.credentialId,
-      loginCustomerId: input.loginCustomerId,
+      // A caller's explicit manager wins; otherwise the one the account was
+      // connected through, so a manager-linked client reads without it typed.
+      loginCustomerId: input.loginCustomerId ?? credentialAuth.loginCustomerId,
       organizationId,
     };
   }
@@ -80,7 +84,7 @@ export class AdsGatewayRequestContextService {
           mapAdsCredentialPlatform(platform),
         ),
       },
-      { accessToken: true, accessTokenSecret: true },
+      { accessToken: true, accessTokenSecret: true, externalParentId: true },
     );
 
     if (!credential?.accessToken) {
@@ -100,6 +104,7 @@ export class AdsGatewayRequestContextService {
       accessTokenSecret: credential.accessTokenSecret
         ? EncryptionUtil.decrypt(credential.accessTokenSecret)
         : undefined,
+      loginCustomerId: credential.externalParentId ?? undefined,
     };
   }
 }

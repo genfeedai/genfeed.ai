@@ -21,6 +21,7 @@ import {
 import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/contracts';
+import type { ProviderQuoteDimensions } from '@genfeedai/contracts/interfaces';
 import type {
   WorkflowExecutionGenerationBilling,
   WorkflowGenerationDispatch,
@@ -63,6 +64,16 @@ export interface ValidatedWorkflowMediaDispatch {
 }
 function unavailable(detail: string): never {
   throw new BusinessLogicException(detail);
+}
+/** Measured reference quantities a quote may add to what the provider input shows. */
+function referenceQuoteEvidence(
+  prepared: WorkflowMediaProviderPlan,
+): ProviderQuoteDimensions {
+  if (prepared.actionId === 'motionControl')
+    return prepared.referenceQuoteEvidence;
+  return prepared.provider === 'fal'
+    ? (prepared.referenceQuoteEvidence ?? {})
+    : {};
 }
 function preparationContract(
   prepared: WorkflowMediaProviderPlan,
@@ -158,9 +169,7 @@ export class WorkflowMediaBillingPlanService {
             prepared.model,
             {
               ...projection.dimensions,
-              ...(prepared.provider === 'fal'
-                ? prepared.referenceQuoteEvidence
-                : {}),
+              ...referenceQuoteEvidence(prepared),
               requests: 1,
               outputs: 1,
               provider: prepared.provider,
@@ -289,9 +298,7 @@ export class WorkflowMediaBillingPlanService {
         prepared.model,
         {
           ...projection.dimensions,
-          ...(prepared.provider === 'fal'
-            ? prepared.referenceQuoteEvidence
-            : {}),
+          ...referenceQuoteEvidence(prepared),
           requests: 1,
           outputs: 1,
           provider: prepared.provider,

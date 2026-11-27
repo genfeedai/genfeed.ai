@@ -124,6 +124,12 @@ vi.mock('./IngredientStackStrip', () => ({
   default: () => null,
 }));
 
+vi.mock('./IngredientVersionHistory', () => ({
+  default: ({ ingredientId }: { ingredientId: string }) => (
+    <div data-testid="version-history">{ingredientId}</div>
+  ),
+}));
+
 vi.mock('./IngredientLineageStrip', () => ({
   default: ({
     direction,
@@ -422,6 +428,12 @@ describe('IngredientInspectorRail', () => {
     render(<IngredientInspectorRail ingredient={ingredient} />);
 
     expect(screen.getByTestId('tags-control')).toHaveTextContent('asset-1');
+  });
+
+  it('shows the versions of this asset', () => {
+    render(<IngredientInspectorRail ingredient={ingredient} />);
+
+    expect(screen.getByTestId('version-history')).toHaveTextContent('asset-1');
   });
 
   it('shows the references it was made from and where it was used', () => {

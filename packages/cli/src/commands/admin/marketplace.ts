@@ -11,6 +11,15 @@ import {
   reviewMarketplaceListing,
 } from '@/operations/admin-marketplace';
 import {
+  applySyncPlan,
+  buildPresetListings,
+  type ListingDraft,
+  readSkillListings,
+  readSyncPlan,
+  type SkippedSkill,
+  type SyncSelection,
+} from '@/operations/admin-marketplace-sync';
+import {
   formatHeader,
   formatLabel,
   formatSuccess,
@@ -18,7 +27,7 @@ import {
   print,
   printJson,
 } from '@/ui/theme';
-import { handleError } from '@/utils/errors';
+import { GenfeedError, handleError } from '@/utils/errors';
 import { wantsJson } from '@/utils/options';
 
 interface MarketplaceGlobalOptions extends Record<string, unknown> {
@@ -27,6 +36,97 @@ interface MarketplaceGlobalOptions extends Record<string, unknown> {
 
 interface ListingsOptions {
   status: ListingStatus;
+}
+
+interface SyncOptions {
+  only: SyncSelection;
+  skillsDir?: string;
+  yes?: boolean;
+}
+
+function parseSyncSelection(value: string): SyncSelection {
+  if (value === 'all' || value === 'presets' || value === 'skills') return value;
+  throw new GenfeedError(`Unknown selection "${value}"`, 'Use one of: all, presets, skills');
+}
+
+async function runSync(options: SyncOptions, command: Command): Promise<void> {
+  const marketplaceApiUrl = await readMarketplaceApiUrl(command);
+  const drafts: ListingDraft[] = [];
+  let skipped: SkippedSkill[] = [];
+
+  if (options.only !== 'skills') drafts.push(...buildPresetListings());
+  if (options.only !== 'presets') {
+    if (!options.skillsDir) {
+      throw new GenfeedError(
+        'Skills need a checkout of genfeedai/skills',
+        'Pass --skills-dir <path>, or --only presets'
+      );
+    }
+    const skills = await readSkillListings(options.skillsDir);
+    drafts.push(...skills.drafts);
+    skipped = skills.skipped;
+  }
+
+  const plan = await readSyncPlan(marketplaceApiUrl, drafts);
+  const counts = { create: 0, 'finish-review': 0, rejected: 0, unchanged: 0, update: 0 };
+  for (const entry of plan.entries) counts[entry.action] += 1;
+
+  if (wantsJson(command) && !options.yes) {
+    printJson({
+      counts,
+      items: plan.entries.map((entry) => ({
+        action: entry.action,
+        price: entry.draft.price,
+        slug: entry.draft.packageSlug,
+        source: entry.draft.packageSource,
+        title: entry.draft.title,
+        type: entry.draft.type,
+      })),
+      orphans: plan.orphans.map((listing) => listing.packageSlug),
+      skipped,
+    });
+    return;
+  }
+
+  print(formatHeader(`Store sync (${options.yes ? 'applying' : 'preview'})\n`));
+  for (const entry of plan.entries) {
+    if (entry.action === 'unchanged') continue;
+    print(
+      `${entry.action.padEnd(13)} ${entry.draft.type.padEnd(7)} ${String(entry.draft.price ? entry.draft.price / 100 : 'free').padStart(5)}  ${entry.draft.packageSource}/${entry.draft.packageSlug}`
+    );
+  }
+  print(
+    formatLabel(
+      'Plan',
+      `${counts.create} to create, ${counts.update} to update, ${counts['finish-review']} to publish, ${counts.unchanged} unchanged, ${counts.rejected} rejected earlier (left alone)`
+    )
+  );
+  for (const item of skipped) print(formatWarning(`Skipped skill ${item.slug}: ${item.reason}`));
+  for (const listing of plan.orphans) {
+    print(
+      formatWarning(
+        `${listing.packageSource}/${listing.packageSlug} is no longer in its source; left in the store`
+      )
+    );
+  }
+
+  if (!options.yes) {
+    print(formatWarning('Re-run with --yes to write this to the store.'));
+    return;
+  }
+
+  const result = await applySyncPlan(marketplaceApiUrl, plan);
+  if (wantsJson(command)) {
+    printJson(result);
+  } else {
+    print(
+      formatSuccess(
+        `Created ${result.created}, updated ${result.updated}, published ${result.published}, unchanged ${result.unchanged}`
+      )
+    );
+    for (const failure of result.failed) print(formatWarning(`Failed: ${failure}`));
+  }
+  if (result.failed.length > 0) process.exitCode = 1;
 }
 
 interface ReviewOptions {
@@ -121,6 +221,23 @@ export function createMarketplaceCommand(): Command {
               );
             }
             if (listings.length === 0) print(chalk.dim('Nothing here.'));
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
+      new Command('sync')
+        .description(
+          'Create or update the free Genfeed preset and skill listings from their sources (preview unless --yes)'
+        )
+        .option('--only <what>', 'all | presets | skills', parseSyncSelection, 'all')
+        .option('--skills-dir <path>', 'A checkout of genfeedai/skills')
+        .option('--yes', 'Write the changes to the store')
+        .option('--json', 'Output as JSON')
+        .action(async (options: SyncOptions, command: Command) => {
+          try {
+            await runSync(options, command);
           } catch (error) {
             handleError(error);
           }

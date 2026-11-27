@@ -26,7 +26,7 @@
     "@genfeedai/serializers": "workspace:*",
     "@types/bun": "1.4.5",
     "@types/node": "22.20.1",
-    "@types/react": "19.3.2",
+    "@types/react": "19.3.3",
     "@typescript/native": "npm:typescript@7.0.2",
     "@vitest/coverage-v8": "5.1.2",
     "vitest": "5.1.2"
@@ -74,5 +74,5 @@
     "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
   },
   "type": "module",
-  "version": "0.6.0"
+  "version": "0.7.0"
 }

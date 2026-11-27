@@ -1,5 +1,6 @@
 import { BrandedGenerationReceiptsHttpModule } from '@api/collections/branded-generation-receipts/branded-generation-receipts-http.module';
 import { ContentLearningModule } from '@api/collections/content-learning/content-learning.module';
+import { LibraryElementsModule } from '@api/collections/library-elements/library-elements.module';
 import { OutliersModule } from '@api/collections/outliers/outliers.module';
 import { TurboProjectsModule } from '@api/collections/turbo-projects/turbo-projects.module';
 import { VisualProjectsModule } from '@api/collections/visual-projects/visual-projects.module';
@@ -130,6 +131,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HookRemixModule } from '@api/endpoints/v1/hook-remix/hook-remix.module';
 import { MarketplaceCreditPurchaseModule } from '@api/marketplace-integration/marketplace-credit-purchase.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { AdDialogueVerificationModule } from '@api/services/ad-dialogue-verification/ad-dialogue-verification.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { PreflightModule } from '@api/services/preflight/preflight.module';
 import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
@@ -146,6 +148,7 @@ import { Module } from '@nestjs/common';
     AgentThreadsModule,
     AgentTransfersModule,
     AgentTransferRollupModule,
+    AdDialogueVerificationModule,
     AgentMemoriesModule,
     AgentPublishAuditsModule,
     AgentThreadingModule,
@@ -206,6 +209,7 @@ import { Module } from '@nestjs/common';
     IngredientsModule,
     InsightsModule,
     TasksModule,
+    LibraryElementsModule,
     LinksModule,
     ListeningTopicsModule,
     LongFormDeliveriesModule,

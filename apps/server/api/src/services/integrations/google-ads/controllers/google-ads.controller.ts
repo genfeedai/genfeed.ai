@@ -5,7 +5,10 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -14,8 +17,13 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
+import { SelectGoogleAdsAccountDto } from '@api/services/integrations/google-ads/dto/select-google-ads-account.dto';
+import {
+  GoogleAdsMetricsParams,
+  type GoogleAdsSelectableAccount,
+} from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleAdsAccountsService } from '@api/services/integrations/google-ads/services/google-ads-accounts.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import {
   ApiKeyScope,
@@ -41,7 +49,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { isAxiosError } from 'axios';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -54,6 +61,7 @@ export class GoogleAdsController {
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly googleAdsService: GoogleAdsService,
+    private readonly googleAdsAccountsService: GoogleAdsAccountsService,
     private readonly googleAdsOAuthService: GoogleAdsOAuthService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -152,42 +160,102 @@ export class GoogleAdsController {
         body.code,
       );
     } catch (error: unknown) {
-      throw this.toVerifyException(error, 'Token exchange failed');
+      throw this.googleAdsAccountsService.toVerifyException(
+        error,
+        'Token exchange failed',
+      );
     }
 
-    let customers: Awaited<
-      ReturnType<GoogleAdsService['listAccessibleCustomers']>
-    >;
+    let accounts: GoogleAdsSelectableAccount[];
     try {
-      customers = await this.googleAdsService.listAccessibleCustomers(
+      accounts = await this.googleAdsAccountsService.listSelectable(
         tokens.accessToken,
       );
     } catch (error: unknown) {
-      throw this.toVerifyException(error, 'Customer lookup failed');
+      throw this.googleAdsAccountsService.toVerifyException(
+        error,
+        'Customer lookup failed',
+      );
     }
 
-    const primaryCustomer = customers[0];
+    // A manager account groups other accounts and has no campaigns, so a
+    // login that reaches only managers (or nothing) has nothing to connect.
+    if (accounts.length === 0) {
+      throw new HttpException(
+        {
+          detail:
+            'This Google login has no Google Ads account with campaigns. A manager account has none of its own: create a client account in Google Ads, then connect again.',
+          title: 'No Google Ads account to connect',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
-    // The customer id is the account identity — one brand may manage several
-    // Google Ads customers.
-    const updatedCredential = await this.credentialsService.connectAccount(
-      credential.id,
-      credential.organizationId,
-      {
-        handle: primaryCustomer?.descriptiveName || 'Google Ads',
-        id: primaryCustomer?.id,
-        name: primaryCustomer?.descriptiveName || 'Google Ads',
-      },
-      {
-        accessToken: tokens.accessToken,
-        accessTokenExpiry: tokens.expiresIn
-          ? new Date(Date.now() + tokens.expiresIn * 1000)
-          : undefined,
-        refreshToken: tokens.refreshToken,
-      },
+    const connection = {
+      accessToken: tokens.accessToken,
+      accessTokenExpiry: tokens.expiresIn
+        ? new Date(Date.now() + tokens.expiresIn * 1000)
+        : undefined,
+      refreshToken: tokens.refreshToken,
+    };
+
+    // One account connects at once. With several there is no safe default, so
+    // the credential keeps its token and waits for
+    // `POST :credentialId/select-account`; the serialized credential reports
+    // `needsAccountSelection`.
+    const [only] = accounts;
+    if (accounts.length === 1 && only) {
+      const connected = await this.googleAdsAccountsService.connectAccount(
+        credential,
+        only,
+        connection,
+      );
+      return serializeSingle(request, CredentialSerializer, connected);
+    }
+
+    const pending = await this.credentialsService.patch(credential.id, {
+      accessToken: connection.accessToken,
+      accessTokenExpiry: connection.accessTokenExpiry,
+      isConnected: false,
+      isDeleted: false,
+      oauthState: verifiedOAuthState(body.state),
+      refreshToken: connection.refreshToken,
+    });
+    return serializeSingle(request, CredentialSerializer, pending);
+  }
+
+  /** The accounts a pending connection can still choose from. */
+  @TenantReadPolicy('owner')
+  @Get(':credentialId/accounts')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  async listAccounts(
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    return {
+      accounts: await this.googleAdsAccountsService.listForPending(
+        user,
+        credentialId,
+      ),
+    };
+  }
+
+  /** Settle a pending connection onto the chosen account. */
+  @Post(':credentialId/select-account')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  async selectAccount(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+    @Body() body: SelectGoogleAdsAccountDto,
+  ) {
+    const connected = await this.googleAdsAccountsService.selectForPending(
+      user,
+      credentialId,
+      body.customerId,
     );
-
-    return serializeSingle(request, CredentialSerializer, updatedCredential);
+    return serializeSingle(request, CredentialSerializer, connected);
   }
 
   @TenantReadPolicy('owner')
@@ -197,7 +265,7 @@ export class GoogleAdsController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const { accessToken } = await this.getCredentialContext(user);
     return this.googleAdsService.listAccessibleCustomers(accessToken);
   }
 
@@ -214,12 +282,12 @@ export class GoogleAdsController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.listCampaigns(
-      accessToken,
+      context.accessToken,
       customerId,
       { limit: limit ? Number(limit) : undefined, status },
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -245,13 +313,13 @@ export class GoogleAdsController {
     if (segmentByDate === 'true') {
       params.segmentByDate = true;
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getCampaignMetrics(
-      accessToken,
+      context.accessToken,
       customerId,
       campaignId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -273,13 +341,13 @@ export class GoogleAdsController {
     if (startDate && endDate) {
       params.dateRange = { endDate, startDate };
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getAdGroupInsights(
-      accessToken,
+      context.accessToken,
       customerId,
       adGroupId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -304,12 +372,12 @@ export class GoogleAdsController {
     if (limit) {
       params.limit = Number(limit);
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getKeywordPerformance(
-      accessToken,
+      context.accessToken,
       customerId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -335,13 +403,13 @@ export class GoogleAdsController {
     if (limit) {
       params.limit = Number(limit);
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getSearchTermsReport(
-      accessToken,
+      context.accessToken,
       customerId,
       campaignId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -352,48 +420,32 @@ export class GoogleAdsController {
    * Token is encrypted at rest in the database and decrypted when retrieved.
    */
   /**
-   * Maps a provider failure during OAuth verify to a client-safe HttpException.
-   * A provider 400/401/403 means the code or token is no longer usable and the
-   * user must reconnect; anything else is an upstream failure.
+   * The token and `login-customer-id` for a read. A client reached through a
+   * manager was stored with that manager's id; an explicit caller value wins.
    */
-  private toVerifyException(error: unknown, title: string): HttpException {
-    if (error instanceof HttpException) {
-      return error;
-    }
-
-    const providerStatus = isAxiosError(error) ? error.response?.status : null;
-    const isProviderRejection =
-      providerStatus === HttpStatus.BAD_REQUEST ||
-      providerStatus === HttpStatus.UNAUTHORIZED ||
-      providerStatus === HttpStatus.FORBIDDEN;
-
-    this.loggerService.warn(`${this.constructorName} verify failed: ${title}`, {
-      providerStatus: providerStatus ?? null,
-    });
-
-    return new HttpException(
-      {
-        detail: isProviderRejection
-          ? 'Google rejected the authorization. Reconnect Google Ads and try again.'
-          : 'Google Ads is temporarily unavailable. Try again shortly.',
-        title,
-      },
-      isProviderRejection ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY,
-    );
+  private async getCredentialContext(
+    user: User,
+    loginCustomerId?: string,
+  ): Promise<{ accessToken: string; loginCustomerId?: string }> {
+    const credential = await this.findConnectedCredential(user);
+    return {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken as string),
+      loginCustomerId:
+        loginCustomerId || credential.externalParentId || undefined,
+    };
   }
 
-  private async getAccessTokenFromCredential(user: User): Promise<string> {
-    const organizationId = user.organizationId as string;
-    const userId = (user.userId ?? user.id) as string;
-
+  private async findConnectedCredential(
+    user: User,
+  ): Promise<{ accessToken: string; externalParentId?: string | null }> {
     const credential = await this.credentialsService.findOneSelect(
       {
         isConnected: true,
-        organizationId: organizationId,
+        organizationId: user.organizationId as string,
         platform: CredentialPlatform.GOOGLE_ADS,
-        userId: userId,
+        userId: (user.userId ?? user.id) as string,
       },
-      { accessToken: true },
+      { accessToken: true, externalParentId: true },
     );
 
     if (!credential?.accessToken) {
@@ -403,7 +455,9 @@ export class GoogleAdsController {
       });
     }
 
-    // Decrypt the stored token
-    return EncryptionUtil.decrypt(credential.accessToken);
+    return {
+      accessToken: credential.accessToken,
+      externalParentId: credential.externalParentId,
+    };
   }
 }

@@ -263,7 +263,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(registrar).toContain('wireReportDeliveryExecutor');
     expect(palette).toContain('ALL_ACTIONS');
     expect(palette).toContain("action.visibility === 'workflow'");
-    expect(palette).toContain("type: 'genfeedAction'");
+    expect(palette).toContain(
+      "type: hasEditorNodeType(action.id) ? action.id : 'genfeedAction'",
+    );
     expect(credits).toContain('ALL_ACTIONS');
     expect(credits).toContain('action.credits.amount');
     expect(canvas).toContain('genfeedAction: CloudGenfeedActionNode');

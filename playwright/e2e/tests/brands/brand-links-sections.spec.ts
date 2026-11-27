@@ -161,6 +161,8 @@ test.describe('Brand accounts and website links', () => {
     ).toHaveCount(0);
 
     await tabs.getByRole('link', { name: 'Settings' }).click();
+    // The tab changes in place: the URL follows, with no page reload.
+    await expect(authenticatedPage).toHaveURL(/tab=settings/);
     // With no accounts the table's empty state repeats the same action.
     await expect(
       authenticatedPage

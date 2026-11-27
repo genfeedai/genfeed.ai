@@ -29,7 +29,7 @@ For feed images use [instagram-post](../instagram-post/SKILL.md). For slide post
 1. **Choose the hook** (first 3 seconds, visual plus spoken plus text).
 2. **Write the script** in the template below, scene by scene, with timing.
 3. **Plan the visuals:** footage you have, screen recordings, generated B-roll, text cards.
-4. **Write the caption** (complementary, not a repeat) and 3 to 5 hashtags.
+4. **Write the caption** (complementary, not a repeat) and 3 to 5 hashtags, never more than 5.
 5. **Pick audio direction.**
 6. **Produce or hand off** (see below).
 7. **Check** against the list at the end.
@@ -87,7 +87,8 @@ CTA (last 3s)
 - **Loop potential:** let the last line connect to the first.
 - **Pace:** change something on screen every 1 to 3 seconds.
 - **Caption:** complement the Reel; do not repeat it.
-- **Hashtags:** 3 to 5 relevant tags.
+- **Hashtags:** 3 to 5 relevant tags in the caption, never more than 5 (Instagram's limit since 2025-12-18), each naming something in the Reel. See [official evidence](../instagram-post/references/official-evidence.md).
+- **No third-party watermarks** (Instagram says they can limit reach) and no engagement bait.
 - **Trending audio:** use only if it fits; check licensing for brand and business accounts, since commercial accounts often have a restricted music library (verify in the app).
 - Reach and watch-time claims are creator heuristics, not published weights. Compare against the account's own Insights.
 
@@ -113,7 +114,7 @@ SCRIPT
 [scene-by-scene per template]
 
 Caption: [complementary caption]
-Hashtags: [3-5]
+Hashtags: [3-5, never more than 5]
 Audio direction: [original audio / style of sound / specific idea; no unverified trending claims]
 Shot list: [footage needed, who or what is on screen]
 On-screen text list: [every overlay in order]

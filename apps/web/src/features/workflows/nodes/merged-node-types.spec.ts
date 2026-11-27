@@ -4,11 +4,13 @@ import { cloudNodeTypes } from './merged-node-types';
 
 const ACTION_NODE_TYPES = ['genfeedAction'] as const;
 const ENGINE_NATIVE_NODE_TYPES = [
+  'annotation',
   'commentTrigger',
   'engagementTrigger',
   'input-image',
   'input-video',
   'keywordTrigger',
+  'motionControl',
   'reviewGate',
   'workflowInput',
 ] as const;

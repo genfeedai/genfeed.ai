@@ -11,7 +11,6 @@ import {
   isDesktopClient,
 } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -120,11 +119,7 @@ function useGuideExit(
       const token = await resolveAuthToken(getToken);
       if (!shouldContinue()) return;
       if (!token && isDesktopClient()) {
-        push(
-          isDesktopLocalModeEnabled()
-            ? APP_ROUTES.DESKTOP.LOCAL
-            : APP_ROUTES.LOGIN,
-        );
+        push(APP_ROUTES.LOGIN);
         return;
       }
       if (!token || !userId) throw new Error('Authentication is unavailable');

@@ -82,8 +82,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
     },
     detectLocalTools: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appDetectLocalTools),
-    enableOfflineMode: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appEnableOfflineMode),
     getBootstrap: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appBootstrap),
     getDiagnostics: async () =>
@@ -92,8 +90,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appOpenExternalPath, pathname),
     revealLogs: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appRevealLogs),
-    switchToCloudMode: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appUseCloudMode),
     onDidBootstrapChange: (callback) => {
       const listener = (_event: unknown, bootstrap: unknown) => {
         callback(bootstrap as Parameters<typeof callback>[0]);
@@ -143,11 +139,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
       };
     },
   },
-  cache: {
-    getPath: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cacheGetPath),
-    writeAsset: async (filename, data) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cacheWriteAsset, filename, data),
-  },
   cloud: {
     generateContent: async (params) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cloudGenerateContent, params),
@@ -176,86 +167,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
     runWorkflow: async (params) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cloudRunWorkflow, params),
   },
-  drafts: {
-    delete: async (workspaceId, draftId) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.draftsDelete,
-        workspaceId,
-        draftId,
-      ),
-    get: async (workspaceId, draftId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.draftsGet, workspaceId, draftId),
-    list: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.draftsList, workspaceId),
-    save: async (workspaceId, draft) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.draftsSave, workspaceId, draft),
-  },
-  files: {
-    getAssetUrl: async (assetId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesGetAssetUrl, assetId),
-    importAssets: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesImportAssets, workspaceId),
-    listAssets: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesListAssets, workspaceId),
-    openFileDialog: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFileDialog),
-    revealAsset: async (assetId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesRevealAsset, assetId),
-    readFile: async (workspaceId, relativePath) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.filesRead,
-        workspaceId,
-        relativePath,
-      ),
-    writeFile: async (workspaceId, relativePath, contents) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.filesWrite,
-        workspaceId,
-        relativePath,
-        contents,
-      ),
-  },
-  generation: {
-    cancelGenerationJob: async (jobId) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
-        jobId,
-      ),
-    clearProviderConfig: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationClearProviderConfig),
-    enqueueAssetGeneration: async (request) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
-        request,
-      ),
-    generateWorkflow: async (params) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
-        params,
-      ),
-    getGenerationJob: async (jobId) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
-        jobId,
-      ),
-    getProviderConfig: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationGetProviderConfig),
-    listGenerationJobs: async (workspaceId) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
-        workspaceId,
-      ),
-    saveProviderConfig: async (config) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
-        config,
-      ),
-    testProviderConfig: async (config) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
-        config,
-      ),
-  },
   notifications: {
     notify: async (title, body) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.notify, title, body),
@@ -276,73 +187,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverSelect, selection),
     validateSelfHosted: async (config) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverValidate, config),
-  },
-  sync: {
-    ackOps: async (cloudUserId, ops) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, cloudUserId, ops),
-    applyBrandManifest: async (cloudUserId, manifest) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
-        cloudUserId,
-        manifest,
-      ),
-    getConsent: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetConsent),
-    getCursor: async (cloudUserId, scope) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncGetCursor,
-        cloudUserId,
-        scope,
-      ),
-    getJobs: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetJobs, workspaceId),
-    getOps: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetOps, workspaceId),
-    getState: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetState),
-    onSyncThreadsRequested: (callback) => {
-      const listener = () => callback();
-      ipcRenderer.on(DESKTOP_IPC_CHANNELS.syncThreadsRequested, listener);
-      return () =>
-        ipcRenderer.off(DESKTOP_IPC_CHANNELS.syncThreadsRequested, listener);
-    },
-    queueOp: async (
-      entityType,
-      entityId,
-      operation,
-      payload,
-      workspaceId,
-      baseVersion,
-    ) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncQueueOp,
-        entityType,
-        entityId,
-        operation,
-        payload,
-        workspaceId,
-        baseVersion,
-      ),
-    recordAssetSync: async (cloudUserId, update) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
-        cloudUserId,
-        update,
-      ),
-    setConsent: async (cloudUserId, input) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncSetConsent,
-        cloudUserId,
-        input,
-      ),
-    setCursor: async (cloudUserId, cursor: string, scope) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncSetCursor,
-        cloudUserId,
-        cursor,
-        scope,
-      ),
-    triggerThreads: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
   },
   terminal: {
     create: async (options) =>
@@ -380,28 +224,42 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalWrite, sessionId, data),
   },
   workspace: {
-    getRecentWorkspaces: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRecent),
-    linkCloudContext: async (workspaceId, input) =>
+    chooseProjectsHome: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceChooseProjectsHome),
+    createProject: async (request) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceCreateProject, request),
+    getState: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceGetState),
+    linkContext: async (workspaceId, context) =>
       ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext,
+        DESKTOP_IPC_CHANNELS.workspaceLinkContext,
         workspaceId,
-        input,
+        context,
       ),
-    linkProject: async (workspaceId, projectId) =>
+    listDirectory: async (workspaceId, relativePath) =>
       ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.workspaceLinkProject,
+        DESKTOP_IPC_CHANNELS.workspaceListDirectory,
         workspaceId,
-        projectId,
+        relativePath,
       ),
-    openWorkspace: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceOpen),
-    readWorkspace: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRead, workspaceId),
-    revealInFinder: async (workspaceId) =>
+    onDidChange: (callback) => {
+      const listener = (_event: unknown, state: unknown) => {
+        callback(state as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.workspaceChanged, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.workspaceChanged, listener);
+      };
+    },
+    openFolder: async (context) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceOpenFolder, context),
+    remove: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRemove, workspaceId),
+    revealInFileManager: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceReveal, workspaceId),
-    selectWorkspace: async (workspaceId) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceSelect, workspaceId),
+    setActive: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceSetActive, workspaceId),
   },
 };
 
