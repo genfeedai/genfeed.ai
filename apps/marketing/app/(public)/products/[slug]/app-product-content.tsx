@@ -176,11 +176,12 @@ export default function AppProductContent({ product }: AppProductContentProps) {
         <section className="gsap-section mx-auto max-w-4xl px-6 pb-24">
           <SectionHeading
             eyebrow="Access and pricing"
-            title="Start free, pay for output"
+            title="Pay when you publish"
           />
           <Text className="mb-8 max-w-xl text-base leading-7 text-foreground/70">
-            {APP_PRODUCT_ACCESS_LABELS[product.access]}. Generation spends
-            credits, and the open source Community build is free to self-host.
+            {APP_PRODUCT_ACCESS_LABELS[product.access]}. You try it on your
+            brand first, publishing starts with a plan or credits, and the open
+            source Community build is free to self-host.
           </Text>
           <PricingStrip />
         </section>

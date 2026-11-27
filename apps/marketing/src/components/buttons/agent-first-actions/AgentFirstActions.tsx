@@ -1,6 +1,6 @@
 'use client';
 
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentFirstActionsProps } from '@props/website/agent-first-actions.props';
 import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
@@ -13,7 +13,7 @@ import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 */
 export default function AgentFirstActions({
   signUpHref = getAppSignUpUrl(),
-  signUpLabel = 'Start for $0',
+  signUpLabel = SIGN_UP_LABEL,
   trackingName,
 }: AgentFirstActionsProps): React.ReactElement {
   return (

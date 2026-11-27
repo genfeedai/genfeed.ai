@@ -87,7 +87,7 @@ export default function ProfileSubscribe({
       title: 'What you get',
     },
     {
-      body: 'A free Genfeed account. Sign up with Google or an email link.',
+      body: 'A Genfeed account. Sign up with Google or an email link.',
       icon: UserPlus,
       title: 'What you need',
     },

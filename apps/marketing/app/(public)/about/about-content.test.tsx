@@ -91,7 +91,7 @@ describe('AboutContent', () => {
     const pricing = terms.find((term) => term.textContent === 'Pricing');
 
     expect(pricing?.nextElementSibling?.textContent).toBe(
-      'Pay As You Go (free), Pro ($49/month), Scale ($499/month), Enterprise (from $2,500/month). Credits cost $0.01 each on Pay As You Go and less on subscriptions.',
+      'Pay As You Go (credits from $10), Pro ($49/month), Scale ($499/month), Enterprise (from $2,500/month). Credits cost $0.01 each on Pay As You Go and less on subscriptions.',
     );
   });
 
@@ -100,7 +100,7 @@ describe('AboutContent', () => {
 
     expect(
       screen.getByText(
-        'Pay As You Go is free to join and you pay per output, at one cent per credit. Pro is $49/month, Scale is $499/month, and Enterprise is from $2,500/month.',
+        'There is no free tier on the cloud: you try it on your brand, then pay when you publish. Pay As You Go is pay per output, at one cent per credit. Pro is $49/month, Scale is $499/month, and Enterprise is from $2,500/month.',
       ),
     ).toBeInTheDocument();
   });

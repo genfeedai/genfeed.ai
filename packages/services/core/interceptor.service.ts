@@ -1,4 +1,5 @@
 import { ModalEnum } from '@genfeedai/contracts';
+import { PUBLISHING_PAYMENT_REQUIRED_CODE } from '@genfeedai/contracts/api-types/contracts/publishing-payment.contract';
 import { X_POSTING_INSUFFICIENT_CREDITS_CODE } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
@@ -553,6 +554,14 @@ export abstract class HTTPBaseService {
         refusalCode === X_POSTING_INSUFFICIENT_CREDITS_CODE)
     ) {
       openModal(ModalEnum.CREDITS_REQUIRED);
+    }
+    // An organization that never paid cannot schedule or publish: Cloud has no
+    // free tier. Its drafts stay; the prompt offers a plan or credits.
+    if (
+      typeof window !== 'undefined' &&
+      refusalCode === PUBLISHING_PAYMENT_REQUIRED_CODE
+    ) {
+      openModal(ModalEnum.PUBLISHING_PAYMENT_REQUIRED);
     }
 
     // In production, sanitize error data. Throw a real Error (not a plain

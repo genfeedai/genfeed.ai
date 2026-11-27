@@ -35,7 +35,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$144-912',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -84,7 +84,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$120',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -132,7 +132,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$348-1548',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -181,7 +181,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$588-1500',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -225,7 +225,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$72-1440',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -278,7 +278,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$144-288',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -326,7 +326,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$264-708',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -376,7 +376,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$288-576',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -430,7 +430,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$228-468',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -479,7 +479,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$180-360',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -533,7 +533,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$348-1788',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -583,7 +583,7 @@ export const competitors: Competitor[] = [
       {
         competitor: 'Free-$96',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -656,7 +656,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$348-1188 or self-host',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -713,7 +713,7 @@ export const competitors: Competitor[] = [
       {
         competitor: 'Free tier + credit plans',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -768,7 +768,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$468-5988',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
@@ -823,14 +823,14 @@ export const competitors: Competitor[] = [
       {
         competitor: 'In-app credit plans',
         feature: 'Entry price',
-        genfeed: 'Free + pay-per-output credits',
+        genfeed: 'Credits from $10, or a monthly plan',
       },
     ],
     genfeedAdvantages: [
       'Ad variants plus image, voice, articles, and other video',
       'Review before a creative is scheduled',
       'Publishing to connected channels from the same workspace',
-      'A public price: free to join, then pay for output',
+      'A public price: try it on your brand, then pay when you publish',
     ],
     name: 'Arcads',
     pricing: 'In-app credit plans',

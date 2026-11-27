@@ -1,4 +1,4 @@
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
@@ -122,7 +122,7 @@ export default function SelfHostedContent() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Start free on cloud
+                {SIGN_UP_LABEL}
               </a>
             </Button>
           </div>
@@ -281,7 +281,7 @@ export default function SelfHostedContent() {
                   'Managed credits: pay only for output',
                   'No ops, no scaling to manage',
                   'Direct support and SLAs on paid plans',
-                  'Start free on Pay As You Go',
+                  'Try it on your brand, pay when you publish',
                 ].map((item) => (
                   <li
                     key={item}
@@ -308,11 +308,11 @@ export default function SelfHostedContent() {
         <CtaSection
           bg="subtle"
           title="Ship it your way"
-          description="Start free on managed cloud, or deploy the open-source core on your own infrastructure."
+          description="Use managed cloud and pay when you publish, or deploy the open-source core free on your own infrastructure."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={cloudSignUpHref} target="_blank" rel="noopener noreferrer">
-              Start free on cloud
+              {SIGN_UP_LABEL}
             </a>
           </Button>
           <Button

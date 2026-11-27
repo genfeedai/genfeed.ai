@@ -24,12 +24,12 @@ describe('HomeCTA', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect Agent', 'Start for $0', 'See plans and pricing']);
+    ).toEqual(['Connect Agent', 'Start creating', 'See plans and pricing']);
     expect(
       screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
-      screen.getByRole('link', { name: /start for \$0/i }),
+      screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(screen.queryByText(/demo/i)).not.toBeInTheDocument();
   });

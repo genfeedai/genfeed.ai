@@ -81,14 +81,14 @@ describe('plan lookups', () => {
 
 describe('plan price formatting', () => {
   it('formats compact price labels per tier', () => {
-    expect(formatPlanPriceLabel('payg')).toBe('Free');
+    expect(formatPlanPriceLabel('payg')).toBe('From $10');
     expect(formatPlanPriceLabel('pro')).toBe('$49/mo');
     expect(formatPlanPriceLabel('scale')).toBe('$499/mo');
     expect(formatPlanPriceLabel('enterprise')).toBe('Custom');
   });
 
   it('formats prose monthly prices per tier', () => {
-    expect(formatPlanMonthlyPrice('payg')).toBe('free');
+    expect(formatPlanMonthlyPrice('payg')).toBe('credits from $10');
     expect(formatPlanMonthlyPrice('pro')).toBe('$49/month');
     expect(formatPlanMonthlyPrice('scale')).toBe('$499/month');
     expect(formatPlanMonthlyPrice('enterprise')).toBe('custom');

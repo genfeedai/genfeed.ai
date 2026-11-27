@@ -884,7 +884,7 @@
     },
     "packages/contracts": {
       "name": "@genfeedai/contracts",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "twitter-text": "3.1.0",
         "zod": "4.6.7",
@@ -975,7 +975,7 @@
     },
     "packages/helpers": {
       "name": "@genfeedai/helpers",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
         "clsx": "2.1.1",
@@ -1227,7 +1227,7 @@
     },
     "packages/ui": {
       "name": "@genfeedai/ui",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",

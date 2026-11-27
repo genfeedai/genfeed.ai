@@ -3,6 +3,7 @@ import {
   isMcpRemovalTool,
   McpToolInputError,
 } from '@genfeedai/actions';
+import { PUBLISHING_PAYMENT_REQUIRED_CODE } from '@genfeedai/contracts/api-types/contracts/publishing-payment.contract';
 import { X_POSTING_INSUFFICIENT_CREDITS_CODE } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import {
   APP_ROUTES,
@@ -614,6 +615,19 @@ export function classifyMcpToolFailure(
         validationErrors.length === 1
           ? validationErrors[0].message
           : 'Validation failed',
+    });
+  }
+
+  // Cloud has no free tier: an organization that never paid cannot schedule
+  // or publish. A plan or a credit pack fixes it, so the plans page is the
+  // next step, not the credits page.
+  if (domainCode === PUBLISHING_PAYMENT_REQUIRED_CODE) {
+    return compactToolError({
+      code: 'plan_required',
+      message:
+        message ||
+        'Publishing and scheduling start with your first payment: a plan or credits.',
+      nextStepUrl: appUrl(APP_ROUTES.ONBOARDING.PLANS),
     });
   }
 

@@ -96,24 +96,31 @@ describe('OrganizationPublishingCapsCard', () => {
     expect(screen.getAllByText(/^Up to \d+ on your plan\.$/)).toHaveLength(4);
   });
 
-  it('locks every slider at 1 a day before the first payment', () => {
+  it('locks every slider at 0 before the first payment and links to the plans', () => {
     useSettings('trial');
     render(<OrganizationPublishingCapsCard />);
 
     for (const name of ['X', 'Instagram', 'YouTube', 'TikTok']) {
       expect(screen.getByRole('slider', { name })).toHaveAttribute(
         'aria-valuetext',
-        '1',
+        '0',
       );
       expect(screen.getByRole('slider', { name })).toHaveAttribute(
         'data-disabled',
       );
     }
-    expect(screen.getAllByText('1 / day')).toHaveLength(4);
+    // 0 means nothing publishes here, so it never reads as "No cap".
+    expect(screen.getAllByText('Locked')).toHaveLength(4);
+    expect(screen.queryByText('No cap')).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Your first payment, credits or a plan, unlocks/),
+      screen.getByText(
+        /Publishing and scheduling start with your first payment/,
+      ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Choose a plan')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Choose a plan' })).toHaveAttribute(
+      'href',
+      '/onboarding/plans',
+    );
   });
 
   it('caps a credit buyer at 5 and offers the plan', () => {

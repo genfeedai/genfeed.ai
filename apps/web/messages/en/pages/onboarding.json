@@ -365,5 +365,28 @@
         "note": "Your agent spends from the same balance. Free credits expire after 3 days on an account that never paid."
       }
     }
+  },
+  "plans": {
+    "title": "Your first posts are ready. Pick a plan to publish them.",
+    "body": "Your drafts stay saved. Publishing and scheduling start with your first payment, a plan or a credit pack.",
+    "choiceLabel": "Plan",
+    "planCredits": "{target}. {credits} every month.",
+    "perMonth": "{price}/mo",
+    "creditsTitle": "Credits only",
+    "creditsDescription": "No subscription. {credits} credits to start, buy more when you need them.",
+    "creditsPrice": "{price} to start",
+    "continue": "Continue with {plan}",
+    "stripeNote": "Payment runs on Stripe Checkout.",
+    "unavailable": "Not available right now.",
+    "checkoutFailed": "Checkout did not open. Please try again.",
+    "draftsPrompt": "Not ready yet?",
+    "draftsLink": "Read my drafts first",
+    "doneForYouPrompt": "Want our team to make the content?",
+    "doneForYouLink": "Book a call",
+    "skillsPrompt": "Rather run it yourself? The Genfeed skills are free and open source.",
+    "skillsLink": "Get the skills",
+    "paidTitle": "You're all set",
+    "paidBody": "Your workspace is paid for. Your first posts are in Publishing, ready to schedule.",
+    "openWorkspace": "Open my workspace"
   }
 }

@@ -16,7 +16,7 @@ import {
  *
  * Pricing Strategy:
  * - Credits are the user-facing unit of output: 1 credit = $0.01 PAYG.
- * - Pay As You Go is free to join: buy credit packs, spend on any output
+ * - Pay As You Go has no subscription: buy credit packs, spend on any output
  * - Pro matches the pay-as-you-go rate (Pro $49 → 4,900 credits) and sells
  *   access to every app. Scale sells a better credit rate: its included
  *   monthly credits carry a ~40% bonus (Scale $499 → 70,000 credits ≈ $700
@@ -121,6 +121,11 @@ const PLAN_PRICES = {
   pro: 49,
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
+
+/** Custom PAYG top-up bounds in whole dollars (1 credit = $0.01). */
+export const PAYG_CREDITS_PER_USD = 100;
+export const PAYG_MIN_PURCHASE_USD = 10;
+export const PAYG_MAX_PURCHASE_USD = 10_000;
 
 export interface LaunchPromotionProps {
   /** Stripe promotion code Checkout applies for the customer. */
@@ -525,11 +530,11 @@ export const IMAGE_CREDIT_COSTS = {
  * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud
  */
 export const websitePlans: WebsitePlanProps[] = [
-  // Pay As You Go Tier - free account, credits only ($0/month)
+  // Pay As You Go Tier - no subscription, credit packs from $10
   {
-    cta: 'Start Free',
+    cta: 'Buy credits',
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=payg`,
-    description: 'Free account with pay-per-output credits',
+    description: 'No subscription: buy credits when you need them',
     features: [
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
@@ -671,7 +676,9 @@ export function formatTierLabel(
 }
 
 /**
- * Marketing price label for a tier, e.g. "$49/mo", "Free", "Custom".
+ * Marketing price label for a tier, e.g. "$49/mo", "From $10", "Custom".
+ * Pay As You Go has no monthly price: it starts with the smallest credit pack.
+ * Cloud has no free tier, so no plan is labelled free.
  */
 export function formatPlanPriceLabel(tier: PlanTier): string {
   const { price } = getPlanByTier(tier);
@@ -680,14 +687,14 @@ export function formatPlanPriceLabel(tier: PlanTier): string {
     return 'Custom';
   }
   if (price === 0) {
-    return 'Free';
+    return `From $${formatPricingNumber(PAYG_MIN_PURCHASE_USD)}`;
   }
 
   return `$${formatPricingNumber(price)}/mo`;
 }
 
 /**
- * Long-form price for prose, e.g. "$49/month", "free", "custom".
+ * Long-form price for prose, e.g. "$49/month", "credits from $10", "custom".
  */
 export function formatPlanMonthlyPrice(tier: PlanTier): string {
   const { price } = getPlanByTier(tier);
@@ -696,7 +703,7 @@ export function formatPlanMonthlyPrice(tier: PlanTier): string {
     return 'custom';
   }
   if (price === 0) {
-    return 'free';
+    return `credits from $${formatPricingNumber(PAYG_MIN_PURCHASE_USD)}`;
   }
 
   return `$${formatPricingNumber(price)}/month`;
@@ -759,13 +766,13 @@ export interface PlanCopyProps {
   includedCredits: string;
   /** PAYG value of the included credits, e.g. "$59" ('' when none). */
   includedCreditsValue: string;
-  /** Prose price, e.g. "$49/month", "free", "custom". */
+  /** Prose price, e.g. "$49/month", "credits from $10", "custom". */
   monthlyPrice: string;
   /** Display name, e.g. "Scale". */
   name: string;
   /** Name plus prose price, e.g. "Scale ($499/month)". */
   nameWithPrice: string;
-  /** Compact price label, e.g. "$49/mo", "Free", "Custom". */
+  /** Compact price label, e.g. "$49/mo", "From $10", "Custom". */
   priceLabel: string;
 }
 
@@ -859,11 +866,6 @@ export const PAYG_CREDIT_PACKS: CreditPackTier[] = [
   { bonus: null, credits: 10_000, label: '$100' },
   { bonus: null, credits: 100_000, label: '$1,000' },
 ];
-
-/** Custom PAYG top-up bounds in whole dollars (1 credit = $0.01). */
-export const PAYG_CREDITS_PER_USD = 100;
-export const PAYG_MIN_PURCHASE_USD = 10;
-export const PAYG_MAX_PURCHASE_USD = 10_000;
 
 /** Subset of top-up presets shown on public marketing pages (website, home). */
 export const WEBSITE_CREDIT_PACKS = PAYG_CREDIT_PACKS.filter((p) =>

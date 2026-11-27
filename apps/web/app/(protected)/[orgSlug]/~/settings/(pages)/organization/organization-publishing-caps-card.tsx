@@ -131,7 +131,7 @@ function PublishingCapsForm() {
                   disabled={isLocked}
                   id={field.id}
                   max={readMax(field.key)}
-                  min={tier === 'unmetered' ? 0 : 1}
+                  min={tier === 'unmetered' || isLocked ? 0 : 1}
                   onValueChange={([next]) =>
                     setDrafts((current) => ({ ...current, [field.key]: next }))
                   }
@@ -140,9 +140,11 @@ function PublishingCapsForm() {
                   value={[value]}
                 />
                 <span className="w-20 shrink-0 text-right text-sm tabular-nums">
-                  {value === 0
-                    ? translate('noCap')
-                    : translate('perDay', { count: value })}
+                  {isLocked
+                    ? translate('locked')
+                    : value === 0
+                      ? translate('noCap')
+                      : translate('perDay', { count: value })}
                 </span>
               </div>
               <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
@@ -156,6 +158,13 @@ function PublishingCapsForm() {
       {tier === 'trial' ? (
         <Alert className="mt-5" variant="note">
           <AlertDescription>{translate('notice.trial')}</AlertDescription>
+          <AlertActions>
+            <Button asChild size={ButtonSize.SM}>
+              <Link href={APP_ROUTES.ONBOARDING.PLANS}>
+                {translate('notice.choosePlan')}
+              </Link>
+            </Button>
+          </AlertActions>
         </Alert>
       ) : null}
       {tier === 'credits' ? (

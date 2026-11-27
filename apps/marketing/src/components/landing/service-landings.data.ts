@@ -81,7 +81,7 @@ const COMMON_SERVICE_INCLUDES = serviceOffering.includes;
 export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
     closingDescription:
-      'Start free and run it yourself on Genfeed, or book a call and we will scope the engagement.',
+      'Run it yourself on Genfeed and pay when you publish, or book a call and we will scope the engagement.',
     closingTitle: 'If You Need Content Volume Without Building a Team',
     deliverableBuckets: [
       {
@@ -260,7 +260,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'Start for $0. Paid usage follows your Genfeed plan and credits. You can connect your agent and create a first draft without a sales call.',
+          'Try it on your brand first: connect your agent and create a first draft without a sales call. Publishing starts with a Genfeed plan or a credit pack.',
         question: 'How does pricing work?',
       },
     ],
@@ -449,7 +449,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     closingDescription:
-      'If you have a specific launch window, start free on Genfeed or book a call and we will scope the sprint.',
+      'If you have a specific launch window, try Genfeed on your brand or book a call and we will scope the sprint.',
     closingTitle: 'Launch Content Without Last-Minute Chaos',
     deliverableBuckets: [
       {

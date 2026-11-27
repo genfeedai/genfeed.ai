@@ -35,7 +35,7 @@ export function buildPricingJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     about: buildDoneForYouJsonLd(),
-    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} adds every app and monthly credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats and client workspaces for agencies. ${serviceOffering.name} is ${serviceOffering.priceLabel.toLowerCase()}, with our team making your content.`,
+    description: `Try Genfeed on your brand and pay when you publish, with credits from $10. ${PLAN_COPY.pro.nameWithPrice} adds every app and monthly credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats and client workspaces for agencies. ${serviceOffering.name} is ${serviceOffering.priceLabel.toLowerCase()}, with our team making your content.`,
     mainEntity: {
       '@type': 'Product',
       brand: { '@type': 'Organization', name: 'Genfeed' },

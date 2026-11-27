@@ -83,7 +83,7 @@ describe('agent clients', () => {
   it('renders chat-connector clients into the agent markdown without a manual key', () => {
     const markdown = renderAgentConnectMarkdown({
       includeManualKey: true,
-      pricingSummary: 'Free to join.',
+      pricingSummary: 'Pay when you publish.',
     });
     const museSection = markdown.slice(
       markdown.indexOf('### Meta Muse'),

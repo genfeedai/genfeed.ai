@@ -7,6 +7,7 @@ import {
   flattenPostIngredients,
   orderedPostIngredientLinks,
 } from '@api/collections/posts/services/post-ingredient-links.util';
+import { assertPublishingPaymentAdmission } from '@api/collections/posts/services/post-publishing-payment-admission.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import {
   SERVER_TOKENS,
@@ -279,6 +280,19 @@ export class PostLifecycleService {
         ...input.mutation,
         targetExecutionState: input.nextState,
       });
+      // Only a new intent to publish is refused: a target already scheduled or
+      // in flight keeps moving (the worker refuses an unpaid delivery itself).
+      if (
+        currentState !== TargetExecutionState.SCHEDULED &&
+        currentState !== TargetExecutionState.PUBLISHING
+      ) {
+        await assertPublishingPaymentAdmission(transaction, {
+          ...target,
+          ...input.mutation,
+          organizationId: input.organizationId,
+          targetExecutionState: input.nextState,
+        });
+      }
     }
 
     if (currentState === input.nextState) {

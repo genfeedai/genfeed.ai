@@ -1,4 +1,6 @@
 'use client';
+
+import { readIsNeverPaid } from '@app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook';
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import {
   type BrandContextType,
@@ -135,7 +137,12 @@ function useGuideExit(
       });
       if (!shouldContinue()) return;
       await refetchUser();
-      if (shouldContinue()) push('/');
+      // Cloud has no free tier: skipping still lands an organization that
+      // never paid on the plan and credits choice.
+      const isNeverPaid = await readIsNeverPaid(token);
+      if (shouldContinue()) {
+        push(isNeverPaid ? APP_ROUTES.ONBOARDING.PLANS : '/');
+      }
     } catch (error) {
       if (!shouldContinue()) return;
       logger.error('Failed to exit brand onboarding', error);

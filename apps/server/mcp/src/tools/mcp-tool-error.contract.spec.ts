@@ -161,6 +161,20 @@ describe('MCP tool error contract', () => {
     });
   });
 
+  it('sends a never-paid publish to the plans page, not the credits page', () => {
+    expect(
+      classifyMcpToolFailure({
+        domainCode: 'publishing_payment_required',
+        message: 'Publishing and scheduling start with your first payment.',
+        status: 402,
+      }),
+    ).toMatchObject({
+      code: 'plan_required',
+      message: 'Publishing and scheduling start with your first payment.',
+      nextStepUrl: appUrl(APP_ROUTES.ONBOARDING.PLANS),
+    });
+  });
+
   it('returns insufficient_credits for the ledger exception', () => {
     const error = classifyMcpToolFailure({
       domainCode: 'INSUFFICIENT_CREDITS',

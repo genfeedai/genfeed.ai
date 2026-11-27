@@ -90,12 +90,18 @@ function useAppNavigation() {
  * Admission is all-or-nothing, so this is also the answer when some credits
  * are left but not enough for the action. Read-only pages stay reachable.
  */
-function CreditsRequiredPrompt() {
-  const translate = useTranslations('ui.creditsRequiredPrompt');
+function CreditsRequiredPrompt({
+  modalId = ModalEnum.CREDITS_REQUIRED,
+  namespace = 'ui.creditsRequiredPrompt',
+}: {
+  modalId?: ModalEnum;
+  namespace?: 'ui.creditsRequiredPrompt' | 'ui.publishingPaymentPrompt';
+}) {
+  const translate = useTranslations(namespace);
   const { isNavigating, navigateTo } = useAppNavigation();
 
   return (
-    <Modal id={ModalEnum.CREDITS_REQUIRED} title={translate('title')}>
+    <Modal id={modalId} title={translate('title')}>
       <div className="space-y-6 py-2">
         <div className="flex items-start gap-3 p-4 bg-primary/5 shadow-border">
           <Coins className="size-5 text-primary flex-shrink-0 mt-0.5" />
@@ -141,6 +147,16 @@ export default function ModalUpgradePrompt({
 }: ModalUpgradePromptProps) {
   if (reason === 'credits') {
     return <CreditsRequiredPrompt />;
+  }
+
+  // Never paid: the same two ways out, worded for a refused publish.
+  if (reason === 'publishing') {
+    return (
+      <CreditsRequiredPrompt
+        modalId={ModalEnum.PUBLISHING_PAYMENT_REQUIRED}
+        namespace="ui.publishingPaymentPrompt"
+      />
+    );
   }
 
   return (
