@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import {
   HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
@@ -91,7 +91,7 @@ describe('HomeHero', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect Agent', 'Start creating']);
+    ).toEqual(['Connect Agent', 'Start creating', 'See pricing']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -159,9 +159,20 @@ describe('HomeHero', () => {
     expect(
       screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+  });
+
+  it('puts the price under the buttons and links to pricing', () => {
+    render(<HomeHero />);
+
+    const actions = screen.getByTestId('home-hero-actions');
+    const price = within(actions).getByTestId('home-price-line');
+
+    expect(price).toHaveTextContent(
+      'Plans from $39 a month, or pay as you go from $10.',
+    );
     expect(
-      screen.getByText('Connecting takes one sign-in.'),
-    ).toBeInTheDocument();
+      within(price).getByRole('link', { name: 'See pricing' }),
+    ).toHaveAttribute('href', '/pricing');
   });
 
   it('names the category and covers every content type, not just video', () => {

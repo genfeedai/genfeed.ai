@@ -7,6 +7,10 @@ export interface UseCase {
   subtitle: string;
   headline: string;
   description: string;
+  /** Meta description, 110-158 characters. */
+  seoDescription: string;
+  /** Page title before the brand suffix. */
+  seoTitle: string;
   audience: string;
   painPoints: string[];
   solutions: string[];
@@ -50,6 +54,9 @@ export const useCases: UseCase[] = [
       'Reuse persona references across content drafts',
     ],
     slug: 'ai-influencers',
+    seoDescription:
+      'Create a virtual persona, generate on-brand images and videos with an AI influencer generator, then review and schedule posts to your channels.',
+    seoTitle: 'AI Influencer Generator: Virtual Personas',
     solutions: [
       'Define persona, voice, visual style, and brand guidelines',
       'Generate photorealistic AI avatars for video and image content',
@@ -113,6 +120,9 @@ export const useCases: UseCase[] = [
       'Find the content formats that worked for you',
     ],
     slug: 'creators',
+    seoDescription:
+      'Turn ideas into video drafts, thumbnails and clips. Review them, publish to YouTube, TikTok and Instagram, and compare available performance data.',
+    seoTitle: 'Genfeed for Content Creators',
     solutions: [
       'Generate videos from a short brief',
       'See what is trending in your niche',
@@ -182,6 +192,9 @@ export const useCases: UseCase[] = [
       'Repeat production workflows across client brands',
     ],
     slug: 'agencies',
+    seoDescription:
+      "Create content and ad variations for every client, keep each brand's context and assets organized, and review the work before it publishes.",
+    seoTitle: 'Genfeed for Agencies and Client Content Teams',
     solutions: [
       'Keep client brands and their content organized in shared workspaces',
       'Generate image, video and copy variations from a campaign brief',
@@ -251,6 +264,9 @@ export const useCases: UseCase[] = [
       'Compare available product-content performance',
     ],
     slug: 'ecommerce',
+    seoDescription:
+      'Generate product videos, lifestyle shots and social ad drafts for your store, then compare available views and engagement after publishing.',
+    seoTitle: 'Product Videos and Ads for Ecommerce Brands',
     solutions: [
       'Generate product videos and lifestyle images from product photos',
       'Bulk content generation for entire catalogs',
@@ -319,6 +335,9 @@ export const useCases: UseCase[] = [
       'Schedule approved content ahead of time',
     ],
     slug: 'marketers',
+    seoDescription:
+      'Use content marketing AI to draft campaigns, publish approved content and compare available performance data to plan your next brief.',
+    seoTitle: 'Content Marketing AI for Brand Marketers',
     solutions: [
       'Generate creative variations for testing',
       'Compare available post performance',
@@ -392,6 +411,9 @@ export const useCases: UseCase[] = [
       'Review available post performance before your next update',
     ],
     slug: 'founders',
+    seoDescription:
+      'Turn product updates, demos and expertise into content people follow. Review drafts, publish consistently and keep building your product.',
+    seoTitle: 'Genfeed for Founders: Content While You Build',
     solutions: [
       'Create posts and visuals from product updates, demos and notes',
       'Prepare reply drafts for relevant questions and conversations',

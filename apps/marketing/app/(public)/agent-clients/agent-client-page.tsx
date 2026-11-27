@@ -15,7 +15,7 @@ export function createAgentClientMetadata(slug: AgentClientSlug) {
   const client = getAgentClient(slug);
 
   return createPageMetadataWithCanonical(
-    client.title,
+    `${client.title}: Connect via MCP`,
     client.description,
     `/${client.slug}`,
   );

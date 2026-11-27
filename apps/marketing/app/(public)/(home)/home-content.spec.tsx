@@ -32,6 +32,14 @@ vi.mock('@web-components/home/_loop', () => ({
   default: () => <section data-testid="home-loop">Loop</section>,
 }));
 
+vi.mock('@web-components/home/_market', () => ({
+  default: () => <section data-testid="home-market">Market</section>,
+}));
+
+vi.mock('@web-components/home/_pricing', () => ({
+  default: () => <section data-testid="home-pricing">Pricing</section>,
+}));
+
 vi.mock('@web-components/home/_faq', () => ({
   default: () => <section data-testid="home-faq">FAQ</section>,
 }));
@@ -61,32 +69,34 @@ describe('HomeContent', () => {
     );
   });
 
-  it('shows output first, then what it makes, then what it manages', () => {
+  it('shows output first, then what it makes, then what is working, then what it manages', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
     expect(sections[0]).toBe(screen.getByTestId('home-hero'));
     expect(sections[1]).toBe(screen.getByTestId('home-product'));
-    expect(sections[2]).toBe(screen.getByTestId('home-loop'));
+    expect(sections[2]).toBe(screen.getByTestId('home-market'));
+    expect(sections[3]).toBe(screen.getByTestId('home-loop'));
   });
 
   it('puts the agent entry and how it works before the examples', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[3]).toBe(screen.getByTestId('home-agents'));
-    expect(sections[4]).toBe(screen.getByTestId('home-how'));
-    expect(sections[5]).toBe(screen.getByTestId('home-asks'));
+    expect(sections[4]).toBe(screen.getByTestId('home-agents'));
+    expect(sections[5]).toBe(screen.getByTestId('home-how'));
+    expect(sections[6]).toBe(screen.getByTestId('home-asks'));
   });
 
   // The providers wall is supporting depth, not part of the opening claim.
-  it('places the providers wall and the questions after the examples, then the close', () => {
+  it('places the providers wall, the price strip and the questions after the examples, then the close', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[6]).toBe(screen.getByTestId('home-providers'));
-    expect(sections[7]).toBe(screen.getByTestId('home-faq'));
-    expect(sections[8]).toBe(screen.getByTestId('home-cta'));
+    expect(sections[7]).toBe(screen.getByTestId('home-providers'));
+    expect(sections[8]).toBe(screen.getByTestId('home-pricing'));
+    expect(sections[9]).toBe(screen.getByTestId('home-faq'));
+    expect(sections[10]).toBe(screen.getByTestId('home-cta'));
   });
 
   it('keeps the newsletter in the footer, not as a page section', () => {

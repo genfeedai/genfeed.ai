@@ -2,6 +2,7 @@ import { buildComparisonFaqJsonLd } from '@data/comparison-faq-jsonld';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
+import { fitDescription } from '@data/seo-copy';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import ComparisonPage from '@public/vs/[slug]/comparison-page';
 import { getCompetitorBySlugCached } from '@public/vs/[slug]/competitor-loader';
@@ -13,6 +14,13 @@ import { Suspense } from 'react';
 
 export function generateStaticParams() {
   return getAllCompetitorSlugs().map((slug) => ({ slug }));
+}
+
+export function buildComparisonDescription(competitorName: string): string {
+  return fitDescription(
+    `Genfeed vs ${competitorName}: what each makes, where it publishes and what it costs, so you can pick the tool that fits how you create and post.`,
+    `Genfeed vs ${competitorName}: compare what each tool makes, which channels it publishes to and what each plan costs, side by side.`,
+  );
 }
 
 export async function generateMetadata(
@@ -27,7 +35,7 @@ export async function generateMetadata(
 
   const competitorName = competitor.name;
   const title = `Genfeed vs ${competitorName} (2026): features and pricing compared`;
-  const description = `Genfeed vs ${competitorName}: what each makes, where it publishes, what it costs.`;
+  const description = buildComparisonDescription(competitorName);
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
 
   const previousImages = [getMarketingOgImage(`/vs/${slug}`, competitorName)];
@@ -68,7 +76,7 @@ export default async function Page({
 
   const competitorName = competitor.name;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
-  const description = `Genfeed vs ${competitorName}: what each makes, where it publishes, what it costs.`;
+  const description = buildComparisonDescription(competitorName);
 
   const comparisonJsonLd = {
     '@context': 'https://schema.org',

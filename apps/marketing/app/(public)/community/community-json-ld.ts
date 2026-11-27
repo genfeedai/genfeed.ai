@@ -8,7 +8,7 @@ import type { CommunityPageData } from './community-loader';
 
 export const COMMUNITY_PATH = '/community';
 export const COMMUNITY_DESCRIPTION =
-  'See what creators publish on Genfeed: articles, videos and images from public profiles at genfeed.ai/@handle. Claim your handle and turn Genfeed into your portfolio.';
+  'See what creators publish on Genfeed: articles, videos and images from public profiles at genfeed.ai/@handle. Claim your handle to build your portfolio.';
 
 /**
  * The community page as a `CollectionPage` whose `ItemList` names every

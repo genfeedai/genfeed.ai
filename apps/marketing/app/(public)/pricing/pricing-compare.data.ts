@@ -1,9 +1,15 @@
 import { SubscriptionTier } from '@genfeedai/contracts';
-import { videoRetentionDays } from '@genfeedai/contracts/constants';
+import {
+  ORGANIZATION_MODULES,
+  type OrganizationModuleId,
+  videoRetentionDays,
+} from '@genfeedai/contracts/constants';
 import {
   getPlanByTier,
   getPlanLabel,
+  PAYG_POSTS_PER_DAY,
   PLAN_LIMIT_UNLIMITED,
+  PLAN_POSTS_PER_DAY_RANGE,
   type PlanTier,
   TIER_PLAN_ENTITLEMENTS,
   type TierLimit,
@@ -66,9 +72,30 @@ function formatMonthlyCredits(tier: PlanTier): string {
   return type === 'enterprise' ? 'Custom' : '—';
 }
 
-/** Whether a tier unlocks the subscription-only apps (Automation, Messages, Discovery). */
+/** Whether a tier has a subscription (Pay As You Go does not). */
 function hasPaidApps(tier: PlanTier): boolean {
   return getPlanByTier(tier).type !== 'payg';
+}
+
+/**
+ * Whether a tier may use an app. An app that needs a subscription
+ * (`ORGANIZATION_MODULES`) is open to subscribers only; the rest are open to
+ * every plan. Discovery is trends and competitor ads, Messages the inbox and
+ * Automation the workflows.
+ */
+function unlocksModule(
+  tier: PlanTier,
+  moduleId: OrganizationModuleId,
+): boolean {
+  return (
+    !ORGANIZATION_MODULES[moduleId].requiresSubscription || hasPaidApps(tier)
+  );
+}
+
+function formatPostsPerDay(tier: PlanTier): string {
+  return hasPaidApps(tier)
+    ? PLAN_POSTS_PER_DAY_RANGE
+    : `${PAYG_POSTS_PER_DAY} after a top-up`;
 }
 
 /**
@@ -104,8 +131,37 @@ export function buildPricingCompareRows(): PricingCompareRow[] {
       values: cells((tier) => `${videoRetentionDays(hasPaidApps(tier))} days`),
     },
     {
-      label: 'Automation, Messages, Discovery',
-      values: cells((tier) => formatFlag(hasPaidApps(tier))),
+      // The shared feed of what is trending is open to every account.
+      label: 'Market trends feed',
+      values: cells(() => formatFlag(true)),
+    },
+    {
+      label: 'Trends in your niche',
+      values: cells((tier) => formatFlag(unlocksModule(tier, 'discovery'))),
+    },
+    {
+      label: 'Play trend videos in Genfeed',
+      values: cells((tier) => formatFlag(unlocksModule(tier, 'discovery'))),
+    },
+    {
+      label: 'Competitor ads: save, watch, remix',
+      values: cells((tier) => formatFlag(unlocksModule(tier, 'discovery'))),
+    },
+    {
+      label: 'Inbox and workflows',
+      values: cells((tier) =>
+        formatFlag(
+          unlocksModule(tier, 'messages') && unlocksModule(tier, 'automation'),
+        ),
+      ),
+    },
+    {
+      label: 'Posts a day, per account',
+      values: cells(formatPostsPerDay),
+    },
+    {
+      label: 'Agent model',
+      values: cells((tier) => (hasPaidApps(tier) ? 'Your choice' : 'Default')),
     },
     {
       label: 'Ultra quality',

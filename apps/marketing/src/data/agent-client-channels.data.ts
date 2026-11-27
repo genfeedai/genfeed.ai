@@ -4,6 +4,7 @@ import {
   getAgentClientCommandBlocks,
 } from '@data/agent-clients.data';
 import { getIntegrationBySlug } from '@data/integrations.data';
+import { fitDescription } from '@data/seo-copy';
 
 /**
  * Channels an agent can publish to through Genfeed. Each slug has a publisher
@@ -214,7 +215,10 @@ export function buildAgentClientChannelPage(
   return {
     channelName,
     channelSlug,
-    description: `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools, and ${lowerNoun} into one creative workflow.`,
+    description: fitDescription(
+      `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools, and ${lowerNoun} into one creative workflow.`,
+      `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools and ${lowerNoun} into one workflow you review before it publishes.`,
+    ),
     faq: [
       {
         answer: `Yes. Once your ${channelName} account is connected in Genfeed, ${client.name} can draft, schedule, and publish ${channelName} ${lowerNoun} through the Genfeed MCP server.`,
