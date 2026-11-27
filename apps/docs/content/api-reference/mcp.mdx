@@ -480,8 +480,8 @@ sending messages, replies and outreach always wait for approval, whatever these
 switches say.
 
 Publishing never uses the web approvals queue. `schedule_release` (a dated
-release, or an update to one), `control_release` (`publish-now`, `resume` and
-`publish`) and article publication are confirmed with the person in the
+release, or an update to one), `control_release` (`publish-now`, `resume`, `reopen` with a
+`scheduledDate`, and `publish`) and article publication are confirmed with the person in the
 conversation. The first call changes nothing and returns `confirmation_required`;
 the agent shows the person what will go out, and repeats the same call with
 `confirmed: true` only after they agree. Release drafts, `cancel` and `pause`

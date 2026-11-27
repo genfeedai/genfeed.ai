@@ -238,6 +238,24 @@ describe('ReleaseGroupsService', () => {
     });
   });
 
+  it('reopens a cancelled release through the reopen action, with a time only when given', async () => {
+    const release = { id: 'release-1', status: 'draft' };
+    mockPatch.mockResolvedValue({ data: { data: { id: 'release-1' } } });
+    mockDeserializeResource.mockReturnValue(release);
+    const service = new ReleaseGroupsService('token');
+
+    await expect(service.reopen('release-1')).resolves.toEqual(release);
+    expect(mockPatch).toHaveBeenLastCalledWith('/release-1', {
+      action: 'reopen',
+    });
+
+    await service.reopen('release-1', '2026-12-01T10:00:00.000Z');
+    expect(mockPatch).toHaveBeenLastCalledWith('/release-1', {
+      action: 'reopen',
+      scheduledDate: '2026-12-01T10:00:00.000Z',
+    });
+  });
+
   it('reschedules a release through the release-level patch endpoint', async () => {
     const document = { data: { id: 'release-1' } };
     const release = {

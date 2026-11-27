@@ -10,6 +10,7 @@ import type { BaseApiClient } from './base-api-client';
 export type ScheduledReleaseControlAction =
   | 'cancel'
   | 'pause'
+  | 'reopen'
   | 'publish-now'
   | 'resume';
 
@@ -155,6 +156,7 @@ export class SchedulerClient {
   controlScheduledRelease(
     releaseId: string,
     action: ScheduledReleaseControlAction,
+    scheduledDate?: string,
   ): Promise<IReleaseGroup> {
     this.base.logger.debug('Controlling scheduled release', {
       action,
@@ -167,7 +169,7 @@ export class SchedulerClient {
         // Lifecycle is PATCH /post-groups/:id { action } (REST collapse).
         const response = await http.patch(
           `/post-groups/${encodeURIComponent(releaseId)}`,
-          { action },
+          scheduledDate ? { action, scheduledDate } : { action },
         );
         return this.base.unwrapObject<IReleaseGroup>(response);
       },
