@@ -59,3 +59,29 @@ describe('Sentry source maps', () => {
     expect(config.turbopack?.debugIds).toBeUndefined();
   });
 });
+
+describe('inlineCss', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('inlines the stylesheet by default', () => {
+    expect(createAppNextConfig({}).experimental?.inlineCss).toBe(true);
+  });
+
+  it('serves a linked stylesheet when an app turns inlining off', () => {
+    expect(
+      createAppNextConfig({ inlineCss: false }).experimental?.inlineCss,
+    ).toBe(false);
+  });
+
+  it('keeps the linked stylesheet in desktop bundles', () => {
+    expect(
+      createAppNextConfig({
+        configAccessor: {
+          get: (key) => (key === 'GENFEED_DESKTOP_BUNDLE' ? '1' : undefined),
+        },
+      }).experimental?.inlineCss,
+    ).toBe(false);
+  });
+});
