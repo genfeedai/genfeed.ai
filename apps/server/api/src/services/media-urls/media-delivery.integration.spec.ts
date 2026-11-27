@@ -58,6 +58,7 @@ const source = {
   s3Key: 'ingredients/images/random%2F?#.png',
 };
 let publicConsent = false;
+let grantedToForeignOrg = false;
 const queue = { add: vi.fn() };
 const variants = new Map<string, Record<string, unknown>>();
 const ingredientReads: Array<string | undefined> = [];
@@ -93,6 +94,20 @@ const prisma = {
     }),
   },
   asset: { findMany: vi.fn(async () => []) },
+  personaGrant: {
+    findMany: vi.fn(async () =>
+      grantedToForeignOrg
+        ? [
+            {
+              availabilityMode: 'ALL_BRANDS',
+              availableBrandIds: [],
+              ownerOrganizationId: organizationId,
+              persona: { avatarIngredientId: ingredientId, references: [] },
+            },
+          ]
+        : [],
+    ),
+  },
 };
 const leafAuth = {
   canActivate: vi.fn(async (context: ExecutionContext) => {
@@ -194,6 +209,7 @@ describe('media issuer production module HTTP boundary', () => {
   });
   beforeEach(() => {
     publicConsent = false;
+    grantedToForeignOrg = false;
     variants.clear();
     queue.add.mockClear();
     ingredientReads.length = 0;
@@ -243,6 +259,26 @@ describe('media issuer production module HTTP boundary', () => {
       testId('foreignorg'),
       testId('foreignorg'),
     ]);
+  });
+
+  it('reads a character granted to another organization under its owner, through the real tenant guard', async () => {
+    grantedToForeignOrg = true;
+    await request(app.getHttpServer())
+      .get('/fixture')
+      .set('Authorization', 'Bearer foreign')
+      .expect(200);
+    // The caller's own organization first, then the owner's, each under its
+    // own tenant. A read of the owner under the caller's tenant would fail the
+    // guard and turn this response into a 500.
+    expect(ingredientReads).toEqual([testId('foreignorg'), organizationId]);
+  });
+
+  it('reads nothing of another organization when no character grant covers the media', async () => {
+    await request(app.getHttpServer())
+      .get('/fixture')
+      .set('Authorization', 'Bearer foreign')
+      .expect(200);
+    expect(ingredientReads).toEqual([testId('foreignorg')]);
   });
 
   it('requires real global authentication on the original-grant route', async () => {

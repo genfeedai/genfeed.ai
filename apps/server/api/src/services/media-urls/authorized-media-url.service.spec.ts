@@ -6,6 +6,7 @@ import type { MediaDeliverySource } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 
@@ -767,6 +768,149 @@ describe('AuthorizedMediaUrlService platform-admin projection', () => {
     ).toEqual([
       [foreign.id, 'READY'],
       ['broken', 'FAILED'],
+    ]);
+  });
+});
+
+describe('AuthorizedMediaUrlService member projection of shared media', () => {
+  const ownerOrganizationId = testId('org', 9);
+  const recipientScope = {
+    brandId: testId('brand', 2),
+    organizationId,
+    userId,
+  };
+  const sharedId = testId('ingredient', 7);
+  const privateId = testId('ingredient', 8);
+  const owned = (id: string, organization: string): MediaDeliverySource => ({
+    ...source,
+    id,
+    organizationId: organization,
+    s3Key: `ingredients/images/${id}.png`,
+    scope: 'USER',
+    userId: testId('user', 9),
+  });
+  const grantOfCharacter = (overrides: Record<string, unknown> = {}) => ({
+    availabilityMode: 'ALL_BRANDS',
+    availableBrandIds: [],
+    ownerOrganizationId,
+    persona: { avatarIngredientId: sharedId, references: [] },
+    ...overrides,
+  });
+
+  /** Rows of the two organizations, each served only to a read that names it. */
+  async function setupSharing() {
+    const harness = await setup();
+    const tenantOfReads: Array<string | undefined> = [];
+    harness.prisma.ingredient.findMany.mockImplementation((async (args: {
+      where: { id: { in: string[] }; organizationId: string };
+    }) => {
+      tenantOfReads.push(getTenantContext()?.organizationId);
+      return [
+        owned(sharedId, ownerOrganizationId),
+        owned(privateId, ownerOrganizationId),
+      ].filter(
+        (row) =>
+          row.organizationId === args.where.organizationId &&
+          args.where.id.in.includes(row.id),
+      );
+    }) as never);
+    return { ...harness, tenantOfReads };
+  }
+
+  it('opens a reference image of a character granted to the brand, read as its owner', async () => {
+    const { service, prisma, tenantOfReads } = await setupSharing();
+    prisma.personaGrant.findMany.mockResolvedValue([
+      grantOfCharacter(),
+    ] as never);
+
+    const projections = await service.projectIngredients(recipientScope, [
+      sharedId,
+    ]);
+
+    expect(
+      projections.map(({ grant, ingredientId }) => [
+        ingredientId,
+        grant.state,
+        grant.url,
+      ]),
+    ).toEqual([
+      [sharedId, 'READY', expect.stringContaining(`${sharedId}.png`)],
+    ]);
+    // The first read is the caller's own organization, which holds nothing
+    // (no tenant context in this harness); the owner's row is read under the
+    // owner's tenant.
+    expect(tenantOfReads).toEqual([undefined, ownerOrganizationId]);
+  });
+
+  it('keeps another organization asset blocked when no character grant covers it', async () => {
+    const { service, prisma } = await setupSharing();
+    prisma.personaGrant.findMany.mockResolvedValue([]);
+
+    expect(
+      await service.projectIngredients(recipientScope, [sharedId, privateId]),
+    ).toEqual([]);
+  });
+
+  it('shares only the references of the granted character, not its owner other media', async () => {
+    const { service, prisma } = await setupSharing();
+    prisma.personaGrant.findMany.mockResolvedValue([
+      grantOfCharacter(),
+    ] as never);
+
+    const projections = await service.projectIngredients(recipientScope, [
+      sharedId,
+      privateId,
+    ]);
+
+    expect(projections.map(({ ingredientId }) => ingredientId)).toEqual([
+      sharedId,
+    ]);
+  });
+
+  it.each([
+    [
+      'outside the brands the grant is limited to',
+      {
+        availabilityMode: 'SELECTED_BRANDS',
+        availableBrandIds: [testId('brand', 9)],
+      },
+      recipientScope,
+    ],
+    ['for a caller with no brand', {}, { organizationId, userId }],
+  ])('keeps the asset blocked %s', async (_name, grant, callerScope) => {
+    const { service, prisma } = await setupSharing();
+    prisma.personaGrant.findMany.mockResolvedValue([
+      grantOfCharacter(grant),
+    ] as never);
+
+    expect(await service.projectIngredients(callerScope, [sharedId])).toEqual(
+      [],
+    );
+  });
+
+  it('gives a shared file the retention sweep deleted no preview URL', async () => {
+    const { service, prisma } = await setupSharing();
+    prisma.personaGrant.findMany.mockResolvedValue([
+      grantOfCharacter(),
+    ] as never);
+    const expired = {
+      ...owned(sharedId, ownerOrganizationId),
+      storageExpiredAt: new Date('2026-11-01'),
+    };
+    prisma.ingredient.findMany.mockImplementation((async (args: {
+      where: { organizationId: string };
+    }) =>
+      args.where.organizationId === ownerOrganizationId
+        ? [expired]
+        : []) as never);
+
+    const [projection] = await service.projectIngredients(recipientScope, [
+      sharedId,
+    ]);
+
+    expect([projection.grant.state, projection.grant.url]).toEqual([
+      'FAILED',
+      null,
     ]);
   });
 });

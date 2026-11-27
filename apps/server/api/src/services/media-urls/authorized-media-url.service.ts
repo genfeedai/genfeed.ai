@@ -27,7 +27,10 @@ import type {
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import {
+  crossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
@@ -89,13 +92,31 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
   ): Promise<MediaResourceProjection[]> {
     if (ingredientIds.length === 0) return [];
     const sources = await this.readSources(scope.organizationId, ingredientIds);
-    return sources
+    const projections = sources
       .filter((source) => hasMediaRecordAccess(source, scope))
-      .map((source) => ({
-        grant: this.previewGrant(source),
-        ingredientId: source.id,
-        metadataId: source.metadataId,
-      }));
+      .map((source) => this.projectSource(source));
+    // An id this organization does not own can still be a reference image of a
+    // character another organization granted to the caller's brand. Only that
+    // one share relation opens another organization's media here; every other
+    // foreign id stays unresolved and renders as unavailable.
+    const owned = new Set(sources.map((source) => source.id));
+    const foreignIds = [...new Set(ingredientIds)].filter(
+      (id) => !owned.has(id),
+    );
+    if (foreignIds.length === 0) return projections;
+    const shared = await this.readGrantedCharacterSources(scope, foreignIds);
+    return [
+      ...projections,
+      ...shared.map((source) => this.projectSource(source)),
+    ];
+  }
+
+  private projectSource(source: MediaDeliverySource): MediaResourceProjection {
+    return {
+      grant: this.previewGrant(source),
+      ingredientId: source.id,
+      metadataId: source.metadataId,
+    };
   }
 
   /** Internal execution capability; there is deliberately no HTTP route. */
@@ -574,6 +595,26 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     scope: MediaDeliveryScope,
     ingredientIds: readonly string[],
   ): Promise<MediaDeliveryGrant[]> {
+    const sources = await this.readGrantedCharacterSources(
+      scope,
+      ingredientIds,
+    );
+    return sources.map((source) =>
+      this.grant(source.id, requireStoredMediaKey(source), 'preview'),
+    );
+  }
+
+  /**
+   * The sources among `ingredientIds` that are reference images of a character
+   * granted to the caller's brand, read from the owning organization. The
+   * owning organization is read under its own tenant context, so the tenant
+   * guard still sees a query that is scoped to the organization it names; no
+   * cross-organization escape hatch is involved.
+   */
+  async readGrantedCharacterSources(
+    scope: MediaDeliveryScope,
+    ingredientIds: readonly string[],
+  ): Promise<MediaDeliverySource[]> {
     if (ingredientIds.length === 0 || !scope.brandId) return [];
     const requested = [...new Set(ingredientIds)];
     const grants = await this.prisma.personaGrant.findMany({
@@ -624,13 +665,14 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         ]);
       }
     }
-    const granted: MediaDeliveryGrant[] = [];
+    const granted: MediaDeliverySource[] = [];
     for (const [ownerOrganizationId, ids] of idsByOwner) {
-      for (const source of await this.readSources(ownerOrganizationId, ids)) {
-        granted.push(
-          this.grant(source.id, requireStoredMediaKey(source), 'preview'),
-        );
-      }
+      granted.push(
+        ...(await runWithTenantContext(
+          { organizationId: ownerOrganizationId },
+          () => this.readSources(ownerOrganizationId, ids),
+        )),
+      );
     }
     return granted;
   }
@@ -821,14 +863,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     );
     if (unresolved.length === 0) return own;
     const foreign = await this.readSourcesAcrossOrganizations(unresolved);
-    return [
-      ...own,
-      ...foreign.map((source) => ({
-        grant: this.previewGrant(source),
-        ingredientId: source.id,
-        metadataId: source.metadataId,
-      })),
-    ];
+    return [...own, ...foreign.map((source) => this.projectSource(source))];
   }
 
   private async readSourcesAcrossOrganizations(
