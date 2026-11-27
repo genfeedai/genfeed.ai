@@ -226,7 +226,7 @@ function authorReplyTimelineTarget(
     return '';
   }
 
-  // YouTube Apify handlers expect full channel/video URLs, not bare ids.
+  // YouTube handlers expect full channel/video URLs, not bare ids.
   const timelineTarget =
     replyPlatform === ReplyBotPlatform.YOUTUBE
       ? toYouTubeChannelStartUrl(timelineHandle)

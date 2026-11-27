@@ -32,7 +32,7 @@ describe('InstagramBusinessDiscoveryProvider', () => {
 
   function discoveryResponse(
     ids: string[],
-    options: { timestamp?: string } = {},
+    options: { timestamp?: string; viewCounts?: Record<string, number> } = {},
   ) {
     return of({
       data: {
@@ -50,6 +50,9 @@ describe('InstagramBusinessDiscoveryProvider', () => {
               media_url: `https://cdn/${id}.jpg`,
               permalink: `https://www.instagram.com/p/${id}/`,
               timestamp: options.timestamp ?? '2026-09-01T10:00:00+0000',
+              ...(options.viewCounts && id in options.viewCounts
+                ? { view_count: options.viewCounts[id] }
+                : {}),
             })),
           },
           name: 'Competitor Brand',
@@ -110,6 +113,60 @@ describe('InstagramBusinessDiscoveryProvider', () => {
     expect(config.params.fields).toContain(
       'business_discovery.username(competitor)',
     );
+  });
+
+  it('requests view_count for every media node', async () => {
+    httpService.get.mockReturnValueOnce(discoveryResponse(['m1']));
+
+    await provider.collectTimeline(
+      SocialSourcePlatform.INSTAGRAM,
+      'competitor',
+      {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      },
+    );
+
+    const [, config] = httpService.get.mock.calls[0];
+    expect(config.params.fields).toMatch(
+      /media\.limit\(\d+\)\{[^}]*view_count/,
+    );
+  });
+
+  it('stores view_count as the post views and leaves views empty when a node has none', async () => {
+    httpService.get.mockReturnValueOnce(
+      discoveryResponse(['m1', 'm2', 'm3'], {
+        viewCounts: { m1: 48_200, m3: 0 },
+      }),
+    );
+
+    const result = await provider.collectTimeline(
+      SocialSourcePlatform.INSTAGRAM,
+      'competitor',
+      { brandId: 'brand-1', organizationId: 'org-1' },
+    );
+
+    expect(result.posts[0].metrics).toEqual({
+      comments: 3,
+      likes: 20,
+      views: 48_200,
+    });
+    expect(result.posts[1].metrics?.views).toBeUndefined();
+    expect(result.posts[2].metrics?.views).toBe(0);
+  });
+
+  it('keeps isPromoted unknown because the views include paid views', async () => {
+    httpService.get.mockReturnValueOnce(
+      discoveryResponse(['m1'], { viewCounts: { m1: 100 } }),
+    );
+
+    const result = await provider.collectTimeline(
+      SocialSourcePlatform.INSTAGRAM,
+      'competitor',
+      { brandId: 'brand-1', organizationId: 'org-1' },
+    );
+
+    expect(result.posts[0].isPromoted).toBeNull();
   });
 
   it('honours the requested limit', async () => {

@@ -8,7 +8,6 @@ import type {
   ApifyTikTokVideo,
   ApifyTrendData,
   ApifyVideoData,
-  ApifyYouTubeVideo,
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
@@ -16,7 +15,6 @@ import { ApifyInstagramService } from '@api/services/integrations/apify/services
 import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
-import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -34,7 +32,6 @@ const LEADING_HASH_PATTERN = /^#/;
  * - ApifyTikTokService: TikTok videos, sounds, comments
  * - ApifyInstagramService: Instagram trends, comments
  * - ApifyTwitterService: Twitter/X trends
- * - ApifyYouTubeService: YouTube channel videos and search
  * - ApifyLinkedInService: LinkedIn public profile posts
  */
 @Traced()
@@ -47,7 +44,6 @@ export class ApifyService {
     private readonly tiktokService: ApifyTikTokService,
     private readonly instagramService: ApifyInstagramService,
     private readonly twitterService: ApifyTwitterService,
-    private readonly youtubeService: ApifyYouTubeService,
     private readonly linkedinService: ApifyLinkedInService,
   ) {}
 
@@ -160,32 +156,6 @@ export class ApifyService {
 
   getTwitterTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.twitterService.getTwitterTrends(options);
-  }
-
-  getYouTubeChannelVideos(
-    channelUrl: string,
-    options?: { limit?: number },
-  ): Promise<ApifyYouTubeVideo[]> {
-    return this.youtubeService.getYouTubeChannelVideos(channelUrl, options);
-  }
-
-  getYouTubeChannelUploads(
-    channelUrl: string,
-    options?: { limit?: number },
-    researchContext?: SocialSourceResearchContext,
-  ): Promise<ApifyYouTubeVideo[]> {
-    return this.youtubeService.getYouTubeChannelUploads(
-      channelUrl,
-      options,
-      researchContext,
-    );
-  }
-
-  searchYouTubeVideos(
-    query: string,
-    options?: { limit?: number },
-  ): Promise<ApifyYouTubeVideo[]> {
-    return this.youtubeService.searchYouTubeVideos(query, options);
   }
 
   getLinkedInProfilePosts(

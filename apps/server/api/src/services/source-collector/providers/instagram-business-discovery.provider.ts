@@ -20,7 +20,7 @@ const MAX_LIMIT = 50;
 const REQUEST_TIMEOUT_MS = 15_000;
 
 const DISCOVERY_MEDIA_FIELDS =
-  'id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count';
+  'id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count,view_count';
 
 interface InstagramDiscoveryMediaNode {
   caption?: unknown;
@@ -33,6 +33,7 @@ interface InstagramDiscoveryMediaNode {
   permalink?: unknown;
   thumbnail_url?: unknown;
   timestamp?: unknown;
+  view_count?: unknown;
 }
 
 interface InstagramBusinessDiscovery {
@@ -95,6 +96,9 @@ function mapDiscoveryNode(
     metrics: {
       comments: readCount(node.comments_count),
       likes: readCount(node.like_count),
+      // Graph returns `view_count` on some media only; it counts paid and
+      // organic views, so the promoted state stays unknown (null) above.
+      views: readCount(node.view_count),
     },
     platform: SocialSourcePlatform.INSTAGRAM,
     text: readNonEmptyString(node.caption) ?? '',

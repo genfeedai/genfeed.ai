@@ -82,6 +82,10 @@ describe('YoutubeOutliersContent', () => {
       screen.getByRole('link', { name: 'The video that took off' }),
     ).toHaveAttribute('href', video.url);
     expect(screen.getByText('Breakout')).toBeInTheDocument();
+    expect(screen.getByText('Calculated by Genfeed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/not metrics provided by YouTube/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/about 10K views/)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Remix it in Genfeed' }),

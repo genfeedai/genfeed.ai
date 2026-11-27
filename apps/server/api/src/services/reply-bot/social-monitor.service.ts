@@ -18,7 +18,6 @@ import type {
   ApifyNormalizedInstagramComment,
   ApifyNormalizedTikTokComment,
   ApifyTikTokVideo,
-  ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
@@ -147,7 +146,7 @@ export class SocialMonitorService {
         [ReplyBotPlatform.TIKTOK]: () =>
           this.getTikTokComments(contentIdentifier, limit),
         // No comment source is wired for YouTube or Reddit: the scraper actors
-        // for both were retired (they returned nothing or answered 404).
+        // for both were retired (YouTube's API policy bars scraped data).
         [ReplyBotPlatform.YOUTUBE]: async () => [],
         [ReplyBotPlatform.REDDIT]: async () => [],
       },
@@ -210,8 +209,9 @@ export class SocialMonitorService {
           this.getInstagramTimeline(username, limit),
         [ReplyBotPlatform.TIKTOK]: () =>
           this.getTikTokTimeline(username, limit),
-        [ReplyBotPlatform.YOUTUBE]: () =>
-          this.getYouTubeTimeline(username, limit),
+        // No YouTube timeline here: the scraper was removed, because YouTube's
+        // API policy bars scraped data.
+        [ReplyBotPlatform.YOUTUBE]: async () => [],
         [ReplyBotPlatform.REDDIT]: async () => [], // no Reddit read beyond trends
       },
       {
@@ -243,7 +243,7 @@ export class SocialMonitorService {
           this.searchTwitter(query, limit, options.sinceId),
         [ReplyBotPlatform.INSTAGRAM]: () => this.searchInstagram(query, limit),
         [ReplyBotPlatform.TIKTOK]: () => this.searchTikTok(query, limit),
-        [ReplyBotPlatform.YOUTUBE]: () => this.searchYouTube(query, limit),
+        [ReplyBotPlatform.YOUTUBE]: async () => [], // no scraper behind YouTube search
         [ReplyBotPlatform.REDDIT]: async () => [], // no Reddit read beyond trends
       },
       {
@@ -757,53 +757,5 @@ export class SocialMonitorService {
       platform: ReplyBotPlatform.TIKTOK,
       text: comment.text,
     }));
-  }
-
-  // --- YouTube ---
-  /**
-   * Convert YouTube videos to SocialContentData
-   */
-  private convertYouTubeVideosToSocialContent(
-    videos: ApifyYouTubeVideo[],
-  ): SocialContentData[] {
-    return videos.map((video) => ({
-      authorId: video.channelId || 'unknown',
-      authorUsername: video.channelName || 'unknown',
-      contentType: SocialContentType.VIDEO,
-      contentUrl: video.url || `https://www.youtube.com/watch?v=${video.id}`,
-      createdAt: video.publishedAt ? new Date(video.publishedAt) : new Date(),
-      id: video.id,
-      metrics: {
-        comments: video.commentCount || 0,
-        likes: video.likeCount || 0,
-        views: video.viewCount,
-      },
-      platform: ReplyBotPlatform.YOUTUBE,
-      text: video.title || '',
-    }));
-  }
-
-  private async getYouTubeTimeline(
-    channelUrl: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
-      this.apifyService.getYouTubeChannelVideos(channelUrl, {
-        limit,
-      }),
-    );
-    return this.convertYouTubeVideosToSocialContent(videos);
-  }
-
-  private async searchYouTube(
-    query: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
-      this.apifyService.searchYouTubeVideos(query, {
-        limit,
-      }),
-    );
-    return this.convertYouTubeVideosToSocialContent(videos);
   }
 }
