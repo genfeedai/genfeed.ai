@@ -8,7 +8,7 @@ import {
 import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
-import type { ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext, Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -17,8 +17,10 @@ vi.mock('@genfeedai/config', async (original) => ({
   hasOrganizationBilling: () => true,
 }));
 
+type Handler = (...args: never[]) => unknown;
+
 type Route = {
-  controller: { prototype: object };
+  controller: Type<unknown>;
   handler: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
 };
@@ -92,7 +94,7 @@ function guardForOrganizationWithoutPlan() {
 }
 
 function contextFor({ controller, handler, method }: Route): ExecutionContext {
-  const prototype = controller.prototype as Record<string, object>;
+  const prototype = controller.prototype as Record<string, Handler>;
   return {
     getClass: () => controller,
     getHandler: () => prototype[handler],
@@ -120,7 +122,7 @@ describe('routes behind a scan limit instead of a plan (#11623)', () => {
   it.each(OPEN_ROUTES)(
     '$controller.name.$handler still belongs to the Discovery module',
     ({ controller, handler }) => {
-      const prototype = controller.prototype as Record<string, object>;
+      const prototype = controller.prototype as Record<string, Handler>;
       expect(
         reflector.getAllAndOverride<OrganizationModuleEndpointPolicy>(
           ORGANIZATION_MODULE_KEY,

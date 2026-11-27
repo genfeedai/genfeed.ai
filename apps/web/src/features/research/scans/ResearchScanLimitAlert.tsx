@@ -28,7 +28,7 @@ export default function ResearchScanLimitAlert({
 }: {
   status: ResearchScanStatus | undefined;
 }) {
-  const translate = useTranslations('pages.researchScans.limit');
+  const translate = useTranslations('pages.adsResearch.scans.limit');
   const format = useFormatter();
   const { orgHref } = useOrgUrl();
 

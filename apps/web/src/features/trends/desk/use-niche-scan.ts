@@ -15,7 +15,7 @@ import { useResearchScans } from '@/features/research/scans/use-research-scans';
  * re-reads the counts so the limit alert shows when the next one opens.
  */
 export function useNicheScan(refreshDesk: () => Promise<void>) {
-  const translate = useTranslations('pages.researchScans.scan');
+  const translate = useTranslations('pages.adsResearch.scans.scan');
   const { refresh: refreshScans, statusFor } = useResearchScans();
   const [isScanning, setIsScanning] = useState(false);
   const getTrendsService = useAuthedService((token: string) =>

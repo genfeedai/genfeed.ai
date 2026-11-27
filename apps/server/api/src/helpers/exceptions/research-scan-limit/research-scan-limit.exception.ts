@@ -1,4 +1,4 @@
-import type { ResearchScanLibrary } from '@genfeedai/contracts';
+import type { ResearchScanLibrary } from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export const RESEARCH_SCAN_LIMIT_REACHED = 'research_scan_limit_reached';

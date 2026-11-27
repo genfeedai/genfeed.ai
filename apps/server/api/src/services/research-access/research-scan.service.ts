@@ -5,7 +5,7 @@ import { isSaaS } from '@genfeedai/config';
 import type {
   ResearchScanLibrary,
   ResearchScanStatus,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/interfaces';
 import {
   getResearchScanLimitForTier,
   RESEARCH_SCAN_LIBRARIES,

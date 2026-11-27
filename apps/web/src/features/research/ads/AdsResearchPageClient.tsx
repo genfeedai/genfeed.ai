@@ -34,7 +34,7 @@ import XAdsDsaNotice from './XAdsDsaNotice';
 
 export default function AdsResearchPageClient() {
   const translate = useTranslations('pages.adsResearch');
-  const translateScans = useTranslations('pages.researchScans');
+  const translateScans = useTranslations('pages.adsResearch.scans');
   const {
     adAccounts,
     adPackResult,

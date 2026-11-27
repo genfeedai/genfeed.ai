@@ -19,7 +19,7 @@ export default function ResearchScanButton({
   onScan: () => void;
   status: ResearchScanStatus | undefined;
 }) {
-  const translate = useTranslations('pages.researchScans.scan');
+  const translate = useTranslations('pages.adsResearch.scans.scan');
   const format = useFormatter();
   const isOutOfScans = status?.remaining === 0;
   const tooltip =

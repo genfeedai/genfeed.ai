@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { ResearchScanLibrary } from '@genfeedai/pricing';
+import type { ResearchScanLibrary } from '@genfeedai/contracts/interfaces';
 
 /**
  * The scan an in-flight collection belongs to. A scan is reserved before any

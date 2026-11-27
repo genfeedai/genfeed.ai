@@ -15,7 +15,7 @@ export default function ResearchScanBadge({
 }: {
   status: ResearchScanStatus | undefined;
 }) {
-  const translate = useTranslations('pages.researchScans.badge');
+  const translate = useTranslations('pages.adsResearch.scans.badge');
 
   if (!status) {
     return null;

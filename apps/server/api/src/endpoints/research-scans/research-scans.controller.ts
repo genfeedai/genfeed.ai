@@ -4,7 +4,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ResearchScanService } from '@api/services/research-access/research-scan.service';
-import type { ResearchScanStatus } from '@genfeedai/contracts';
+import type { ResearchScanStatus } from '@genfeedai/contracts/interfaces';
 import { Controller, ForbiddenException, Get, UseGuards } from '@nestjs/common';
 
 @AutoSwagger()
