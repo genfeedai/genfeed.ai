@@ -625,6 +625,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         persona: {
           select: {
             avatarIngredientId: true,
+            organizationId: true,
             references: {
               select: { ingredientId: true, position: true },
               where: { ingredientId: { in: requested } },
@@ -649,7 +650,13 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         grant.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS ||
         (grant.availabilityMode === PersonaAvailabilityMode.SELECTED_BRANDS &&
           (grant.availableBrandIds ?? []).includes(scope.brandId));
-      if (!isGrantedToBrand) {
+      // A grant is only good while its character still belongs to the
+      // organization that issued it (a character that moved with its brand is
+      // never served on the previous owner's word).
+      if (
+        !isGrantedToBrand ||
+        grant.persona.organizationId !== grant.ownerOrganizationId
+      ) {
         continue;
       }
       // Every reference image of the granted character, not only the primary.

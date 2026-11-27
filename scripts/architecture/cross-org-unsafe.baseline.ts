@@ -89,7 +89,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and only a signed preview URL leaves the service.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 875,
+      line: 882,
     },
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.

@@ -102,7 +102,11 @@ const prisma = {
               availabilityMode: 'ALL_BRANDS',
               availableBrandIds: [],
               ownerOrganizationId: organizationId,
-              persona: { avatarIngredientId: ingredientId, references: [] },
+              persona: {
+                avatarIngredientId: ingredientId,
+                organizationId,
+                references: [],
+              },
             },
           ]
         : [],

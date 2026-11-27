@@ -369,7 +369,11 @@ describe('AuthorizedMediaUrlService', () => {
         availabilityMode: 'ALL_BRANDS',
         availableBrandIds: [],
         ownerOrganizationId: foreign.organizationId,
-        persona: { avatarIngredientId: grantedId, references: [] },
+        persona: {
+          avatarIngredientId: grantedId,
+          organizationId: foreign.organizationId,
+          references: [],
+        },
       },
     ] as never);
     const brandScope = { ...scope, brandId: testId('brand', 3) };
@@ -538,7 +542,10 @@ describe('AuthorizedMediaUrlService', () => {
       availabilityMode: 'ALL_BRANDS',
       availableBrandIds: [],
       ownerOrganizationId,
-      persona: { avatarIngredientId: ingredientId },
+      persona: {
+        avatarIngredientId: ingredientId,
+        organizationId: ownerOrganizationId,
+      },
       ...overrides,
     });
 
@@ -577,6 +584,7 @@ describe('AuthorizedMediaUrlService', () => {
         grantRow({
           persona: {
             avatarIngredientId: ingredientId,
+            organizationId: ownerOrganizationId,
             references: [{ ingredientId: sideId, position: 1 }],
           },
         }),
@@ -793,7 +801,11 @@ describe('AuthorizedMediaUrlService member projection of shared media', () => {
     availabilityMode: 'ALL_BRANDS',
     availableBrandIds: [],
     ownerOrganizationId,
-    persona: { avatarIngredientId: sharedId, references: [] },
+    persona: {
+      avatarIngredientId: sharedId,
+      organizationId: ownerOrganizationId,
+      references: [],
+    },
     ...overrides,
   });
 
@@ -877,6 +889,16 @@ describe('AuthorizedMediaUrlService member projection of shared media', () => {
       recipientScope,
     ],
     ['for a caller with no brand', {}, { organizationId, userId }],
+    [
+      'when the character moved to another organization',
+      {
+        persona: {
+          avatarIngredientId: sharedId,
+          organizationId: testId('org', 5),
+        },
+      },
+      recipientScope,
+    ],
   ])('keeps the asset blocked %s', async (_name, grant, callerScope) => {
     const { service, prisma } = await setupSharing();
     prisma.personaGrant.findMany.mockResolvedValue([
