@@ -3,6 +3,7 @@ import type {
   OrganizationOptionBrand,
 } from '@genfeedai/contracts/interfaces';
 import type { CreditsUsage } from '@mcp/shared/interfaces/post.interface';
+import type { SharedLookup } from '@mcp/shared/utils/shared-lookup.util';
 import type { AxiosResponse } from 'axios';
 import type { BaseApiClient } from './base-api-client';
 import type {
@@ -18,7 +19,11 @@ import type {
  * batches, job status, and agent chat threads.
  */
 export class WorkspaceClient {
-  constructor(private readonly base: BaseApiClient) {}
+  constructor(
+    private readonly base: BaseApiClient,
+    /** Shared across requests: concurrent calls on one connection ask once. */
+    private readonly organizationLists?: SharedLookup<OrganizationOption[]>,
+  ) {}
 
   getCredits(): Promise<CreditsUsage> {
     this.base.logger.debug('Getting credits usage');
@@ -56,6 +61,13 @@ export class WorkspaceClient {
    * `?mine=true` list the web organization switcher uses.
    */
   listOrganizations(): Promise<OrganizationOption[]> {
+    const load = () => this.loadOrganizations();
+    return this.organizationLists
+      ? this.organizationLists.get(this.base.lookupKey(), load)
+      : load();
+  }
+
+  private loadOrganizations(): Promise<OrganizationOption[]> {
     this.base.logger.debug('Listing organizations');
 
     return this.base.requestWithSafeFailure(

@@ -17,6 +17,7 @@ import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/work
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import {
   PLATFORM_SCHEDULE_QUEUE,
+  PUBLISH_SWEEP_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
@@ -66,6 +67,7 @@ import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-r
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
+import { PublishSweepsProcessor } from '@workers/scheduling/publish-sweeps.processor';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
@@ -98,6 +100,14 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
           removeOnFail: 50,
         },
         name: PLATFORM_SCHEDULE_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 20,
+          removeOnFail: 50,
+        },
+        name: PUBLISH_SWEEP_QUEUE,
       },
       // The registry drains platform-sweep jobs queued here before #5162.
       { name: WORKFLOW_EXECUTION_QUEUE },
@@ -146,6 +156,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     PlatformPublishingTaskHandlers,
     PlatformAccountTaskHandlers,
     PlatformSchedulesProcessor,
+    PublishSweepsProcessor,
     PlatformWorkflowSchedulesService,
     PendingWorkflowExecutionReconcileService,
     WorkflowContinuationReconcileService,

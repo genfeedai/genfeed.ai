@@ -3,6 +3,7 @@ import {
   BETTER_AUTH_SECRET_PLACEHOLDER_MESSAGE,
   BETTER_AUTH_SECRET_REQUIRED_MESSAGE,
   DESKTOP_SHELL_TRUSTED_ORIGINS,
+  HOSTED_STORE_TRUSTED_ORIGINS,
   parseCommaSeparated,
   resolveAuthErrorUrl,
   resolveBetterAuthBaseUrl,
@@ -62,6 +63,19 @@ describe('Better Auth config', () => {
         expect(origins).not.toContain('http://localhost:*');
         expect(origins).not.toContain('http://genfeed.localhost:*');
       }
+    });
+
+    it('trusts the hosted store origin only when running as the hosted cloud', () => {
+      expect(
+        resolveTrustedOrigins('https://app.genfeed.ai', 'production', true),
+      ).toEqual([
+        'https://app.genfeed.ai',
+        DESKTOP_SHELL_TRUSTED_ORIGINS[0],
+        HOSTED_STORE_TRUSTED_ORIGINS[0],
+      ]);
+      expect(
+        resolveTrustedOrigins('https://app.genfeed.ai', 'production', false),
+      ).not.toContain('https://shop.genfeed.ai');
     });
 
     it('does not auto-trust localhost when production has no env-listed origins', () => {

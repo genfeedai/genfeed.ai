@@ -267,7 +267,7 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   // The sweep only finds due posts and enqueues one job each (the publish runs
   // on the dedicated `scheduled-publish` queue), so a per-minute tick is one
-  // indexed query per page of due posts.
+  // indexed query per page of due posts. It fires on `publish-sweeps`.
   [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: {
     pattern: '* * * * *',
     timezone: 'UTC',
@@ -376,6 +376,29 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
 } satisfies Record<PlatformScheduledTaskName, PlatformSchedule>;
+
+/**
+ * Tasks that fire on `PUBLISH_SWEEP_QUEUE` instead of `system-sweeps`. A due
+ * post must not wait behind unrelated platform tasks for the processor, so the
+ * two per-minute publishing sweeps have a queue and a processor of their own.
+ */
+export const PUBLISH_SWEEP_TASKS = [
+  PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH,
+  PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS,
+] as const;
+
+export type PublishSweepTaskName = (typeof PUBLISH_SWEEP_TASKS)[number];
+
+export type SystemSweepTaskName = Exclude<
+  PlatformScheduledTaskName,
+  PublishSweepTaskName
+>;
+
+export function isPublishSweepTask(
+  value: string,
+): value is PublishSweepTaskName {
+  return (PUBLISH_SWEEP_TASKS as readonly string[]).includes(value);
+}
 
 export const RETIRED_SYSTEM_SWEEP_SCHEDULER_IDS = new Set([
   'batch-credit-settlement-reconcile-sweep',

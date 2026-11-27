@@ -447,7 +447,7 @@ genfeed admin logout                              # revoke the session
 
 The `marketplace` commands call the marketplace API with the same super admin
 token. Its URL is derived from the profile API URL (`api.example.com` becomes
-`api.marketplace.example.com`); pass `--marketplace-url <url>` to override it.
+`api.shop.example.com`); pass `--marketplace-url <url>` to override it.
 
 ### Local AI bridge for the browser extension
 

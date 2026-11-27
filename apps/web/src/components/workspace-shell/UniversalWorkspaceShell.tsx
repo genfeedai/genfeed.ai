@@ -819,9 +819,9 @@ function UniversalWorkspaceShellContent({
       : (isAgentDockHost && isAgentDockOpen) ||
         (isInspectorOpen && !isCompactViewport) ||
         isMobileContextOpen);
-  // A split page always has Context to show: its pane swaps to it.
-  const hasContextView =
-    isAgentOutputSurface || isAgentDockHost || Boolean(activeContextSidebar);
+  // Context is offered only while the page has a selection to show; with none,
+  // the toggle would open an empty panel.
+  const hasContextView = Boolean(activeContextSidebar);
   const panelControls = useMemo<WorkspacePanelControls>(
     () => ({
       activeView: isPanelVisible

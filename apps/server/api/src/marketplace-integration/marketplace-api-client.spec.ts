@@ -13,7 +13,7 @@ vi.mock('@libs/security/destination-guard', () => ({
 /**
  * Bodies recorded from the marketplace API's own journey spec
  * (apps/api/src/ops/marketplace.integration.spec.ts in
- * genfeedai/marketplace.genfeed.ai) running against a real PostgreSQL
+ * genfeedai/shop.genfeed.ai) running against a real PostgreSQL
  * database. If the marketplace changes a response shape, re-record these.
  */
 function recorded(name: string): unknown {

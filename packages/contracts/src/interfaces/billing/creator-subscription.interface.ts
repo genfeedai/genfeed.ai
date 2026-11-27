@@ -28,6 +28,12 @@ export interface ICreatorSubscriptionSummary {
   status: CreatorSubscriptionStatus;
 }
 
+/** A subscription the workspace pays for, with the member who subscribed. */
+export interface ICreatorTeamSubscription extends ICreatorSubscriptionSummary {
+  readerId: string;
+  readerName: string;
+}
+
 /** What the support page offers a reader: the price, and their subscription. */
 export interface ICreatorSubscriptionOffer {
   /** Null when the creator has no paid subscription on offer. */

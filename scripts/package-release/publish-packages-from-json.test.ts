@@ -14,6 +14,7 @@ import {
   assertMasterPublication,
   collectModuleSpecifiers,
   normalizeReleaseRequests,
+  publishPlannedPackages,
   registryAction,
   rewriteDistForNodeResolution,
   sortReleaseRequests,
@@ -366,6 +367,156 @@ describe('publish package release planning', () => {
       ).toThrow('delaySeconds must be a non-negative number');
     },
   );
+
+  describe('publishing a plan when npm stages versions for approval', () => {
+    const plan = {
+      packages: [
+        release('@genfeedai/contracts', '0.3.0'),
+        release('@genfeedai/helpers', '2.3.0'),
+        release('@genfeedai/ui', '2.1.0'),
+      ],
+    };
+
+    function release(name: string, version: string) {
+      return {
+        contentDigest: `sha256-${name}`,
+        integrity: `integrity-${name}`,
+        name,
+        tarball: `${name.split('/')[1]}-${version}.tgz`,
+        version,
+      };
+    }
+
+    function publishWith(overrides: Record<string, unknown>) {
+      const published: string[] = [];
+      const readbackOptions: unknown[] = [];
+      const statuses = plan.packages.map((entry) => ({
+        ...entry,
+        status: 'pending',
+      }));
+      const run = () =>
+        publishPlannedPackages({
+          archiveIntegrityFn: (tarballPath: string) =>
+            `integrity-@genfeedai/${path.basename(tarballPath).split('-')[0]}`,
+          npmPublishFn: (tarballPath: string) => {
+            published.push(path.basename(tarballPath));
+            return 'accepted';
+          },
+          npmViewFn: () => null,
+          plan,
+          statuses,
+          waitForRegistryContentFn: (
+            _spec: string,
+            _digest: string,
+            options: unknown,
+          ) => {
+            readbackOptions.push(options);
+          },
+          ...overrides,
+        });
+      return { published, readbackOptions, run, statuses };
+    }
+
+    function notReadable() {
+      return waitForRegistryContent('fixture@1.0.0', 'sha256-x', {
+        attempts: 1,
+        npmViewFn: () => null,
+        sleepFn: () => undefined,
+      });
+    }
+
+    it('publishes and verifies every package when npm makes them live', () => {
+      const { published, run, statuses } = publishWith({});
+
+      run();
+
+      expect(published).toEqual([
+        'contracts-0.3.0.tgz',
+        'helpers-2.3.0.tgz',
+        'ui-2.1.0.tgz',
+      ]);
+      expect(statuses.map(({ status }) => status)).toEqual([
+        'published',
+        'published',
+        'published',
+      ]);
+    });
+
+    it('stages the rest after one package is already staged, then fails naming it', () => {
+      const { published, run, statuses } = publishWith({
+        npmPublishFn: (tarballPath: string) => {
+          published.push(path.basename(tarballPath));
+          return tarballPath.includes('contracts') ? 'staged' : 'accepted';
+        },
+      });
+
+      expect(run).toThrow(
+        '1 package(s) are not live on npm: @genfeedai/contracts@0.3.0 (staged)',
+      );
+      expect(published).toEqual([
+        'contracts-0.3.0.tgz',
+        'helpers-2.3.0.tgz',
+        'ui-2.1.0.tgz',
+      ]);
+      expect(statuses.map(({ status }) => status)).toEqual([
+        'staged',
+        'published',
+        'published',
+      ]);
+    });
+
+    it('looks briefly at later packages once one was not readable after the full wait', () => {
+      const { published, readbackOptions, run, statuses } = publishWith({
+        waitForRegistryContentFn: (
+          _spec: string,
+          _digest: string,
+          options: unknown,
+        ) => {
+          readbackOptions.push(options);
+          if (readbackOptions.length === 1) notReadable();
+        },
+      });
+
+      expect(run).toThrow('@genfeedai/contracts@0.3.0 (not-live)');
+      expect(published).toHaveLength(3);
+      expect(readbackOptions).toEqual([{}, { attempts: 6 }, { attempts: 6 }]);
+      expect(statuses.map(({ status }) => status)).toEqual([
+        'not-live',
+        'published',
+        'published',
+      ]);
+    });
+
+    it('stops at once when a published tarball does not match the plan', () => {
+      const { published, run } = publishWith({
+        waitForRegistryContentFn: () => {
+          throw new Error(
+            '@genfeedai/contracts@0.3.0 reached npm with unexpected tarball content',
+          );
+        },
+      });
+
+      expect(run).toThrow('unexpected tarball content');
+      expect(published).toEqual(['contracts-0.3.0.tgz']);
+    });
+
+    it('skips a live version whose tarball matches the plan and publishes the rest', () => {
+      const { published, run, statuses } = publishWith({
+        npmViewFn: (spec: string) =>
+          spec === '@genfeedai/contracts@0.3.0' ? { version: '0.3.0' } : null,
+        packRegistryVersionFn: () => 'sha256-@genfeedai/contracts',
+      });
+
+      run();
+
+      expect(published).toEqual(['helpers-2.3.0.tgz', 'ui-2.1.0.tgz']);
+      expect(statuses.map(({ status }) => status)).toEqual([
+        'already-published',
+        'published',
+        'published',
+      ]);
+    });
+  });
 
   it('rewrites built dist for strict Node resolution at publish time', () => {
     const packageDir = mkdtempSync(path.join(tmpdir(), 'publish-rewrite-'));

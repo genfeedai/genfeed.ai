@@ -14,6 +14,7 @@ import {
   PLATFORM_SCHEDULE_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   PROVIDER_PRICE_SYNC_TASKS,
+  PUBLISH_SWEEP_QUEUE,
   REPLICATE_POLL_QUEUE,
   SCHEDULED_PUBLISH_QUEUE,
   TURBO_REWRITE_QUEUE,
@@ -47,6 +48,7 @@ describe('queue-names.constant', () => {
 
   it('preserves the platform schedule queue and price sync task names', () => {
     expect(PLATFORM_SCHEDULE_QUEUE).toBe('system-sweeps');
+    expect(PUBLISH_SWEEP_QUEUE).toBe('publish-sweeps');
     expect(PROVIDER_PRICE_SYNC_TASKS).toEqual({
       fal: 'fal-model-discovery',
       higgsfield: 'higgsfield-model-discovery',
