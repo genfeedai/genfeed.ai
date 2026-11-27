@@ -1,6 +1,10 @@
 import { getAppSignUpUrl, SIGN_UP_OFFER } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
 import {
   FREE_TRIAL_DURATION_HOURS,
   videoRetentionDays,
@@ -15,6 +19,7 @@ import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,
   formatPrice,
+  formatResearchScanLimit,
   getLaunchPrice,
   getLaunchPriceTerm,
   getPlanByTier,
@@ -23,6 +28,7 @@ import {
   INTERNAL_CREDIT_COSTS,
   PAYG_MIN_PURCHASE_USD,
   PLAN_COPY,
+  RESEARCH_SCAN_LIMITS,
   VIDEO_CREDIT_COSTS,
   type websitePlans,
 } from '@genfeedai/pricing';
@@ -96,14 +102,15 @@ const SETUP_CREDITS =
   ONBOARDING_ANSWER_TOTAL_CREDITS + ONBOARDING_JOURNEY_TOTAL_CREDITS;
 const FREE_CREDITS_COPY = `${ONBOARDING_SIGNUP_GIFT_CREDITS} credits when you sign up, up to ${SETUP_CREDITS} more as you set up your brand and make your first pieces, and ${ONBOARDING_TRIAL_CREDITS} when you add a verified card. Free credits last ${FREE_TRIAL_DURATION_HOURS} hours.`;
 
+const PLAN_UNLOCKS_COPY = `More scans of your niche and of competitor ads: ${formatResearchScanLimit(RESEARCH_SCAN_LIMITS[SubscriptionTier.PRO])} on Pro and ${formatResearchScanLimit(RESEARCH_SCAN_LIMITS[SubscriptionTier.SCALE])} on Scale, against ${formatResearchScanLimit(RESEARCH_SCAN_LIMITS[SubscriptionTier.FREE])} on Pay As You Go. A plan also rescans the competitors you watch, plays trend videos inside Genfeed, and adds the inbox, workflows, more posts a day and your choice of agent model. Saving and remixing what a scan finds is open to every account.`;
+
 const FAQ_ITEMS_BEFORE_LAUNCH = [
   {
     answer: FREE_CREDITS_COPY,
     question: 'Can I try it before I pay?',
   },
   {
-    answer:
-      'Trends in your niche, trend videos that play inside Genfeed, saving and remixing competitor ads, the inbox, workflows, more posts a day and your choice of agent model. Pay As You Go keeps the shared trends feed and everything you already made.',
+    answer: PLAN_UNLOCKS_COPY,
     question: 'What does a plan unlock?',
   },
   {

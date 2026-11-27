@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import Card from '@ui/card/Card';
 import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
@@ -14,8 +15,11 @@ import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import ResearchScanBadge from '@/features/research/scans/ResearchScanBadge';
+import ResearchScanLimitAlert from '@/features/research/scans/ResearchScanLimitAlert';
 import { useResearchPagination } from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
 
+import AdsCompetitorSuggestions from './AdsCompetitorSuggestions';
 import AdsPublicDiscoveryPanel from './AdsPublicDiscoveryPanel';
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
@@ -30,6 +34,7 @@ import XAdsDsaNotice from './XAdsDsaNotice';
 
 export default function AdsResearchPageClient() {
   const translate = useTranslations('pages.adsResearch');
+  const translateScans = useTranslations('pages.adsResearch.scans');
   const {
     adAccounts,
     adPackResult,
@@ -106,8 +111,14 @@ export default function AdsResearchPageClient() {
     !accountsError;
   const connectionError =
     source === 'my_accounts' && !hasCredentials ? credentialsError : null;
+  const showFirstVisit =
+    !watchlist.isLoading &&
+    watchlist.advertisers.length === 0 &&
+    watchlist.suggestions.length > 0 &&
+    watchlist.scanStatus?.remaining !== 0;
   const headerRight = (
     <div className="flex items-center gap-2">
+      <ResearchScanBadge status={watchlist.scanStatus} />
       <Button
         variant={ButtonVariant.GHOST}
         size={ButtonSize.SM}
@@ -219,6 +230,26 @@ export default function AdsResearchPageClient() {
         </Alert>
       ) : null}
 
+      <ResearchScanLimitAlert status={watchlist.scanStatus} />
+
+      {showFirstVisit ? (
+        <Card className="mb-4" data-testid="ads-first-visit">
+          <div className="mb-1 text-sm font-medium">
+            {translateScans('ads.firstVisit.title')}
+          </div>
+          <p className="mb-3 text-xs text-foreground/60">
+            {translateScans('ads.firstVisit.description')}
+          </p>
+          <AdsCompetitorSuggestions
+            isAdding={watchlist.isAdding}
+            platform={AdsPlatform.META}
+            scansLeft={watchlist.scanStatus?.remaining ?? null}
+            suggestions={watchlist.suggestions}
+            onAdd={watchlist.addAdvertiser}
+          />
+        </Card>
+      ) : null}
+
       <AdsResearchTextFilters
         effectivePlatform={effectivePlatform}
         industry={industry}
@@ -242,6 +273,7 @@ export default function AdsResearchPageClient() {
         isLoading={watchlist.isLoading}
         isOpen={isWatchlistOpen}
         readiness={watchlist.readiness}
+        scansLeft={watchlist.scanStatus?.remaining ?? null}
         suggestions={watchlist.suggestions}
         onAdd={watchlist.addAdvertiser}
         onOpenChange={setIsWatchlistOpen}

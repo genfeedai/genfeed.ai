@@ -5,12 +5,14 @@ import type {
   AdWatchedAdvertiser,
   AdWatchlistPlatformReadiness,
   CreateAdWatchedAdvertiserInput,
+  ResearchScanStatus,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdWatchedAdvertisersService } from '@services/ads/ad-watched-advertisers.service';
 import { AdsResearchService } from '@services/ads/ads-research.service';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useResearchScans } from '@/features/research/scans/use-research-scans';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 const URL_PREFIX_PATTERN = /^https?:\/\/(?:www\.)?/i;
@@ -54,6 +56,8 @@ export function getCompetitorSuggestions(
 export type AdsResearchWatchlistApi = {
   addError?: string;
   advertisers: AdWatchedAdvertiser[];
+  /** Scans left in the ads library; undefined until the counts load. */
+  scanStatus: ResearchScanStatus | undefined;
   busyId?: string;
   isAdding: boolean;
   isLoading: boolean;
@@ -76,6 +80,7 @@ export function useAdsResearchWatchlist(
   onPolled?: () => void,
 ): AdsResearchWatchlistApi {
   const { brandId, isReady, selectedBrand } = useBrand();
+  const { refresh: refreshScans, statusFor } = useResearchScans();
   const getWatchlistService = useAuthedService((token: string) =>
     AdWatchedAdvertisersService.getInstance(token),
   );
@@ -147,6 +152,8 @@ export function useAdsResearchWatchlist(
       );
       return false;
     } finally {
+      // Watching a competitor collects its ads once, which spends a scan.
+      await refreshScans();
       setIsAdding(false);
     }
   }
@@ -169,7 +176,7 @@ export function useAdsResearchWatchlist(
     } finally {
       // The poll records its own outcome (fresh, empty or the blocker code) on
       // the row, so refetch even when the request itself failed.
-      await refetch();
+      await Promise.all([refetch(), refreshScans()]);
       setBusyId(undefined);
     }
   }
@@ -203,6 +210,7 @@ export function useAdsResearchWatchlist(
     pollAdvertiser,
     readiness,
     removeAdvertiser,
+    scanStatus: statusFor('ads'),
     suggestions: getCompetitorSuggestions(
       selectedBrand?.agentConfig?.strategy?.competitors,
       advertisers,

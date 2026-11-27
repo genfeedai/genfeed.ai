@@ -285,6 +285,7 @@ export * from './integrations/mcp-resource.interface';
 export * from './integrations/news.interface';
 export * from './integrations/replicate.interface';
 export * from './integrations/research-finding-reference.interface';
+export * from './integrations/research-scan.interface';
 export * from './integrations/social-api.interface';
 export * from './knowledge-base/agent-knowledge-citation.interface';
 export * from './knowledge-base/context-coverage.interface';

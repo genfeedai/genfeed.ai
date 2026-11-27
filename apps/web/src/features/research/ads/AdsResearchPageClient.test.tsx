@@ -41,7 +41,10 @@ const generateAdPackMock = vi.fn();
 const getAdsResearchServiceMock = vi.fn();
 const remixAvailability = vi.hoisted(() => ({ isAvailable: true }));
 const watchlistHook = vi.hoisted(() => ({
+  advertisers: [] as unknown[],
   onPolled: undefined as (() => void) | undefined,
+  scanStatus: undefined as { remaining: number | null } | undefined,
+  suggestions: [] as string[],
 }));
 const openRemixMock = vi.fn();
 const prepareCampaignForReviewMock = vi.fn();
@@ -264,14 +267,28 @@ vi.mock('./useAdsResearchWatchlist', () => ({
     watchlistHook.onPolled = onPolled;
     return {
       addAdvertiser: vi.fn(),
-      advertisers: [],
+      advertisers: watchlistHook.advertisers,
       isAdding: false,
       isLoading: false,
       readiness: [],
       pollAdvertiser: vi.fn(),
       removeAdvertiser: vi.fn(),
+      scanStatus: watchlistHook.scanStatus,
+      suggestions: watchlistHook.suggestions,
     };
   },
+}));
+
+// The scan components read the real intl formatter and the org URL; the page
+// only decides where they go, so they are stood in for here and covered by
+// `research-scans.test.tsx`.
+vi.mock('@/features/research/scans/ResearchScanBadge', () => ({
+  default: ({ status }: { status?: { remaining: number | null } }) =>
+    status ? <span data-testid="scan-badge">{status.remaining}</span> : null,
+}));
+vi.mock('@/features/research/scans/ResearchScanLimitAlert', () => ({
+  default: ({ status }: { status?: { remaining: number | null } }) =>
+    status?.remaining === 0 ? <div data-testid="scan-limit" /> : null,
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -459,6 +476,9 @@ vi.mock('@/components/shell/use-available-rail-apps', () => ({
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    watchlistHook.advertisers = [];
+    watchlistHook.scanStatus = undefined;
+    watchlistHook.suggestions = [];
     savedAdsState.savedAds = [];
     remixAvailability.isAvailable = true;
     useQueryCallIndex = 0;
@@ -1372,5 +1392,42 @@ describe('AdsResearchPageClient', () => {
     expect(
       screen.getByPlaceholderText('Advertiser handle or page name'),
     ).toBeInTheDocument();
+  });
+
+  it('offers the brand competitors on the first visit so the scan is spent on one', () => {
+    watchlistHook.scanStatus = { remaining: 1 };
+    watchlistHook.suggestions = ['Gymshark', 'Alo Yoga'];
+
+    render(<AdsResearchPageClient />);
+
+    const firstVisit = screen.getByTestId('ads-first-visit');
+    expect(
+      within(firstVisit).getByRole('button', { name: /Gymshark/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('scan-badge')).toHaveTextContent('1');
+    // One scan cannot cover two competitors, so there is no "Watch all".
+    expect(
+      within(firstVisit).queryByRole('button', { name: 'Watch all' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the limit instead of the first-visit offer when no scans are left', () => {
+    watchlistHook.scanStatus = { remaining: 0 };
+    watchlistHook.suggestions = ['Gymshark'];
+
+    render(<AdsResearchPageClient />);
+
+    expect(screen.getByTestId('scan-limit')).toBeInTheDocument();
+    expect(screen.queryByTestId('ads-first-visit')).not.toBeInTheDocument();
+  });
+
+  it('keeps the first-visit offer for a watchlist that is still empty only', () => {
+    watchlistHook.scanStatus = { remaining: 5 };
+    watchlistHook.suggestions = ['Gymshark'];
+    watchlistHook.advertisers = [{ id: 'adv-1' }];
+
+    render(<AdsResearchPageClient />);
+
+    expect(screen.queryByTestId('ads-first-visit')).not.toBeInTheDocument();
   });
 });

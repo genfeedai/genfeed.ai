@@ -27,6 +27,7 @@ export type PaidCreativeIngestionErrorCode =
   | 'paid_creative_source_unavailable'
   | 'research_collection_start_unreconciled'
   | 'research_paid_access_required'
+  | 'research_scan_limit_reached'
   | 'research_subscription_unverified';
 
 export interface PaidCreativeReadiness {
@@ -72,6 +73,8 @@ export interface PaidCreativeIngestionResult {
    */
   platform: string;
   recordCount: number;
+  /** When the next scan opens, set with `research_scan_limit_reached`. */
+  nextScanAt?: string;
   status: 'success' | 'error' | 'unavailable';
 }
 

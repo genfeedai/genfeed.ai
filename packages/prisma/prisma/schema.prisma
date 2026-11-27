@@ -1045,6 +1045,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   adPerformances                AdPerformance[]
   adWatchedAdvertisers          AdWatchedAdvertiser[]
   researchCollectionJobs        ResearchCollectionJob[]
+  researchScans                 ResearchScan[]
   savedAds                      SavedAd[]
   outreachCampaigns             OutreachCampaign[]
   campaignTargets               CampaignTarget[]
@@ -7267,6 +7268,26 @@ model ResearchCollectionJob {
 
   @@index([organizationId, isDeleted, upstreamRunId])
   @@map("research_collection_jobs")
+}
+
+/// One counted scan of a research library: a niche trends search for one
+/// brand, or one poll of one competitor. The plan's scan limit is a count of
+/// these rows over a rolling window. A scan that never started a scraper run
+/// is released (soft deleted), so it does not count.
+model ResearchScan {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  /// ResearchScanLibrary in @genfeedai/pricing; the research_scans_library_check CHECK pins it.
+  library        String
+  /// The brand (trends) or watched advertiser (ads) the scan was for.
+  subjectKey     String?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, library, isDeleted, createdAt], map: "research_scans_window_idx")
+  @@map("research_scans")
 }
 
 model AdBulkUploadJob {

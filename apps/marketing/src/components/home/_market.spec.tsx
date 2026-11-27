@@ -18,11 +18,13 @@ describe('HomeMarket', () => {
     render(<HomeMarket />);
 
     expect(
-      screen.getByText('The shared market trends feed.'),
+      screen.getByText(
+        'The shared market trends feed, a trend scan and a competitor ad scan of your own (1 a week each), and saving and remixing what they find.',
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /trends in your niche, competitor ads to save and remix, and trend videos that play inside genfeed\./i,
+        /more scans: 5 a day on pro, 25 a day on scale\. watched competitors rescanned for you, and trend videos that play inside genfeed\./i,
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(

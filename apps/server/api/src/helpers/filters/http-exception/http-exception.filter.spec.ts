@@ -1,6 +1,7 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { ClientClosedRequestException } from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { ResearchScanLimitReachedException } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
@@ -638,6 +639,36 @@ describe('HttpExceptionFilter', () => {
       new HttpException(
         { code: 'x', meta: { brandedGenerationReceiptId: 'forged' } },
         409,
+      ),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
+  });
+  it('tells a refused scan when the next one opens, and nothing a forged body could add', () => {
+    filter.catch(
+      new ResearchScanLimitReachedException({
+        hasPlan: false,
+        library: 'ads',
+        limit: { maxScans: 1, windowMs: 604_800_000 },
+        nextAvailableAt: new Date('2026-12-04T10:00:00.000Z'),
+      }),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      status: '429',
+      code: 'research_scan_limit_reached',
+      title: 'Scan limit reached',
+      meta: {
+        hasPlan: false,
+        maxScans: 1,
+        nextAvailableAtMs: Date.parse('2026-12-04T10:00:00.000Z'),
+        windowMs: 604_800_000,
+      },
+    });
+    filter.catch(
+      new HttpException(
+        { code: 'x', meta: { nextAvailableAtMs: 1, hasPlan: true } },
+        429,
       ),
       mockArgumentsHost,
     );
