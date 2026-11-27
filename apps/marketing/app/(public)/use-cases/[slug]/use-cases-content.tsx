@@ -118,6 +118,17 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
         </section>
       )}
 
+      {useCase.relatedLink ? (
+        <section className="max-w-4xl mx-auto pb-12">
+          <Text className="text-center text-foreground/70">
+            {useCase.relatedLink.description}{' '}
+            <Link href={useCase.relatedLink.href} className="link">
+              {useCase.relatedLink.label}
+            </Link>
+          </Text>
+        </section>
+      ) : null}
+
       <section className="max-w-4xl mx-auto pb-20">
         <div className="gen-card-spotlight p-6 sm:p-10 text-center">
           <Heading as="h3" className="text-3xl font-semibold mb-2">
