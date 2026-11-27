@@ -40,6 +40,7 @@ import type {
   IUnitEconomicsReport,
   IXGrowthReport,
   OrganizationCreditUsageResponse,
+  ResearchScanStatus,
   SocialSourcesResponse,
 } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
@@ -2472,6 +2473,21 @@ export function buildUnhandledApiMockBody(url: string): unknown {
       },
     };
     return research;
+  }
+
+  if (/\/research\/scans\/?$/.test(pathname)) {
+    // A Pro organization with every scan left; `mockResearchScans` overrides.
+    const scans: { data: ResearchScanStatus[] } = {
+      data: (['trends', 'ads'] as const).map((library) => ({
+        hasPlan: true,
+        library,
+        limit: { maxScans: 5, windowMs: 86_400_000 },
+        nextAvailableAt: null,
+        remaining: 5,
+        used: 0,
+      })),
+    };
+    return scans;
   }
 
   if (/\/ads\/research\/watchlist-readiness\/?$/.test(pathname)) {
