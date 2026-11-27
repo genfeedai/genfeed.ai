@@ -7,6 +7,7 @@ import {
 } from '@web-components/home/_assets';
 import HomeHeroVideo from '@web-components/home/_hero-video';
 import HomeOutputCard from '@web-components/home/_output-card';
+import HomePriceLine from '@web-components/home/_price-line';
 import MarqueeRail from '@web-components/layout/marquee-rail/MarqueeRail';
 
 export default function HomeHero(): React.ReactElement {
@@ -57,9 +58,7 @@ export default function HomeHero(): React.ReactElement {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <AgentFirstActions trackingName="home_hero_click" />
           </div>
-          <Text as="p" className="mt-5 text-center text-sm text-foreground/80">
-            Connecting takes one sign-in.
-          </Text>
+          <HomePriceLine />
         </div>
       </div>
 

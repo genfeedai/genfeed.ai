@@ -90,25 +90,59 @@ describe('PricingContent', () => {
     expect(
       table.getAllByRole('columnheader').map((header) => header.textContent),
     ).toEqual(['Feature', 'Pay As You Go', 'Pro', 'Scale', 'Done for you']);
-    const row = table.getByRole('row', {
-      name: /Automation, Messages, Discovery/,
-    });
-    expect(
-      within(row).getByRole('rowheader', {
-        name: 'Automation, Messages, Discovery',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      [...row.querySelectorAll('td')].map((cell) => cell.textContent),
-    ).toEqual(['—', '✓', '✓', '✓']);
+    const cells = (name: string) => {
+      const row = table.getByRole('row', { name: new RegExp(`^${name}`) });
+      expect(within(row).getByRole('rowheader', { name })).toBeInTheDocument();
+      return [...row.querySelectorAll('td')].map((cell) => cell.textContent);
+    };
+
+    // The shared trends feed is open to every account; what a plan unlocks is
+    // named by what it does, not by the app that holds it.
+    expect(cells('Market trends feed')).toEqual(['✓', '✓', '✓', '✓']);
+    for (const name of [
+      'Trends in your niche',
+      'Play trend videos in Genfeed',
+      'Competitor ads: save, watch, remix',
+      'Inbox and workflows',
+    ]) {
+      expect(cells(name)).toEqual(['—', '✓', '✓', '✓']);
+    }
+    expect(cells('Posts a day, per account')).toEqual([
+      '5 after a top-up',
+      '10 to 25',
+      '10 to 25',
+      '10 to 25',
+    ]);
+    expect(cells('Agent model')).toEqual([
+      'Default',
+      'Your choice',
+      'Your choice',
+      'Your choice',
+    ]);
+  });
+
+  it('names no app as the thing a plan unlocks', () => {
+    const { container } = render(<PricingContent />);
+
+    expect(container.textContent).not.toContain(
+      'Automation, Messages, Discovery',
+    );
+  });
+
+  it('has no top-up row on the page that sells plans', () => {
+    render(<PricingContent />);
+
+    expect(screen.queryByText('$1,000')).not.toBeInTheDocument();
+    expect(screen.queryByText('100,000 credits')).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Top up from \$10/)).toHaveLength(1);
   });
 
   it('prints the sign-up gift, the card grant and the expiry, not their sum', () => {
     render(<PricingContent />);
     const grants =
-      '25 credits when you sign up, 75 more when you add a verified card. Free credits last 72 hours.';
+      '25 credits when you sign up, up to 210 more as you set up your brand and make your first pieces, and 75 when you add a verified card. Free credits last 72 hours.';
 
-    // The Pay As You Go strip and the "Is there a free trial?" FAQ answer.
+    // The Pay As You Go strip and the "Can I try it before I pay?" FAQ answer.
     expect(screen.getAllByText(new RegExp(grants)).length).toBeGreaterThan(0);
     expect(screen.queryByText(/100 free credits/)).not.toBeInTheDocument();
   });
@@ -132,11 +166,12 @@ describe('PricingContent', () => {
     );
   });
 
-  it('lists every app on the Pro card', () => {
+  it('names what Pro unlocks on the Pro card', () => {
     render(<PricingContent />);
     const pro = within(screen.getByLabelText('Pro'));
+    expect(pro.getByText('Trends in your niche')).toBeInTheDocument();
     expect(
-      pro.getByText('Automation, Messages, Discovery'),
+      pro.getByText('Competitor ads: save, watch, remix'),
     ).toBeInTheDocument();
     expect(pro.getByText('4,900 credits included')).toBeInTheDocument();
     expect(pro.getAllByRole('listitem')[0]).toHaveTextContent(
@@ -159,18 +194,22 @@ describe('PricingContent', () => {
       'Pro',
       [
         '4,900 credits included',
-        'Automation, Messages, Discovery',
+        'Trends in your niche',
+        'Competitor ads: save, watch, remix',
+        'Play trend videos in Genfeed',
+        'Inbox and workflows',
+        '10 to 25 posts a day per account',
+        'Choose your agent model',
         'Bring your own key',
-        'Unlimited brands and channels',
-        '300 API requests/min',
       ],
     ],
     [
       'Scale',
       [
         '70,000 credits included',
-        'Everything in Pro',
-        'Unlimited seats and workspaces',
+        'Trends in your niche and competitor ads',
+        'Everything else in Pro',
+        'Unlimited seats and client workspaces',
         'Ultra quality, model training',
         '600 API requests/min',
       ],
@@ -185,7 +224,7 @@ describe('PricingContent', () => {
         'Custom LoRA quoted separately',
       ],
     ],
-  ])('shows the same five one-line bullets on the %s card', (name, bullets) => {
+  ])('shows one-line bullets on the %s card', (name, bullets) => {
     render(<PricingContent />);
     const items = within(screen.getByLabelText(name)).getAllByRole('listitem');
 
@@ -202,10 +241,17 @@ describe('PricingContent', () => {
     expect(text).not.toMatch(/\bSLA\b/);
   });
 
-  it('uses the tokenized dark card surface for the featured plan', () => {
+  it('puts the launch price badge on Pro, not on Scale', () => {
     render(<PricingContent />);
 
-    expect(screen.getByText('Popular').closest('.gsap-card')).toHaveClass(
+    expect(screen.queryByText('Popular')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Pro')).getByText('Launch price'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Scale')).queryByText('Launch price'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Launch price').closest('.gsap-card')).toHaveClass(
       'bg-card',
     );
   });
@@ -323,8 +369,7 @@ describe('PricingContent', () => {
       await Promise.resolve();
       render(<PricingContent />);
 
-      expect(screen.getByText('$1,000')).toBeInTheDocument();
-      expect(screen.getByText('100,000 credits')).toBeInTheDocument();
+      expect(screen.getByText('$2,500')).toBeInTheDocument();
       expect(screen.getByText('70,000 credits included')).toBeInTheDocument();
       expect(screen.getByText('4,900 credits included')).toBeInTheDocument();
     });
