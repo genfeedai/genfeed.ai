@@ -10,6 +10,7 @@ import { PostGroupsController } from '@api/collections/post-groups/controllers/p
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
+import { PostGroupReopenService } from '@api/collections/post-groups/services/post-group-reopen.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ReleaseStatus } from '@genfeedai/contracts';
@@ -36,6 +37,7 @@ describe('PostGroupsController', () => {
     update: ReturnType<typeof vi.fn>;
     updateTarget: ReturnType<typeof vi.fn>;
   };
+  let reopenService: { reopen: ReturnType<typeof vi.fn> };
   let recurrenceService: {
     cancelFuture: ReturnType<typeof vi.fn>;
     editFuture: ReturnType<typeof vi.fn>;
@@ -122,6 +124,10 @@ describe('PostGroupsController', () => {
           },
         },
         {
+          provide: PostGroupReopenService,
+          useValue: { reopen: vi.fn().mockResolvedValue({ id: 'group-1' }) },
+        },
+        {
           provide: PostGroupRecurrenceService,
           useValue: {
             cancelFuture: vi.fn().mockResolvedValue({ id: 'group-1' }),
@@ -137,6 +143,7 @@ describe('PostGroupsController', () => {
     controller = module.get(PostGroupsController);
     service = module.get(PostGroupsService);
     recurrenceService = module.get(PostGroupRecurrenceService);
+    reopenService = module.get(PostGroupReopenService);
   });
 
   afterEach(() => {
@@ -337,6 +344,22 @@ describe('PostGroupsController', () => {
       'org-1',
       'user-1',
       'post-1',
+    );
+  });
+
+  it('routes reopen through PATCH, with the optional new time', async () => {
+    const result = await controller.update(req, user, 'group-1', {
+      action: 'reopen',
+      scheduledDate: '2026-12-01T10:00:00.000Z',
+    });
+
+    expect(result).toEqual({ id: 'group-1' });
+    expect(reopenService.reopen).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      { action: 'reopen', scheduledDate: '2026-12-01T10:00:00.000Z' },
+      user,
     );
   });
 

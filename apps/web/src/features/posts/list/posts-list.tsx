@@ -105,6 +105,12 @@ export default function PostsList({
     onRewriteWithAgent,
     onSuggestScheduleWithAgent,
   });
+
+  // A post shows once: failed posts sit in Needs you, the rest in the list.
+  const attentionPosts = posts.filter((post) =>
+    needsPostAttention(post.status),
+  );
+  const listPosts = posts.filter((post) => !needsPostAttention(post.status));
   const confirmPostRemoval = useConfirmPostRemoval();
   const {
     clearSelection,
@@ -263,31 +269,27 @@ export default function PostsList({
                   variant={ButtonVariant.DESTRUCTIVE}
                 />
               </SelectionToolbar>
-              <CollectionSection
-                title={translate('needsYou')}
-                itemCount={
-                  posts.filter((post) =>
-                    needsPostAttention(post.status, post.scheduledDate),
-                  ).length
-                }
-                className="mb-6"
-              >
-                <PostsGrid
-                  posts={posts.filter((post) =>
-                    needsPostAttention(post.status, post.scheduledDate),
-                  )}
-                  view="list"
-                  onPostEvaluated={handlePostEvaluated}
-                  onOpenPostDetail={handleOpenPostDetail}
-                  primaryAction={primaryCardAction}
-                  secondaryActions={secondaryCardActions}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                />
-              </CollectionSection>
+              {attentionPosts.length > 0 ? (
+                <CollectionSection
+                  title={translate('needsYou')}
+                  itemCount={attentionPosts.length}
+                  className="mb-6"
+                >
+                  <PostsGrid
+                    posts={attentionPosts}
+                    view="list"
+                    onPostEvaluated={handlePostEvaluated}
+                    onOpenPostDetail={handleOpenPostDetail}
+                    primaryAction={primaryCardAction}
+                    secondaryActions={secondaryCardActions}
+                    selectedIds={selectedIds}
+                    onToggleSelect={toggleSelect}
+                  />
+                </CollectionSection>
+              ) : null}
               <CollectionSection isLoading={isLoading}>
                 <PostsGrid
-                  posts={posts}
+                  posts={listPosts}
                   view={viewType === VIEW_TYPE_GRID ? 'grid' : 'list'}
                   onPostEvaluated={handlePostEvaluated}
                   onOpenPostDetail={handleOpenPostDetail}

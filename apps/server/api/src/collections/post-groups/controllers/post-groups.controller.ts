@@ -3,6 +3,7 @@ import { EnsureReleaseFromPostDto } from '@api/collections/post-groups/dto/ensur
 import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
+import { PostGroupReopenService } from '@api/collections/post-groups/services/post-group-reopen.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -42,6 +43,7 @@ export class PostGroupsController {
     private readonly postGroupsService: PostGroupsService,
     private readonly postGroupRecurrenceService: PostGroupRecurrenceService,
     private readonly postGroupBatchService: PostGroupBatchService,
+    private readonly postGroupReopenService: PostGroupReopenService,
   ) {}
 
   @TenantReadPolicy('selected')
@@ -235,7 +237,7 @@ export class PostGroupsController {
           data = await this.postGroupsService.cancel(organization, user.id, id);
           break;
         case 'reopen':
-          data = await this.postGroupsService.reopen(
+          data = await this.postGroupReopenService.reopen(
             organization,
             user.id,
             id,

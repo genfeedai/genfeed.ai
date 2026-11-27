@@ -1,6 +1,5 @@
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
-import { syncReleaseAttachmentPosts } from '@api/collections/post-groups/services/post-group-attachment-sync';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
@@ -640,86 +639,6 @@ export class PostGroupsService {
     );
   }
 
-  /**
-   * Undo a cancel on the same release: every cancelled target goes back to a
-   * draft, and with a `scheduledDate` it is scheduled again at that time. The
-   * release keeps its id, so a post that was cancelled by mistake is one row,
-   * not a second release.
-   */
-  async reopen(
-    organizationId: string,
-    userId: string,
-    groupId: string,
-    body?: unknown,
-    apiKeyContext?: ApiKeyPublishingContext,
-  ): Promise<IReleaseGroup> {
-    const scheduledDate =
-      body && typeof body === 'object' && 'scheduledDate' in body
-        ? this.contractService.readScheduledDate(body)
-        : undefined;
-    if (scheduledDate !== undefined) {
-      assertApiKeyPublishingScope(apiKeyContext ?? {}, 'schedule');
-      this.contractService.parseFutureScheduleDate(scheduledDate);
-    } else {
-      assertApiKeyPublishingScope(apiKeyContext ?? {}, 'draft');
-    }
-
-    const current = await this.getOne(organizationId, groupId);
-    const cancelledIds = (current.targets ?? [])
-      .filter(
-        (target) => target.executionState === TargetExecutionState.CANCELLED,
-      )
-      .map((target) => target.id);
-    if (cancelledIds.length === 0) {
-      throw new ConflictException(
-        'This release has no cancelled post to reopen.',
-      );
-    }
-
-    let release = await this.transitionGroupTargets(
-      organizationId,
-      userId,
-      groupId,
-      TargetExecutionState.DRAFT,
-      [TargetExecutionState.CANCELLED],
-    );
-    await this.prisma.$transaction(async (tx) => {
-      const group = await this.persistenceService.getGroupOrThrow(
-        tx,
-        organizationId,
-        groupId,
-      );
-      const targets = await this.persistenceService.getTargets(
-        tx,
-        organizationId,
-        group.id,
-      );
-      // Comment posts were left behind by the cancel; carry the target's draft
-      // state onto them so they follow the post when it is scheduled again.
-      await syncReleaseAttachmentPosts(tx, {
-        editableStates: GROUP_ACTION_STATES,
-        group,
-        organizationId,
-        targets,
-        userId,
-      });
-    });
-
-    if (scheduledDate !== undefined) {
-      for (const targetId of cancelledIds) {
-        release = await this.scheduleTarget(
-          organizationId,
-          userId,
-          groupId,
-          targetId,
-          scheduledDate,
-          { source: 'post-desk' },
-        );
-      }
-    }
-    return release;
-  }
-
   pause(
     organizationId: string,
     userId: string,
@@ -961,7 +880,7 @@ export class PostGroupsService {
     }
   }
 
-  private async transitionGroupTargets(
+  async transitionGroupTargets(
     organizationId: string,
     userId: string,
     groupId: string,

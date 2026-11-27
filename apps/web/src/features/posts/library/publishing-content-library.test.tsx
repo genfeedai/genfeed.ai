@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   queryOptions: [] as Array<{ enabled?: boolean }>,
   updateTarget: vi.fn(),
   retry: vi.fn(),
+  reopen: vi.fn(),
   refetch: vi.fn(),
   push: vi.fn(),
   replace: vi.fn(),
@@ -99,6 +100,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     updateTarget: mocks.updateTarget,
     retry: mocks.retry,
+    reopen: mocks.reopen,
   }),
 }));
 
@@ -403,7 +405,7 @@ describe('PublishingContentLibrary', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('surfaces failed and imminent posts but excludes later posts from Needs you', () => {
+  it('lists only failed posts under Needs you and every post once', () => {
     mocks.queryData = {
       articles: [],
       newsletters: [],
@@ -420,12 +422,6 @@ describe('PublishingContentLibrary', () => {
           description: 'Soon post',
           scheduledDate: new Date(Date.now() + 3600000).toISOString(),
         },
-        {
-          ...collections.posts[0],
-          id: 'later',
-          description: 'Later post',
-          scheduledDate: new Date(Date.now() + 172800000).toISOString(),
-        },
       ],
     };
     render(<PublishingContentLibrary />);
@@ -435,11 +431,34 @@ describe('PublishingContentLibrary', () => {
     ).toBeVisible();
     expect(attention.getByRole('button', { name: 'retry' })).toBeVisible();
     expect(
-      attention.getByRole('link', { name: 'Open Soon post' }),
-    ).toBeVisible();
-    expect(
-      attention.queryByRole('link', { name: 'Open Later post' }),
+      attention.queryByRole('link', { name: 'Open Soon post' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: 'Open Failed post' }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole('link', { name: 'Open Soon post' }),
+    ).toHaveLength(1);
+  });
+
+  it('has no Needs you section when nothing failed', () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          ...collections.posts[0],
+          id: 'soon',
+          description: 'Soon post',
+          scheduledDate: new Date(Date.now() + 3600000).toISOString(),
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+    expect(
+      screen.queryByRole('region', { name: 'needsYou' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Soon post' })).toBeVisible();
   });
 
   it('retries eligible failed targets and skips readiness-blocked channels', async () => {
@@ -486,24 +505,25 @@ describe('PublishingContentLibrary', () => {
     );
   });
 
-  it('uses a target schedule even when the release has no group schedule', () => {
+  it('reopens a cancelled release on the same release, scheduled again when its time is ahead', async () => {
+    const scheduledAt = new Date(Date.now() + 86400000).toISOString();
     mocks.queryData = {
       articles: [],
       newsletters: [],
       posts: [],
       releases: [
         {
-          id: 'release-soon',
-          title: 'Target schedule',
+          id: 'release-cancelled',
+          title: 'Cancelled release',
           createdAt: '2026-09-28T12:00:00Z',
-          status: 'draft',
-          scheduledAt: null,
+          status: 'cancelled',
+          scheduledAt,
           targets: [
             {
-              id: 'target-soon',
+              id: 'target-cancelled',
               platform: Platform.INSTAGRAM,
-              executionState: TargetExecutionState.SCHEDULED,
-              scheduledAt: new Date(Date.now() + 3600000).toISOString(),
+              executionState: TargetExecutionState.CANCELLED,
+              scheduledAt,
             },
           ],
         },
@@ -511,11 +531,45 @@ describe('PublishingContentLibrary', () => {
     };
     render(<PublishingContentLibrary />);
     expect(
-      within(screen.getByRole('region', { name: 'needsYou' })).getByRole(
-        'link',
-        { name: 'Open Target schedule' },
+      screen.queryByRole('region', { name: 'needsYou' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'reopen' }));
+    await waitFor(() =>
+      expect(mocks.reopen).toHaveBeenCalledWith(
+        'release-cancelled',
+        scheduledAt,
       ),
-    ).toBeVisible();
+    );
+    expect(mocks.refetch).toHaveBeenCalled();
+  });
+
+  it('reopens a cancelled release whose time has passed as a draft', async () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [
+        {
+          id: 'release-old',
+          title: 'Old release',
+          createdAt: '2026-09-28T12:00:00Z',
+          status: 'cancelled',
+          scheduledAt: '2026-09-29T12:00:00Z',
+          targets: [
+            {
+              id: 'target-old',
+              platform: Platform.INSTAGRAM,
+              executionState: TargetExecutionState.CANCELLED,
+            },
+          ],
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+    fireEvent.click(screen.getByRole('button', { name: 'reopen' }));
+    await waitFor(() =>
+      expect(mocks.reopen).toHaveBeenCalledWith('release-old', undefined),
+    );
   });
 
   it('shows every board lane, with the post as a card under its status', () => {

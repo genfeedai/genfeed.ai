@@ -2325,57 +2325,6 @@ describe('PostGroupsService', () => {
     expect(result.status).toBe(ReleaseStatus.PAUSED);
   });
 
-  it('reopens a cancelled release as a draft on the same release', async () => {
-    prisma.postGroup.findFirst.mockResolvedValue(
-      makeGroup({ id: 'group-1', status: ReleaseStatus.CANCELLED }),
-    );
-    prisma.post.findMany
-      .mockResolvedValueOnce([
-        makeTarget({
-          groupId: 'group-1',
-          id: 'target-1',
-          targetExecutionState: TargetExecutionState.CANCELLED,
-        }),
-      ])
-      .mockResolvedValueOnce([
-        makeTarget({
-          groupId: 'group-1',
-          id: 'target-1',
-          targetExecutionState: TargetExecutionState.CANCELLED,
-        }),
-      ])
-      .mockResolvedValueOnce([
-        makeTarget({
-          groupId: 'group-1',
-          id: 'target-1',
-          targetExecutionState: TargetExecutionState.DRAFT,
-        }),
-      ]);
-
-    const result = await service.reopen('org-1', 'user-1', 'group-1');
-
-    expect(result.id).toBe('group-1');
-    expect(result.status).toBe(ReleaseStatus.DRAFT);
-    expect(prisma.postGroup.create).not.toHaveBeenCalled();
-  });
-
-  it('refuses to reopen a release that has no cancelled post', async () => {
-    prisma.postGroup.findFirst.mockResolvedValue(
-      makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
-    );
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({
-        groupId: 'group-1',
-        id: 'target-1',
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-      }),
-    ]);
-
-    await expect(service.reopen('org-1', 'user-1', 'group-1')).rejects.toThrow(
-      /no cancelled post/,
-    );
-  });
-
   it('requeues a failed target through the canonical publish worker path', async () => {
     const failedTarget = makeTarget({
       groupId: 'group-1',

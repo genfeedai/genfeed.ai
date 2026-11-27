@@ -45,7 +45,7 @@ import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
-import { Eye, Files, RotateCcw } from 'lucide-react';
+import { Eye, Files, RotateCcw, Undo2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -285,12 +285,26 @@ export default function PublishingContentLibrary() {
       }),
     [channel, items, search, status, type],
   );
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredItems.length / ITEMS_PER_PAGE),
-  );
+  const isItemAttention = (item: PublishingContentLibraryItem) =>
+    item.type === 'post' &&
+    (needsPostAttention(item.status) ||
+      Boolean(
+        item.release?.targets?.some(
+          (target) => target.executionState === TargetExecutionState.FAILED,
+        ),
+      ));
+  // A status filter already narrows the list, so it is the only section then.
+  const isAttentionSectionShown = status.length === 0;
+  const attentionItems = isAttentionSectionShown
+    ? filteredItems.filter(isItemAttention)
+    : [];
+  // A post shows once: failed posts sit in Needs you, everything else below.
+  const listItems = isAttentionSectionShown
+    ? filteredItems.filter((item) => !isItemAttention(item))
+    : filteredItems;
+  const totalPages = Math.max(1, Math.ceil(listItems.length / ITEMS_PER_PAGE));
   const visiblePage = Math.min(currentPage, totalPages);
-  const pageItems = filteredItems.slice(
+  const pageItems = listItems.slice(
     (visiblePage - 1) * ITEMS_PER_PAGE,
     visiblePage * ITEMS_PER_PAGE,
   );
@@ -425,16 +439,6 @@ export default function PublishingContentLibrary() {
     }
   };
 
-  const attentionItems = filteredItems.filter(
-    (item) =>
-      item.type === 'post' &&
-      (needsPostAttention(item.status, item.scheduledAt) ||
-        item.release?.targets?.some(
-          (target) =>
-            target.executionState === TargetExecutionState.FAILED ||
-            needsPostAttention(target.executionState, target.scheduledAt),
-        )),
-  );
   const retryItem = async (item: PublishingContentLibraryItem) => {
     setPendingAction(`retry:${item.id}`);
     try {
@@ -469,6 +473,43 @@ export default function PublishingContentLibrary() {
       }
     }
   };
+  const isItemCancelled = (item: PublishingContentLibraryItem) =>
+    item.type === 'post' &&
+    Boolean(
+      item.release?.targets?.some(
+        (target) => target.executionState === TargetExecutionState.CANCELLED,
+      ),
+    );
+  // Reopens the same release. It goes back on the calendar when its time is
+  // still ahead, otherwise it comes back as a draft.
+  const reopenItem = async (
+    item: PublishingContentLibraryItem,
+    mode: 'schedule' | 'draft',
+  ) => {
+    if (!item.release) return;
+    const releaseId = item.release.id;
+    const scheduledAt = item.release.scheduledAt ?? item.scheduledAt;
+    const isFuture =
+      Boolean(scheduledAt) && Date.parse(scheduledAt ?? '') > Date.now();
+    setPendingAction(`reopen:${item.id}`);
+    try {
+      await (await getReleasesService()).reopen(
+        releaseId,
+        mode === 'schedule' && isFuture && scheduledAt
+          ? scheduledAt
+          : undefined,
+      );
+    } catch (error) {
+      notificationsService.error(translate('reopenFailed'));
+      logger.error('Failed to reopen publishing item', error);
+    } finally {
+      try {
+        await refetch();
+      } finally {
+        setPendingAction(null);
+      }
+    }
+  };
   const isItemFailed = (item: PublishingContentLibraryItem) =>
     item.type === 'post' &&
     Boolean(
@@ -480,8 +521,19 @@ export default function PublishingContentLibrary() {
           )
         : item.status === 'failed',
     );
-  const getOverflowActions = (item: PublishingContentLibraryItem) =>
-    (item.release?.targets ?? []).flatMap((target) => [
+  const getOverflowActions = (item: PublishingContentLibraryItem) => [
+    ...(isItemCancelled(item)
+      ? [
+          {
+            id: `reopen-draft:${item.id}`,
+            label: translate('reopenAsDraft'),
+            onSelect: () => {
+              void reopenItem(item, 'draft');
+            },
+          },
+        ]
+      : []),
+    ...(item.release?.targets ?? []).flatMap((target) => [
       {
         id: `target:${target.id}`,
         label: translate('openTarget', { platform: target.platform }),
@@ -501,11 +553,20 @@ export default function PublishingContentLibrary() {
             },
           ]
         : []),
-    ]);
+    ]),
+  ];
   const runPrimaryAction = (item: PublishingContentLibraryItem) => {
     if (isItemFailed(item)) void retryItem(item);
+    else if (isItemCancelled(item) && item.release)
+      void reopenItem(item, 'schedule');
     else openRowOverlay(item);
   };
+  const getPrimaryLabelKey = (item: PublishingContentLibraryItem) =>
+    isItemFailed(item)
+      ? 'retry'
+      : isItemCancelled(item) && item.release
+        ? 'reopen'
+        : 'open';
 
   // Card views keep a labelled primary action.
   const renderPrimaryAction = (item: PublishingContentLibraryItem) => (
@@ -521,7 +582,7 @@ export default function PublishingContentLibrary() {
             runPrimaryAction(item);
           }}
         >
-          {translate(isItemFailed(item) ? 'retry' : 'open')}
+          {translate(getPrimaryLabelKey(item))}
         </Button>
       }
     />
@@ -531,7 +592,7 @@ export default function PublishingContentLibrary() {
   // The per-target overflow menu varies by row, so it goes through the table's
   // `renderRowActions` rather than the static `actions` prop.
   const renderRowActions = (item: PublishingContentLibraryItem) => {
-    const primaryLabel = translate(isItemFailed(item) ? 'retry' : 'open');
+    const primaryLabel = translate(getPrimaryLabelKey(item));
     return (
       <CollectionItemActions
         className="justify-end"
@@ -542,6 +603,8 @@ export default function PublishingContentLibrary() {
             icon={
               isItemFailed(item) ? (
                 <RotateCcw aria-hidden="true" />
+              ) : getPrimaryLabelKey(item) === 'reopen' ? (
+                <Undo2 aria-hidden="true" />
               ) : (
                 <Eye aria-hidden="true" />
               )
@@ -736,22 +799,24 @@ export default function PublishingContentLibrary() {
 
   return (
     <div className="@container space-y-6">
-      <CollectionSection
-        title={translate('needsYou')}
-        itemCount={attentionItems.length}
-      >
-        <AppTable<PublishingContentLibraryItem>
-          columns={columns}
-          items={attentionItems}
-          renderRowActions={renderRowActions}
-          getItemId={(item) => item.id}
-          getRowKey={(item) => `${item.type}:${item.id}`}
-          activeRowId={activeRowId}
-          onRowClick={openRowOverlay}
-        />
-      </CollectionSection>
+      {attentionItems.length > 0 ? (
+        <CollectionSection
+          title={translate('needsYou')}
+          itemCount={attentionItems.length}
+        >
+          <AppTable<PublishingContentLibraryItem>
+            columns={columns}
+            items={attentionItems}
+            renderRowActions={renderRowActions}
+            getItemId={(item) => item.id}
+            getRowKey={(item) => `${item.type}:${item.id}`}
+            activeRowId={activeRowId}
+            onRowClick={openRowOverlay}
+          />
+        </CollectionSection>
+      ) : null}
       <CollectionSection isLoading={isLoading}>
-        {filteredItems.length > 0 && (view === 'grid' || view === 'board') ? (
+        {listItems.length > 0 && (view === 'grid' || view === 'board') ? (
           view === 'grid' ? (
             <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3 @[80rem]:grid-cols-4">
               {pageItems.map(renderPostCard(true))}
@@ -759,7 +824,7 @@ export default function PublishingContentLibrary() {
           ) : (
             <PublishingContentBoard
               columns={createPublishingBoardColumns(
-                filteredItems,
+                listItems,
                 status.length > 0,
               )}
               renderCard={renderPostCard(false)}
@@ -782,7 +847,7 @@ export default function PublishingContentLibrary() {
       </CollectionSection>
       <div className="mt-4">
         <Pagination
-          totalItems={filteredItems.length}
+          totalItems={listItems.length}
           totalLabel="posts"
           currentPage={visiblePage}
           totalPages={view === 'board' ? 1 : totalPages}
