@@ -1,6 +1,8 @@
 import { type BestList, getBestListEntries } from '@data/best-lists.data';
+import { getBestListRelatedLinks } from '@data/related-links.data';
 import Card from '@ui/card/Card';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 
@@ -65,6 +67,11 @@ export default function BestListContent({ list }: { list: BestList }) {
           <p className="text-sm gen-text-muted mt-6">{list.notCompared}</p>
         ) : null}
       </section>
+
+      <RelatedLinks
+        links={getBestListRelatedLinks(list.slug)}
+        title="More guides"
+      />
     </PageLayout>
   );
 }

@@ -91,6 +91,21 @@ function readJsonLdScripts(element: ReactNode): unknown[] {
     .map((script) => JSON.parse(String(script.props.children)));
 }
 
+/** The article body the route renders, wherever the related links sit around it. */
+function findArticleDetail(
+  element: ReactElement<{ children?: ReactNode }>,
+): ReactElement<{ article: Article }> {
+  const detail = Children.toArray(element.props.children).find(
+    (child): child is ReactElement<{ article: Article }> =>
+      isValidElement<{ article?: Article }>(child) &&
+      child.props.article !== undefined,
+  );
+  if (!detail) {
+    throw new Error('Expected the route to render the article body');
+  }
+  return detail;
+}
+
 beforeEach(() => {
   findAllPublicArticles.mockReset();
   getPublicArticleBySlug.mockReset();
@@ -360,9 +375,7 @@ describe('ArticleDetailRoute', () => {
     const [articleJsonLd] = readJsonLdScripts(element) as [
       { author: { name: string } },
     ];
-    const detail = Children.toArray(element.props.children).at(
-      -1,
-    ) as ReactElement<{ article: Article }>;
+    const detail = findArticleDetail(element);
 
     expect(articleJsonLd.author.name).toBe('Vincent Tellier');
     expect(detail.props.article.author).toBe('Vincent Tellier');

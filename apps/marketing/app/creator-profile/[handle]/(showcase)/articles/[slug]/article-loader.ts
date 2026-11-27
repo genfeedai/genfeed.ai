@@ -34,3 +34,22 @@ export const getCreatorArticleCached = cache(
       : null;
   },
 );
+
+/**
+ * Every public article a creator has published, newest first. A listing that
+ * fails reads as empty: the article page renders without its related links.
+ */
+export const getCreatorArticleListCached = cache(
+  async (brandId: string): Promise<Article[]> => {
+    try {
+      const articles = await PublicService.getInstance().findAllPublicArticles({
+        brand: brandId,
+        sortBy: 'publishedAt',
+        sortOrder: 'desc',
+      });
+      return articles.filter((article) => Boolean(article.slug));
+    } catch {
+      return [];
+    }
+  },
+);

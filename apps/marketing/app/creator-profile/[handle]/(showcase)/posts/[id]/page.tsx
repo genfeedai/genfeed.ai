@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { getPublicBrandBySlug } from '../../creator-loader';
+import RelatedPosts from './related-posts';
 
 export const revalidate = 300;
 
@@ -154,95 +155,98 @@ export default async function CreatorPostPage({
   };
 
   return (
-    <article className="mx-auto w-full max-w-2xl px-4 pb-16 pt-10">
-      <script type="application/ld+json">{stringifyJsonLd(jsonLd)}</script>
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-8 flex flex-wrap items-center gap-1.5 text-sm text-foreground/60"
-      >
+    <>
+      <article className="mx-auto w-full max-w-2xl px-4 pb-16 pt-10">
+        <script type="application/ld+json">{stringifyJsonLd(jsonLd)}</script>
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-8 flex flex-wrap items-center gap-1.5 text-sm text-foreground/60"
+        >
+          <Link
+            className="hover:text-foreground"
+            href={creatorProfilePath(handle)}
+          >
+            @{handle}
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link
+            className="hover:text-foreground"
+            href={creatorTabPath(handle, 'posts')}
+          >
+            posts
+          </Link>
+        </nav>
+
         <Link
-          className="hover:text-foreground"
+          className="mb-6 flex items-center gap-3"
           href={creatorProfilePath(handle)}
         >
-          @{handle}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          className="hover:text-foreground"
-          href={creatorTabPath(handle, 'posts')}
-        >
-          posts
-        </Link>
-      </nav>
-
-      <Link
-        className="mb-6 flex items-center gap-3"
-        href={creatorProfilePath(handle)}
-      >
-        <BrandAvatar
-          alt={`${name} logo`}
-          name={name}
-          size="md"
-          src={brand.logoUrl}
-        />
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-foreground">
-            {name}
+          <BrandAvatar
+            alt={`${name} logo`}
+            name={name}
+            size="md"
+            src={brand.logoUrl}
+          />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-foreground">
+              {name}
+            </span>
+            <span className="block text-xs text-foreground/60">
+              @{handle}
+              {publishedAt ? (
+                <>
+                  {' · '}
+                  <time dateTime={publishedAt}>
+                    {postDateFormatter.format(new Date(publishedAt))}
+                  </time>
+                </>
+              ) : null}
+            </span>
           </span>
-          <span className="block text-xs text-foreground/60">
-            @{handle}
-            {publishedAt ? (
-              <>
-                {' · '}
-                <time dateTime={publishedAt}>
-                  {postDateFormatter.format(new Date(publishedAt))}
-                </time>
-              </>
-            ) : null}
-          </span>
-        </span>
-      </Link>
+        </Link>
 
-      <h1 className="mb-4 text-2xl font-semibold text-foreground">{title}</h1>
-      {text && text !== title ? (
-        <p className="whitespace-pre-line text-base leading-7 text-foreground/80">
-          {text}
-        </p>
-      ) : null}
+        <h1 className="mb-4 text-2xl font-semibold text-foreground">{title}</h1>
+        {text && text !== title ? (
+          <p className="whitespace-pre-line text-base leading-7 text-foreground/80">
+            {text}
+          </p>
+        ) : null}
 
-      {media.length > 0 ? (
-        <div className="mt-6">
-          <CreatorPostMedia alt={title} media={media} />
+        {media.length > 0 ? (
+          <div className="mt-6">
+            <CreatorPostMedia alt={title} media={media} />
+          </div>
+        ) : null}
+
+        <div className="mt-6 text-sm text-foreground/60">
+          <CreatorPostMetrics post={post} />
         </div>
-      ) : null}
 
-      <div className="mt-6 text-sm text-foreground/60">
-        <CreatorPostMetrics post={post} />
-      </div>
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <CopyLinkButton url={url} />
-        {networkLinks.map((link) => (
-          <Button
-            asChild
-            key={link.label}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <a href={link.url} rel="noopener noreferrer" target="_blank">
-              View on {link.label}
-              <ArrowUpRight className="size-4" aria-hidden="true" />
-            </a>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <CopyLinkButton url={url} />
+          {networkLinks.map((link) => (
+            <Button
+              asChild
+              key={link.label}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              <a href={link.url} rel="noopener noreferrer" target="_blank">
+                View on {link.label}
+                <ArrowUpRight className="size-4" aria-hidden="true" />
+              </a>
+            </Button>
+          ))}
+          <Button asChild variant={ButtonVariant.GHOST} withWrapper={false}>
+            <a href={signUpUrl}>Make your own</a>
           </Button>
-        ))}
-        <Button asChild variant={ButtonVariant.GHOST} withWrapper={false}>
-          <a href={signUpUrl}>Make your own</a>
-        </Button>
-      </div>
+        </div>
 
-      <div className="mt-10">
-        <ProfileSubscribe handle={handle} source="post" sourceRef={post.id} />
-      </div>
-    </article>
+        <div className="mt-10">
+          <ProfileSubscribe handle={handle} source="post" sourceRef={post.id} />
+        </div>
+      </article>
+      <RelatedPosts brandId={brand.id} handle={handle} postId={post.id} />
+    </>
   );
 }

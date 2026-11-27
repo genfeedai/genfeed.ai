@@ -1,5 +1,6 @@
 import { getAppSignUpUrl, SIGN_UP_OFFER } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   FREE_TRIAL_DURATION_HOURS,
@@ -46,6 +47,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import SectionHeader from '@web-components/marketing/SectionHeader';
@@ -483,6 +485,10 @@ export default function PricingContent() {
             trackingName="pricing_cta_click"
           />
         </CtaSection>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/pricing')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

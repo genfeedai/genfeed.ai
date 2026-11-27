@@ -12,6 +12,10 @@
  * - title too short (no descriptive text beyond the brand suffix) or too long
  * - structured data that cannot produce a rich result
  * - breadcrumb JSON-LD pointing at URLs that do not resolve
+ *
+ * Added after the 2026-11-27 crawl, where 41 pages were reachable from one link:
+ *
+ * - inbound-links-few — fewer than three other pages link to an indexable page
  */
 
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -546,6 +550,63 @@ export function checkSitemapEntriesResolve(
         'Listed in /sitemap.xml but did not return 200.',
       ),
     );
+}
+
+/** Fewest other pages that must link to an indexable page. */
+export const MIN_INBOUND_LINKS = 3;
+
+/**
+ * The HTML directory lists every page, so a link from it says nothing about the
+ * page it points at. It is left out of the count; the 2026-11-27 crawl found 41
+ * pages whose only link was this one.
+ */
+export const SITEMAP_DIRECTORY_PATH = '/sitemap';
+
+/**
+ * Cross-page rule: an indexable page that few other pages link to is crawled
+ * rarely and ranks poorly. Counts distinct pages that link to it, never the
+ * page itself and never the sitemap directory.
+ *
+ * `linksFrom` is the crawl's outgoing internal links per page. The footer and
+ * the top bar link to the same few hubs from everywhere, so a page below those
+ * hubs needs its links in the content of the pages around it.
+ */
+export function checkInboundLinks(
+  inputs: readonly PageInput[],
+  linksFrom: ReadonlyMap<string, readonly string[]>,
+): Finding[] {
+  const linkedFrom = new Map<string, Set<string>>();
+  for (const [source, targets] of linksFrom) {
+    if (source === SITEMAP_DIRECTORY_PATH) {
+      continue;
+    }
+    for (const target of targets) {
+      if (target === source) {
+        continue;
+      }
+      const sources = linkedFrom.get(target) ?? new Set<string>();
+      sources.add(source);
+      linkedFrom.set(target, sources);
+    }
+  }
+
+  return inputs
+    .filter(
+      ({ facts }) => !(facts.robots ?? '').toLowerCase().includes('noindex'),
+    )
+    .flatMap(({ path }) => {
+      const count = linkedFrom.get(path)?.size ?? 0;
+      return count >= MIN_INBOUND_LINKS
+        ? []
+        : [
+            finding(
+              'inbound-links-few',
+              'error',
+              path,
+              `${count} other page${count === 1 ? '' : 's'} link here (min ${MIN_INBOUND_LINKS}, the sitemap directory not counted). Link to it from the content of related pages.`,
+            ),
+          ];
+    });
 }
 
 export function summarize(findings: readonly Finding[]): {

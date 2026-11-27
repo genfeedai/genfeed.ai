@@ -28,6 +28,7 @@ import {
   auditPage,
   checkDuplicateDescriptions,
   checkDuplicateTitles,
+  checkInboundLinks,
   checkSitemapCoverage,
   checkSitemapEntriesResolve,
   collectBreadcrumbTargets,
@@ -196,7 +197,7 @@ async function main(): Promise<void> {
     `  sitemap: ${sitemap.size} URLs (public origin ${publicOrigin})`,
   );
 
-  const { pages, reachable } = await crawlSite({
+  const { linksFrom, pages, reachable } = await crawlSite({
     concurrency: CONCURRENCY,
     origin: BASE_URL,
     seeds: ['/', ...sitemap],
@@ -219,6 +220,7 @@ async function main(): Promise<void> {
     ...inputs.flatMap((pageInput) => auditPage(pageInput)),
     ...checkDuplicateTitles(inputs),
     ...checkDuplicateDescriptions(inputs),
+    ...checkInboundLinks(inputs, linksFrom),
     ...checkSitemapCoverage(inputs, sitemap),
     ...checkSitemapEntriesResolve(sitemap, reachable),
     ...(await probeNotFoundRoutes()),

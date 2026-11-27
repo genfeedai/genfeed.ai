@@ -69,7 +69,7 @@ describe('Footer Component', () => {
     );
 
     expect(solutions?.links[0]?.href).toBe('/pricing');
-    expect(hrefs).toContain('/community/articles');
+    expect(hrefs).toContain('/blog');
   });
 
   it('links the affiliate program under Company', () => {

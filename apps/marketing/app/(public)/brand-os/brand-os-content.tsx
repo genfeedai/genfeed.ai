@@ -1,8 +1,10 @@
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import Link from 'next/link';
@@ -561,6 +563,10 @@ export default function BrandOSContent(): React.ReactElement {
           </div>
         </section>
       </div>
+      <RelatedLinks
+        links={getStandaloneRelatedLinks('/brand-os')}
+        title="Keep exploring"
+      />
       <HomeFooter />
     </MarketingEntrance>
   );

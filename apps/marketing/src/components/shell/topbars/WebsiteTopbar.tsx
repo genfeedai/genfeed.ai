@@ -299,7 +299,7 @@ const SOLUTIONS_LINKS = [
 const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/tools', label: 'Free tools' },
-  { href: '/community/articles', label: 'Blog' },
+  { href: '/blog', label: 'Blog' },
 ];
 
 export default function WebsiteTopbar() {

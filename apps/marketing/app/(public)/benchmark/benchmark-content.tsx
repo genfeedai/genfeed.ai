@@ -1,4 +1,5 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   BenchmarkContestant,
@@ -18,6 +19,7 @@ import {
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
@@ -327,6 +329,10 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
             </section>
           </div>
         )}
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/benchmark')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

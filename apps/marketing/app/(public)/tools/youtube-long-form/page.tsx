@@ -1,4 +1,6 @@
+import { getToolRelatedLinks } from '@data/related-links.data';
 import YoutubeLongFormContent from '@public/tools/youtube-long-form/youtube-long-form-content';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 
@@ -17,6 +19,10 @@ export default function YoutubeLongFormPage(): React.ReactElement {
       title="YouTube to long-form text"
     >
       <YoutubeLongFormContent />
+      <RelatedLinks
+        links={getToolRelatedLinks('/tools/youtube-long-form')}
+        title="More free tools"
+      />
     </PageLayout>
   );
 }

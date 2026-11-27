@@ -4,6 +4,7 @@ import {
   auditPage,
   checkDuplicateDescriptions,
   checkDuplicateTitles,
+  checkInboundLinks,
   checkSitemapCoverage,
   checkSitemapEntriesResolve,
   checkSocialTags,
@@ -507,5 +508,68 @@ describe('cross-page rules', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]?.path).toBe('/gone');
     expect(findings[0]?.rule).toBe('sitemap-url-unreachable');
+  });
+});
+
+describe('inbound links', () => {
+  const pages = ['/a', '/b', '/c', '/d', '/e'].map((path) =>
+    input(path, healthyHtml(path)),
+  );
+  const links = (entries: Record<string, string[]>) =>
+    new Map(Object.entries(entries));
+
+  it('flags a page that fewer than three other pages link to', () => {
+    const findings = checkInboundLinks(
+      pages,
+      links({ '/a': ['/b'], '/c': ['/b'], '/d': ['/a'] }),
+    );
+
+    const flagged = findings.find((item) => item.path === '/b');
+    expect(flagged?.rule).toBe('inbound-links-few');
+    expect(flagged?.detail).toContain('2 other pages link here');
+  });
+
+  it('accepts a page three other pages link to', () => {
+    const findings = checkInboundLinks(
+      [input('/b', healthyHtml('/b'))],
+      links({ '/a': ['/b'], '/c': ['/b'], '/d': ['/b'] }),
+    );
+
+    expect(findings).toEqual([]);
+  });
+
+  it('counts a source page once however many times it links', () => {
+    const findings = checkInboundLinks(
+      [input('/b', healthyHtml('/b'))],
+      links({ '/a': ['/b', '/b', '/b'], '/c': ['/b'] }),
+    );
+
+    expect(findings[0]?.detail).toContain('2 other pages link here');
+  });
+
+  it('ignores links from the page itself and from the sitemap directory', () => {
+    const findings = checkInboundLinks(
+      [input('/b', healthyHtml('/b'))],
+      links({
+        '/a': ['/b'],
+        '/b': ['/b'],
+        '/c': ['/b'],
+        '/sitemap': ['/b'],
+      }),
+    );
+
+    expect(findings[0]?.detail).toContain('2 other pages link here');
+  });
+
+  it('skips noindex pages', () => {
+    const noindexed = input(
+      '/private',
+      healthyHtml('/private').replace(
+        '</head>',
+        '<meta name="robots" content="noindex" /></head>',
+      ),
+    );
+
+    expect(checkInboundLinks([noindexed], links({}))).toEqual([]);
   });
 });

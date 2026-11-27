@@ -47,7 +47,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       { href: '/about', label: 'About' },
       { href: '/affiliates', label: 'Affiliates' },
-      { href: '/community/articles', label: 'Blog' },
+      { href: '/blog', label: 'Blog' },
       { href: '/contact', label: 'Contact' },
     ],
     title: 'Company',

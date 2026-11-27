@@ -1,8 +1,10 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -249,6 +251,10 @@ export default function ResearchContent() {
             </div>
           </div>
         </section>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/research')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );
