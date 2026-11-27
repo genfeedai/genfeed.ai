@@ -8,7 +8,12 @@ import {
   findCrossPostIds,
   listCrossPosts,
 } from '@api/endpoints/public/utils/public-cross-posts.util';
-import { withPublicPostMetricsApplied } from '@api/endpoints/public/utils/public-post-metrics.util';
+import {
+  loadPublicPostMetrics,
+  type PublicPostMetrics,
+  withPostMetrics,
+  withPublicPostMetricsApplied,
+} from '@api/endpoints/public/utils/public-post-metrics.util';
 import { PUBLIC_POSTS_ORDER_BY } from '@api/endpoints/public/utils/public-posts-order.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -92,20 +97,24 @@ function withMediaDimensions<T extends PublicPostMedia>(media: T): T {
 
 function withPublicMediaDimensions<D extends object>(
   data: AggregatePaginateResult<D>,
+  metricsByPostId: ReadonlyMap<string, PublicPostMetrics>,
 ): AggregatePaginateResult<D> {
   return {
     ...data,
     docs: data.docs.map((post) => {
       const { ingredients } = post as { ingredients?: unknown };
       return withPublicPostMetricsApplied(
-        Array.isArray(ingredients)
-          ? {
-              ...post,
-              ingredients: (ingredients as PublicPostMedia[]).map(
-                withMediaDimensions,
-              ),
-            }
-          : post,
+        withPostMetrics(
+          Array.isArray(ingredients)
+            ? {
+                ...post,
+                ingredients: (ingredients as PublicPostMedia[]).map(
+                  withMediaDimensions,
+                ),
+              }
+            : post,
+          metricsByPostId,
+        ),
       );
     }),
   };
@@ -228,10 +237,14 @@ export class PublicPostsController {
 
     const data = await this.postsService.findAll(aggregate, options);
     await this.prepareMedia(data.docs);
+    const metrics = await loadPublicPostMetrics(
+      this.postsService.prisma,
+      data.docs,
+    );
     return serializeCollection(
       request,
       PublicPostSerializer,
-      withPublicMediaDimensions(data),
+      withPublicMediaDimensions(data, metrics),
     );
   }
 
@@ -349,10 +362,16 @@ export class PublicPostsController {
         ? await this.findCrossPosts(post)
         : [];
 
+    const metrics = await loadPublicPostMetrics(this.postsService.prisma, [
+      post,
+    ]);
+
     return serializeSingle(
       request,
       PublicPostSerializer,
-      withPublicPostMetricsApplied({ ...post, crossPosts }),
+      withPublicPostMetricsApplied(
+        withPostMetrics({ ...post, crossPosts }, metrics),
+      ),
     );
   }
 
