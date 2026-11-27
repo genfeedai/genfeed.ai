@@ -4,6 +4,20 @@ export type {
   GoogleAdsCustomerInput as GoogleAdsCustomer,
 } from '@genfeedai/integrations/ads';
 
+/**
+ * An account the operator can connect: a client account that runs campaigns.
+ * Manager accounts only group other accounts, so they are never selectable;
+ * their clients are, carrying the manager's id as `managerId` because every
+ * read of a manager-linked client sends it as the `login-customer-id` header.
+ */
+export interface GoogleAdsSelectableAccount {
+  currencyCode?: string;
+  id: string;
+  managerId?: string;
+  managerName?: string;
+  name: string;
+}
+
 export interface GoogleAdsAdGroupInsights {
   adGroupId: string;
   adGroupName: string;

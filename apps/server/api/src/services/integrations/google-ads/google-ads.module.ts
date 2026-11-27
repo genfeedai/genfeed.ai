@@ -3,6 +3,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { GoogleAdsController } from '@api/services/integrations/google-ads/controllers/google-ads.controller';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleAdsAccountsService } from '@api/services/integrations/google-ads/services/google-ads-accounts.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
@@ -14,7 +15,7 @@ const BaseModule = createServiceModule(GoogleAdsService, {
     BrandsCoreModule,
     CredentialsCoreModule,
   ],
-  additionalProviders: [GoogleAdsOAuthService],
+  additionalProviders: [GoogleAdsAccountsService, GoogleAdsOAuthService],
 });
 
 @Module({
