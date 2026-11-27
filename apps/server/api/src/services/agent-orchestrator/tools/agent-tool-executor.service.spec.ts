@@ -269,6 +269,7 @@ describe('AgentToolExecutorService', () => {
     const brandsService = {
       create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
       findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
+      findAll: vi.fn().mockResolvedValue({ docs: [] }),
       findOne: vi.fn(),
       findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({ id: 'brand-1' }),

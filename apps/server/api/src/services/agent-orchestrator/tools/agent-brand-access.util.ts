@@ -1,5 +1,7 @@
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { isCloudDeployment } from '@genfeedai/config';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { traced } from '@libs/tracing/traced';
 
 /**
@@ -54,3 +56,47 @@ export const brandListData = traced(
     };
   },
 );
+
+interface BrandFindOne {
+  findOne: (
+    query: Record<string, unknown>,
+  ) => Promise<Record<string, unknown> | null>;
+}
+
+/**
+ * A brand reader limited to the brands this connection may use. Self-hosted
+ * deployments read every brand of the organization.
+ */
+export async function authorizedBrandReader<T extends BrandFindOne>(
+  brandsService: T,
+  brandAccessService: BrandAccessService,
+  ctx: ToolExecutionContext,
+): Promise<BrandFindOne> {
+  if (!isCloudDeployment()) return brandsService;
+  const where = await brandAccessService.predicate({
+    userId: ctx.userId,
+    organizationId: ctx.organizationId,
+    ...ctx.apiKeyContext,
+  });
+  return {
+    findOne: (query) => brandsService.findOne({ AND: [query, where] }),
+  };
+}
+
+/**
+ * With several brands the member's current brand is only a guess that files an
+ * upload under whichever brand they last opened (#11076 follow-up: Koro photos
+ * landed in another brand's Library), so the caller has to name one. Null when
+ * a single brand applies.
+ */
+export function severalBrandsUploadFailure(
+  brands: ReadonlyArray<{ id: string; label: string }>,
+): AgentToolResult | null {
+  if (brands.length < 2) return null;
+  const names = brands.map((brand) => `${brand.label} (${brand.id})`);
+  return {
+    creditsUsed: 0,
+    error: `This organization has several brands. Pass brandId to say which brand owns the upload: ${names.join(', ')}.`,
+    success: false,
+  };
+}
