@@ -140,6 +140,7 @@ export {
   type IPublisher,
   type MediaInfo,
   type PostValidationResult,
+  type PreparedProviderUpload,
   type PublishContext,
   type PublisherPostInput,
   type PublishResult,

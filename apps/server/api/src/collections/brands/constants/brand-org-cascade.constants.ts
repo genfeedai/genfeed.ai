@@ -927,6 +927,7 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
     'post_provider_publish_receipts',
     POST_PARENT,
   ),
+  secondOrderChild('postPreparedUpload', 'post_prepared_uploads', POST_PARENT),
   secondOrderChild(
     'postPublishFinalization',
     'post_publish_finalizations',

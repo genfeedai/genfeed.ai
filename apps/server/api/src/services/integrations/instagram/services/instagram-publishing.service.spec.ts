@@ -693,3 +693,77 @@ describe('InstagramPublishingService listAudio', () => {
     expect(params?.audio_type).toBe('original_sound');
   });
 });
+
+describe('InstagramPublishingService container prepared ahead of time', () => {
+  it('creates a carousel container and waits for it without publishing', async () => {
+    const graph = createGraphDouble(undefined, undefined, undefined, (index) =>
+      index === 3 ? 'container-1' : `child-${index}`,
+    );
+
+    const containerId = await graph.service.prepareContainer('org', 'brand', {
+      altTexts: ['First slide', undefined],
+      caption: 'Golden hour',
+      imageUrls: ['https://cdn.test/1.jpg', 'https://cdn.test/2.jpg'],
+      isAiGenerated: true,
+      kind: 'carousel',
+    });
+
+    expect(containerId).toBe('container-1');
+    expect(graph.createCalls().map((call) => call.params.children)).toEqual([
+      undefined,
+      undefined,
+      'child-1,child-2',
+    ]);
+    expect(graph.createCalls()[2].params).toMatchObject({
+      caption: 'Golden hour',
+      is_ai_generated: true,
+      media_type: 'CAROUSEL',
+    });
+    expect(graph.publishCalls()).toHaveLength(0);
+  });
+
+  it('publishes a prepared container with one media_publish call', async () => {
+    const graph = createGraphDouble();
+
+    const result = await graph.service.publishPreparedContainer(
+      'org',
+      'brand',
+      'container-1',
+      false,
+    );
+
+    expect(graph.createCalls()).toHaveLength(0);
+    expect(graph.publishCalls().map((call) => call.params.creation_id)).toEqual(
+      ['container-1'],
+    );
+    expect(result.mediaId).toBe('container-1');
+  });
+
+  it('reads no shortcode for a prepared story', async () => {
+    const graph = createGraphDouble();
+
+    const result = await graph.service.publishPreparedContainer(
+      'org',
+      'brand',
+      'container-1',
+      true,
+    );
+
+    expect(result).toEqual({ mediaId: 'container-1', shortcode: null });
+  });
+
+  it('fails the prepare when Instagram could not process the media', async () => {
+    const graph = createGraphDouble();
+    graph.http.get.mockReturnValueOnce(of({ data: { status_code: 'ERROR' } }));
+
+    await expect(
+      graph.service.prepareContainer('org', 'brand', {
+        caption: 'Golden hour',
+        imageUrl: 'https://cdn.test/a.jpg',
+        isAiGenerated: false,
+        kind: 'image',
+      }),
+    ).rejects.toThrow('Media processing failed');
+    expect(graph.publishCalls()).toHaveLength(0);
+  });
+});

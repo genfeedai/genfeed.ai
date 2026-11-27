@@ -12,17 +12,18 @@ import {
 import type { Job } from 'bullmq';
 
 /**
- * Runs the per-minute publishing sweeps (due posts, thread comments) on a
+ * Runs the per-minute publishing sweeps (uploads ahead of time, due posts,
+ * thread comments) on a
  * queue of their own. On `system-sweeps` they waited behind every other
  * platform task for a processor that runs one job at a time, which delayed a
  * due post by up to half a minute whenever an hourly task was running.
  *
- * Concurrency 2 gives each sweep its own slot, so a long post sweep paging
- * through a burst does not hold back the thread comments that follow it. Each
- * sweep takes its own Redis lock, so two slots never run the same sweep.
+ * Concurrency 3 gives each sweep its own slot, so a long upload run or a post
+ * sweep paging through a burst does not hold back the others. Each sweep
+ * takes its own Redis lock, so two slots never run the same sweep.
  */
 @Injectable()
-@Processor(PUBLISH_SWEEP_QUEUE, { concurrency: 2 })
+@Processor(PUBLISH_SWEEP_QUEUE, { concurrency: 3 })
 export class PublishSweepsProcessor extends WorkerHost {
   private readonly context = PublishSweepsProcessor.name;
   private readonly handlers: Record<PublishSweepTaskName, PlatformTaskHandler>;

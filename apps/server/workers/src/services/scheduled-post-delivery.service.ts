@@ -62,6 +62,7 @@ import {
   readScheduledDeliveryResult,
 } from '@workers/services/scheduled-post-delivery-input.util';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostPreparedUploads } from '@workers/services/scheduled-post-prepared-uploads';
 import { ScheduledPostProviderAttempts } from '@workers/services/scheduled-post-provider-attempts';
 import {
   type ProviderPublishAttempt,
@@ -69,6 +70,7 @@ import {
   ProviderPublishAttemptUnavailableError,
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
+  toAttemptFence,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
 import {
@@ -92,23 +94,13 @@ const TERMINAL_FAILURE_PRIOR_STATES: readonly TargetExecutionState[] = [
   TargetExecutionState.PUBLISHING,
 ];
 
-/** The receipt identity a transition fences on, without the attempt's other fields. */
-function toAttemptFence(attempt: ProviderPublishAttemptRef): {
-  attemptToken: string;
-  receiptId: string;
-} {
-  return {
-    attemptToken: attempt.attemptToken,
-    receiptId: attempt.receiptId,
-  };
-}
-
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly gates: ScheduledPostDeliveryGates;
   private readonly attempts: ScheduledPostProviderAttempts;
+  readonly preparedUploads: ScheduledPostPreparedUploads;
 
   constructor(
     private readonly logger: LoggerService,
@@ -141,6 +133,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       this.xBilling,
     );
     this.attempts = new ScheduledPostProviderAttempts(prisma, logger);
+    this.preparedUploads = new ScheduledPostPreparedUploads(
+      prisma,
+      logger,
+      publisherFactory,
+      this.gates,
+    );
   }
 
   onModuleInit(): void {
@@ -520,7 +518,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       // The provider call itself stays in this documented workflow action
       // adapter; the attempt only renews its lease around it.
       result = await this.attempts.publishUnderLease(post, attempt, url, () =>
-        prepared.publisher.publish(prepared.context),
+        this.preparedUploads.publish(post, prepared, attempt, url),
       );
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep

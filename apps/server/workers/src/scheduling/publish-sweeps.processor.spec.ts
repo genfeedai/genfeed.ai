@@ -12,7 +12,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('PublishSweepsProcessor', () => {
   const config = { isDevSchedulersEnabled: true };
   const logger = { debug: vi.fn(), warn: vi.fn() };
-  const posts = { publishScheduledPosts: vi.fn().mockResolvedValue(undefined) };
+  const posts = {
+    prepareUpcomingUploads: vi.fn().mockResolvedValue(undefined),
+    publishScheduledPosts: vi.fn().mockResolvedValue(undefined),
+  };
   const threadComments = {
     publishDueThreadComments: vi.fn().mockResolvedValue(undefined),
   };
@@ -53,6 +56,15 @@ describe('PublishSweepsProcessor', () => {
 
     expect(posts.publishScheduledPosts).toHaveBeenCalledOnce();
     expect(threadComments.publishDueThreadComments).not.toHaveBeenCalled();
+  });
+
+  it('runs the upload prepare sweep for a posts-prepare tick', async () => {
+    await processor.process({
+      name: PLATFORM_SCHEDULED_TASKS.POSTS_PREPARE,
+    } as Job);
+
+    expect(posts.prepareUpcomingUploads).toHaveBeenCalledOnce();
+    expect(posts.publishScheduledPosts).not.toHaveBeenCalled();
   });
 
   it('runs the thread comment sweep for a posts-thread-comments tick', async () => {

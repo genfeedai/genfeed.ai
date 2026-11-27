@@ -24,7 +24,7 @@ import type { PrismaService } from '@libs/prisma/prisma.service';
  */
 export async function loadScheduledActionPost(
   prisma: Pick<PrismaService, 'post'>,
-  input: ScheduledPostWorkflowInput,
+  input: Pick<ScheduledPostWorkflowInput, 'organizationId' | 'postId'>,
 ): Promise<PostEntity | null> {
   const loaded = await prisma.post.findFirst({
     include: {

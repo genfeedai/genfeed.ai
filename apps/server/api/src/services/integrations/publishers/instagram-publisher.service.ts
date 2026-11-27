@@ -6,6 +6,7 @@ import type { ProviderMediaVerificationMatch } from '@api/services/integrations/
 import type {
   MediaInfo,
   PostValidationResult,
+  PreparedProviderUpload,
   PublishContext,
   PublishResult,
   ThreadChild,
@@ -29,6 +30,7 @@ import {
   INSTAGRAM_AUDIO_VOLUME_SETTING_KEY,
   INSTAGRAM_VIDEO_VOLUME_SETTING_KEY,
   type InstagramAudioConfiguration,
+  type InstagramContainerRequest,
 } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,6 +39,14 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
+
+/**
+ * How long a prepared container is published at most. Meta expires an
+ * unpublished container after 24 hours; this stays far below that, and below
+ * the signed media URLs' lifetime, because Meta does not say whether it reads
+ * an image when the container is created or when it is published.
+ */
+const PREPARED_CONTAINER_VALIDITY_MS = 10 * 60_000;
 
 @Traced()
 @Injectable()
@@ -283,6 +293,148 @@ export class InstagramPublisherService extends BasePublisherService {
       });
       throw failure ?? error;
     }
+  }
+
+  /**
+   * Creates the post's container ahead of its due time and waits until
+   * Instagram has processed it (a Reel's video included), so the delivery at
+   * the due time only calls `media_publish`. A post that would fail
+   * validation is not prepared; the delivery reports it as usual.
+   */
+  async prepareUpload(
+    context: PublishContext,
+  ): Promise<PreparedProviderUpload | null> {
+    // The media URLs were signed just before this call; the upload must be
+    // published while they are still valid.
+    const startedAt = Date.now();
+    const mediaInfo = this.extractMediaInfo(context.post);
+    if (!this.validatePost(context, mediaInfo).valid) {
+      return null;
+    }
+    const providerUploadId = await this.instagramService.prepareContainer(
+      context.organizationId,
+      context.brandId,
+      this.buildContainerRequest(context, mediaInfo),
+      context.credential.id,
+    );
+    return {
+      expiresAt: new Date(
+        startedAt +
+          Math.min(
+            PREPARED_CONTAINER_VALIDITY_MS,
+            this.configService.cdnSignedUrlTtlSeconds * 1000,
+          ),
+      ),
+      providerUploadId,
+    };
+  }
+
+  /** Publishes a container `prepareUpload` made: one `media_publish` call. */
+  async publishPrepared(
+    context: PublishContext,
+    upload: PreparedProviderUpload,
+  ): Promise<PublishResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const { credential } = context;
+    const isStory =
+      readChannelSettingString(context.settings, 'placement') === 'story';
+    try {
+      const { mediaId, shortcode } =
+        await this.instagramService.publishPreparedContainer(
+          context.organizationId,
+          context.brandId,
+          upload.providerUploadId,
+          isStory,
+          credential.id,
+        );
+      if (!mediaId) {
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
+        );
+      }
+      if (isStory) {
+        return this.createSuccessResult(
+          mediaId,
+          this.platform,
+          this.buildStoryUrl(mediaId, credential),
+        );
+      }
+      return this.createSuccessResult(
+        mediaId,
+        this.platform,
+        this.buildPostUrl(mediaId, credential, shortcode ?? undefined),
+        shortcode ?? undefined,
+      );
+    } catch (error: unknown) {
+      const failure = toPublishError(error, mapMetaFailure);
+      logProviderPublishFailure(
+        this.logger,
+        `${url} failed to publish a prepared container`,
+        {
+          error: failure?.message ?? (error as Error)?.message,
+          failure,
+          postId: context.postId,
+        },
+      );
+      throw failure ?? error;
+    }
+  }
+
+  /**
+   * The container that publishes this post, with the same fields `publish`
+   * sends: a story carries only the AI label, and `placement: 'reel'` keeps
+   * a Reel out of the feed.
+   */
+  private buildContainerRequest(
+    context: PublishContext,
+    mediaInfo: MediaInfo,
+  ): InstagramContainerRequest {
+    const isAiGenerated =
+      readChannelSettingBoolean(
+        context.settings,
+        INSTAGRAM_AI_GENERATED_SETTING_KEY,
+      ) === true;
+    const placement = readChannelSettingString(context.settings, 'placement');
+    if (placement === 'story') {
+      return {
+        isAiGenerated,
+        isVideo: !mediaInfo.isImagePost,
+        kind: 'story',
+        mediaUrl: mediaInfo.mediaUrls[0],
+      };
+    }
+    const caption = this.sanitizeDescription(context.post.description);
+    if (mediaInfo.isCarousel && mediaInfo.isImagePost) {
+      return {
+        altTexts: mediaInfo.altTexts ?? [],
+        caption,
+        imageUrls: mediaInfo.mediaUrls,
+        isAiGenerated,
+        kind: 'carousel',
+      };
+    }
+    if (mediaInfo.isImagePost) {
+      return {
+        altText: mediaInfo.altTexts?.[0],
+        caption,
+        imageUrl: mediaInfo.mediaUrls[0],
+        isAiGenerated,
+        kind: 'image',
+      };
+    }
+    return {
+      audio: this.readAudioConfiguration(context),
+      caption,
+      coverImageUrl: context.coverImageUrl,
+      isAiGenerated,
+      isShareToFeedSelected:
+        placement === 'reel'
+          ? false
+          : (context.post.isShareToFeedSelected ?? true),
+      kind: 'reel',
+      videoUrl: mediaInfo.mediaUrls[0],
+    };
   }
 
   /**

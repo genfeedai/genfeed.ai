@@ -97,6 +97,41 @@ export interface InstagramAudioConfiguration {
 }
 
 /**
+ * One Instagram post as the media container that publishes it. The caption is
+ * final (plain text, hashtags included); a story carries none.
+ */
+export type InstagramContainerRequest =
+  | {
+      kind: 'image';
+      altText?: string;
+      caption: string;
+      imageUrl: string;
+      isAiGenerated: boolean;
+    }
+  | {
+      kind: 'carousel';
+      altTexts: ReadonlyArray<string | undefined>;
+      caption: string;
+      imageUrls: string[];
+      isAiGenerated: boolean;
+    }
+  | {
+      kind: 'reel';
+      audio?: InstagramAudioConfiguration;
+      caption: string;
+      coverImageUrl?: string;
+      isAiGenerated: boolean;
+      isShareToFeedSelected: boolean;
+      videoUrl: string;
+    }
+  | {
+      kind: 'story';
+      isAiGenerated: boolean;
+      isVideo: boolean;
+      mediaUrl: string;
+    };
+
+/**
  * Validates the Reel music settings. Music and volumes are Reel-only, and a
  * volume without a track would be silently ignored, so both are refused
  * instead of accepted and dropped. Returns plain messages for the caller to

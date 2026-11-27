@@ -931,6 +931,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   posts                         Post[]
   postPublishFinalizations      PostPublishFinalization[]
   postProviderPublishReceipts   PostProviderPublishReceipt[]
+  postPreparedUploads           PostPreparedUpload[]
   postIngredientLinks           PostIngredient[]
   personaReferences             PersonaReference[]
   libraryElements               LibraryElement[]
@@ -3284,6 +3285,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   postAnalytics            PostAnalytics[]
   publishFinalizations     PostPublishFinalization[]
   providerPublishReceipts  PostProviderPublishReceipt[]
+  preparedUploads          PostPreparedUpload[]
   contentPerformances      ContentPerformance[]
   trendRemixLineages       TrendRemixLineage[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_content")
@@ -3399,6 +3401,39 @@ model PostProviderPublishReceipt {
 
   @@unique([organizationId, postId, occurrenceKey], map: "post_provider_publish_receipts_occurrence_key")
   @@map("post_provider_publish_receipts")
+}
+
+/// A provider upload made before a scheduled post is due, kept per publish
+/// occurrence, so the delivery at the due time only publishes it. An edit,
+/// reschedule or reapproval changes the occurrence key, so a stale upload is
+/// never found. Ephemeral: a row is useful for minutes.
+model PostPreparedUpload {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  postId             String
+  post               Post         @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  /// The publish occurrence (`post_provider_publish_receipts.occurrenceKey`) the upload was made for.
+  occurrenceKey      String
+  /// Digest of the delivery inputs the occurrence key leaves out (channel, settings, audience).
+  inputDigest        String
+  /// PostPreparedUploadStatus; the post_prepared_uploads_status_check CHECK pins it.
+  status             String
+  /// Fresh per prepare run; only the run holding it may complete or fail the upload.
+  leaseToken         String
+  leaseRenewedAt     DateTime
+  /// The provider's id of the unpublished upload (an Instagram container id).
+  providerUploadId   String?
+  /// After this the upload is not published; the delivery uploads again.
+  expiresAt          DateTime?
+  /// The provider publish attempt that took the upload.
+  consumedByAttempt  String?
+  isDeleted          Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([organizationId, postId, occurrenceKey], map: "post_prepared_uploads_occurrence_key")
+  @@map("post_prepared_uploads")
 }
 
 /// Explicit typed authority for publishing one exact canonical Post version.
