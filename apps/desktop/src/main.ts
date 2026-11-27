@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   IDesktopBootstrap,
   IDesktopDataResult,
@@ -13,6 +14,7 @@ import type {
   IDesktopServerSelection,
   IDesktopTerminalCreateOptions,
   IDesktopWindowChromeState,
+  IDesktopWorkspaceState,
 } from '@genfeedai/contracts/desktop';
 import {
   DESKTOP_APP_PROTOCOL_SCHEME,
@@ -76,6 +78,10 @@ import {
   handleDesktopWindowClose,
   handleDesktopWindowClosed,
 } from './main/window-lifecycle.util';
+import {
+  DesktopWorkspaceService,
+  parseDesktopWorkspaceContext,
+} from './main/workspace.service';
 
 const configService = new DesktopConfigService();
 // Re-resolved at startup once the in-app server selection can be read.
@@ -92,6 +98,7 @@ const terminalService = new DesktopTerminalService();
 let isLocalTerminalApproved = false;
 let cliAgentRuntimeService: DesktopCliAgentRuntimeService | null = null;
 let serverService: DesktopServerService;
+let workspaceService: DesktopWorkspaceService;
 let cloudService: DesktopCloudService;
 let appShellService: DesktopAppShellService;
 const runtimeContextId = randomUUID();
@@ -1051,6 +1058,8 @@ const registerIpcHandlers = (): void => {
     },
   );
 
+  registerWorkspaceIpcHandlers();
+
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.serverGetState, async () =>
     serverService.getState(),
   );
@@ -1063,6 +1072,128 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.serverSelect,
     async (_event: unknown, selection: IDesktopServerSelection) => {
       await switchDesktopServer(selection);
+    },
+  );
+};
+
+const emitWorkspaceState = (): IDesktopWorkspaceState => {
+  const state = workspaceService.getState();
+  mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.workspaceChanged, state);
+  return state;
+};
+
+/** Native folder picker; the page cannot choose a path itself. */
+const pickDirectory = async (
+  title: string,
+  defaultPath?: string,
+): Promise<string | null> => {
+  const options: Electron.OpenDialogOptions = {
+    defaultPath,
+    properties: ['openDirectory', 'createDirectory'],
+    title,
+  };
+  const result = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, options)
+    : await dialog.showOpenDialog(options);
+  return result.canceled ? null : (result.filePaths[0] ?? null);
+};
+
+const requireString = (value: unknown, label: string): string => {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 512) {
+    throw new Error(`Invalid ${label}.`);
+  }
+  return value;
+};
+
+const registerWorkspaceIpcHandlers = (): void => {
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceGetState,
+    async () => workspaceService.getState(),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceOpenFolder,
+    async (_event: unknown, context: unknown) => {
+      const parsed = parseDesktopWorkspaceContext(context);
+      const folder = await pickDirectory('Open a workspace folder');
+      if (!folder) {
+        return null;
+      }
+      const workspace = workspaceService.openFolder(folder, parsed);
+      emitWorkspaceState();
+      return workspace;
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceCreateProject,
+    async (_event: unknown, request: unknown) => {
+      const name = isRecord(request) ? request.name : undefined;
+      const workspace = workspaceService.createProject({
+        ...parseDesktopWorkspaceContext(request),
+        name: requireString(name, 'project name'),
+      });
+      emitWorkspaceState();
+      return workspace;
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceSetActive,
+    async (_event: unknown, workspaceId: unknown) => {
+      workspaceService.setActive(
+        workspaceId === null
+          ? null
+          : requireString(workspaceId, 'workspace id'),
+      );
+      return emitWorkspaceState();
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceRemove,
+    async (_event: unknown, workspaceId: unknown) => {
+      workspaceService.remove(requireString(workspaceId, 'workspace id'));
+      emitWorkspaceState();
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceLinkContext,
+    async (_event: unknown, workspaceId: unknown, context: unknown) => {
+      const workspace = workspaceService.linkContext(
+        requireString(workspaceId, 'workspace id'),
+        parseDesktopWorkspaceContext(context),
+      );
+      emitWorkspaceState();
+      return workspace;
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceListDirectory,
+    async (_event: unknown, workspaceId: unknown, relativePath: unknown) =>
+      workspaceService.listDirectory(
+        requireString(workspaceId, 'workspace id'),
+        relativePath === undefined
+          ? undefined
+          : requireString(relativePath, 'path'),
+      ),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceReveal,
+    async (_event: unknown, workspaceId: unknown) => {
+      const workspace = workspaceService.getWorkspace(
+        requireString(workspaceId, 'workspace id'),
+      );
+      shell.showItemInFolder(workspace.path);
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.workspaceChooseProjectsHome,
+    async () => {
+      const folder = await pickDirectory(
+        'Choose where new projects are created',
+        workspaceService.getState().projectsHome,
+      );
+      if (folder) {
+        workspaceService.setProjectsHome(folder);
+      }
+      return emitWorkspaceState();
     },
   );
 };
@@ -1243,6 +1374,9 @@ void app
     environment = configService.getEnvironment(
       serverService.getActiveProfile(),
     );
+    workspaceService = new DesktopWorkspaceService(desktopStore, {
+      getServerId: () => environment.serverId,
+    });
     EXTERNAL_NAVIGATION_HOSTS.add(new URL(environment.authEndpoint).hostname);
     logService.info(`desktop server ${environment.serverId}`);
     appShellService = new DesktopAppShellService(

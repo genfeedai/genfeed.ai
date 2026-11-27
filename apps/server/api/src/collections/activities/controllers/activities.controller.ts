@@ -1,9 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
 import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,18 +54,19 @@ export class ActivitiesController {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly activitiesService: ActivitiesService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   /** The list's tenant boundary, shared by the page and the unread count. */
-  private buildListScope(
+  private async buildListScope(
     request: Request,
     query: ActivitiesQueryDto,
     user: User,
-  ): {
+  ): Promise<{
     aggregate: { where: Record<string, unknown>; orderBy: SortObject };
     isCrossTenantList: boolean;
     isSuperAdmin: boolean;
-  } {
+  }> {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const where: Record<string, unknown> = { isDeleted };
     const isSuperAdmin = getIsSuperAdmin(user, request);
@@ -97,18 +100,32 @@ export class ActivitiesController {
       }
     }
 
-    if (where.brandId && (where.organizationId || user.organizationId)) {
-      const organizationId =
-        where.organizationId ??
-        (!isSuperAdmin ? user.organizationId : undefined);
-      if (organizationId) {
-        where.organizationId = organizationId;
-        where.OR = [
-          { brandId: where.brandId },
-          { brandId: null, entityModel: 'CreditTransaction' },
-        ];
-        delete where.brandId;
-      }
+    const organizationId =
+      where.organizationId ?? (!isSuperAdmin ? user.organizationId : undefined);
+    // A member limited to some brands sees only those brands' activity. An
+    // owner, an admin and an operator are not limited (`undefined`).
+    const accessibleBrandIds =
+      organizationId && !isSuperAdmin
+        ? (await this.brandAccess.resolve(resolveKnowledgeActor(user))).brandIds
+        : undefined;
+
+    if (accessibleBrandIds) {
+      // A limited member reads only the brands they can access. Activity that
+      // belongs to no brand (the credit ledger, organization events) is not
+      // theirs to read, and a brand they cannot access returns nothing.
+      const requestedBrandId = where.brandId;
+      where.brandId = {
+        in: requestedBrandId
+          ? accessibleBrandIds.filter((id) => id === requestedBrandId)
+          : accessibleBrandIds,
+      };
+    } else if (where.brandId && organizationId) {
+      where.organizationId = organizationId;
+      where.OR = [
+        { brandId: where.brandId },
+        { brandId: null, entityModel: 'CreditTransaction' },
+      ];
+      delete where.brandId;
     }
 
     // An operator can narrow any list to one user, across organizations. A
@@ -177,7 +194,7 @@ export class ActivitiesController {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-    const { aggregate, isCrossTenantList } = this.buildListScope(
+    const { aggregate, isCrossTenantList } = await this.buildListScope(
       request,
       query,
       user,
@@ -209,7 +226,7 @@ export class ActivitiesController {
     @Query() query: ActivitiesQueryDto,
     @CurrentUser() user: User,
   ): Promise<{ unreadCount: number }> {
-    const { aggregate, isCrossTenantList } = this.buildListScope(
+    const { aggregate, isCrossTenantList } = await this.buildListScope(
       request,
       query,
       user,
