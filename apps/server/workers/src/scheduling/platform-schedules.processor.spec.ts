@@ -4,6 +4,7 @@ import { PlatformMediaTaskHandlers } from '@workers/scheduling/platform-media-ta
 import { PlatformPublishingTaskHandlers } from '@workers/scheduling/platform-publishing-task-handlers.service';
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
+  isPublishSweepTask,
   PLATFORM_SCHEDULE_CATALOG,
   PLATFORM_SCHEDULED_TASKS,
   type PlatformScheduledTaskName,
@@ -217,11 +218,6 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS,
         manualPostReminders.sendDueReminders,
       ],
-      [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
-      [
-        PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS,
-        threadComments.publishDueThreadComments,
-      ],
       [
         PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH,
         queueMetrics.publishQueueMetrics,
@@ -368,7 +364,9 @@ describe('PlatformSchedulesProcessor', () => {
 
   it('has one dispatcher case for every catalog entry', () => {
     expect(cases.map(([taskName]) => taskName).sort()).toEqual(
-      Object.keys(PLATFORM_SCHEDULE_CATALOG).sort(),
+      Object.keys(PLATFORM_SCHEDULE_CATALOG)
+        .filter((taskName) => !isPublishSweepTask(taskName))
+        .sort(),
     );
   });
 
@@ -469,6 +467,21 @@ describe('PlatformSchedulesProcessor', () => {
       expect.any(String),
     );
   });
+
+  it.each([
+    PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH,
+    PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS,
+  ])(
+    'leaves %s to the publish sweep queue when an old worker left it here',
+    async (taskName) => {
+      await expect(
+        processor.process({ name: taskName } as Job),
+      ).resolves.toBeUndefined();
+
+      expect(posts.publishScheduledPosts).not.toHaveBeenCalled();
+      expect(threadComments.publishDueThreadComments).not.toHaveBeenCalled();
+    },
+  );
 
   it('skips all dispatch when local schedulers are disabled', async () => {
     config.isDevSchedulersEnabled = false;

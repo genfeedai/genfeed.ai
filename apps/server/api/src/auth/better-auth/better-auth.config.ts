@@ -1,3 +1,4 @@
+import { isCloudDeployment } from '@genfeedai/config';
 import type {
   IBetterAuthEnvValues,
   IBetterAuthRuntimeConfig,
@@ -79,6 +80,15 @@ const LOCAL_DEV_TRUSTED_ORIGINS = [
 export const DESKTOP_SHELL_TRUSTED_ORIGINS = ['http://127.0.0.1:3230'] as const;
 
 /**
+ * The hosted store signs buyers in through this API from its own origin. It is
+ * trusted only when the API runs as the hosted cloud: a self-hosted install has
+ * no relationship with the store, so it must not trust another site's origin.
+ */
+export const HOSTED_STORE_TRUSTED_ORIGINS = [
+  'https://shop.genfeed.ai',
+] as const;
+
+/**
  * Resolve Better Auth's trusted origins. Always honours whatever
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
@@ -90,6 +100,7 @@ export const DESKTOP_SHELL_TRUSTED_ORIGINS = ['http://127.0.0.1:3230'] as const;
 export function resolveTrustedOrigins(
   value: string | undefined,
   nodeEnv: string | undefined,
+  isCloud = false,
 ): string[] {
   const configured = parseCommaSeparated(value);
   const isDeployedEnv = nodeEnv === 'production' || nodeEnv === 'staging';
@@ -97,7 +108,11 @@ export function resolveTrustedOrigins(
     ? configured
     : [...configured, ...LOCAL_DEV_TRUSTED_ORIGINS];
   return Array.from(
-    new Set([...environmentOrigins, ...DESKTOP_SHELL_TRUSTED_ORIGINS]),
+    new Set([
+      ...environmentOrigins,
+      ...DESKTOP_SHELL_TRUSTED_ORIGINS,
+      ...(isCloud ? HOSTED_STORE_TRUSTED_ORIGINS : []),
+    ]),
   );
 }
 
@@ -236,6 +251,7 @@ export function resolveBetterAuthRuntimeConfig(
     trustedOrigins: resolveTrustedOrigins(
       env.BETTER_AUTH_TRUSTED_ORIGINS,
       env.NODE_ENV,
+      isCloudDeployment(),
     ),
   };
 }

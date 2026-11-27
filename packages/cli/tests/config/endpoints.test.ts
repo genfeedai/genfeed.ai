@@ -23,8 +23,8 @@ describe('config/endpoints', () => {
 
   describe('deriveMarketplaceApiUrl', () => {
     it.each([
-      ['https://api.genfeed.ai/v1', 'https://api.marketplace.genfeed.ai'],
-      ['https://api.example.com/v1/', 'https://api.marketplace.example.com'],
+      ['https://api.genfeed.ai/v1', 'https://api.shop.genfeed.ai'],
+      ['https://api.example.com/v1/', 'https://api.shop.example.com'],
       ['http://localhost:3010/v1', 'http://localhost:3200'],
       ['http://127.0.0.1:3010/v1', 'http://127.0.0.1:3200'],
     ])('derives %s to %s', (apiUrl, expected) => {
@@ -43,20 +43,19 @@ describe('config/endpoints', () => {
 
   describe('parseMarketplaceApiUrl', () => {
     it.each([
-      ['https://api.marketplace.genfeed.ai/', 'https://api.marketplace.genfeed.ai'],
+      ['https://api.shop.genfeed.ai/', 'https://api.shop.genfeed.ai'],
       ['https://example.com/marketplace-api/', 'https://example.com/marketplace-api'],
       ['http://localhost:3200', 'http://localhost:3200'],
     ])('accepts %s as %s', (value, expected) => {
       expect(parseMarketplaceApiUrl(value)).toBe(expected);
     });
 
-    it.each([
-      'http://api.marketplace.genfeed.ai',
-      'ftp://localhost:3200',
-      'api.marketplace.genfeed.ai',
-    ])('refuses %s, which would send the admin token over an unsafe channel', (value) => {
-      expect(parseMarketplaceApiUrl(value)).toBeUndefined();
-    });
+    it.each(['http://api.shop.genfeed.ai', 'ftp://localhost:3200', 'api.shop.genfeed.ai'])(
+      'refuses %s, which would send the admin token over an unsafe channel',
+      (value) => {
+        expect(parseMarketplaceApiUrl(value)).toBeUndefined();
+      }
+    );
   });
 
   describe('deriveAppUrl', () => {

@@ -131,7 +131,7 @@ describe('AddCreditsCard', () => {
       { target: { value: '5' } },
     );
 
-    expect(screen.getByText('Minimum $10.')).toBeInTheDocument();
+    expect(screen.getByText('The minimum is $10.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add credit' })).toBeDisabled();
   });
 
@@ -145,7 +145,7 @@ describe('AddCreditsCard', () => {
     );
 
     expect(
-      screen.getByText('Maximum $10,000. Contact support for more.'),
+      screen.getByText('The maximum is $10,000. Contact support for more.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add credit' })).toBeDisabled();
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();

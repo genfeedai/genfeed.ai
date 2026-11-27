@@ -24,7 +24,7 @@ import {
 import { buildSignupHarnessProfile } from '@api/services/signup-prefill/utils/harness-seed.util';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import { toOnboardingScanSuggestions } from '@api/services/signup-prefill/utils/onboarding-scan-suggestions.util';
-import { PERSONAL_EMAIL_DOMAIN_LIST } from '@api/shared/utils/email-class/email-class.util';
+import { getPersonalEmailDomainList } from '@api/shared/utils/email-class/email-class.util';
 import type {
   IBrandVoiceAnalysis,
   IExtractedBrandData,
@@ -367,7 +367,7 @@ export class SignupPrefillService {
     }
     const resolved = resolveSignupBrandDomain({
       email: request.email,
-      personalEmailDomains: PERSONAL_EMAIL_DOMAIN_LIST,
+      personalEmailDomains: getPersonalEmailDomainList(),
       requestedDomain: options.websiteUrl
         ? new URL(options.websiteUrl).hostname
         : request.brandDomain,

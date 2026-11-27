@@ -66,6 +66,7 @@ import {
 import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import { runInNamedOrganization } from '@mcp/services/mcp-organization-call.util';
+import { describeToolArguments } from '@mcp/services/mcp-request-event.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -323,7 +324,10 @@ export class ToolRegistryService implements OnModuleInit {
     let name = brandCreation?.agentToolName ?? params.name;
     let args = brandCreation?.parameters ?? requestedArgs;
 
-    this.logger.debug(`Handling tool call: ${name}`, args);
+    this.logger.debug(
+      `Handling tool call: ${name}`,
+      describeToolArguments(args),
+    );
 
     try {
       if (!isToolAllowedInMcpAccessMode(this.requestAccessMode, name)) {

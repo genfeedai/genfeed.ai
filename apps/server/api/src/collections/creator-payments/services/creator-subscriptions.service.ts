@@ -27,6 +27,7 @@ import type {
   ICreatorSubscriptionOffer,
   ICreatorSubscriptionPlan,
   ICreatorSubscriptionSummary,
+  ICreatorTeamSubscription,
   ICreditTransferResult,
   ISubscribeToCreatorRequest,
   IUpdateCreatorSubscriptionPlanRequest,
@@ -48,12 +49,16 @@ const CANNOT_PAY_CODES: ReadonlySet<string> = new Set([
   'INSUFFICIENT_CREDITS',
 ]);
 
+/** The most subscriptions one workspace's Team list shows, soonest charge first. */
+const OUTGOING_LIST_LIMIT = 200;
+
 const SUBSCRIPTION_SELECT = {
   brand: { select: { label: true, slug: true } },
   brandId: true,
   cancelAtPeriodEnd: true,
   currentPeriodEnd: true,
   id: true,
+  payerUserId: true,
   priceCredits: true,
   status: true,
 } as const;
@@ -64,6 +69,7 @@ type SubscriptionRecord = {
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: Date;
   id: string;
+  payerUserId: string;
   priceCredits: number;
   status: CreatorSubscriptionStatus;
 };
@@ -108,6 +114,17 @@ function toSummary(record: SubscriptionRecord): ICreatorSubscriptionSummary {
     id: record.id,
     priceCredits: record.priceCredits,
     status: SUBSCRIPTION_STATE[record.status],
+  };
+}
+
+function toTeamSummary(
+  record: SubscriptionRecord,
+  readerName: string,
+): ICreatorTeamSubscription {
+  return {
+    ...toSummary(record),
+    readerId: record.payerUserId,
+    readerName,
   };
 }
 
@@ -440,6 +457,123 @@ export class CreatorSubscriptionsService {
       throw new NotFoundException('Subscription');
     }
     return toSummary(updated);
+  }
+
+  /**
+   * Every live subscription the organization pays for, whichever member
+   * subscribed (#9793). A subscription whose member has left the organization
+   * is left out: it ends at its next renewal without charging anything.
+   */
+  async listOutgoing(
+    payerOrganizationId: string,
+  ): Promise<ICreatorTeamSubscription[]> {
+    const owners = await this.prisma.organization.findMany({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+      take: OUTGOING_LIST_LIMIT,
+      where: {
+        creatorSubscriptions: {
+          some: {
+            isDeleted: false,
+            payerOrganizationId,
+            status: { in: LIVE_STATUSES },
+          },
+        },
+        isDeleted: false,
+      },
+    });
+    const perOwner = await Promise.all(
+      owners.map((owner) =>
+        runWithTenantContext(
+          { organizationId: owner.id },
+          async () =>
+            await this.prisma.creatorSubscription.findMany({
+              orderBy: { currentPeriodEnd: 'asc' },
+              select: SUBSCRIPTION_SELECT,
+              take: OUTGOING_LIST_LIMIT,
+              where: scopedWhere(owner.id, {
+                payerOrganizationId,
+                status: { in: LIVE_STATUSES },
+              }),
+            }),
+        ),
+      ),
+    );
+    const records = perOwner
+      .flat()
+      .sort(
+        (left, right) =>
+          left.currentPeriodEnd.getTime() - right.currentPeriodEnd.getTime(),
+      )
+      .slice(0, OUTGOING_LIST_LIMIT);
+    const readerIds = [...new Set(records.map((record) => record.payerUserId))];
+    const readers = await Promise.all(
+      readerIds.map(async (userId) => ({
+        isMember: await this.creatorDirectoryService.isInOrganization(
+          payerOrganizationId,
+          userId,
+        ),
+        name: await this.creatorDirectoryService.readerName({
+          organizationId: payerOrganizationId,
+          userId,
+        }),
+        userId,
+      })),
+    );
+    const byReader = new Map(readers.map((reader) => [reader.userId, reader]));
+    return records.flatMap((record) => {
+      const reader = byReader.get(record.payerUserId);
+      return reader?.isMember ? [toTeamSummary(record, reader.name)] : [];
+    });
+  }
+
+  /**
+   * Cancel at period end, or undo that, for any subscription the organization
+   * pays for. The caller has already been checked as an owner or admin.
+   */
+  async setOutgoingCancelAtPeriodEnd(
+    payerOrganizationId: string,
+    subscriptionId: string,
+    cancelAtPeriodEnd: boolean,
+  ): Promise<ICreatorTeamSubscription> {
+    const owner = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: {
+        creatorSubscriptions: {
+          some: { id: subscriptionId, isDeleted: false, payerOrganizationId },
+        },
+        isDeleted: false,
+      },
+    });
+    if (!owner) {
+      throw new NotFoundException('Subscription');
+    }
+    const updated = await runWithTenantContext(
+      { organizationId: owner.id },
+      async () => {
+        const filter = {
+          id: subscriptionId,
+          payerOrganizationId,
+          status: { in: LIVE_STATUSES },
+        };
+        await this.prisma.creatorSubscription.updateMany({
+          data: { cancelAtPeriodEnd },
+          where: scopedWhere(owner.id, filter),
+        });
+        return await this.prisma.creatorSubscription.findFirst({
+          select: SUBSCRIPTION_SELECT,
+          where: scopedWhere(owner.id, filter),
+        });
+      },
+    );
+    if (!updated) {
+      throw new NotFoundException('Subscription');
+    }
+    const readerName = await this.creatorDirectoryService.readerName({
+      organizationId: payerOrganizationId,
+      userId: updated.payerUserId,
+    });
+    return toTeamSummary(updated, readerName);
   }
 
   /**

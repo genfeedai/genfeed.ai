@@ -16,6 +16,8 @@ import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-st
 import {
   PLATFORM_SCHEDULED_TASKS,
   type PlatformTaskHandler,
+  type PublishSweepTaskName,
+  type SystemSweepTaskName,
 } from '@workers/scheduling/platform-schedules.constants';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 
@@ -40,6 +42,20 @@ export class PlatformPublishingTaskHandlers {
     private readonly brandedDispatchRecovery: CronBrandedDispatchRecoveryService,
   ) {}
 
+  /** The per-minute publishing sweeps, run by `PublishSweepsProcessor`. */
+  createPublishSweepHandlers(): Record<
+    PublishSweepTaskName,
+    PlatformTaskHandler
+  > {
+    return {
+      [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>
+        this.posts.publishScheduledPosts(),
+      [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: () =>
+        this.threadComments.publishDueThreadComments(),
+    };
+  }
+
+  /** Publishing tasks that run on `system-sweeps`. */
   createHandlers() {
     return {
       [PLATFORM_SCHEDULED_TASKS.ENGAGEMENT_TRIGGERS]: () =>
@@ -52,10 +68,6 @@ export class PlatformPublishingTaskHandlers {
         this.patternExtraction.computeDailyPatterns(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS]: () =>
         this.manualPostReminders.sendDueReminders(),
-      [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>
-        this.posts.publishScheduledPosts(),
-      [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: () =>
-        this.threadComments.publishDueThreadComments(),
       [PLATFORM_SCHEDULED_TASKS.REVIEW_GATE_TIMEOUT]: () =>
         this.reviewGate.resolveTimedOutReviewGates(),
       [PLATFORM_SCHEDULED_TASKS.RSS_AUTOPOST]: () =>
@@ -72,11 +84,6 @@ export class PlatformPublishingTaskHandlers {
         this.youtubeMessages.syncYoutubeMessages(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_STATUS]: () =>
         this.youtubeStatus.checkScheduledYoutubeVideos(),
-    } satisfies Partial<
-      Record<
-        (typeof PLATFORM_SCHEDULED_TASKS)[keyof typeof PLATFORM_SCHEDULED_TASKS],
-        PlatformTaskHandler
-      >
-    >;
+    } satisfies Partial<Record<SystemSweepTaskName, PlatformTaskHandler>>;
   }
 }
