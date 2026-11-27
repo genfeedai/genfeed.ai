@@ -77,17 +77,20 @@ describe('GoogleAdsController', () => {
     >
   >;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
-  // What the credential store ends up holding, asserted instead of call order.
-  let connectedAccounts: Array<{
-    account: unknown;
-    connection: Record<string, unknown>;
-    credentialId: string;
-  }>;
-  let pendingPatches: Array<Record<string, unknown>>;
+
+  // What the credential store was asked to hold, read back as plain values.
+  const connectedAccounts = () =>
+    credentialsService.connectAccount.mock.calls.map(
+      ([credentialId, , account, connection]) => ({
+        account,
+        connection,
+        credentialId,
+      }),
+    );
+  const pendingPatches = () =>
+    credentialsService.patch.mock.calls.map(([, data]) => data);
 
   beforeEach(async () => {
-    connectedAccounts = [];
-    pendingPatches = [];
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
         id: 'test-object-id',
@@ -101,25 +104,12 @@ describe('GoogleAdsController', () => {
         credential: MOCK_CREDENTIAL,
         state: 'opaque-oauth-state',
       }),
-      connectAccount: vi.fn(
-        async (
-          credentialId: string,
-          _organizationId: string,
-          account: unknown,
-          connection: Record<string, unknown>,
-        ) => {
-          connectedAccounts.push({ account, connection, credentialId });
-          return { id: credentialId };
-        },
-      ),
+      connectAccount: vi.fn().mockResolvedValue({ id: 'cred-1' }),
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       findOneSelect: delegateFindOneSelect(),
       claimPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       findConnectedAccounts: vi.fn().mockResolvedValue([]),
-      patch: vi.fn(async (id: string, data: Record<string, unknown>) => {
-        pendingPatches.push(data);
-        return { id };
-      }),
+      patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     };
     googleAdsService = {
       getAdGroupInsights: vi.fn().mockResolvedValue({ clicks: 50 }),
@@ -202,7 +192,7 @@ describe('GoogleAdsController', () => {
       expect(
         googleAdsOAuthService.exchangeAuthCodeForAccessToken,
       ).toHaveBeenCalledWith('auth-code');
-      expect(connectedAccounts).toEqual([
+      expect(connectedAccounts()).toEqual([
         {
           account: {
             handle: 'Primary Account',
@@ -236,11 +226,11 @@ describe('GoogleAdsController', () => {
         state: 'opaque-oauth-state',
       });
 
-      expect(connectedAccounts).toHaveLength(1);
-      expect(connectedAccounts[0]?.account).toMatchObject({
+      expect(connectedAccounts()).toHaveLength(1);
+      expect(connectedAccounts()[0]?.account).toMatchObject({
         id: '318-402-9951',
       });
-      expect(connectedAccounts[0]?.connection).toMatchObject({
+      expect(connectedAccounts()[0]?.connection).toMatchObject({
         externalParentId: '220-767-1117',
       });
     });
@@ -256,8 +246,8 @@ describe('GoogleAdsController', () => {
         state: 'opaque-oauth-state',
       });
 
-      expect(connectedAccounts).toEqual([]);
-      expect(pendingPatches).toEqual([
+      expect(connectedAccounts()).toEqual([]);
+      expect(pendingPatches()).toEqual([
         expect.objectContaining({
           accessToken: 'tok',
           isConnected: false,
@@ -280,8 +270,8 @@ describe('GoogleAdsController', () => {
       expect((error as HttpException).getResponse()).toMatchObject({
         title: 'No Google Ads account to connect',
       });
-      expect(connectedAccounts).toEqual([]);
-      expect(pendingPatches).toEqual([]);
+      expect(connectedAccounts()).toEqual([]);
+      expect(pendingPatches()).toEqual([]);
     });
 
     it('throws when code or state is missing', async () => {
@@ -338,7 +328,7 @@ describe('GoogleAdsController', () => {
         expect((error as HttpException).getResponse()).toMatchObject({
           title: 'Token exchange failed',
         });
-        expect(connectedAccounts).toEqual([]);
+        expect(connectedAccounts()).toEqual([]);
       },
     );
 
@@ -359,7 +349,7 @@ describe('GoogleAdsController', () => {
       expect((error as HttpException).getResponse()).toMatchObject({
         title: 'Customer lookup failed',
       });
-      expect(connectedAccounts).toEqual([]);
+      expect(connectedAccounts()).toEqual([]);
     });
 
     it('passes an HttpException from the exchange through unchanged', async () => {
