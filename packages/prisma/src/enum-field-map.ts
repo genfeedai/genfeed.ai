@@ -3237,6 +3237,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'externalHandle',
       'externalId',
       'externalName',
+      'externalParentId',
       'grantedScopesCapturedAt',
       'id',
       'isConnected',
