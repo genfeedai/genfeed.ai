@@ -223,6 +223,44 @@ const desktopBridge: IGenfeedDesktopBridge = {
     write: async (sessionId, data) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalWrite, sessionId, data),
   },
+  workspace: {
+    chooseProjectsHome: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceChooseProjectsHome),
+    createProject: async (request) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceCreateProject, request),
+    getState: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceGetState),
+    linkContext: async (workspaceId, context) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.workspaceLinkContext,
+        workspaceId,
+        context,
+      ),
+    listDirectory: async (workspaceId, relativePath) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.workspaceListDirectory,
+        workspaceId,
+        relativePath,
+      ),
+    onDidChange: (callback) => {
+      const listener = (_event: unknown, state: unknown) => {
+        callback(state as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.workspaceChanged, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.workspaceChanged, listener);
+      };
+    },
+    openFolder: async (context) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceOpenFolder, context),
+    remove: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRemove, workspaceId),
+    revealInFileManager: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceReveal, workspaceId),
+    setActive: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceSetActive, workspaceId),
+  },
 };
 
 const appOrigin = getDesktopAppOrigin();
