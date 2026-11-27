@@ -145,6 +145,68 @@ describe('PublicPostsController', () => {
       expect(result).toEqual({ data: mockPosts.docs });
     });
 
+    it('returns each post with the totals of its latest analytics day', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [
+          { brand: { isPublicAnalyticsEnabled: true }, id: 'measured' },
+          { brand: { isPublicAnalyticsEnabled: true }, id: 'not-measured' },
+        ],
+        page: 1,
+        totalDocs: 2,
+      } as unknown as AggregatePaginateResult<PostDocument>);
+      queryRaw.mockResolvedValue([
+        {
+          engagementRate: 4.5,
+          postId: 'measured',
+          totalComments: 4,
+          totalLikes: 90,
+          totalSaves: 6,
+          totalShares: 8,
+          totalViews: 2000,
+        },
+      ]);
+
+      const result = await controller.findPublicPosts(
+        mockRequest,
+        createBaseQuery(),
+      );
+
+      expect(result.data).toEqual([
+        {
+          avgEngagementRate: 4.5,
+          brand: { isPublicAnalyticsEnabled: true },
+          id: 'measured',
+          totalComments: 4,
+          totalLikes: 90,
+          totalSaves: 6,
+          totalShares: 8,
+          totalViews: 2000,
+        },
+        { brand: { isPublicAnalyticsEnabled: true }, id: 'not-measured' },
+      ]);
+    });
+
+    it('returns no counts for a brand with Public analytics off, and does not read them', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [{ brand: { isPublicAnalyticsEnabled: false }, id: 'private' }],
+        page: 1,
+        totalDocs: 1,
+      } as unknown as AggregatePaginateResult<PostDocument>);
+      queryRaw.mockResolvedValue([
+        { engagementRate: 9, postId: 'private', totalViews: 5000 },
+      ]);
+
+      const result = await controller.findPublicPosts(
+        mockRequest,
+        createBaseQuery(),
+      );
+
+      expect(result.data).toEqual([
+        { brand: { isPublicAnalyticsEnabled: false }, id: 'private' },
+      ]);
+      expect(queryRaw).not.toHaveBeenCalled();
+    });
+
     it('reads frame size from the media metadata, not the Ingredient row', async () => {
       postsService.findAll.mockResolvedValue({
         docs: [],
@@ -511,6 +573,48 @@ describe('PublicPostsController', () => {
       expect(result.data).toHaveProperty('crossPosts', [
         { platform: 'twitter', url: 'https://x.com/acme/status/1' },
       ]);
+    });
+
+    it('returns the totals of the post latest analytics day', async () => {
+      const postId = testId('post');
+      postsService.findOne.mockResolvedValue({
+        brand: { isPublicAnalyticsEnabled: true },
+        id: postId,
+        platform: 'instagram',
+      } as never);
+      queryRaw.mockResolvedValue([
+        {
+          engagementRate: 2.5,
+          postId,
+          totalComments: 1,
+          totalLikes: 20,
+          totalSaves: 2,
+          totalShares: 3,
+          totalViews: 800,
+        },
+      ]);
+
+      const result = await controller.getPostMetadata(mockRequest, postId);
+
+      expect(result.data).toMatchObject({
+        avgEngagementRate: 2.5,
+        totalLikes: 20,
+        totalViews: 800,
+      });
+    });
+
+    it('returns no counts for a post whose brand turned Public analytics off', async () => {
+      const postId = testId('post');
+      postsService.findOne.mockResolvedValue({
+        brand: { isPublicAnalyticsEnabled: false },
+        id: postId,
+        platform: 'instagram',
+      } as never);
+      queryRaw.mockResolvedValue([{ postId, totalViews: 800 }]);
+
+      const result = await controller.getPostMetadata(mockRequest, postId);
+
+      expect(result.data).not.toHaveProperty('totalViews');
     });
 
     it('should return post metadata for valid id', async () => {
