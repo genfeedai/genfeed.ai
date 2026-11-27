@@ -4,7 +4,7 @@ import { STUDIO_SYSTEM_PRESET_DATA } from './preset-catalog.generated';
 
 const ASPECT_RATIO_PATTERN = /^[1-9]\d*(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/;
 
-/** Defined in genfeedai/presets and pinned into `presets/`; see `scripts/sync-product-presets.ts`. */
+/** Defined in genfeedai/catalog and pinned into `presets/`; see `scripts/sync-product-presets.ts`. */
 export const STUDIO_SYSTEM_PRESETS = STUDIO_SYSTEM_PRESET_DATA;
 
 export type StudioSystemPreset = {

@@ -122,6 +122,30 @@ describe('DevtoPublisherService', () => {
     expect(result.isProviderDraft).toBe(true);
   });
 
+  it('creates a Dev.to draft when the target saves as draft', async () => {
+    const result = await service.publish(
+      makeContext({ settings: { saveAsDraft: true, tags: 'webdev' } }),
+    );
+
+    expect(devtoService.createArticle).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ published: false, tags: ['webdev'] }),
+    );
+    expect(result.isProviderDraft).toBe(true);
+  });
+
+  it('publishes when the saveAsDraft setting is off', async () => {
+    const result = await service.publish(
+      makeContext({ settings: { saveAsDraft: false } }),
+    );
+
+    expect(devtoService.createArticle).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ published: true }),
+    );
+    expect(result.isProviderDraft).toBeUndefined();
+  });
+
   it('sends at most four tags from the channel setting', async () => {
     await service.publish(
       makeContext({
@@ -291,6 +315,26 @@ describe('DevtoPublisherService', () => {
         externalId: '999',
         isProviderDraft: true,
       });
+      expect(devtoService.listPublishVerificationPage).toHaveBeenCalledWith(
+        'dec:encrypted-token',
+        true,
+        startedAt,
+        undefined,
+      );
+    });
+
+    it('looks in the drafts list for a target that saves as draft', async () => {
+      devtoService.listPublishVerificationPage.mockResolvedValue({
+        items: [landed],
+        nextCursor: null,
+      });
+
+      const result = await service.verifyPublished(
+        makeContext({ settings: { saveAsDraft: true } }),
+        startedAt,
+      );
+
+      expect(result).toMatchObject({ isProviderDraft: true });
       expect(devtoService.listPublishVerificationPage).toHaveBeenCalledWith(
         'dec:encrypted-token',
         true,

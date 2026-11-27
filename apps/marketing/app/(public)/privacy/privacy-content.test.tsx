@@ -16,6 +16,39 @@ vi.mock('@web-components/PageLayout', () => ({
   ),
 }));
 
+describe('PrivacyContent operator and connector disclosure', () => {
+  it('names the operator at a linkable anchor', () => {
+    render(<PrivacyContent />);
+
+    const heading = screen.getByRole('heading', {
+      level: 2,
+      name: 'Who we are and AI assistant connections',
+    });
+    expect(heading.parentElement).toHaveAttribute('id', 'operator');
+    expect(
+      screen.getByText('Genfeed is operated by Decoders Labs Ltd, Malta.'),
+    ).toBeInTheDocument();
+  });
+
+  it('explains what an AI assistant connection processes and shares', () => {
+    render(<PrivacyContent />);
+
+    expect(
+      screen.getByText(
+        /When you connect an AI assistant, Genfeed processes the tool inputs and account-scoped results/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /may be shared with the configured media or social provider/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not request bulk chat histories/),
+    ).toBeInTheDocument();
+  });
+});
+
 describe('PrivacyContent Google user data disclosure', () => {
   it('states the Limited Use commitment required for Google OAuth verification', () => {
     render(<PrivacyContent />);

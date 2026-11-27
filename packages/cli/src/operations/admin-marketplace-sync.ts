@@ -20,6 +20,11 @@ import {
 import { GenfeedError } from '@/utils/errors';
 
 /** The public presets repository, the source of every preset listing. */
+/**
+ * The key the store knows the presets by. It stays `genfeedai/presets` after the repository
+ * became `genfeedai/catalog`: the key is an identifier, not an address, and changing it would
+ * make the store see every preset listing as new.
+ */
 export const PRESET_LISTING_SOURCE = 'genfeedai/presets';
 /** The public skills repository, the source of every free skill listing. */
 export const SKILL_LISTING_SOURCE = 'genfeedai/skills';

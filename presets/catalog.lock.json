@@ -86,7 +86,7 @@
     }
   ],
   "schemaVersion": 1,
-  "sourceCommit": "e8b1307d1699e73a7df12bc106be82c100169ee9",
-  "sourceCommittedAt": "2026-11-26T16:23:13.000Z",
-  "sourceRepository": "https://github.com/genfeedai/presets"
+  "sourceCommit": "62d964f872942a4919ee54ecb42333db93b525e2",
+  "sourceCommittedAt": "2026-11-27T09:53:49.000Z",
+  "sourceRepository": "https://github.com/genfeedai/catalog"
 }
