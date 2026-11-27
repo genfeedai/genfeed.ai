@@ -20,6 +20,15 @@ export const DOCS_WEBHOOKS_URL = `${DOCS_API_URL}/webhooks`;
 
 export const HOSTED_API_URL = 'https://api.genfeed.ai/v1';
 
+/** The config block every MCP client accepts: the hosted endpoint. */
+export const MCP_CONFIG_SNIPPET = `{
+  "mcpServers": {
+    "genfeed": {
+      "url": "${GENFEED_PUBLIC_MCP_URL}"
+    }
+  }
+}`;
+
 export type QuickStartTabId = 'mcp' | 'cli' | 'rest';
 
 export interface QuickStartBlock {
@@ -42,13 +51,7 @@ export const QUICK_START_TABS: readonly QuickStartTab[] = [
     blocks: [
       {
         label: 'Add the server to any MCP client',
-        value: `{
-  "mcpServers": {
-    "genfeed": {
-      "url": "${GENFEED_PUBLIC_MCP_URL}"
-    }
-  }
-}`,
+        value: MCP_CONFIG_SNIPPET,
       },
       {
         label: 'Then ask your agent',
