@@ -20,6 +20,13 @@ test.describe('Workspace overview — requests on a hard load', () => {
   test('asks for each shared read once and never for an id of undefined', async ({
     authenticatedPage: page,
   }) => {
+    // The fixture opened this page without waiting for it to go quiet. Reads it
+    // is still making would be counted against the reload below (the nightly
+    // saw a whole batch at +332ms, before the reload had asked for anything), so
+    // the page settles first and only the reload's requests are recorded.
+    await expect(page.getByTestId('app-content-shell')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+
     const apiRequests: string[] = [];
     const requestLog: string[] = [];
     const startedAt = Date.now();
