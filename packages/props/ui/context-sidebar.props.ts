@@ -63,7 +63,7 @@ export interface ContextSidebarContextValue {
   readonly isOpen: boolean;
   /** Where the selected page portals its panel: the rail, or the open drawer. */
   readonly portalTarget: HTMLElement | null;
-  /** Opens the sidebar for the current selection (the drawer below `xl`). */
+  /** Opens the sidebar for the current selection (the drawer below `md`). */
   readonly reveal: () => void;
   readonly registerSelection: (
     registration: ContextSidebarRegistration,
@@ -95,7 +95,7 @@ export interface ContextSidebarPanelProps {
 
 export interface ContextSidebarOutletProps {
   readonly className?: string;
-  /** The rail outlet, or the drawer outlet used below `xl`. */
+  /** The rail outlet, or the drawer outlet used below `md`. */
   readonly target?: 'desktop' | 'mobile';
   readonly testId?: string;
 }

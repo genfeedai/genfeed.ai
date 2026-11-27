@@ -224,7 +224,7 @@ describe('AgentDock', () => {
     }
   });
 
-  it('renders the unified header in the bottom sheet below xl', async () => {
+  it('renders the unified header in the bottom sheet on phones', async () => {
     const dock = buildDock();
     const { onOpenFullPage } = renderDock(dock, { isCompact: true });
 

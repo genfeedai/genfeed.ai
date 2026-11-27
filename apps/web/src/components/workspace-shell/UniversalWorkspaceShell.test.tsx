@@ -1698,7 +1698,7 @@ describe('UniversalWorkspaceShell', () => {
         addEventListener: vi.fn(),
         addListener: vi.fn(),
         dispatchEvent: vi.fn(),
-        matches: query === '(max-width: 1279px)',
+        matches: query === '(max-width: 767px)',
         media: query,
         onchange: null,
         removeEventListener: vi.fn(),
@@ -1743,7 +1743,7 @@ describe('UniversalWorkspaceShell', () => {
       );
     });
 
-    it('does not report a context left open at a wider size as visible below xl', async () => {
+    it('does not report a context left open at a wider size as visible on phones', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
       let isCompact = false;
       const changeListeners = new Set<() => void>();
@@ -1753,7 +1753,7 @@ describe('UniversalWorkspaceShell', () => {
         addListener: vi.fn(),
         dispatchEvent: vi.fn(),
         get matches() {
-          return isCompact && query === '(max-width: 1279px)';
+          return isCompact && query === '(max-width: 767px)';
         },
         media: query,
         onchange: null,
@@ -2011,13 +2011,13 @@ describe('UniversalWorkspaceShell', () => {
         ).not.toHaveAttribute('inert');
       });
 
-      it('opens as a bottom sheet below xl and dismisses when a notification opens', async () => {
+      it('opens as a bottom sheet on phones and dismisses when a notification opens', async () => {
         navigation.pathname = '/acme/moonrise/workspace';
         window.matchMedia = vi.fn().mockImplementation((query: string) => ({
           addEventListener: vi.fn(),
           addListener: vi.fn(),
           dispatchEvent: vi.fn(),
-          matches: query === '(max-width: 1279px)',
+          matches: query === '(max-width: 767px)',
           media: query,
           onchange: null,
           removeEventListener: vi.fn(),
