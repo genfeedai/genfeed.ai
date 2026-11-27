@@ -34,6 +34,7 @@ import {
   isMetaAdsTool,
   isTikTokAdsTool,
 } from '@mcp/services/ads-tool-names.util';
+import { agentToolTimeoutMs } from '@mcp/services/agent-tool-timeouts';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { withAccountOrganizations } from '@mcp/services/mcp-account-organizations.util';
@@ -500,6 +501,7 @@ export class ToolRegistryService implements OnModuleInit {
       case 'workflow-control':
         return handleWorkflowControlTool(this.clientService, name, args);
       case 'agent-executor': {
+        const timeoutMs = agentToolTimeoutMs(name);
         const result = await this.clientService.executeAgentTool(
           name,
           // Brand and account cards show the brand's logo.
@@ -507,6 +509,7 @@ export class ToolRegistryService implements OnModuleInit {
             ? { ...args, includeLogo: true }
             : args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
+          ...(timeoutMs === undefined ? [] : [timeoutMs]),
         );
         return this.toMcpResult(
           await withAccountOrganizations(
