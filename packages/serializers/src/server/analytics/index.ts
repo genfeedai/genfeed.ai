@@ -8,6 +8,7 @@ export * from '@serializers/server/analytics/watchlist.serializer';
 export * from './content-learning-account.serializer';
 export * from './content-learning-dataset.serializer';
 export * from './content-learning-evidence.serializer';
+export * from './content-learning-experiment.serializer';
 export * from './content-learning-operation.serializer';
 export * from './content-learning-policy.serializer';
 export * from './content-learning-release.serializer';

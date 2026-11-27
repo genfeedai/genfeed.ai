@@ -104,10 +104,41 @@ export function learningPilotDrawV1(
   seedHex: string,
   parts: ReadonlyArray<string | number>,
 ): number {
-  const digest = createHmac('sha256', Buffer.from(seedHex, 'hex'))
+  return learningPilotDigestDraw(learningPilotDigest(seedHex, parts));
+}
+
+function learningPilotDigest(
+  seedHex: string,
+  parts: ReadonlyArray<string | number>,
+): string {
+  return createHmac('sha256', Buffer.from(seedHex, 'hex'))
     .update(JSON.stringify(parts))
     .digest('hex');
+}
+
+function learningPilotDigestDraw(digest: string): number {
   return Number.parseInt(digest.slice(0, 13), 16) / 2 ** 52;
+}
+
+/** Public SHA-256 commitment to a pilot seed, frozen into the spec. */
+export function learningPilotSeedCommitmentV1(seedHex: string): string {
+  return createHash('sha256').update(seedHex).digest('hex');
+}
+
+/**
+ * The cohort draw for one account of a pilot. The hash is the keyed digest the
+ * draw is read from, so the inclusion can be recomputed from the revealed seed.
+ */
+export function learningPilotCohortV1(
+  seedHex: string,
+  parts: ReadonlyArray<string | number>,
+  fraction: number,
+): { cohortHash: string; included: boolean } {
+  const cohortHash = learningPilotDigest(seedHex, ['cohort', ...parts]);
+  return {
+    cohortHash,
+    included: learningPilotDigestDraw(cohortHash) < fraction,
+  };
 }
 
 /**
@@ -150,13 +181,14 @@ function baselineDistribution(): LearningDistribution {
   ) as LearningDistribution;
 }
 
-function committedSeed(
+/** The decrypted pilot seed, or null when it does not match its commitment. */
+export function learningPilotCommittedSeedV1(
   experiment: { id: string; organizationId: string; encryptedSeed: string },
   seedCommitment: string | undefined,
 ): string | null {
   try {
     const seedHex = EncryptionUtil.decrypt(experiment.encryptedSeed);
-    if (createHash('sha256').update(seedHex).digest('hex') === seedCommitment)
+    if (learningPilotSeedCommitmentV1(seedHex) === seedCommitment)
       return seedHex;
   } catch {
     // Reported below with ids only.
@@ -248,7 +280,10 @@ export async function openLearningPilotAssignment(
     spec.treatmentProbability !== TREATMENT_PROBABILITY
   )
     return null;
-  const seed = committedSeed(experiment, extractString(spec, 'seedCommitment'));
+  const seed = learningPilotCommittedSeedV1(
+    experiment,
+    extractString(spec, 'seedCommitment'),
+  );
   if (!seed) return null;
 
   const exclusions = learningPilotExclusionsV1(input.armExclusions);

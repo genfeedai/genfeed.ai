@@ -27,6 +27,15 @@ export enum ContentLearningOperationStatus {
   CANCELLED = 'cancelled',
   INVALIDATED = 'invalidated',
 }
+/** Persisted `content_learning_experiments.status` labels (DB check constraint). */
+export enum ContentLearningExperimentStatus {
+  PREREGISTERED = 'preregistered',
+  SEALED = 'sealed',
+  RUNNING = 'running',
+  CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
+  INVALIDATED = 'invalidated',
+}
 export enum ContentLearningRunStatus {
   PENDING = 'pending',
   RUNNING = 'running',

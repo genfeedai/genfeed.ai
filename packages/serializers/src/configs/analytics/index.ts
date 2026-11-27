@@ -6,6 +6,7 @@ export * from '@serializers/configs/analytics/watchlist.config';
 export * from './content-learning-account.config';
 export * from './content-learning-dataset.config';
 export * from './content-learning-evidence.config';
+export * from './content-learning-experiment.config';
 export * from './content-learning-operation.config';
 export * from './content-learning-policy.config';
 export * from './content-learning-release.config';
