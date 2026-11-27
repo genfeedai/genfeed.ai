@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 
 /** The per-post numbers a public profile shows, which Public analytics hides. */
 const PUBLIC_POST_METRIC_FIELDS = [
@@ -63,24 +64,26 @@ function isMetricsPublic(post: PostWithAnalyticsScope): boolean {
  * from the result, which is how a post with no analytics yet stays without
  * counts instead of showing zero.
  */
-export async function loadPublicPostMetrics(
-  prisma: Pick<PrismaClient, '$queryRaw'>,
-  posts: readonly PostWithAnalyticsScope[],
-): Promise<Map<string, PublicPostMetrics>> {
-  const ids = [
-    ...new Set(
-      posts.flatMap((post) =>
-        post.id && isMetricsPublic(post) ? [post.id] : [],
+export const loadPublicPostMetrics = traced(
+  'loadPublicPostMetrics',
+  async (
+    prisma: Pick<PrismaClient, '$queryRaw'>,
+    posts: readonly PostWithAnalyticsScope[],
+  ): Promise<Map<string, PublicPostMetrics>> => {
+    const ids = [
+      ...new Set(
+        posts.flatMap((post) =>
+          post.id && isMetricsPublic(post) ? [post.id] : [],
+        ),
       ),
-    ),
-  ];
-  if (ids.length === 0) {
-    return new Map();
-  }
-  // sql-risk-audit: ignore raw-sql-review -- Primary-key lookup of the post ids of one public page, already filtered to public, undeleted posts of public brands with Public analytics on; reads only totals from rows with isDeleted = false.
-  const rows = await prisma.$queryRaw<
-    (PublicPostMetrics & { engagementRate: number; postId: string })[]
-  >(Prisma.sql`
+    ];
+    if (ids.length === 0) {
+      return new Map();
+    }
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key lookup of the post ids of one public page, already filtered to public, undeleted posts of public brands with Public analytics on; reads only totals from rows with isDeleted = false.
+    const rows = await prisma.$queryRaw<
+      (PublicPostMetrics & { engagementRate: number; postId: string })[]
+    >(Prisma.sql`
     SELECT DISTINCT ON ("postId")
            "postId", "totalViews", "totalLikes", "totalComments",
            "totalShares", "totalSaves", "engagementRate"
@@ -88,20 +91,21 @@ export async function loadPublicPostMetrics(
     WHERE "postId" IN (${Prisma.join(ids)})
       AND "isDeleted" = false
     ORDER BY "postId", "date" DESC, "updatedAt" DESC`);
-  return new Map(
-    rows.map((row) => [
-      row.postId,
-      {
-        avgEngagementRate: row.engagementRate,
-        totalComments: row.totalComments,
-        totalLikes: row.totalLikes,
-        totalSaves: row.totalSaves,
-        totalShares: row.totalShares,
-        totalViews: row.totalViews,
-      },
-    ]),
-  );
-}
+    return new Map(
+      rows.map((row) => [
+        row.postId,
+        {
+          avgEngagementRate: row.engagementRate,
+          totalComments: row.totalComments,
+          totalLikes: row.totalLikes,
+          totalSaves: row.totalSaves,
+          totalShares: row.totalShares,
+          totalViews: row.totalViews,
+        },
+      ]),
+    );
+  },
+);
 
 /** The post with its measured totals, or unchanged when it has none. */
 export function withPostMetrics<T extends PostWithAnalyticsScope>(
