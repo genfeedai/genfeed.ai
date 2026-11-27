@@ -1,3 +1,10 @@
+import {
+  SEO_DESCRIPTION_MAX_LENGTH,
+  SEO_DESCRIPTION_MIN_LENGTH,
+  SEO_TITLE_MAX_LENGTH,
+  SEO_TITLE_MIN_LENGTH,
+  withBrandSuffix,
+} from '@data/seo-copy';
 import { describe, expect, it } from 'vitest';
 import {
   buildDevelopersJsonLd,
@@ -10,13 +17,16 @@ import {
 
 describe('developers data', () => {
   it('keeps the title and description inside the SEO budget', () => {
-    expect(DEVELOPERS_TITLE.length).toBeGreaterThanOrEqual(30);
-    // The site appends " | Genfeed.ai" to the title.
-    expect(
-      DEVELOPERS_TITLE.length + ' | Genfeed.ai'.length,
-    ).toBeLessThanOrEqual(60);
-    expect(DEVELOPERS_DESCRIPTION.length).toBeGreaterThanOrEqual(110);
-    expect(DEVELOPERS_DESCRIPTION.length).toBeLessThanOrEqual(160);
+    const title = withBrandSuffix(DEVELOPERS_TITLE);
+
+    expect(title.length).toBeGreaterThanOrEqual(SEO_TITLE_MIN_LENGTH);
+    expect(title.length).toBeLessThanOrEqual(SEO_TITLE_MAX_LENGTH);
+    expect(DEVELOPERS_DESCRIPTION.length).toBeGreaterThanOrEqual(
+      SEO_DESCRIPTION_MIN_LENGTH,
+    );
+    expect(DEVELOPERS_DESCRIPTION.length).toBeLessThanOrEqual(
+      SEO_DESCRIPTION_MAX_LENGTH,
+    );
   });
 
   it('puts the searched phrase in the title', () => {
