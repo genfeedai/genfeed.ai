@@ -23,6 +23,9 @@ import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useReducer, useState } from 'react';
 import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
+import ResearchScanBadge from '@/features/research/scans/ResearchScanBadge';
+import ResearchScanButton from '@/features/research/scans/ResearchScanButton';
+import ResearchScanLimitAlert from '@/features/research/scans/ResearchScanLimitAlert';
 import {
   useOptionalResearchWorkSurface,
   useResearchQueryState,
@@ -52,6 +55,7 @@ import {
 import DeskTableView from '@/features/trends/desk/desk-table-view';
 import { useDeskKeyboard } from '@/features/trends/desk/use-desk-keyboard';
 import { useDiscoveryDeskItems } from '@/features/trends/desk/use-discovery-desk-items';
+import { useNicheScan } from '@/features/trends/desk/use-niche-scan';
 import FollowSourceModal from '@/features/trends/following/FollowSourceModal';
 import type {
   DiscoveryDeskItem,
@@ -166,6 +170,11 @@ export default function DiscoveryDesk() {
 
   const { error, isLoading, isRefreshing, items, refresh, sources, summary } =
     useDiscoveryDeskItems();
+  const {
+    isScanning,
+    scan: scanNiche,
+    status: trendsScanStatus,
+  } = useNicheScan(refresh);
 
   const visibleItems = useMemo(
     () => selectVisibleItems(items, state),
@@ -383,6 +392,16 @@ export default function DiscoveryDesk() {
                     count: filteredBySearch.length,
                   })}
             </Badge>
+            <ResearchScanBadge status={trendsScanStatus} />
+            <ResearchScanButton
+              isScanning={isScanning}
+              onScan={() => {
+                scanNiche().catch(() => {
+                  /* surfaced as a notification */
+                });
+              }}
+              status={trendsScanStatus}
+            />
             <ViewMenu
               activeView={view}
               onChange={setView}
@@ -396,6 +415,8 @@ export default function DiscoveryDesk() {
           </>
         }
       >
+        <ResearchScanLimitAlert status={trendsScanStatus} />
+
         {currentError && !isLoading ? (
           <Alert variant="destructive">
             <AlertTitle>{translateDesk('errors.loadTitle')}</AlertTitle>

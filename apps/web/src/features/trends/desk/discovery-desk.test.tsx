@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   notifyError: vi.fn(),
   notifyInfo: vi.fn(),
   openRemix: vi.fn().mockResolvedValue(undefined),
+  scanNiche: vi.fn().mockResolvedValue(undefined),
+  scanStatus: undefined as { remaining: number | null } | undefined,
   paramState: {} as Record<string, string>,
   setParamState: vi.fn((key: string, value: string) => {
     mocks.paramState[key] = value;
@@ -132,6 +134,35 @@ vi.mock('@/features/trends/desk/use-discovery-desk-items', () => ({
   useDiscoveryDeskItems: () => mocks.useDiscoveryDeskItems(),
 }));
 
+// The scan hook and components read the query client and the real intl
+// formatter; they are covered by `use-niche-scan.test.tsx` and
+// `research-scans.test.tsx`. The Desk only has to place them.
+vi.mock('@/features/trends/desk/use-niche-scan', () => ({
+  useNicheScan: () => ({
+    isScanning: false,
+    scan: mocks.scanNiche,
+    status: mocks.scanStatus,
+  }),
+}));
+
+vi.mock('@/features/research/scans/ResearchScanBadge', () => ({
+  default: ({ status }: { status?: { remaining: number | null } }) =>
+    status ? <span data-testid="scan-badge">{status.remaining}</span> : null,
+}));
+
+vi.mock('@/features/research/scans/ResearchScanButton', () => ({
+  default: ({ onScan }: { onScan: () => void }) => (
+    <button onClick={onScan} type="button">
+      scan-niche
+    </button>
+  ),
+}));
+
+vi.mock('@/features/research/scans/ResearchScanLimitAlert', () => ({
+  default: ({ status }: { status?: { remaining: number | null } }) =>
+    status?.remaining === 0 ? <div data-testid="scan-limit" /> : null,
+}));
+
 vi.mock('@/features/trends/desk/desk-empty-states', () => ({
   DeskEmptyState: ({
     onFollowCreators,
@@ -239,6 +270,8 @@ function selectSource(value: string) {
 describe('DiscoveryDesk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.scanNiche.mockResolvedValue(undefined);
+    mocks.scanStatus = undefined;
     mocks.paramState = {};
     mocks.brandSlug = 'brand-1';
     mocks.openRemix.mockResolvedValue(undefined);
@@ -522,5 +555,25 @@ describe('DiscoveryDesk', () => {
       expect(mocks.openRemix).toHaveBeenCalledTimes(1);
     });
     expect(mocks.openRemix).toHaveBeenCalledWith(ITEM_ONE.remixSelector);
+  });
+
+  it('scans the niche from the header and shows how many scans are left', () => {
+    mocks.scanStatus = { remaining: 4 };
+
+    render(<DiscoveryDesk />);
+
+    expect(screen.getByTestId('scan-badge')).toHaveTextContent('4');
+
+    fireEvent.click(screen.getByRole('button', { name: 'scan-niche' }));
+
+    expect(mocks.scanNiche).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the limit alert once the trends scans are used up', () => {
+    mocks.scanStatus = { remaining: 0 };
+
+    render(<DiscoveryDesk />);
+
+    expect(screen.getByTestId('scan-limit')).toBeInTheDocument();
   });
 });

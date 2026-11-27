@@ -61,6 +61,7 @@ import productEmailPreferences from './pages/productEmailPreferences.json';
 import publishing from './pages/publishing.json';
 import remixBrief from './pages/remixBrief.json';
 import replyDrip from './pages/replyDrip.json';
+import researchScans from './pages/researchScans.json';
 import socialIntelligence from './pages/socialIntelligence.json';
 import socialWarmup from './pages/socialWarmup.json';
 import studioClipper from './pages/studioClipper.json';
@@ -141,6 +142,7 @@ const pages = {
   publishing,
   remixBrief,
   replyDrip,
+  researchScans,
   socialIntelligence,
   socialWarmup,
   studioClipper,

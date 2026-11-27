@@ -26,9 +26,10 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import DateText from '@ui/time/DateText';
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import AdsCompetitorSuggestions from './AdsCompetitorSuggestions';
 
 const WATCHLIST_PLATFORM_OPTIONS: Array<{
   label: string;
@@ -58,7 +59,9 @@ const BLOCKER_LABELS: Record<string, string> = {
   research_collection_start_unreconciled:
     "We couldn't confirm whether this collection started. It's safe to retry.",
   research_paid_access_required:
-    'Competitor collection requires an active paid subscription. Saved ads stay available.',
+    'Daily rescans of watched competitors are part of a plan. Poll now still works while you have scans left.',
+  research_scan_limit_reached:
+    'No scans were left on the last poll. Poll again when your next scan opens.',
   research_subscription_unverified:
     'Subscription status could not be verified, so collection stayed off. Saved ads stay available.',
   x_ads_repository_commercial_use_not_approved:
@@ -101,11 +104,14 @@ function describeFreshness(advertiser: AdWatchedAdvertiser): string {
 
 function AdvertiserRow({
   advertiser,
+  canScan,
   isBusy,
   onPoll,
   onRemove,
 }: {
   advertiser: AdWatchedAdvertiser;
+  /** False while the ads library has no scans left; a poll is a scan. */
+  canScan: boolean;
   isBusy: boolean;
   onPoll: (id: string) => void;
   onRemove: (id: string) => void;
@@ -148,7 +154,7 @@ function AdvertiserRow({
       <div className="flex shrink-0 items-center gap-1">
         <Button
           ariaLabel={`Poll ${advertiser.advertiserHandle} now`}
-          disabled={isBusy}
+          disabled={isBusy || !canScan}
           icon={<RefreshCw className="size-4" />}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
@@ -179,6 +185,8 @@ export type AdsResearchWatchlistPanelProps = {
   readiness: AdWatchlistPlatformReadiness[];
   /** Competitors the brand already names that are not watched yet. */
   suggestions?: string[];
+  /** Scans left in the ads library; null when it has no limit. */
+  scansLeft?: number | null;
   onAdd: (input: {
     advertiserHandle: string;
     platform: AdWatchlistPlatform;
@@ -204,6 +212,7 @@ export function AdsResearchWatchlistPanel({
   loadError,
   readiness,
   suggestions = [],
+  scansLeft = null,
   onAdd,
   onPoll,
   onRemove,
@@ -217,46 +226,13 @@ export function AdsResearchWatchlistPanel({
 
   return (
     <div className="space-y-4">
-      {suggestions.length > 0 ? (
-        <div className="space-y-2" data-testid="watchlist-suggestions">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-medium text-foreground">
-              {translate('suggestions.title')}
-            </div>
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              disabled={isAdding}
-              onClick={() => {
-                for (const name of suggestions) {
-                  onAdd({ advertiserHandle: name, platform });
-                }
-              }}
-            >
-              {translate('suggestions.watchAll')}
-            </Button>
-          </div>
-          <p className="text-xs text-foreground/60">
-            {translate('suggestions.description')}
-          </p>
-          <ul className="flex flex-wrap gap-2">
-            {suggestions.map((name) => (
-              <li key={name}>
-                <Button
-                  ariaLabel={translate('suggestions.watch', { name })}
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  disabled={isAdding}
-                  icon={<Plus className="size-3.5" />}
-                  onClick={() => onAdd({ advertiserHandle: name, platform })}
-                >
-                  {name}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      <AdsCompetitorSuggestions
+        isAdding={isAdding}
+        platform={platform}
+        scansLeft={scansLeft}
+        suggestions={suggestions}
+        onAdd={onAdd}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -335,6 +311,7 @@ export function AdsResearchWatchlistPanel({
             <AdvertiserRow
               key={advertiser.id}
               advertiser={advertiser}
+              canScan={scansLeft !== 0}
               isBusy={busyId === advertiser.id}
               onPoll={onPoll}
               onRemove={onRemove}

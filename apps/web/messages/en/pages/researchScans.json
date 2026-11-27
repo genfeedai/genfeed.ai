@@ -1,0 +1,29 @@
+{
+  "ads": {
+    "firstVisit": {
+      "description": "Pick one competitor and we collect the ads they are running now. Save and remix what we find as often as you like.",
+      "title": "Spend your scan on a competitor"
+    }
+  },
+  "badge": {
+    "leftDay": "{remaining} of {total} scans left today",
+    "leftWeek": "{remaining} of {total} {total, plural, one {scan} other {scans}} left this week",
+    "unlimited": "Unlimited scans"
+  },
+  "limit": {
+    "nextLater": "Your next scan opens {day} at {time}.",
+    "nextToday": "Your next scan opens at {time}.",
+    "planPitch": "Pro gives you {count} scans a day.",
+    "seePlans": "See plans",
+    "titleDay": "You have used today's scans",
+    "titleWeek": "You have used this week's scan"
+  },
+  "scan": {
+    "action": "Scan niche",
+    "disabled": "No scans left until {when}",
+    "failed": "Could not start the scan. Try again in a moment.",
+    "limitReached": "You have no scans left right now.",
+    "started": "Scan started. New trends land here as they arrive.",
+    "starting": "Scanning…"
+  }
+}
