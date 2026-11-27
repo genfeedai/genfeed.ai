@@ -84,6 +84,8 @@ export class TrendsDiscoveryController {
       );
     }
 
+    if (relevance !== 'market')
+      void this.trendsService.noteBrandRead(organizationId, brandId);
     const result = await this.trendsService.getTrendsDiscovery(
       organizationId,
       brandId,
@@ -130,6 +132,7 @@ export class TrendsDiscoveryController {
       ? 30
       : Math.min(Math.max(parsedLimit, 1), 100);
 
+    void this.trendsService.noteBrandRead(organizationId, brandId);
     const result = await this.trendsService.getTrendContent(
       organizationId,
       brandId,

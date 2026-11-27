@@ -292,8 +292,6 @@ const config: KnipConfig = {
       ignoreDependencies: [
         // `@ui/*` is a path alias for packages/ui, not a package.
         /^@ui\//,
-        // packages/desktop-prisma: its generated client imports it.
-        '@prisma/client',
         // packages/agent: `vitest/browser`, imported by the `*.browser.test.tsx`
         // files, is served by this package.
         '@vitest/browser',

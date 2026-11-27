@@ -14,10 +14,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, redirect } from 'next/navigation';
+import BrandRequiredState from '@/components/states/BrandRequiredState';
 import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
-import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
 
 /** Org entries of the brand-scoped former Studio apps, by route segment. */
 const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
@@ -90,7 +90,14 @@ export default async function OrgRootAppSurface({
     // Deeper Automation pages own brand resources, but the brandless URL is a
     // valid navigation state. Keep the requested path mounted so the sidebar
     // remains usable and selecting a brand can reopen this exact surface.
-    return <OrganizationAutomationBrandEmptyState orgSlug={orgSlug} />;
+    return (
+      <BrandRequiredState
+        brandSettingsHref={createOrganizationAppRoute(
+          orgSlug,
+          APP_ROUTES.SETTINGS.BRANDS,
+        )}
+      />
+    );
   }
 
   // The Editor app's timeline surface. It mirrors the brand-scoped static

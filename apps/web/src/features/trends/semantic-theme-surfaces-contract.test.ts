@@ -13,12 +13,6 @@ describe('trends semantic theme surfaces', () => {
     // Its error states delegate their surface to `@ui/primitives/alert`.
     ['detail/trend-detail.tsx', 'border-white', null],
     ['detail/trend-detail-analysis-card.tsx', 'border-white', 'border-border'],
-    // Delegates its border to `@ui/card/Card`.
-    [
-      'platform-detail/components/related-metric-card.tsx',
-      'border-white',
-      null,
-    ],
     ['list/components/HookRemixModal.tsx', 'bg-white/5', 'bg-foreground/5'],
   ])(
     'removes fixed dark-only chrome from %s',
@@ -58,13 +52,13 @@ describe('trends semantic theme surfaces', () => {
     expect(source).not.toContain('!border-white');
   });
 
-  it.each([
-    'platform-detail/components/related-metric-card.tsx',
-    'shared/trend-content-card.tsx',
-  ])('uses the shared Card for semantic card surfaces in %s', (path) => {
-    const source = readTrends(path);
+  it.each(['shared/trend-content-card.tsx'])(
+    'uses the shared Card for semantic card surfaces in %s',
+    (path) => {
+      const source = readTrends(path);
 
-    expect(source).toContain("import Card from '@ui/card/Card'");
-    expect(source).toContain('<Card');
-  });
+      expect(source).toContain("import Card from '@ui/card/Card'");
+      expect(source).toContain('<Card');
+    },
+  );
 });

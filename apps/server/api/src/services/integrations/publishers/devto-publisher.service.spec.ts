@@ -122,6 +122,30 @@ describe('DevtoPublisherService', () => {
     expect(result.isProviderDraft).toBe(true);
   });
 
+  it('creates a Dev.to draft when the target saves as draft', async () => {
+    const result = await service.publish(
+      makeContext({ settings: { saveAsDraft: true, tags: 'webdev' } }),
+    );
+
+    expect(devtoService.createArticle).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ published: false, tags: ['webdev'] }),
+    );
+    expect(result.isProviderDraft).toBe(true);
+  });
+
+  it('publishes when the saveAsDraft setting is off', async () => {
+    const result = await service.publish(
+      makeContext({ settings: { saveAsDraft: false } }),
+    );
+
+    expect(devtoService.createArticle).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ published: true }),
+    );
+    expect(result.isProviderDraft).toBeUndefined();
+  });
+
   it('sends at most four tags from the channel setting', async () => {
     await service.publish(
       makeContext({
@@ -135,6 +159,36 @@ describe('DevtoPublisherService', () => {
         tags: ['typescript', 'webdev', 'node', 'api'],
       }),
     );
+  });
+
+  it('passes the canonical URL and series channel settings to Dev.to', async () => {
+    await service.publish(
+      makeContext({
+        settings: {
+          canonicalUrl: 'https://genfeed.ai/articles/launch-notes',
+          series: ' Genfeed, from brief to feed ',
+        },
+      }),
+    );
+
+    expect(devtoService.createArticle).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        canonicalUrl: 'https://genfeed.ai/articles/launch-notes',
+        series: 'Genfeed, from brief to feed',
+      }),
+    );
+  });
+
+  it('rejects a canonical URL that is not https instead of publishing a Dev.to original', async () => {
+    const result = await service.publish(
+      makeContext({ settings: { canonicalUrl: 'genfeed.ai/articles/x' } }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/canonical URL/);
+    expect(result.errorKind).toBe(PublishErrorKind.CONTENT_REJECTED);
+    expect(devtoService.createArticle).not.toHaveBeenCalled();
   });
 
   it('fails without calling Dev.to when the credential has no API key', async () => {
@@ -261,6 +315,26 @@ describe('DevtoPublisherService', () => {
         externalId: '999',
         isProviderDraft: true,
       });
+      expect(devtoService.listPublishVerificationPage).toHaveBeenCalledWith(
+        'dec:encrypted-token',
+        true,
+        startedAt,
+        undefined,
+      );
+    });
+
+    it('looks in the drafts list for a target that saves as draft', async () => {
+      devtoService.listPublishVerificationPage.mockResolvedValue({
+        items: [landed],
+        nextCursor: null,
+      });
+
+      const result = await service.verifyPublished(
+        makeContext({ settings: { saveAsDraft: true } }),
+        startedAt,
+      );
+
+      expect(result).toMatchObject({ isProviderDraft: true });
       expect(devtoService.listPublishVerificationPage).toHaveBeenCalledWith(
         'dec:encrypted-token',
         true,

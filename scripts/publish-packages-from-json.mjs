@@ -11,6 +11,13 @@ import ts from 'typescript';
 import { fixEsmRelativeImports } from './fix-esm-relative-imports.mjs';
 
 const NPM_NOT_FOUND_ERROR_PATTERN = /E404|No match found|Not Found/i;
+// npm answers a second publish of a version that is waiting for a maintainer's
+// approval (npm stage) with a 409 that names it.
+const NPM_STAGED_CONFLICT_PATTERN =
+  /Cannot publish over previously staged version/i;
+// Once one package has not appeared after the full wait, the rest are likely
+// staged too, so they get a short look instead of five minutes each.
+export const UNCONFIRMED_READBACK_ATTEMPTS = 6;
 const LEADING_DOT_SLASH_PATTERN = /^\.\//;
 const REGEX_SPECIAL_CHARS_PATTERN = /[.+?^${}()|[\]\\]/g;
 const TEST_FILE_PATTERN = /\.(?:spec|test)\.[cm]?[jt]sx?$/;
@@ -33,6 +40,7 @@ const BUILTIN_MODULES = new Set([
 ]);
 
 class ReleaseError extends Error {}
+class RegistryNotReadableError extends ReleaseError {}
 
 function fail(message) {
   throw new ReleaseError(message);
@@ -632,7 +640,9 @@ export function waitForRegistryContent(
 
   const detail =
     lastPackError instanceof Error ? `: ${lastPackError.message}` : '';
-  fail(`${packageSpec} was not readable from npm after publication${detail}`);
+  throw new RegistryNotReadableError(
+    `${packageSpec} was not readable from npm after publication${detail}`,
+  );
 }
 
 export function assertCleanWorkingTree(root) {
@@ -916,6 +926,109 @@ export function prepareRelease({ outputDir, packagesJson, root }) {
   return plan;
 }
 
+function npmPublishTarball(tarballPath) {
+  const result = spawnSync(
+    'npm',
+    [
+      'publish',
+      tarballPath,
+      '--access',
+      'public',
+      '--provenance',
+      '--ignore-scripts',
+    ],
+    {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      timeout: RELEASE_COMMAND_TIMEOUT_MS,
+    },
+  );
+  process.stdout.write(result.stdout ?? '');
+  process.stderr.write(result.stderr ?? '');
+  if (result.status === 0) return 'accepted';
+  if (result.error?.code === 'ETIMEDOUT') {
+    fail(
+      `npm publish ${tarballPath} timed out after ${RELEASE_COMMAND_TIMEOUT_MS}ms`,
+    );
+  }
+  const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  if (NPM_STAGED_CONFLICT_PATTERN.test(output)) return 'staged';
+  fail(`npm publish ${tarballPath} failed\n${output.trim()}`);
+}
+
+// Publishes every package in the plan, dependency first. npm can hold a
+// published version in a staging area until a maintainer approves it with 2FA,
+// which this workflow cannot do: such a package is not live, so its readback
+// times out, or a repeat publish gets a 409. Stopping at the first one would
+// leave every later package unstaged, so the loop stages them all and fails at
+// the end naming each package that is not live. Dispatch again once they are
+// approved: a live version is verified against the plan's tarball digest and
+// skipped.
+export function publishPlannedPackages({
+  archiveIntegrityFn = archiveIntegrity,
+  npmPublishFn = npmPublishTarball,
+  npmViewFn = npmView,
+  outputDir = '',
+  packRegistryVersionFn = packRegistryVersion,
+  plan,
+  statuses,
+  waitForRegistryContentFn = waitForRegistryContent,
+  writeStatus = () => {},
+}) {
+  let readbackOptions = {};
+
+  for (const [index, release] of plan.packages.entries()) {
+    const packageSpec = `${release.name}@${release.version}`;
+    const existing = npmViewFn(packageSpec);
+    if (existing) {
+      const registryDigest = packRegistryVersionFn(packageSpec);
+      if (registryDigest === null) {
+        fail(`${packageSpec} exists but its tarball is unavailable`);
+      }
+      registryAction(release.contentDigest, registryDigest);
+      statuses[index] = { ...release, status: 'already-published' };
+    } else {
+      const tarballPath = path.join(outputDir, 'artifacts', release.tarball);
+      if (archiveIntegrityFn(tarballPath) !== release.integrity) {
+        fail(`${release.tarball} integrity does not match the release plan`);
+      }
+      if (npmPublishFn(tarballPath) === 'staged') {
+        statuses[index] = { ...release, status: 'staged' };
+      } else {
+        try {
+          waitForRegistryContentFn(
+            packageSpec,
+            release.contentDigest,
+            readbackOptions,
+          );
+          statuses[index] = { ...release, status: 'published' };
+        } catch (error) {
+          if (!(error instanceof RegistryNotReadableError)) throw error;
+          console.error(error.message);
+          statuses[index] = { ...release, status: 'not-live' };
+          readbackOptions = { attempts: UNCONFIRMED_READBACK_ATTEMPTS };
+        }
+      }
+    }
+    writeStatus();
+  }
+
+  const notLive = statuses.filter(
+    ({ status }) => status !== 'published' && status !== 'already-published',
+  );
+  if (notLive.length > 0) {
+    fail(
+      `${notLive.length} package(s) are not live on npm: ${notLive
+        .map(({ name, status, version }) => `${name}@${version} (${status})`)
+        .join(', ')}. npm may be holding them for a maintainer's approval ` +
+        '(npmjs.com > Staged Packages, or `npm stage approve <id>`, with 2FA). ' +
+        'Approve them, then dispatch this workflow again: live versions are ' +
+        "verified against the plan's tarball digest and skipped.",
+    );
+  }
+  return statuses;
+}
+
 export function publishReleasePlan({ planPath, root }) {
   const plan = readJson(planPath);
   assertMasterPublication(root, plan.sourceSha);
@@ -932,35 +1045,7 @@ export function publishReleasePlan({ planPath, root }) {
     });
   writeStatus();
 
-  for (const [index, release] of plan.packages.entries()) {
-    const packageSpec = `${release.name}@${release.version}`;
-    const existing = npmView(packageSpec);
-    if (existing) {
-      const registryDigest = packRegistryVersion(packageSpec);
-      if (registryDigest === null) {
-        fail(`${packageSpec} exists but its tarball is unavailable`);
-      }
-      registryAction(release.contentDigest, registryDigest);
-      statuses[index] = { ...release, status: 'already-published' };
-    } else {
-      const tarballPath = path.join(outputDir, 'artifacts', release.tarball);
-      if (archiveIntegrity(tarballPath) !== release.integrity) {
-        fail(`${release.tarball} integrity does not match the release plan`);
-      }
-      run('npm', [
-        'publish',
-        tarballPath,
-        '--access',
-        'public',
-        '--provenance',
-        '--ignore-scripts',
-      ]);
-      waitForRegistryContent(packageSpec, release.contentDigest);
-      statuses[index] = { ...release, status: 'published' };
-    }
-    writeStatus();
-  }
-
+  publishPlannedPackages({ outputDir, plan, statuses, writeStatus });
   return statuses;
 }
 

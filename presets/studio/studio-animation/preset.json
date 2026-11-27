@@ -1,0 +1,15 @@
+{
+  "key": "studio-animation",
+  "label": "Animation",
+  "type": "video",
+  "description": "A playful animated scene with clear movement.",
+  "prompt": "Animate your subject in a short playful scene.",
+  "values": {
+    "aspectRatio": "16:9",
+    "duration": 5,
+    "promptTemplate": "content.video.default",
+    "style": "stylized 3D animation",
+    "scene": "playful animated scene with smooth deliberate movement",
+    "cameraMovement": "slow push-in"
+  }
+}

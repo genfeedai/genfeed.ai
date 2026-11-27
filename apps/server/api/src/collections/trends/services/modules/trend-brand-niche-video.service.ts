@@ -1,6 +1,7 @@
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -43,10 +44,12 @@ export class TrendBrandNicheVideoService {
       return 0;
     }
 
-    const videos = await this.apifyService.searchTikTokByQueries(
-      queries,
-      { limit },
-      { organizationId, origin: 'social-source' },
+    const videos = await runWithDefaultApifyCaller('trends.niche-refresh', () =>
+      this.apifyService.searchTikTokByQueries(
+        queries,
+        { limit },
+        { organizationId, origin: 'social-source' },
+      ),
     );
     const expiresAt = new Date(Date.now() + BRAND_NICHE_TTL_SECONDS * 1000);
     const seen = new Set<string>();
@@ -93,5 +96,10 @@ export class TrendBrandNicheVideoService {
         this.cacheKey(organizationId, brandId),
       )) ?? []
     );
+  }
+
+  /** True while a snapshot of the brand's niche videos is cached. */
+  async hasSnapshot(organizationId: string, brandId: string): Promise<boolean> {
+    return (await this.get(organizationId, brandId)).length > 0;
   }
 }

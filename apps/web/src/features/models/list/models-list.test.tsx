@@ -382,6 +382,11 @@ describe('ModelsList', () => {
     await waitFor(() => {
       expect(screen.getByText('No models found')).toBeInTheDocument();
     });
+    expect(
+      screen.getByText(
+        'Models available to your organization appear here. Refresh to check again.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('offers the catalog categories with counts in the Filters menu outside the superadmin scope', async () => {

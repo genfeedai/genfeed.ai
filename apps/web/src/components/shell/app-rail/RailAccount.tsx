@@ -15,14 +15,18 @@ import {
   CircleQuestionMark,
   type LucideIcon,
   Plug,
+  Puzzle,
   Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import UserDropdown from '@/components/menus/user-dropdown/UserDropdown';
+import { useHasAppsBeyondDashboard } from '@/components/shell/use-available-rail-apps';
 
 const SETTINGS_PATH_PATTERN = /\/settings(?:\/|$)/;
+/** `/:org/~/apps` and `/:org/:brand/apps`, the page that lists every app. */
+const APPS_PATH_PATTERN = /^\/[^/]+\/[^/]+\/apps(?:\/|$)/;
 /** `/:org/~/connectors/*` and `/:org/:brand/connectors/*`. */
 const CONNECTORS_PATH_PATTERN = /^\/[^/]+\/[^/]+\/connectors(?:\/|$)/;
 
@@ -89,8 +93,9 @@ function RailLink({
 }
 
 /**
- * Bottom of the app rail, Codex-style: Connectors, Settings, Help and the
- * signed-in avatar. Connectors is where everything an organization connects
+ * Bottom of the app rail, Codex-style: Apps, Connectors, Settings, Help and
+ * the signed-in avatar. Apps is the page that lists every app the organization
+ * has, shown once there is any beyond the dashboard. Connectors is where everything an organization connects
  * lives (agents, channels, AI providers, API keys, webhooks). The avatar opens
  * the account menu.
  */
@@ -98,6 +103,8 @@ export default function RailAccount() {
   const translate = useTranslations('common.appRail');
   const pathname = usePathname();
   const { activeHref, orgHref, orgSlug } = useOrgUrl();
+  const hasAppsBeyondDashboard = useHasAppsBeyondDashboard();
+  const isAppsActive = APPS_PATH_PATTERN.test(pathname ?? '');
   const isConnectorsActive = CONNECTORS_PATH_PATTERN.test(pathname ?? '');
   const { isSignedIn } = useAuthIdentity();
   const { user } = useAuthUser();
@@ -110,6 +117,15 @@ export default function RailAccount() {
       className="flex flex-col items-center gap-1"
       data-testid="app-rail-account"
     >
+      {orgSlug && hasAppsBeyondDashboard ? (
+        <RailLink
+          href={orgHref(APP_ROUTES.APPS.ROOT)}
+          icon={Puzzle}
+          isActive={isAppsActive}
+          label={translate('apps')}
+          testId="app-rail-apps"
+        />
+      ) : null}
       <RailLink
         href={activeHref(APP_ROUTES.CONNECTORS.AGENTS)}
         icon={Plug}

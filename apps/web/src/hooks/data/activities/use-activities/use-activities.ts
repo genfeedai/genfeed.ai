@@ -20,6 +20,45 @@ import { useCallback, useMemo, useState } from 'react';
 
 const EMPTY_ACTIVITIES: IActivity[] = [];
 
+/** The API accepts this many ids in one bulk read-state change. */
+const BULK_PATCH_MAX_IDS = 100;
+
+/**
+ * Sends read state in API-sized chunks. `onWritten` runs after every chunk the
+ * API accepted, so a later chunk that fails still refreshes what was saved.
+ */
+async function bulkPatchReadState(
+  service: Pick<ActivitiesService, 'bulkPatch'>,
+  ids: string[],
+  isRead: boolean,
+  onWritten: () => void,
+) {
+  let last: Awaited<ReturnType<ActivitiesService['bulkPatch']>> | undefined;
+  for (let start = 0; start < ids.length; start += BULK_PATCH_MAX_IDS) {
+    last = await service.bulkPatch({
+      ids: ids.slice(start, start + BULK_PATCH_MAX_IDS),
+      isRead,
+      type: 'activity-bulk-patch',
+    });
+    onWritten();
+  }
+  return last;
+}
+
+/**
+ * A post row stands for every activity folded into it, so a read-state change
+ * on the row reaches all of them.
+ */
+function expandActivityIds(
+  activities: readonly IActivity[],
+  ids: readonly string[],
+): string[] {
+  const byId = new Map(activities.map((activity) => [activity.id, activity]));
+  return [
+    ...new Set(ids.flatMap((id) => byId.get(id)?.postGroup?.eventIds ?? [id])),
+  ];
+}
+
 type ActivitiesTarget =
   | { kind: 'organization'; id: string }
   | { kind: 'brand'; id: string }
@@ -222,19 +261,25 @@ export function useActivities({
         return;
       }
 
-      await withSilentOperation({
-        errorMessage: 'Failed to mark activities as read',
-        onSuccess: refetchAfterReadChange,
-        operation: async () => {
-          const service = await getActivitiesService();
-          return service.bulkPatch({
-            ids: activityIds,
-            isRead: true,
-            type: 'activity-bulk-patch',
-          });
-        },
-        url: `PATCH /activities/bulk [${activityIds.length} activities]`,
-      });
+      let isWritten = false;
+      try {
+        await withSilentOperation({
+          errorMessage: 'Failed to mark activities as read',
+          operation: async () =>
+            await bulkPatchReadState(
+              await getActivitiesService(),
+              activityIds,
+              true,
+              () => {
+                isWritten = true;
+              },
+            ),
+          url: `PATCH /activities/bulk [${activityIds.length} activities]`,
+        });
+      } finally {
+        // Chunks already saved stay saved, so the list and the dot follow them.
+        if (isWritten) refetchAfterReadChange();
+      }
     },
     [getActivitiesService, refetchAfterReadChange],
   );
@@ -273,7 +318,7 @@ export function useActivities({
         idsToMark = activities.filter((a) => !a.isRead).map((a) => a.id);
       }
 
-      await patchActivities(idsToMark);
+      await patchActivities(expandActivityIds(activities, idsToMark));
     },
     [activities, patchActivities],
   );
@@ -285,18 +330,34 @@ export function useActivities({
         return;
       }
 
-      await withSilentOperation({
-        errorMessage: 'Failed to update activity status',
-        onSuccess: refetchAfterReadChange,
-        operation: async () => {
-          const service = await getActivitiesService();
-          return service.patch(activityId, {
-            id: activityId,
-            isRead: !activity.isRead,
-          });
-        },
-        url: `PATCH /activities/${activityId} [toggle read]`,
-      });
+      let isWritten = false;
+      try {
+        await withSilentOperation({
+          errorMessage: 'Failed to update activity status',
+          operation: async () => {
+            const service = await getActivitiesService();
+            if (activity.postGroup) {
+              return await bulkPatchReadState(
+                service,
+                activity.postGroup.eventIds,
+                !activity.isRead,
+                () => {
+                  isWritten = true;
+                },
+              );
+            }
+            const patched = await service.patch(activityId, {
+              id: activityId,
+              isRead: !activity.isRead,
+            });
+            isWritten = true;
+            return patched;
+          },
+          url: `PATCH /activities/${activityId} [toggle read]`,
+        });
+      } finally {
+        if (isWritten) refetchAfterReadChange();
+      }
     },
     [activities, getActivitiesService, refetchAfterReadChange],
   );

@@ -115,9 +115,7 @@ describe('shared wallet scope', () => {
       selectedServerId: 'cloud-a',
       selectedServerKind: 'cloud' as const,
       selectedApiEndpoint: 'https://a.example/v1',
-      runtimeMode: 'cloud' as const,
       generationExecution: 'remote' as const,
-      localProvider: null,
     };
     state.runtime = { status: 'ready', context };
     const { result, rerender } = renderHook(() => useTopbarBalances(), {
@@ -150,7 +148,7 @@ describe('shared wallet scope', () => {
     expect(result.current.genfeedBalance).toBe(28);
   });
 
-  it.each(['local', 'self-hosted', 'unknown'] as const)(
+  it.each(['self-hosted', 'unknown'] as const)(
     'never requests a desktop wallet for %s execution',
     async (mode) => {
       state.desktop = true;
@@ -164,9 +162,7 @@ describe('shared wallet scope', () => {
           selectedServerId: 'selected',
           selectedServerKind: mode === 'self-hosted' ? 'self-hosted' : 'cloud',
           selectedApiEndpoint: 'https://selected.example/v1',
-          runtimeMode: mode === 'local' ? 'local' : 'cloud',
           generationExecution: mode === 'unknown' ? 'unknown' : 'remote',
-          localProvider: null,
         },
       };
       if (mode === 'unknown')

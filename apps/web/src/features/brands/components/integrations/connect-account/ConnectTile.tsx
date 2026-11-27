@@ -20,8 +20,9 @@ interface ConnectTileProps {
 }
 
 /**
- * One platform. Connected platforms stay clickable so a second account can be
- * added; only an in-flight connect disables it.
+ * One platform as a compact card: icon beside the name, the status under it
+ * and the avatars or a plus at the end. Connected platforms stay clickable so a
+ * second account can be added; only an in-flight connect disables it.
  */
 export default function ConnectTile({
   connections,
@@ -51,6 +52,7 @@ export default function ConnectTile({
           ...toConnectionAccount(connection),
           id: connection.credentialId,
         }))}
+        max={2}
         size="sm"
       />
     ) : status === 'connecting' ? (
@@ -59,17 +61,17 @@ export default function ConnectTile({
         className="shrink-0"
         size={ComponentSize.XS}
       />
-    ) : status === 'idle' ? (
+    ) : (
       <Plus
         aria-hidden="true"
         className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
       />
-    ) : null;
+    );
 
   return (
     <Button
       className={cn(
-        'group flex w-full flex-col gap-3 rounded-xl bg-card p-3 text-left shadow-border transition-colors',
+        'group flex w-full items-center gap-2.5 rounded-lg bg-card px-2.5 py-2 text-left shadow-border transition-colors',
         'hover:bg-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-card',
       )}
@@ -79,20 +81,18 @@ export default function ConnectTile({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
     >
-      <span className="flex items-center justify-between gap-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-tertiary">
-          <Icon className={cn('size-4', item.iconClassName)} />
-        </span>
-        {trailing}
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-tertiary">
+        <Icon className={cn('size-4', item.iconClassName)} />
       </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-foreground">
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium leading-4 text-foreground">
           {item.label}
         </span>
-        <span className="block truncate text-xs text-muted-foreground">
+        <span className="block truncate text-xs leading-4 text-muted-foreground">
           {caption}
         </span>
       </span>
+      {trailing}
     </Button>
   );
 }

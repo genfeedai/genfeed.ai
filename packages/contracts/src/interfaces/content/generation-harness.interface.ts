@@ -79,7 +79,47 @@ export interface GenerationHarnessReceipt {
    * when the brand has no palette.
    */
   brandPalette?: GenerationBrandPaletteReceipt;
+  /**
+   * The spoken dialogue of an ad preset output checked against its script
+   * (#7927). Absent unless the generation locked an audio reference and the
+   * check was not turned off for the request.
+   */
+  adDialogue?: GenerationAdDialogueReceipt;
 }
+
+/**
+ * Evidence, not a gate: a take that does not match the script is held for
+ * review, never regenerated, and a check that could not run never fails the
+ * generation.
+ */
+export type GenerationAdDialogueReceipt =
+  | {
+      status: 'pending';
+      /** The script as submitted, kept so the take can be compared once it completes. */
+      script: string;
+    }
+  | {
+      status: 'matched' | 'needs_review';
+      script: string;
+      checkedAt: string;
+      /** Share of script words the speech differs on, 0 to 1. */
+      wordErrorRate: number;
+      /** The most the take may differ before it is held for review. */
+      maxWordErrorRate: number;
+      expectedWordCount: number;
+      /** Spoken words the script does not have. */
+      added: string[];
+      /** Script words that were not spoken. */
+      removed: string[];
+      /** Script words replaced by another spoken word. */
+      changed: Array<{ expected: string; actual: string }>;
+    }
+  | {
+      status: 'not_checked';
+      script: string;
+      /** Why the speech could not be compared, for example `transcription_unavailable`. */
+      reasonCode: string;
+    };
 
 export interface GenerationBrandPaletteColor {
   id: string;

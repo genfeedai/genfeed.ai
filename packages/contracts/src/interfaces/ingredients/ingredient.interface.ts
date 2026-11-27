@@ -4,6 +4,7 @@ import type {
   IngredientCategory,
   IngredientFormat,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   LibraryReviewState,
   QualityStatus,
@@ -125,6 +126,8 @@ export interface IIngredient extends IBaseEntity {
   personaSlug?: string;
   /** Permanent origin; set once at creation (`UNKNOWN` only for legacy rows). */
   origin?: IngredientOrigin;
+  /** Relation to the parent asset; absent for links written before it existed (#7395). */
+  relationKind?: IngredientRelationKind | null;
   reviewStatus?: string;
   qualityStatus?: QualityStatus;
   contentRating?: string;

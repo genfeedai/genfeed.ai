@@ -69,6 +69,28 @@ function normalizedStatus(status?: string): string {
   return value === 'public' ? 'published' : value;
 }
 
+const IN_FLIGHT_STATUSES = new Set(['processing', 'publishing']);
+
+/** How often the list re-reads while a post is still going out. */
+export const IN_FLIGHT_REFETCH_MS = 5_000;
+
+/**
+ * A post that is being published changes status within seconds, so a list
+ * loaded in that window would keep saying "Publishing" for a post that is
+ * already live. The library re-reads while this is true.
+ */
+export function hasPublishingInFlight({
+  posts,
+  releases,
+}: {
+  posts: readonly IPost[];
+  releases: readonly IReleaseGroup[];
+}): boolean {
+  return [...releases, ...posts].some((entry) =>
+    IN_FLIGHT_STATUSES.has(normalizedStatus(entry.status)),
+  );
+}
+
 /** The release holds only TikTok Inbox receipts, so nothing in it is live. */
 function isInboxOnlyRelease(release: IReleaseGroup): boolean {
   const targets = Array.isArray(release.targets) ? release.targets : [];
@@ -220,20 +242,50 @@ export function formatPublishingContentChannel(channel: string): string {
   }
 }
 
+/**
+ * The release list carries each target's `credentialId` only, never the
+ * connected account behind it, so the account's name, handle and avatar come
+ * from the credentials the brand already loaded.
+ */
+function withTargetCredentials(
+  release: IReleaseGroup,
+  credentialsById: ReadonlyMap<string, ICredential>,
+): IReleaseGroup {
+  if (!Array.isArray(release.targets)) {
+    return release;
+  }
+  return {
+    ...release,
+    targets: release.targets.map((target) => ({
+      ...target,
+      credential: target.credential ?? credentialsById.get(target.credentialId),
+    })),
+  };
+}
+
 export function createPublishingContentLibraryItems({
   articles,
+  credentials = [],
   newsletters,
   posts,
-  releases = [],
+  releases: loadedReleases = [],
 }: {
   articles: Pick<
     Article,
     'id' | 'createdAt' | 'label' | 'status' | 'summary' | 'content' | 'category'
   >[];
+  /** Connected accounts that release targets are matched to by `credentialId`. */
+  credentials?: readonly ICredential[];
   newsletters: Newsletter[];
   posts: IPost[];
   releases?: IReleaseGroup[];
 }): PublishingContentLibraryItem[] {
+  const credentialsById = new Map(
+    credentials.map((credential) => [credential.id, credential]),
+  );
+  const releases = loadedReleases.map((release) =>
+    withTargetCredentials(release, credentialsById),
+  );
   const releasePostIds = new Set(
     releases.flatMap((release) =>
       (Array.isArray(release.targets) ? release.targets : []).map(

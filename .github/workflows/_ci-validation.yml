@@ -549,8 +549,16 @@ jobs:
       - name: Check e2e specs follow UI changes
         if: github.event_name == 'pull_request'
         run: node scripts/ci/e2e-spec-impact.mjs --base "${CI_BASE_SHA}"
+      # A pull request that changes what a published package ships must move
+      # its version, or the release lanes plan nothing and npm falls behind
+      # master (#11467). Reads the diff and the npm registry.
+      - name: Check published package versions moved
+        if: github.event_name == 'pull_request'
+        run: node scripts/npm-release-plan.mjs --check-bumps --base "${CI_BASE_SHA}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog
+      - name: Check pinned presets catalog
+        run: bun run check:presets-pin
       - name: Check skill trusted-builtin allowlist
         run: bun run check:skill-trusted-builtin-allowlist
       - name: Check env files and .env.example drift

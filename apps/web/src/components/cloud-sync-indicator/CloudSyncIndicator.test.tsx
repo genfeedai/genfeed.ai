@@ -12,10 +12,6 @@ vi.mock('@/hooks/useCloudSession', () => ({
   useCloudSession: () => cloudSessionState,
 }));
 
-vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
-  default: () => <div data-testid="desktop-local-provider-settings" />,
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     ariaLabel,

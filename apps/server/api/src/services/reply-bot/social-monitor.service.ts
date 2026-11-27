@@ -17,12 +17,11 @@ import type {
   ApifyInstagramPost,
   ApifyNormalizedInstagramComment,
   ApifyNormalizedTikTokComment,
-  ApifyNormalizedYouTubeComment,
-  ApifyRedditPost,
   ApifyTikTokVideo,
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   ReplyBotPlatform,
@@ -147,10 +146,10 @@ export class SocialMonitorService {
           this.getInstagramComments(contentIdentifier, limit),
         [ReplyBotPlatform.TIKTOK]: () =>
           this.getTikTokComments(contentIdentifier, limit),
-        [ReplyBotPlatform.YOUTUBE]: () =>
-          this.getYouTubeComments(contentIdentifier, limit),
-        [ReplyBotPlatform.REDDIT]: () =>
-          this.getRedditComments(contentIdentifier, limit),
+        // No comment source is wired for YouTube or Reddit: the scraper actors
+        // for both were retired (they returned nothing or answered 404).
+        [ReplyBotPlatform.YOUTUBE]: async () => [],
+        [ReplyBotPlatform.REDDIT]: async () => [],
       },
       {
         logData: { commentCount: 0, contentIdentifier },
@@ -182,8 +181,7 @@ export class SocialMonitorService {
         [ReplyBotPlatform.TIKTOK]: () =>
           this.getTikTokMentions(username, limit),
         [ReplyBotPlatform.YOUTUBE]: async () => [], // YouTube doesn't have a traditional mention system
-        [ReplyBotPlatform.REDDIT]: () =>
-          this.getRedditMentions(username, limit),
+        [ReplyBotPlatform.REDDIT]: async () => [], // no Reddit read beyond trends
       },
       {
         logData: { mentionCount: 0, username },
@@ -214,8 +212,7 @@ export class SocialMonitorService {
           this.getTikTokTimeline(username, limit),
         [ReplyBotPlatform.YOUTUBE]: () =>
           this.getYouTubeTimeline(username, limit),
-        [ReplyBotPlatform.REDDIT]: () =>
-          this.getRedditTimeline(username, limit),
+        [ReplyBotPlatform.REDDIT]: async () => [], // no Reddit read beyond trends
       },
       {
         logData: {
@@ -247,7 +244,7 @@ export class SocialMonitorService {
         [ReplyBotPlatform.INSTAGRAM]: () => this.searchInstagram(query, limit),
         [ReplyBotPlatform.TIKTOK]: () => this.searchTikTok(query, limit),
         [ReplyBotPlatform.YOUTUBE]: () => this.searchYouTube(query, limit),
-        [ReplyBotPlatform.REDDIT]: () => this.searchReddit(query, limit),
+        [ReplyBotPlatform.REDDIT]: async () => [], // no Reddit read beyond trends
       },
       {
         logData: { query, resultCount: 0 },
@@ -562,9 +559,11 @@ export class SocialMonitorService {
     postUrl: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const comments = await this.apifyService.getInstagramPostComments(postUrl, {
-      limit,
-    });
+    const comments = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getInstagramPostComments(postUrl, {
+        limit,
+      }),
+    );
     return this.convertInstagramCommentsToSocialContent(comments);
   }
 
@@ -606,9 +605,8 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.searchInstagramByHashtag(
-      `@${username}`,
-      { limit },
+    const posts = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchInstagramByHashtag(`@${username}`, { limit }),
     );
     return this.convertInstagramPostsToSocialContent(posts);
   }
@@ -617,9 +615,11 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.getInstagramUserPosts(username, {
-      limit,
-    });
+    const posts = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getInstagramUserPosts(username, {
+        limit,
+      }),
+    );
     return this.convertInstagramPostsToSocialContent(posts, username, true);
   }
 
@@ -627,9 +627,11 @@ export class SocialMonitorService {
     hashtag: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.searchInstagramByHashtag(hashtag, {
-      limit,
-    });
+    const posts = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchInstagramByHashtag(hashtag, {
+        limit,
+      }),
+    );
     return this.convertInstagramPostsToSocialContent(posts);
   }
 
@@ -660,9 +662,11 @@ export class SocialMonitorService {
     videoUrl: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const comments = await this.apifyService.getTikTokVideoComments(videoUrl, {
-      limit,
-    });
+    const comments = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getTikTokVideoComments(videoUrl, {
+        limit,
+      }),
+    );
     return this.convertTikTokCommentsToSocialContent(comments);
   }
 
@@ -702,9 +706,8 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.searchTikTokByHashtag(
-      `@${username}`,
-      { limit },
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchTikTokByHashtag(`@${username}`, { limit }),
     );
     return this.convertTikTokVideosToSocialContent(videos);
   }
@@ -713,9 +716,11 @@ export class SocialMonitorService {
     username: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.getTikTokUserVideos(username, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getTikTokUserVideos(username, {
+        limit,
+      }),
+    );
     return this.convertTikTokVideosToSocialContent(videos, username);
   }
 
@@ -723,9 +728,11 @@ export class SocialMonitorService {
     hashtag: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.searchTikTokByHashtag(hashtag, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchTikTokByHashtag(hashtag, {
+        limit,
+      }),
+    );
     return this.convertTikTokVideosToSocialContent(videos);
   }
 
@@ -753,16 +760,6 @@ export class SocialMonitorService {
   }
 
   // --- YouTube ---
-  private async getYouTubeComments(
-    videoUrl: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    const comments = await this.apifyService.getYouTubeVideoComments(videoUrl, {
-      limit,
-    });
-    return this.convertYouTubeCommentsToSocialContent(comments);
-  }
-
   /**
    * Convert YouTube videos to SocialContentData
    */
@@ -790,9 +787,11 @@ export class SocialMonitorService {
     channelUrl: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.getYouTubeChannelVideos(channelUrl, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.getYouTubeChannelVideos(channelUrl, {
+        limit,
+      }),
+    );
     return this.convertYouTubeVideosToSocialContent(videos);
   }
 
@@ -800,112 +799,11 @@ export class SocialMonitorService {
     query: string,
     limit: number,
   ): Promise<SocialContentData[]> {
-    const videos = await this.apifyService.searchYouTubeVideos(query, {
-      limit,
-    });
+    const videos = await runWithDefaultApifyCaller('reply-bot.monitor', () =>
+      this.apifyService.searchYouTubeVideos(query, {
+        limit,
+      }),
+    );
     return this.convertYouTubeVideosToSocialContent(videos);
-  }
-
-  private convertYouTubeCommentsToSocialContent(
-    comments: ApifyNormalizedYouTubeComment[],
-  ): SocialContentData[] {
-    return comments.map((comment) => ({
-      authorAvatarUrl: comment.authorAvatarUrl,
-      authorDisplayName: comment.authorDisplayName,
-      authorId: comment.authorId,
-      authorUsername: comment.authorDisplayName,
-      contentType: SocialContentType.COMMENT,
-      createdAt: comment.createdAt,
-      id: comment.id,
-      metrics: comment.metrics
-        ? {
-            comments: comment.metrics.replies,
-            likes: comment.metrics.likes,
-          }
-        : undefined,
-      parentContentId: comment.videoId,
-      platform: ReplyBotPlatform.YOUTUBE,
-      text: comment.text,
-    }));
-  }
-
-  private async getRedditComments(
-    postUrl: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    const comments = await this.apifyService.getRedditPostComments(postUrl, {
-      limit,
-    });
-    return comments.map((comment: ApifyRedditPost) => ({
-      authorId: comment.author || 'unknown',
-      authorUsername: comment.author || 'unknown',
-      contentType: SocialContentType.COMMENT,
-      contentUrl: comment.permalink
-        ? `https://www.reddit.com${comment.permalink}`
-        : undefined,
-      createdAt: comment.createdUtc
-        ? new Date(comment.createdUtc * 1000)
-        : new Date(),
-      id: comment.id,
-      metrics: {
-        comments: comment.numComments || 0,
-        likes: comment.score || 0,
-      },
-      parentContentId: postUrl,
-      platform: ReplyBotPlatform.REDDIT,
-      text: comment.title || '',
-    }));
-  }
-
-  private async getRedditMentions(
-    username: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    // Search for posts mentioning this user
-    const posts = await this.apifyService.searchRedditPosts(`u/${username}`, {
-      limit,
-    });
-    return this.convertRedditToSocialContent(posts);
-  }
-
-  private async getRedditTimeline(
-    username: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.getRedditUserPosts(username, {
-      limit,
-    });
-    return this.convertRedditToSocialContent(posts);
-  }
-
-  private async searchReddit(
-    query: string,
-    limit: number,
-  ): Promise<SocialContentData[]> {
-    const posts = await this.apifyService.searchRedditPosts(query, { limit });
-    return this.convertRedditToSocialContent(posts);
-  }
-
-  private convertRedditToSocialContent(
-    posts: ApifyRedditPost[],
-  ): SocialContentData[] {
-    return posts.map((post) => ({
-      authorId: post.author || 'unknown',
-      authorUsername: post.author || 'unknown',
-      contentType: SocialContentType.REDDIT_POST,
-      contentUrl: post.permalink
-        ? `https://www.reddit.com${post.permalink}`
-        : post.url,
-      createdAt: post.createdUtc
-        ? new Date(post.createdUtc * 1000)
-        : new Date(),
-      id: post.id,
-      metrics: {
-        comments: post.numComments || 0,
-        likes: post.score || 0,
-      },
-      platform: ReplyBotPlatform.REDDIT,
-      text: post.title || '',
-    }));
   }
 }

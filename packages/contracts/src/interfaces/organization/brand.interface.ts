@@ -137,11 +137,14 @@ export interface IPublicBrandSocial {
 }
 
 /**
- * Lifetime totals a public profile shows, summed over every connected platform
- * from the creator's post analytics. A metric no platform reports is null.
+ * Totals a public profile shows, summed over every connected platform: lifetime
+ * views, impressions and engagements from the creator's post analytics, and the
+ * audience (followers, or subscribers on YouTube) at each account's latest
+ * snapshot. A metric no platform reports is null.
  */
 export interface IPublicBrandReach {
   engagements: number | null;
+  followers: number | null;
   impressions: number | null;
   views: number | null;
 }

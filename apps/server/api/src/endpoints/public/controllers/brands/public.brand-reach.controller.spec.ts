@@ -23,8 +23,18 @@ describe('PublicBrandReachController', () => {
           useValue: {
             findForBrand: async (_brandId: string, organizationId: string) =>
               organizationId === 'org_profile'
-                ? { engagements: 12, impressions: null, views: 345 }
-                : { engagements: 0, impressions: null, views: 0 },
+                ? {
+                    engagements: 12,
+                    followers: 6789,
+                    impressions: null,
+                    views: 345,
+                  }
+                : {
+                    engagements: 0,
+                    followers: null,
+                    impressions: null,
+                    views: 0,
+                  },
           },
         },
       ],
@@ -36,7 +46,7 @@ describe('PublicBrandReachController', () => {
     findOne.mockResolvedValue({ id: BRAND_ID, organizationId: 'org_profile' });
 
     await expect(controller.findBrandReach(BRAND_ID)).resolves.toEqual({
-      data: { engagements: 12, impressions: null, views: 345 },
+      data: { engagements: 12, followers: 6789, impressions: null, views: 345 },
     });
   });
 

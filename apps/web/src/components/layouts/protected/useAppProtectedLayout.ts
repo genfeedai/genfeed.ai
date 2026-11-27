@@ -84,8 +84,7 @@ export function useAppProtectedLayout(
 ) {
   const runtime = useDesktopRuntimeContext();
   const isSubscriptionAvailable =
-    runtime.status === 'web' ||
-    (runtime.status === 'ready' && runtime.context?.runtimeMode === 'cloud');
+    runtime.status === 'web' || runtime.status === 'ready';
   const showCredits = shouldShowCreditsNav(
     getDesktopCreditsVisibility(runtime),
   );

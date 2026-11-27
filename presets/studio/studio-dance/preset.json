@@ -1,0 +1,16 @@
+{
+  "key": "studio-dance",
+  "label": "Dance",
+  "type": "video",
+  "description": "A full-body performance with room to move.",
+  "prompt": "Create a short dance performance featuring your subject.",
+  "values": {
+    "aspectRatio": "9:16",
+    "duration": 5,
+    "promptTemplate": "content.video.social",
+    "style": "energetic dance performance",
+    "scene": "full-body subject on a clear stage, rhythmic choreography",
+    "camera": "full-body wide shot",
+    "cameraMovement": "static"
+  }
+}

@@ -6,9 +6,11 @@ import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.i
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendBrandDigestService } from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
+import { TrendBrandReadService } from '@api/collections/trends/services/modules/trend-brand-read.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
+import { TrendPlaybackService } from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
@@ -176,8 +178,16 @@ describe('TrendsService', () => {
         TrendSourceItemsService,
         TrendSourcePreviewService,
         TrendVideoService,
+        {
+          provide: TrendPlaybackService,
+          useValue: {
+            getPlayback: vi.fn(),
+            removeExpiredCopies: vi.fn().mockResolvedValue(0),
+          },
+        },
         TrendBrandNicheVideoService,
         TrendBrandDigestService,
+        { provide: TrendBrandReadService, useValue: {} },
         {
           provide: TrendRefreshHealthService,
           useValue: { record: vi.fn().mockResolvedValue(undefined) },

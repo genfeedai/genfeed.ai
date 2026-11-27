@@ -211,6 +211,11 @@ export class ResearchCollectionRunner {
       scope,
       submissionAt,
     );
+    this.baseService.logRunStarted({
+      actorId,
+      runId: run.id,
+      scope,
+    });
     const recorded = await this.jobs.attachRun(job, {
       datasetId: run.defaultDatasetId,
       upstreamRunId: run.id,
@@ -305,7 +310,15 @@ export class ResearchCollectionRunner {
     }
     const reconciledAt = job.reconciledAt ?? new Date();
     const currentAccess = await this.access.decide(job.organizationId);
+    const finishedRun = {
+      actorId: job.actorId,
+      costUsd: usage,
+      runId: run.id,
+      scope: job.scope,
+      status: run.status,
+    };
     if (run.status !== 'SUCCEEDED') {
+      this.baseService.logRunFinished(finishedRun);
       const finished = await this.jobs.finish(job, {
         actualCostMicroUsd: this.toMicroUsd(usage),
         reconciledAt,
@@ -327,6 +340,7 @@ export class ResearchCollectionRunner {
       );
     }
     if (recoveryOnly || !currentAccess.isAllowed) {
+      this.baseService.logRunFinished(finishedRun);
       const finished = await this.jobs.finish(job, {
         actualCostMicroUsd: this.toMicroUsd(usage),
         reconciledAt,
@@ -344,6 +358,7 @@ export class ResearchCollectionRunner {
       );
     }
     const rows = await this.readDataset<T>(run.defaultDatasetId, token.token);
+    this.baseService.logRunFinished({ ...finishedRun, items: rows.length });
     const finished = await this.jobs.finish(job, {
       actualCostMicroUsd: this.toMicroUsd(usage),
       reconciledAt,

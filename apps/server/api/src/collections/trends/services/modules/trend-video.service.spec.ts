@@ -15,9 +15,11 @@ describe('TrendVideoService', () => {
     set: vi.fn(),
   };
 
+  const mockPlaybackService = {
+    removeExpiredCopies: vi.fn(),
+  };
+
   const mockApifyService = {
-    getInstagramVideos: vi.fn(),
-    getRedditVideos: vi.fn(),
     getTikTokSounds: vi.fn(),
     getTikTokVideos: vi.fn(),
     getTrendingHashtags: vi.fn(),
@@ -34,6 +36,8 @@ describe('TrendVideoService', () => {
   };
 
   let mockPrisma: {
+    $executeRaw: ReturnType<typeof vi.fn>;
+    trend: { findMany: ReturnType<typeof vi.fn> };
     trendingHashtag: MockTrendDelegate;
     trendingSound: MockTrendDelegate;
     trendingVideo: MockTrendDelegate;
@@ -80,12 +84,18 @@ describe('TrendVideoService', () => {
     updatedAt: new Date(),
   });
 
-  const refreshHealth = { record: vi.fn().mockResolvedValue(undefined) };
+  const refreshHealth = {
+    isScrapePaused: vi.fn().mockResolvedValue(false),
+    record: vi.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    refreshHealth.isScrapePaused.mockResolvedValue(false);
 
     mockPrisma = {
+      $executeRaw: vi.fn(),
+      trend: { findMany: vi.fn().mockResolvedValue([]) },
       trendingHashtag: {
         create: vi.fn().mockResolvedValue({ id: 'created-hashtag' }),
         findMany: vi.fn().mockResolvedValue([]),
@@ -103,6 +113,7 @@ describe('TrendVideoService', () => {
       },
     };
 
+    mockPlaybackService.removeExpiredCopies.mockResolvedValue(0);
     mockCacheService.get.mockResolvedValue(null);
     mockCacheService.set.mockResolvedValue(undefined);
     mockYoutubeService.getTrends.mockResolvedValue([]);
@@ -114,6 +125,7 @@ describe('TrendVideoService', () => {
       mockApifyService as never,
       mockYoutubeService as never,
       refreshHealth as never,
+      mockPlaybackService as never,
     );
   });
 
@@ -380,6 +392,56 @@ describe('TrendVideoService', () => {
       expect(mockLoggerService.error).not.toHaveBeenCalled();
     });
 
+    it('keeps a saved playback copy through a re-scrape and restarts its seven days', async () => {
+      const staleExpiry = Date.now() + 60_000;
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'b', title: 'B again' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([
+        {
+          ...makeVideoDoc({
+            externalId: 'b',
+            platform: 'tiktok',
+            playbackExpiresAtMs: staleExpiry,
+            playbackKey: 'assets/trend-playback/b.mp4',
+            playbackUrl: 'https://cdn.test/assets/trend-playback/b.mp4',
+          }),
+          id: 'video-b',
+        },
+      ]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 1);
+
+      const written = mockPrisma.trendingVideo.update.mock.calls[0]?.[0].data
+        .data as Record<string, unknown>;
+      expect(written.title).toBe('B again');
+      expect(written.playbackKey).toBe('assets/trend-playback/b.mp4');
+      expect(written.playbackUrl).toBe(
+        'https://cdn.test/assets/trend-playback/b.mp4',
+      );
+      expect(written.playbackExpiresAtMs as number).toBeGreaterThan(
+        Date.now() + 6.9 * 24 * 60 * 60 * 1000,
+      );
+    });
+
+    it('does not invent playback fields for a video that has no saved copy', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'b', title: 'B' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([
+        {
+          ...makeVideoDoc({ externalId: 'b', platform: 'tiktok' }),
+          id: 'video-b',
+        },
+      ]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 1);
+
+      const written = mockPrisma.trendingVideo.update.mock.calls[0]?.[0].data
+        .data as Record<string, unknown>;
+      expect(written).not.toHaveProperty('playbackUrl');
+    });
+
     it('looks up only the fetched ids on the refreshed platform', async () => {
       mockApifyService.getTikTokVideos.mockResolvedValue([
         { externalId: 'a', title: 'A' },
@@ -524,6 +586,53 @@ describe('TrendVideoService', () => {
     });
   });
 
+  describe('deriveAndCacheTwitterHashtags', () => {
+    it('stores the hashtags among the stored X trends without buying anything', async () => {
+      mockPrisma.trend.findMany.mockResolvedValue([
+        {
+          data: { growthRate: 12, mentions: 5400 },
+          topic: '#LaunchDay',
+          viralityScore: 90,
+        },
+        { data: { mentions: 10 }, topic: '#launchday', viralityScore: 40 },
+      ]);
+
+      const count = await service.deriveAndCacheTwitterHashtags(12);
+
+      expect(count).toBe(1);
+      expect(mockApifyService.getTrendingHashtags).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingHashtag.create).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({
+            growthRate: 12,
+            hashtag: 'LaunchDay',
+            platform: 'twitter',
+            postCount: 5400,
+            postCountScope: 'platform',
+            viralityScore: 90,
+          }),
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('records a successful empty refresh when no X trend is a hashtag', async () => {
+      mockPrisma.trend.findMany.mockResolvedValue([]);
+
+      await expect(service.deriveAndCacheTwitterHashtags()).resolves.toBe(0);
+
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          dataset: 'hashtags',
+          outcome: 'native_empty',
+          platform: 'twitter',
+          reason: 'native_empty',
+          lastSuccessfulRefreshAt: expect.any(String),
+        }),
+      ]);
+    });
+  });
+
   describe('fetchAndCacheSounds', () => {
     it('reads existing sounds once for the whole batch and updates the match', async () => {
       mockApifyService.getTikTokSounds.mockResolvedValue([
@@ -633,5 +742,66 @@ describe('TrendVideoService', () => {
         }),
       ]);
     }
+  });
+
+  describe('a paused paid scrape', () => {
+    beforeEach(() => {
+      refreshHealth.isScrapePaused.mockResolvedValue(true);
+    });
+
+    it('is not bought and leaves no receipt for TikTok videos, Instagram hashtags and sounds', async () => {
+      await expect(service.fetchAndCacheViralVideos('tiktok')).resolves.toBe(0);
+      await expect(service.fetchAndCacheHashtags('instagram')).resolves.toBe(0);
+      await expect(service.fetchAndCacheSounds()).resolves.toBe(0);
+
+      expect(mockApifyService.getTikTokVideos).not.toHaveBeenCalled();
+      expect(mockApifyService.getTrendingHashtags).not.toHaveBeenCalled();
+      expect(mockApifyService.getTikTokSounds).not.toHaveBeenCalled();
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'videos',
+        platform: 'tiktok',
+      });
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'hashtags',
+        platform: 'instagram',
+      });
+      expect(refreshHealth.isScrapePaused).toHaveBeenCalledWith({
+        dataset: 'sounds',
+        platform: 'tiktok',
+      });
+      for (const [, evidence] of refreshHealth.record.mock.calls)
+        expect(evidence).toEqual([]);
+    });
+
+    it('still derives X hashtags, which cost nothing', async () => {
+      await service.deriveAndCacheTwitterHashtags();
+
+      expect(refreshHealth.isScrapePaused).not.toHaveBeenCalled();
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({ dataset: 'hashtags', platform: 'twitter' }),
+      ]);
+    });
+  });
+
+  describe('markExpiredVideosAsHistorical', () => {
+    it('returns the expired count after deleting the lapsed playback copies', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(4);
+
+      await expect(service.markExpiredVideosAsHistorical()).resolves.toBe(4);
+      expect(mockPlaybackService.removeExpiredCopies).toHaveBeenCalledTimes(1);
+    });
+
+    it('still returns the expired count when the copy sweep fails', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(4);
+      mockPlaybackService.removeExpiredCopies.mockRejectedValue(
+        new Error('files service down'),
+      );
+
+      await expect(service.markExpiredVideosAsHistorical()).resolves.toBe(4);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'Expired trend playback sweep failed',
+        { error: 'files service down' },
+      );
+    });
   });
 });

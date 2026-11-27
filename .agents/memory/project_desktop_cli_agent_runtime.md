@@ -19,9 +19,8 @@ The API never reserves credits for it and stores the CLI session id in
 `local/claude-cli`, `local/codex-cli`; thread source `desktop-cli`.
 
 It runs in **cloud mode** (Genfeed Cloud or a self-hosted server picked in the
-in-app server switcher). It needs no local workspace, PGlite, or local backend,
-and it is separate from local/BYOK generation
-([project_desktop_byok_generation](project_desktop_byok_generation.md)).
+in-app server switcher). Desktop has no local mode
+([decisions-desktop-local-mode-removed](decisions-desktop-local-mode-removed.md)).
 
 **Why:** Users with Claude Code / Codex subscriptions can use them for the
 model turn while threads, brand context, and memory stay in Genfeed. MCP is the

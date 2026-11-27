@@ -411,7 +411,7 @@ When delivering a content strategy, use this structure:
 - Reels are the #1 growth lever — prioritize them over static posts
 - Carousels get the highest save rate (algorithm loves saves)
 - Stories maintain relationship with existing followers (daily is ideal)
-- Use 5-10 relevant hashtags (mix of large, medium, niche)
+- Use 3-5 relevant hashtags, never more than 5 (Instagram's limit since 2025-12-18), each naming something in the post
 - Collaborate feature (tagging for shared reach) is underutilized
 
 ### LinkedIn Strategy

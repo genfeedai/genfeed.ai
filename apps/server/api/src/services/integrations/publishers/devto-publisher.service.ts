@@ -4,6 +4,7 @@ import { toArticlePublishError } from '@api/services/integrations/publishers/art
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import {
   htmlToDevtoMarkdown,
+  readDevtoCanonicalUrl,
   readDevtoTags,
 } from '@api/services/integrations/publishers/devto-html-to-markdown.util';
 import type {
@@ -12,7 +13,16 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { verifyTitlePublish } from '@api/services/integrations/publishers/publisher-title-verification.util';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
-import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  readChannelSettingBoolean,
+  readChannelSettingString,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  DEVTO_CANONICAL_URL_SETTING_KEY,
+  DEVTO_SAVE_AS_DRAFT_SETTING_KEY,
+  DEVTO_SERIES_SETTING_KEY,
+  DEVTO_TAGS_SETTING_KEY,
+} from '@genfeedai/contracts/api-types/contracts/devto-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -59,7 +69,7 @@ export class DevtoPublisherService extends BasePublisherService {
       throw new Error('Provider verification lacks an exact title to match');
     }
     const apiKey = EncryptionUtil.decrypt(credential.accessToken);
-    const isDraft = context.isDraft === true;
+    const isDraft = this.isDraftDelivery(context);
     const found = await verifyTitlePublish(
       attemptStartedAt,
       (cursor) =>
@@ -80,10 +90,22 @@ export class DevtoPublisherService extends BasePublisherService {
     return isDraft ? { ...result, isProviderDraft: true } : result;
   }
 
+  /** A scheduler draft or a target that asks for a private Dev.to draft. */
+  private isDraftDelivery(context: PublishContext): boolean {
+    return (
+      context.isDraft === true ||
+      readChannelSettingBoolean(
+        context.settings,
+        DEVTO_SAVE_AS_DRAFT_SETTING_KEY,
+      ) === true
+    );
+  }
+
   /**
    * Publish a post to Dev.to. `post.description` is stored HTML and is
    * converted to Markdown for `body_markdown`. `post.label` is the title.
-   * A scheduler draft (`context.isDraft`) is created with `published: false`.
+   * A scheduler draft (`context.isDraft`) or a target with the `saveAsDraft`
+   * setting is created with `published: false`.
    * The credential on the context is the account the release was scheduled
    * for; it is not re-resolved from the brand.
    */
@@ -126,14 +148,34 @@ export class DevtoPublisherService extends BasePublisherService {
         );
       }
 
-      const published = context.isDraft !== true;
+      const canonical = readDevtoCanonicalUrl(
+        readChannelSettingString(
+          context.settings,
+          DEVTO_CANONICAL_URL_SETTING_KEY,
+        ),
+      );
+      if ('error' in canonical) {
+        return this.createFailedResult(
+          this.platform,
+          canonical.error,
+          undefined,
+          PublishErrorKind.CONTENT_REJECTED,
+        );
+      }
+
+      const published = !this.isDraftDelivery(context);
       const article = await this.devtoService.createArticle(
         EncryptionUtil.decrypt(credential.accessToken),
         {
           bodyMarkdown,
+          canonicalUrl: canonical.url,
           published,
+          series: readChannelSettingString(
+            context.settings,
+            DEVTO_SERIES_SETTING_KEY,
+          )?.trim(),
           tags: readDevtoTags(
-            readChannelSettingString(context.settings, 'tags'),
+            readChannelSettingString(context.settings, DEVTO_TAGS_SETTING_KEY),
           ),
           title: post.label ?? 'Untitled',
         },

@@ -11,11 +11,11 @@ import { normalizeTrendSourceClassification } from '@api/collections/trends/util
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
   ApifyInstagramPost,
-  ApifyRedditPost,
   ApifyTikTokVideo,
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
@@ -103,26 +103,27 @@ export class TrendSourceItemsService {
 
     const fetchers: Record<string, () => Promise<TrendSourceItem[]>> = {
       instagram: async () => {
-        const posts = await this.apifyService.searchInstagramByHashtag(
+        // The night's shared Instagram pull may already hold this hashtag.
+        const held = await this.apifyService.getHeldInstagramHashtagPosts(
           searchTerm,
-          { limit },
+          limit,
         );
+        const posts =
+          held.length > 0
+            ? held
+            : await runWithDefaultApifyCaller('trends.source-preview', () =>
+                this.apifyService.searchInstagramByHashtag(searchTerm, {
+                  limit,
+                }),
+              );
         return this.normalizeSourceItems(posts, (post) =>
           this.mapInstagramPostToSourceItem(post),
         );
       },
-      reddit: async () => {
-        const posts = await this.apifyService.searchRedditPosts(searchTerm, {
-          limit,
-        });
-        return this.normalizeSourceItems(posts, (post) =>
-          this.mapRedditPostToSourceItem(post),
-        );
-      },
       tiktok: async () => {
-        const videos = await this.apifyService.searchTikTokByHashtag(
-          searchTerm,
-          { limit },
+        const videos = await runWithDefaultApifyCaller(
+          'trends.source-preview',
+          () => this.apifyService.searchTikTokByHashtag(searchTerm, { limit }),
         );
         return this.normalizeSourceItems(videos, (video) =>
           this.mapTikTokVideoToSourceItem(video),
@@ -139,9 +140,13 @@ export class TrendSourceItemsService {
         );
       },
       youtube: async () => {
-        const videos = await this.apifyService.searchYouTubeVideos(searchTerm, {
-          limit,
-        });
+        const videos = await runWithDefaultApifyCaller(
+          'trends.source-preview',
+          () =>
+            this.apifyService.searchYouTubeVideos(searchTerm, {
+              limit,
+            }),
+        );
         return this.normalizeSourceItems(videos, (video) =>
           this.mapYouTubeVideoToSourceItem(video),
         );
@@ -317,7 +322,11 @@ export class TrendSourceItemsService {
         : undefined,
       sourceUrl: video.webVideoUrl,
       text: video.text,
-      thumbnailUrl: video.authorMeta?.avatar || video.musicMeta?.coverUrl,
+      thumbnailUrl:
+        video.videoMeta?.coverUrl ||
+        video.videoMeta?.originalCoverUrl ||
+        video.authorMeta?.avatar ||
+        video.musicMeta?.coverUrl,
       title: this.truncateText(video.text, 100),
     };
   }
@@ -365,36 +374,6 @@ export class TrendSourceItemsService {
       text: video.description,
       thumbnailUrl: video.thumbnailUrl,
       title: video.title,
-    };
-  }
-
-  private mapRedditPostToSourceItem(
-    post: ApifyRedditPost,
-  ): TrendSourceItem | null {
-    const sourceUrl = post.permalink
-      ? `https://reddit.com${post.permalink}`
-      : post.url;
-
-    if (!sourceUrl) {
-      return null;
-    }
-
-    return {
-      authorHandle: post.author || undefined,
-      contentType: post.isVideo ? 'video' : 'post',
-      id: post.id,
-      mediaUrl: post.url,
-      metrics: {
-        comments: post.numComments,
-        likes: post.score,
-      },
-      platform: 'reddit',
-      publishedAt: post.createdUtc
-        ? new Date(post.createdUtc * 1000).toISOString()
-        : undefined,
-      sourceUrl,
-      text: post.title,
-      title: post.title,
     };
   }
 

@@ -3,7 +3,6 @@ import type {
   ApifyInstagramPost,
   ApifyNormalizedInstagramComment,
   ApifyTrendData,
-  ApifyVideoData,
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
@@ -13,6 +12,9 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_HASH_PATTERN = /^#/;
+const TREND_POSTS_RUN_KEY = 'instagram-trend-posts';
+/** Four seeds at five posts each: the 20 posts the global trends read. */
+const TREND_POSTS_PER_SEED = 5;
 
 /**
  * ApifyInstagramService
@@ -37,6 +39,22 @@ export class ApifyInstagramService {
   ) {}
 
   /**
+   * The posts behind both the Instagram trends and the Instagram hashtags
+   * dataset: one billed run per refresh instead of one for each.
+   */
+  private pullTrendPosts(): Promise<ApifyInstagramPost[]> {
+    return this.baseService.shareRun(TREND_POSTS_RUN_KEY, () =>
+      this.baseService.runActor<ApifyInstagramPost>(
+        this.baseService.ACTORS.INSTAGRAM_HASHTAG,
+        {
+          hashtags: this.TREND_SEED_HASHTAGS,
+          resultsLimit: TREND_POSTS_PER_SEED,
+        },
+      ),
+    );
+  }
+
+  /**
    * Get Instagram trending hashtags.
    *
    * The hashtag scraper returns posts, not hashtag summaries, so the trends
@@ -45,25 +63,9 @@ export class ApifyInstagramService {
   async getInstagramTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     try {
       const requestedLimit = Math.max(1, options?.limit || 5);
-      const seedCount = this.getTrendSeedCount(requestedLimit);
-      const seedHashtags = this.TREND_SEED_HASHTAGS.slice(0, seedCount);
+      const posts = await this.pullTrendPosts();
 
-      const input = {
-        hashtags: seedHashtags,
-        // Apify treats this as a per-hashtag limit, so distribute the
-        // caller's requested total budget across the few highest-signal seeds.
-        resultsLimit: Math.max(
-          1,
-          Math.ceil(requestedLimit / seedHashtags.length),
-        ),
-      };
-
-      const rawPosts = await this.baseService.runActor<ApifyInstagramPost>(
-        this.baseService.ACTORS.INSTAGRAM_HASHTAG,
-        input,
-      );
-
-      return this.normalizeInstagramTrends(rawPosts).slice(0, requestedLimit);
+      return this.normalizeInstagramTrends(posts).slice(0, requestedLimit);
     } catch (error: unknown) {
       this.baseService.logFailure(
         `${this.constructorName}.getInstagramTrends failed`,
@@ -74,29 +76,26 @@ export class ApifyInstagramService {
   }
 
   /**
-   * Get Instagram trending posts/reels
+   * Posts for a hashtag that this refresh's shared pull already holds, so a
+   * source preview for that hashtag does not buy them again. Starts no run.
    */
-  async getInstagramVideos(limit: number = 50): Promise<ApifyVideoData[]> {
-    try {
-      const input = {
-        hashtags: ['reels', 'viral', 'trending'],
-        resultsLimit: limit,
-        resultsType: 'posts',
-      };
-
-      const rawPosts = await this.baseService.runActor<ApifyInstagramPost>(
-        this.baseService.ACTORS.INSTAGRAM_SCRAPER,
-        input,
+  async getHeldHashtagPosts(
+    hashtag: string,
+    limit: number,
+  ): Promise<ApifyInstagramPost[]> {
+    const held =
+      await this.baseService.readSharedRun<ApifyInstagramPost>(
+        TREND_POSTS_RUN_KEY,
       );
-
-      return this.normalizeInstagramVideos(rawPosts);
-    } catch (error: unknown) {
-      this.baseService.logFailure(
-        `${this.constructorName}.getInstagramVideos failed`,
-        error,
-      );
-      throw error;
-    }
+    const wanted = hashtag.replace(LEADING_HASH_PATTERN, '').toLowerCase();
+    return (held ?? [])
+      .filter((post) =>
+        (post.hashtags ?? []).some(
+          (tag) =>
+            tag.replace(LEADING_HASH_PATTERN, '').toLowerCase() === wanted,
+        ),
+      )
+      .slice(0, limit);
   }
 
   /**
@@ -315,49 +314,6 @@ export class ApifyInstagramService {
       }));
   }
 
-  private normalizeInstagramVideos(
-    posts: ApifyInstagramPost[],
-  ): ApifyVideoData[] {
-    return posts
-      .filter((post) => post.videoUrl || post.videoViewCount)
-      .map((post) => {
-        const viewCount = post.videoViewCount || 0;
-        const likeCount = post.likesCount || 0;
-        const commentCount = post.commentsCount || 0;
-        const publishedAt = post.timestamp
-          ? new Date(post.timestamp)
-          : undefined;
-
-        const metrics = this.baseService.calculateEngagementMetrics(
-          viewCount,
-          likeCount,
-          commentCount,
-          0, // Instagram doesn't expose shares
-          publishedAt,
-        );
-
-        return {
-          commentCount,
-          creatorHandle: post.ownerUsername || 'unknown',
-          description: post.caption,
-          engagementRate: metrics.engagementRate,
-          externalId: post.id,
-          hashtags: post.hashtags || [],
-          likeCount,
-          platform: 'instagram',
-          publishedAt,
-          shareCount: 0,
-          thumbnailUrl: post.imageUrl,
-          title: post.caption?.substring(0, 100),
-          velocity: metrics.velocity,
-          videoUrl: post.url || post.videoUrl,
-          playUrl: post.videoUrl,
-          viewCount,
-          viralScore: metrics.viralScore,
-        };
-      });
-  }
-
   private normalizeInstagramComments(
     comments: ApifyInstagramComment[],
   ): ApifyNormalizedInstagramComment[] {
@@ -375,17 +331,5 @@ export class ApifyInstagramService {
       postShortCode: comment.postShortCode,
       text: comment.text,
     }));
-  }
-
-  private getTrendSeedCount(limit: number): number {
-    if (limit <= 6) {
-      return 2;
-    }
-
-    if (limit <= 12) {
-      return 3;
-    }
-
-    return this.TREND_SEED_HASHTAGS.length;
   }
 }

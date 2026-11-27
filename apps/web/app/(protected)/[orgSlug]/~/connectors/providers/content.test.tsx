@@ -138,12 +138,6 @@ vi.mock('@genfeedai/config/deployment', () => ({
   isSelfHostedDeployment: () => false,
 }));
 
-vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
-  default: ({ variant }: { variant: string }) => (
-    <div>Desktop providers: {variant}</div>
-  ),
-}));
-
 vi.mock('@/components/desktop/DesktopServerSettings', () => ({
   default: () => <div>Desktop server settings</div>,
 }));
@@ -258,14 +252,14 @@ describe('SettingsIntegrationsPage', () => {
     expect(screen.getByRole('button', { name: 'Add Key' })).toBeInTheDocument();
   });
 
-  it('renders desktop local provider settings without waiting for organization readiness', () => {
+  it('renders desktop server settings without waiting for organization readiness', () => {
     mocks.desktop = true;
     mocks.isReady = false;
     mocks.organizationId = '';
 
     render(<SettingsIntegrationsPage />);
 
-    expect(screen.getByText('Desktop providers: card')).toBeInTheDocument();
+    expect(screen.getByText('Desktop server settings')).toBeInTheDocument();
     expect(mocks.getByokAllProviders).not.toHaveBeenCalled();
   });
 

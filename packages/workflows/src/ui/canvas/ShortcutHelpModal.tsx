@@ -153,7 +153,7 @@ export function ShortcutHelpModal() {
             <FormSearchbar
               ariaLabel="Search shortcuts"
               className="mb-4"
-              inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:border-foreground/50"
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search shortcuts..."
               size={ComponentSize.MD}

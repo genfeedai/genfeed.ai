@@ -73,22 +73,6 @@ export interface ApifyTrendData {
 /**
  * TikTok-specific trend data from Apify
  */
-export interface ApifyTikTokTrend {
-  name?: string;
-  type?: 'hashtag' | 'video' | 'sound' | 'creator';
-  url?: string;
-  rank?: number;
-  id?: string;
-  title?: string;
-  description?: string;
-  hashtag?: string;
-  videoCount?: number;
-  viewCount?: number;
-  coverUrl?: string;
-  createTime?: number;
-  isCommerce?: boolean;
-}
-
 export interface ApifyTikTokVideo {
   id: string;
   /**
@@ -213,52 +197,6 @@ export interface ApifyLinkedInPost {
   imageUrl?: string;
   images?: string[];
   videoUrl?: string;
-}
-
-/**
- * Reddit trend data from Apify
- */
-export interface ApifyRedditPost {
-  id: string;
-  title?: string;
-  subreddit?: string;
-  score?: number;
-  upvoteRatio?: number;
-  numComments?: number;
-  author?: string;
-  url?: string;
-  permalink?: string;
-  createdUtc?: number;
-  isVideo?: boolean;
-}
-
-/**
- * Pin record from fatihtahta/pinterest-scraper-search
- */
-export interface ApifyPinterestPin {
-  id: string;
-  url?: string;
-  title?: string;
-  pin?: {
-    title?: string;
-    description?: string;
-    repin_count?: number;
-    comment_count?: number;
-    domain?: string;
-    is_promoted?: boolean;
-  };
-  media?: {
-    images?: Partial<
-      Record<
-        'large' | 'medium' | 'original' | 'small' | 'thumb',
-        ApifyPinterestImage
-      >
-    >;
-  };
-}
-
-interface ApifyPinterestImage {
-  url?: string;
 }
 
 /**
@@ -394,41 +332,6 @@ export interface ApifyNormalizedTikTokComment {
   isVerified?: boolean;
   createdAt: Date;
   videoId: string;
-  metrics?: {
-    likes: number;
-    replies: number;
-  };
-}
-
-/**
- * Raw YouTube comment data from Apify scraper
- */
-export interface ApifyYouTubeComment {
-  id?: string;
-  commentId?: string;
-  text: string;
-  authorDisplayName?: string;
-  authorChannelId?: string;
-  authorProfileImageUrl?: string;
-  likeCount?: number;
-  replyCount?: number;
-  publishedAt?: string;
-  videoId?: string;
-  videoTitle?: string;
-}
-
-/**
- * Normalized YouTube comment for reply bot system
- */
-export interface ApifyNormalizedYouTubeComment {
-  id: string;
-  text: string;
-  authorId: string;
-  authorDisplayName: string;
-  authorAvatarUrl?: string;
-  createdAt: Date;
-  videoId: string;
-  videoTitle?: string;
   metrics?: {
     likes: number;
     replies: number;

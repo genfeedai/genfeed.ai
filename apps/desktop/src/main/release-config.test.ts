@@ -115,13 +115,9 @@ describe('desktop release config', () => {
     const copyShell = readReleaseScript('copy-app-shell.cjs');
 
     expect(Object.keys(packageJson.dependencies ?? {}).sort()).toEqual([
-      '@electric-sql/pglite',
       'node-pty',
     ]);
     expect(packageJson.devDependencies).toHaveProperty('electron-updater');
-    expect(packageJson.devDependencies).toHaveProperty(
-      '@genfeedai/desktop-prisma',
-    );
     expect(buildMain).not.toContain('--external:@prisma/client');
     expect(buildMain).not.toContain('--external:electron-updater');
     expect(buildMain).toContain('__genfeedCreateRequire(import.meta.url)');
@@ -137,24 +133,5 @@ describe('desktop release config', () => {
     expect(copyShell).toContain('pruneDisabledImageOptimizer');
     expect(copyShell).toContain("path.join(nodeModulesRoot, 'sharp')");
     expect(copyShell).toContain("path.join(nodeModulesRoot, '@img')");
-  });
-
-  it('pins PGlite to the database format used by existing desktop installs', () => {
-    const packageJson = readPackageJson();
-    const desktopPrismaPackage = JSON.parse(
-      fs.readFileSync(
-        path.resolve(desktopRoot, '../../packages/desktop-prisma/package.json'),
-        'utf8',
-      ),
-    ) as DesktopPackageJson;
-
-    // Bumping this pin is a deliberate database-format decision: move both
-    // packages and this test together, and keep the PGlite integration suite
-    // (restart persistence, pre-release discard, newer-schema preservation)
-    // green on the new version in the same PR.
-    expect(packageJson.dependencies?.['@electric-sql/pglite']).toBe('0.5.10');
-    expect(desktopPrismaPackage.dependencies?.['@electric-sql/pglite']).toBe(
-      '0.5.10',
-    );
   });
 });

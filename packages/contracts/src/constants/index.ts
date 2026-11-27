@@ -47,6 +47,7 @@ export * from './image-edit-models.constant';
 export * from './instagram.constant';
 export * from './library.constant';
 export * from './library-asset-routes.constant';
+export * from './library-element.constant';
 export * from './library-routes.constant';
 export * from './lifecycle-emails.constant';
 export * from './live-session.constant';

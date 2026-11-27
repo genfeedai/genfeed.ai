@@ -3,6 +3,7 @@ import {
   TREND_PLATFORMS_WITHOUT_NATIVE_FEED,
   TREND_REFRESH_DATASETS,
   TREND_REFRESH_WINDOW_MS,
+  TREND_SCRAPE_ACTORS,
   TrendRefreshHealthService,
 } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -38,6 +39,8 @@ export interface PendingIngestionAlert {
   /** The incident closed with no successful refresh recorded: not a recovery. */
   isClosedWithoutSuccess?: boolean;
   isRecovery: boolean;
+  /** A paid scrape paused after empty nights, not a refresh that never ran. */
+  isScrape?: boolean;
   key: string;
   sourceId: string;
   title: string;
@@ -139,63 +142,13 @@ export class TrendIngestionHealthService {
     const globalMissedDatasets = new Set<string>();
     const alerts: PendingIngestionAlert[] = [];
     for (const dataset of targets) {
-      const receipt = dataset.health.find(
-        (row) =>
-          row.scope === 'global' &&
-          row.platform === dataset.platform &&
-          row.dataset === dataset.dataset,
+      const missed = await this.reconcileGlobalDataset(
+        dataset,
+        twoWindowsAgo,
+        now,
+        alerts,
       );
-      const successAt = receipt?.lastSuccessfulRefreshAt
-        ? new Date(receipt.lastSuccessfulRefreshAt)
-        : null;
-      const sourceId = `${dataset.platform}/${dataset.dataset}`;
-      const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
-      const previousAlert = await this.prisma.notificationEvent.findFirst({
-        orderBy: { occurredAt: 'desc' },
-        select: { deduplicationKey: true, occurredAt: true },
-        where: {
-          deduplicationKey: {
-            startsWith: alertPrefix,
-            not: { endsWith: '/recovered' },
-          },
-          isDeleted: false,
-          organizationId: null,
-          sourceId,
-          sourceType: 'trend_ingestion_health',
-        },
-      });
-      if (previousAlert && successAt && successAt > previousAlert.occurredAt) {
-        const recovered = `${dataset.platform} ${dataset.dataset} completed a refresh at ${successAt.toISOString()}.`;
-        alerts.push({
-          brief: recovered,
-          description: recovered,
-          isRecovery: true,
-          key: `${previousAlert.deduplicationKey}/recovered`,
-          sourceId,
-          title: 'Trend ingestion recovered',
-        });
-      }
-      // Empty and fallback responses are successful completed refreshes. Failed
-      // or absent work cannot advance the timestamp or reset the incident.
-      const baseline =
-        successAt && successAt > dataset.enrollmentAt
-          ? successAt
-          : dataset.enrollmentAt;
-      // A completion at the exact opening boundary belongs to that window.
-      // Enrollment itself is not a successful refresh.
-      if (successAt && successAt.getTime() >= twoWindowsAgo) continue;
-      if (baseline.getTime() > twoWindowsAgo) continue;
-      globalMissedDatasets.add(`${dataset.platform}/${dataset.dataset}`);
-      const episode = baseline.toISOString();
-      const attempt = `Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}.`;
-      alerts.push({
-        brief: `${dataset.platform} ${dataset.dataset}: no successful refresh. ${attempt}`,
-        description: `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 24-hour windows. ${attempt} Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
-        isRecovery: false,
-        key: `${alertPrefix}${episode}`,
-        sourceId,
-        title: 'Trend ingestion missed two scheduled windows',
-      });
+      if (missed) globalMissedDatasets.add(missed);
     }
     await this.alertScopedPlatforms(
       scopedTargets,
@@ -204,6 +157,135 @@ export class TrendIngestionHealthService {
       alerts,
     );
     await this.postDigest(alerts, now);
+  }
+
+  /**
+   * Recovery and missed-window alerts for one global dataset. Returns the
+   * dataset id when it missed two windows, else null.
+   */
+  private async reconcileGlobalDataset(
+    dataset: {
+      dataset: string;
+      enrollmentAt: Date;
+      health: TrendRefreshHealth[];
+      platform: string;
+    },
+    twoWindowsAgo: number,
+    now: Date,
+    alerts: PendingIngestionAlert[],
+  ): Promise<string | null> {
+    const receipt = dataset.health.find(
+      (row) =>
+        row.scope === 'global' &&
+        row.platform === dataset.platform &&
+        row.dataset === dataset.dataset,
+    );
+    const successAt = receipt?.lastSuccessfulRefreshAt
+      ? new Date(receipt.lastSuccessfulRefreshAt)
+      : null;
+    const sourceId = `${dataset.platform}/${dataset.dataset}`;
+    // A paused scrape writes no receipt, so its success date ages on purpose:
+    // the scrape incident reports it, not a second "missed windows" alert.
+    const isScrapePaused = await this.reconcileScrapeIncident(
+      dataset,
+      sourceId,
+      now,
+      alerts,
+    );
+    const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
+    const previousAlert = await this.prisma.notificationEvent.findFirst({
+      orderBy: { occurredAt: 'desc' },
+      select: { deduplicationKey: true, occurredAt: true },
+      where: {
+        deduplicationKey: {
+          startsWith: alertPrefix,
+          not: { endsWith: '/recovered' },
+        },
+        isDeleted: false,
+        organizationId: null,
+        sourceId,
+        sourceType: 'trend_ingestion_health',
+      },
+    });
+    if (previousAlert && successAt && successAt > previousAlert.occurredAt) {
+      const recovered = `${dataset.platform} ${dataset.dataset} completed a refresh at ${successAt.toISOString()}.`;
+      alerts.push({
+        brief: recovered,
+        description: recovered,
+        isRecovery: true,
+        key: `${previousAlert.deduplicationKey}/recovered`,
+        sourceId,
+        title: 'Trend ingestion recovered',
+      });
+    }
+    // Empty and fallback responses are successful completed refreshes. Failed
+    // or absent work cannot advance the timestamp or reset the incident.
+    const baseline =
+      successAt && successAt > dataset.enrollmentAt
+        ? successAt
+        : dataset.enrollmentAt;
+    // A completion at the exact opening boundary belongs to that window.
+    // Enrollment itself is not a successful refresh.
+    if (successAt && successAt.getTime() >= twoWindowsAgo) return null;
+    if (baseline.getTime() > twoWindowsAgo) return null;
+    if (isScrapePaused) return null;
+    const episode = baseline.toISOString();
+    const attempt = `Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}.`;
+    alerts.push({
+      brief: `${dataset.platform} ${dataset.dataset}: no successful refresh. ${attempt}`,
+      description: `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 24-hour windows. ${attempt} Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
+      isRecovery: false,
+      key: `${alertPrefix}${episode}`,
+      sourceId,
+      title: 'Trend ingestion missed two scheduled windows',
+    });
+    return sourceId;
+  }
+
+  /**
+   * One incident per global dataset whose paid scrape came back empty on three
+   * nights in a row, or whose actor Apify no longer finds. It closes when a
+   * run returns items again. Returns whether the nightly refresh is skipping
+   * the scrape now.
+   */
+  private async reconcileScrapeIncident(
+    dataset: { dataset: string; platform: string },
+    datasetId: string,
+    now: Date,
+    alerts: PendingIngestionAlert[],
+  ): Promise<boolean> {
+    const breaker = await this.refreshHealth.getScrapeBreaker(
+      {
+        dataset: dataset.dataset as TrendRefreshHealth['dataset'],
+        platform: dataset.platform,
+      },
+      now,
+    );
+    const actor = TREND_SCRAPE_ACTORS[datasetId] ?? 'the scraper';
+    const subject = `${dataset.platform} ${dataset.dataset} (${actor})`;
+    const reason =
+      breaker.reason === 'actor_unavailable'
+        ? `Apify no longer finds the actor ${actor}.`
+        : `${actor} returned no items on ${breaker.emptyDays} nights in a row.`;
+    const description = `${subject}: ${reason} The nightly refresh skips this scrape and tries it again a week after its last run${breaker.lastRunAt ? ` (${breaker.lastRunAt})` : ''}. It closes when a run returns items.`;
+    await this.reconcileIncident({
+      alerts,
+      brief: `${subject}: ${reason}`,
+      description,
+      evaluated: [
+        {
+          baseline: now,
+          isMissed: breaker.isOpen,
+          successAt: breaker.isOpen ? null : now,
+        },
+      ],
+      isScrape: true,
+      recoveredDescription: () =>
+        `${subject} returned items again; the nightly refresh runs it again.`,
+      sourceId: `${datasetId}/scrape`,
+      title: 'Trend scrape paused',
+    });
+    return breaker.isPaused;
   }
 
   // Scoped failures aggregate into one platform incident only while that
@@ -350,8 +432,10 @@ export class TrendIngestionHealthService {
     brief: string;
     description: string;
     evaluated: { baseline: Date; isMissed: boolean; successAt: Date | null }[];
+    isScrape?: boolean;
     recoveredDescription: (latestSuccess: Date | null) => string;
     sourceId: string;
+    title?: string;
   }): Promise<void> {
     const { evaluated, sourceId } = input;
     const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
@@ -398,6 +482,7 @@ export class TrendIngestionHealthService {
           description: recovered,
           ...(latestSuccess ? {} : { isClosedWithoutSuccess: true }),
           isRecovery: true,
+          ...(input.isScrape ? { isScrape: true } : {}),
           key: `${previousAlert.deduplicationKey}/recovered`,
           sourceId,
           title: latestSuccess
@@ -420,12 +505,13 @@ export class TrendIngestionHealthService {
       brief: input.brief,
       description: input.description,
       isRecovery: false,
+      ...(input.isScrape ? { isScrape: true } : {}),
       key:
         openIncident && previousAlert
           ? previousAlert.deduplicationKey
           : `${alertPrefix}${episode}`,
       sourceId,
-      title: 'Trend ingestion missed two scheduled windows',
+      title: input.title ?? 'Trend ingestion missed two scheduled windows',
     });
   }
 
@@ -523,6 +609,8 @@ export class TrendIngestionHealthService {
       };
     }
     const missed = alerts.filter((alert) => !alert.isRecovery);
+    const stalled = missed.filter((alert) => !alert.isScrape);
+    const paused = missed.filter((alert) => alert.isScrape);
     const recovered = alerts.filter(
       (alert) => alert.isRecovery && !alert.isClosedWithoutSuccess,
     );
@@ -549,8 +637,9 @@ export class TrendIngestionHealthService {
     return {
       color: missed.length > 0 ? COLOR_MISSED : COLOR_RECOVERED,
       description: [
-        section('Missed two scheduled windows', missed),
-        missed.length > 0 ? DIGEST_ADVICE : null,
+        section('Missed two scheduled windows', stalled),
+        stalled.length > 0 ? DIGEST_ADVICE : null,
+        section('Paid scrape paused', paused),
         section('Recovered', recovered),
         section('Closed without a successful refresh', closed),
       ]
@@ -559,11 +648,13 @@ export class TrendIngestionHealthService {
       title:
         counts.length > 1
           ? `Trend ingestion: ${counts.join(', ')}`
-          : missed.length > 0
-            ? `Trend ingestion: ${missed.length} missed two scheduled windows`
-            : recovered.length > 0
-              ? `Trend ingestion: ${recovered.length} recovered`
-              : `Trend ingestion: ${closed.length} closed without a successful refresh`,
+          : paused.length > 0 && stalled.length === 0
+            ? `Trend ingestion: ${paused.length} paid scrape paused`
+            : missed.length > 0
+              ? `Trend ingestion: ${missed.length} missed two scheduled windows`
+              : recovered.length > 0
+                ? `Trend ingestion: ${recovered.length} recovered`
+                : `Trend ingestion: ${closed.length} closed without a successful refresh`,
     };
   }
 }

@@ -78,12 +78,19 @@ vi.mock('@ui/primitives/tooltip', () => ({
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
+const apps = vi.hoisted(() => ({ hasAppsBeyondDashboard: true }));
+
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => apps.hasAppsBeyondDashboard,
+}));
+
 import RailAccount from './RailAccount';
 
 describe('RailAccount', () => {
   beforeEach(() => {
     orgScope.brandSlug = '';
     orgScope.orgSlug = 'acme';
+    apps.hasAppsBeyondDashboard = true;
     route.pathname = '/acme/~/workspace/overview';
     auth.isSignedIn = true;
     auth.user = {
@@ -105,6 +112,32 @@ describe('RailAccount', () => {
     ).toHaveTextContent('V');
     expect(screen.queryByText('Vincent Tellier')).not.toBeInTheDocument();
     expect(screen.queryByText('vincent@genfeed.ai')).not.toBeInTheDocument();
+  });
+
+  it('opens the Apps page from the rail and marks it current there', () => {
+    const { rerender } = render(<RailAccount />);
+
+    const link = screen.getByRole('link', { name: 'Apps' });
+    expect(link).toHaveAttribute('href', '/acme/~/apps');
+    expect(link).not.toHaveAttribute('aria-current');
+
+    route.pathname = '/acme/~/apps';
+    rerender(<RailAccount />);
+
+    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('has no Apps link while the organization has nothing beyond the dashboard', () => {
+    apps.hasAppsBeyondDashboard = false;
+
+    render(<RailAccount />);
+
+    expect(
+      screen.queryByRole('link', { name: 'Apps' }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens Connectors from the rail and marks it current on every section', () => {

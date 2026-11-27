@@ -24,7 +24,7 @@ function readinessScript(file) {
 
 /**
  * A `docker` stand-in for `docker compose ... exec -T genfeed redis-cli
- * ZSCORE bull:system-sweeps:repeat <scheduler>`: prints a score only for the
+ * ZSCORE bull:<queue>:repeat <scheduler>`: prints a score only for the
  * schedulers listed in REGISTERED, and an empty line (redis-cli's nil) for
  * the rest.
  */

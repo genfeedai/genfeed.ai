@@ -4,6 +4,7 @@ import type {
   ICredentialOAuth,
   IFacebookLiveVideo,
   IFacebookPageCandidate,
+  IGoogleAdsAccount,
   IGoogleBusinessLocation,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
@@ -219,6 +220,36 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
         this.extractCollection<Partial<ICredential>>(res.data).map(
           (item) => new Credential(item),
         ),
+      );
+  }
+
+  /** The Google Ads accounts a pending connection can still choose. */
+  public async getGoogleAdsAccounts(
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<IGoogleAdsAccount[]> {
+    return await this.instance
+      .get<{ accounts: IGoogleAdsAccount[] }>(`${credentialId}/accounts`, {
+        signal,
+      })
+      .then((res) => res.data.accounts);
+  }
+
+  /**
+   * Settle a pending Google Ads connection onto the chosen account. The server
+   * re-reads the id against the credential's own token.
+   */
+  public async postSelectGoogleAdsAccount(
+    credentialId: string,
+    customerId: string,
+  ): Promise<Credential> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`${credentialId}/select-account`, {
+        customerId,
+      })
+      .then(
+        (res) =>
+          new Credential(this.extractResource<Partial<ICredential>>(res.data)),
       );
   }
 }

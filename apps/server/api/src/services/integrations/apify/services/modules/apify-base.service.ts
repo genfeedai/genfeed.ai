@@ -16,7 +16,10 @@ import {
   isApifyActorDeferral,
   isApifyStartAccepted,
 } from '@api/services/integrations/apify/utils/apify-actor-availability.util';
-import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
+import {
+  currentApifyCaller,
+  UNATTRIBUTED_APIFY_CALLER,
+} from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
   ApifyAccountSuspendedException,
   describeApifyError,
@@ -24,7 +27,6 @@ import {
 } from '@api/services/integrations/apify/utils/apify-error.util';
 import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-scoring.util';
 import { ByokProvider } from '@genfeedai/contracts';
-import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,6 +45,34 @@ const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 type ApifyActorRegistration = {
   capability: string;
   mode: 'fallback_only' | 'temporarily_apify_primary';
+};
+
+/**
+ * Apify Actor IDs for different platforms.
+ * These are community or official actors from the Apify Store.
+ */
+export const APIFY_ACTOR_IDS = {
+  INSTAGRAM_COMMENT_SCRAPER: 'apify/instagram-comment-scraper',
+
+  // Instagram scrapers
+  INSTAGRAM_HASHTAG: 'apify/instagram-hashtag-scraper',
+  INSTAGRAM_POST_SCRAPER: 'apify/instagram-post-scraper',
+  INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
+
+  // LinkedIn scrapers
+  LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
+
+  // TikTok scrapers
+  TIKTOK_COMMENT_SCRAPER: 'clockworks/tiktok-comments-scraper',
+  TIKTOK_SCRAPER: 'clockworks/tiktok-scraper',
+  TIKTOK_USER_SCRAPER: 'clockworks/tiktok-profile-scraper',
+
+  // Twitter/X scrapers
+  TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
+  YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
+
+  // YouTube scrapers
+  YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
 };
 
 /**
@@ -75,10 +105,6 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'x.public-trend-discovery',
     mode: 'fallback_only',
   },
-  'bernardo/youtube-comment-scraper': {
-    capability: 'youtube.comments',
-    mode: 'fallback_only',
-  },
   'lexis-solutions/tiktok-ads-scraper': {
     capability: 'tiktok.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
@@ -95,17 +121,9 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'tiktok.public-and-scoped-social-read',
     mode: 'temporarily_apify_primary',
   },
-  'clockworks/tiktok-trends-scraper': {
-    capability: 'tiktok.public-trend-discovery',
-    mode: 'temporarily_apify_primary',
-  },
   'curious_coder/linkedin-profile-scraper': {
     capability: 'linkedin.public-creator-ingestion',
     mode: 'temporarily_apify_primary',
-  },
-  'fatihtahta/pinterest-scraper-search': {
-    capability: 'pinterest.public-and-scoped-discovery',
-    mode: 'fallback_only',
   },
   'lexis-solutions/google-ads-scraper': {
     capability: 'google.paid-creative-discovery',
@@ -117,14 +135,6 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
   },
   'streamers/youtube-scraper': {
     capability: 'youtube.video-discovery',
-    mode: 'fallback_only',
-  },
-  'trudax/reddit-comments-scraper': {
-    capability: 'reddit.comments',
-    mode: 'fallback_only',
-  },
-  'trudax/reddit-scraper': {
-    capability: 'reddit.social-read',
     mode: 'fallback_only',
   },
 };
@@ -154,6 +164,16 @@ export class ApifyBaseService {
 
   private static readonly HOSTED_SCOPE = 'hosted';
 
+  /**
+   * One billed pull feeds every dataset built from the same source. A refresh
+   * runs at 00:15 and 12:15, so six hours keeps each tick on its own pull.
+   */
+  private static readonly SHARED_RUN_CACHE_PREFIX = 'apify:shared-run:';
+  private static readonly SHARED_RUN_TTL_SECONDS = 6 * 60 * 60;
+  private static readonly SHARED_EMPTY_RUN_TTL_SECONDS = 60 * 60;
+
+  private readonly sharedRuns = new Map<string, Promise<unknown[]>>();
+
   private readonly apiUrl = 'https://api.apify.com/v2';
   private readonly constructorName: string = String(this.constructor.name);
   private readonly actorPathPattern = ACTOR_PATH_PATTERN;
@@ -169,43 +189,8 @@ export class ApifyBaseService {
     ApifyAccountLimitSuspension
   >();
 
-  /**
-   * Apify Actor IDs for different platforms
-   * These are community or official actors from the Apify Store
-   */
-  readonly ACTORS = {
-    INSTAGRAM_COMMENT_SCRAPER: 'apify/instagram-comment-scraper',
-
-    // Instagram scrapers
-    INSTAGRAM_HASHTAG: 'apify/instagram-hashtag-scraper',
-    INSTAGRAM_POST_SCRAPER: 'apify/instagram-post-scraper',
-    INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
-
-    // LinkedIn scrapers
-    LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
-
-    // Pinterest scrapers
-    PINTEREST_SCRAPER: 'fatihtahta/pinterest-scraper-search',
-    REDDIT_COMMENT_SCRAPER: 'trudax/reddit-comments-scraper',
-
-    // Reddit scrapers
-    REDDIT_SCRAPER: 'trudax/reddit-scraper',
-
-    // TikTok scrapers
-    TIKTOK_COMMENT_SCRAPER: 'clockworks/tiktok-comments-scraper',
-    TIKTOK_SCRAPER: 'clockworks/tiktok-scraper',
-    // TikTok scrapers
-    TIKTOK_TRENDS: 'clockworks/tiktok-trends-scraper',
-    TIKTOK_USER_SCRAPER: 'clockworks/tiktok-profile-scraper',
-
-    // Twitter/X scrapers
-    TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
-    YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
-    YOUTUBE_COMMENT_SCRAPER: 'bernardo/youtube-comment-scraper',
-
-    // YouTube scrapers
-    YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
-  };
+  /** The Apify actor ids, shared with the trend health incidents that name them. */
+  readonly ACTORS = APIFY_ACTOR_IDS;
 
   constructor(
     private readonly configService: ConfigService,
@@ -230,6 +215,47 @@ export class ApifyBaseService {
       return null;
     }
     return token;
+  }
+
+  /**
+   * Run one scrape and let every caller in the same refresh reuse its items.
+   * Concurrent callers join the run in flight; later ones read the cached
+   * items. A scrape that throws is not cached, so the caller's failure
+   * handling and the account-limit breaker still see the error.
+   */
+  async shareRun<T>(key: string, scrape: () => Promise<T[]>): Promise<T[]> {
+    const held = await this.readSharedRun<T>(key);
+    if (held) return held;
+
+    const inFlight = this.sharedRuns.get(key) as Promise<T[]> | undefined;
+    if (inFlight) return inFlight;
+
+    const run = (async () => {
+      const items = await scrape();
+      await this.cacheService?.set(
+        `${ApifyBaseService.SHARED_RUN_CACHE_PREFIX}${key}`,
+        items,
+        {
+          tags: ['trends', 'apify-shared-run'],
+          ttl: items.length
+            ? ApifyBaseService.SHARED_RUN_TTL_SECONDS
+            : ApifyBaseService.SHARED_EMPTY_RUN_TTL_SECONDS,
+        },
+      );
+      return items;
+    })().finally(() => this.sharedRuns.delete(key));
+    this.sharedRuns.set(key, run);
+    return run;
+  }
+
+  /** The items a shared run already holds, or null. Never starts a run. */
+  async readSharedRun<T>(key: string): Promise<T[] | null> {
+    if (!this.cacheService) return null;
+    return (
+      (await this.cacheService.get<T[]>(
+        `${ApifyBaseService.SHARED_RUN_CACHE_PREFIX}${key}`,
+      )) ?? null
+    );
   }
 
   /**
@@ -286,31 +312,45 @@ export class ApifyBaseService {
   }
 
   /**
-   * Run an Apify actor for a specific organization.
-   * Resolves BYOK key first, falls back to global token.
-   * Returns empty array if no token is available from either source.
+   * The one line every started Apify run leaves, whichever path started it
+   * (this class or the paid research runner). The run id is the key into the
+   * Apify console's usage and cost view; the caller says who asked. A run from
+   * an entry point that never named itself is logged as a warning.
    */
-  async runActorForOrg<T>(
-    orgId: string,
-    actorId: string,
-    input: object,
-  ): Promise<{ data: T[]; source: ByokResolutionResult['source'] }> {
-    const resolved = await this.resolveCollectionToken(orgId, 'prefer-byok');
-    if (!resolved) {
-      return { data: [], source: 'hosted' };
+  logRunStarted(run: { actorId: string; runId: string; scope: string }): void {
+    const caller = currentApifyCaller();
+    const message = `${this.constructorName} started Apify run ${run.runId}`;
+    const fields = { ...run, caller };
+    if (caller === UNATTRIBUTED_APIFY_CALLER) {
+      this.loggerService.warn(message, fields);
+    } else {
+      this.loggerService.log(message, fields);
     }
-    const { source, token } = resolved;
+  }
 
-    const data = await this.executeActor<T>({
-      actorId,
-      failureLabel: `${this.constructorName}.runActorForOrg failed for ${actorId} (org: ${orgId}, source: ${source})`,
-      input,
-      scope:
-        source === 'byok' ? `byok:${orgId}` : ApifyBaseService.HOSTED_SCOPE,
-      token,
-    });
-
-    return { data, source };
+  /**
+   * The line a run leaves when it ends: its item count and cost, so a week of
+   * spend per caller can be read from the logs. A run that ends with nothing
+   * is a warning, because Apify reports it as succeeded.
+   */
+  logRunFinished(run: {
+    actorId: string;
+    costUsd?: number;
+    /** Unknown when the run ended without its dataset being read. */
+    items?: number;
+    runId: string;
+    scope: string;
+    status: string;
+  }): void {
+    const message = `${this.constructorName} Apify run ${run.runId} finished with status ${run.status}${run.items === undefined ? '' : ` and ${run.items} items`}`;
+    const fields = { ...run, caller: currentApifyCaller() };
+    if (run.items === 0 && run.status === 'SUCCEEDED') {
+      this.loggerService.warn(
+        `${this.constructorName} Apify run ${run.runId} returned zero items`,
+        fields,
+      );
+    }
+    this.loggerService.log(message, fields);
   }
 
   /**
@@ -343,7 +383,11 @@ export class ApifyBaseService {
     const capability = registration?.capability ?? 'an unregistered actor';
     const holdUntil = this.actorAvailability.getHoldUntil(scope, actorId);
     if (holdUntil !== null) {
-      throw new ApifyActorUnavailableException(capability, holdUntil);
+      throw new ApifyActorUnavailableException(
+        capability,
+        holdUntil,
+        this.actorAvailability.isNotFound(scope, actorId),
+      );
     }
 
     const url = this.buildActorRunUrl(actorId);
@@ -380,11 +424,7 @@ export class ApifyBaseService {
 
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;
-      // The run id is the key into the Apify console's usage and cost view.
-      this.loggerService.log(
-        `${this.constructorName} started Apify run ${runId}`,
-        { actorId, caller, runId, scope },
-      );
+      this.logRunStarted({ actorId, runId, scope });
 
       const completedRun = await this.waitForRun(runId, token);
       if (completedRun.status !== 'SUCCEEDED') {
@@ -401,7 +441,16 @@ export class ApifyBaseService {
         }),
       );
 
-      return datasetResponse.data;
+      const items = datasetResponse.data;
+      this.logRunFinished({
+        actorId,
+        costUsd: completedRun.usageTotalUsd,
+        items: items.length,
+        runId,
+        scope,
+        status: completedRun.status,
+      });
+      return items;
     } catch (error: unknown) {
       if (error instanceof ApifyActorUnavailableException) {
         throw error;
@@ -416,6 +465,7 @@ export class ApifyBaseService {
           actorId,
           Date.now(),
           APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS,
+          false,
         );
         this.loggerService.warn(
           `${this.constructorName} Apify run for the ${capability} actor did not finish in ${error.maxWaitMs}ms; aborted, not retrying until ${new Date(until).toISOString()}`,

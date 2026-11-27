@@ -1,7 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { TrendPlaybackService } from '@api/collections/trends/services/modules/trend-playback.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -18,6 +20,10 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
   Query,
   UseInterceptors,
 } from '@nestjs/common';
@@ -28,7 +34,10 @@ import { ApiOperation } from '@nestjs/swagger';
 @Controller('trends')
 @UseInterceptors(CreditsInterceptor)
 export class TrendsAnalyticsController {
-  constructor(private readonly trendsService: TrendsService) {}
+  constructor(
+    private readonly trendsService: TrendsService,
+    private readonly trendPlaybackService: TrendPlaybackService,
+  ) {}
 
   @TenantReadPolicy('selected')
   @Get('videos')
@@ -75,6 +84,21 @@ export class TrendsAnalyticsController {
       },
       videos,
     };
+  }
+
+  @Post('videos/:id/playback')
+  @ApiKeyReadAccess()
+  @HttpCode(HttpStatus.OK)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'TrendsController.getVideoPlayback',
+    summary: 'getVideoPlayback',
+  })
+  getVideoPlayback(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.trendPlaybackService.getPlayback(id, user);
   }
 
   @Get('leaderboard')
@@ -206,6 +230,8 @@ export class TrendsAnalyticsController {
         'Select an authorized brand before reading its trends.',
       );
     }
+    if (query.relevance !== 'market')
+      void this.trendsService.noteBrandRead(readScope.organizationId, brandId);
     return { organizationId: readScope.organizationId, brandId };
   }
 

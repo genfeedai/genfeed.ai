@@ -44,6 +44,7 @@ import {
   ApiKeyScope,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -224,6 +225,7 @@ export class VideosUpscaleController {
           model,
           organizationId: user.organizationId,
           parentId: videoId,
+          relationKind: IngredientRelationKind.TRANSFORMATION,
           providerData: {
             actionVerb: 'upscale',
             dispatchMode: 'native',

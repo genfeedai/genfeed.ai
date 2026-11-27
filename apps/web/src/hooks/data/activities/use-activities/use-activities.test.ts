@@ -235,6 +235,156 @@ describe('useActivities', () => {
     });
   });
 
+  describe('a post folded from several activities', () => {
+    const postRow = {
+      createdAt: today.toISOString(),
+      id: 'post-row',
+      isRead: false,
+      key: 'post.lifecycle.transition',
+      postGroup: {
+        eventIds: ['event-3', 'event-2', 'event-1'],
+        postId: 'post-1',
+        status: 'published',
+        steps: [],
+      },
+      value: '',
+    } as unknown as IActivity;
+
+    function serveRows(rows: IActivity[]) {
+      const page = paginatedResponse(rows, { totalDocs: 1, totalPages: 1 });
+      mockGetActivitiesService.mockResolvedValue({
+        bulkPatch: mockBulkPatch,
+        findAllPage: vi.fn().mockResolvedValue(page),
+        patch: mockPatch,
+      });
+      mockGetBrandsService.mockResolvedValue({
+        findBrandActivities: vi.fn().mockResolvedValue(page),
+      });
+      mockGetOrganizationsService.mockResolvedValue({
+        findOrganizationActivities: vi.fn().mockResolvedValue(page),
+      });
+    }
+
+    it('marks every activity behind the row as read', async () => {
+      serveRows([postRow]);
+      const { result } = renderHook(() => useActivities(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.markActivitiesAsRead(['post-row']);
+      });
+
+      expect(mockBulkPatch).toHaveBeenCalledWith({
+        ids: ['event-3', 'event-2', 'event-1'],
+        isRead: true,
+        type: 'activity-bulk-patch',
+      });
+    });
+
+    it('toggles every activity behind the row together', async () => {
+      serveRows([{ ...postRow, isRead: true } as IActivity]);
+      const { result } = renderHook(() => useActivities(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.toggleActivityRead('post-row');
+      });
+
+      expect(mockBulkPatch).toHaveBeenCalledWith({
+        ids: ['event-3', 'event-2', 'event-1'],
+        isRead: false,
+        type: 'activity-bulk-patch',
+      });
+      expect(mockPatch).not.toHaveBeenCalled();
+    });
+
+    it('toggles a row of more than a hundred activities in API-sized chunks', async () => {
+      const eventIds = Array.from(
+        { length: 150 },
+        (_, index) => `event-${index}`,
+      );
+      serveRows([
+        {
+          ...postRow,
+          postGroup: { ...postRow.postGroup, eventIds },
+        } as IActivity,
+      ]);
+      const { result } = renderHook(() => useActivities(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.toggleActivityRead('post-row');
+      });
+
+      expect(mockBulkPatch.mock.calls.map(([body]) => body.ids.length)).toEqual(
+        [100, 50],
+      );
+    });
+
+    it('refreshes the list when a later chunk fails after an earlier one saved', async () => {
+      const eventIds = Array.from(
+        { length: 150 },
+        (_, index) => `event-${index}`,
+      );
+      const page = paginatedResponse(
+        [{ ...postRow, postGroup: { ...postRow.postGroup, eventIds } }],
+        { totalDocs: 1, totalPages: 1 },
+      );
+      const findAllPage = vi.fn().mockResolvedValue(page);
+      const findBrandActivities = vi.fn().mockResolvedValue(page);
+      const findOrganizationActivities = vi.fn().mockResolvedValue(page);
+      mockGetActivitiesService.mockResolvedValue({
+        bulkPatch: mockBulkPatch,
+        findAllPage,
+        patch: mockPatch,
+      });
+      mockGetBrandsService.mockResolvedValue({ findBrandActivities });
+      mockGetOrganizationsService.mockResolvedValue({
+        findOrganizationActivities,
+      });
+      // The real helper reports a failure and resolves; the shared mock rethrows.
+      mockWithSilentOperation.mockImplementation(
+        async ({ operation }: { operation: () => Promise<unknown> }) => {
+          await operation().catch(() => undefined);
+        },
+      );
+      mockBulkPatch
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(new Error('second chunk failed'));
+      const { result } = renderHook(() => useActivities(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      const loads = () =>
+        findAllPage.mock.calls.length +
+        findBrandActivities.mock.calls.length +
+        findOrganizationActivities.mock.calls.length;
+      const loadsBefore = loads();
+
+      await act(async () => {
+        await result.current.toggleActivityRead('post-row');
+      });
+
+      await waitFor(() => {
+        expect(loads()).toBeGreaterThan(loadsBefore);
+      });
+    });
+  });
+
   it('toggles activity read status', async () => {
     const { result } = renderHook(() => useActivities(), {
       wrapper: createQueryWrapper(),

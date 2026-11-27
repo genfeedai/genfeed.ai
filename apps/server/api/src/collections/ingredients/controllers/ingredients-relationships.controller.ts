@@ -1,12 +1,19 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientLineageQueryDto } from '@api/collections/ingredients/dto/ingredient-lineage-query.dto';
+import { SetActiveIngredientVersionDto } from '@api/collections/ingredients/dto/set-active-ingredient-version.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
+import {
+  type IngredientVersionHistoryResult,
+  IngredientVersionsService,
+  type IngredientVersionViewer,
+} from '@api/collections/ingredients/services/ingredient-versions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -14,6 +21,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
+import { API_KEY_MEDIA_WRITE_SCOPES } from '@api/helpers/utils/auth/api-key-route-scope-sets.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -35,7 +43,16 @@ import {
   PostSerializer,
 } from '@genfeedai/serializers';
 import { getTenantContext } from '@libs/prisma/tenant-context';
-import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
 
@@ -49,6 +66,7 @@ export class IngredientsRelationshipsController {
   constructor(
     private readonly ingredientsService: IngredientsService,
     private readonly lineageService: IngredientLineageService,
+    private readonly versionsService: IngredientVersionsService,
     private readonly stackService: IngredientStackService,
     private readonly moduleRef: ModuleRef,
   ) {}
@@ -210,6 +228,78 @@ export class IngredientsRelationshipsController {
       user,
       resolveTenantReadScope(user),
     );
+  }
+
+  /**
+   * The ordered versions of this asset and which one is active. Visibility
+   * follows the Library like the lineage routes: the selected brand decides
+   * which assets can be asked for, and a `USER` asset (the asked-for one or a
+   * linked version) is shown to its owner only. An asset the member cannot see
+   * is a 404.
+   */
+  @TenantReadPolicy('selected')
+  @Get(':ingredientId/versions')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findVersions(
+    @Req() request: Request,
+    @Param('ingredientId') ingredientId: string,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    const history = await this.versionsService.findHistory(
+      ingredientId,
+      this.versionViewer(user, resolveTenantReadScope(user)),
+    );
+    return this.serializeVersions(request, history);
+  }
+
+  /**
+   * Makes one version of the history the active one. Nothing is deleted:
+   * newer versions stay in the history and can be made active again.
+   *
+   * `AssetAccessGuard` has already decided who may change this asset, so the
+   * lookup is not narrowed to the token's brand: the member may be viewing a
+   * brand other than the one in the token, and still owns the asset.
+   */
+  @Patch(':ingredientId/versions/active')
+  @RequiredScopes(...API_KEY_MEDIA_WRITE_SCOPES)
+  @UseGuards(AssetAccessGuard)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async setActiveVersion(
+    @Req() request: Request,
+    @Param('ingredientId') ingredientId: string,
+    @Body() body: SetActiveIngredientVersionDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    const history = await this.versionsService.setActive(
+      ingredientId,
+      body.versionId,
+      this.versionViewer(user, {
+        brandId: undefined,
+        organizationId: user.organizationId,
+      }),
+    );
+    return this.serializeVersions(request, history);
+  }
+
+  private versionViewer(
+    user: User,
+    scope: Pick<ITenantReadScope, 'brandId' | 'organizationId'>,
+  ): IngredientVersionViewer {
+    return {
+      brandId: scope.brandId,
+      organizationId: scope.organizationId,
+      userIds: [user.userId, user.id].filter((id): id is string => Boolean(id)),
+    };
+  }
+
+  private serializeVersions(
+    request: Request,
+    { docs, ...history }: IngredientVersionHistoryResult,
+  ): JsonApiCollectionResponse {
+    return {
+      ...serializeCollection(request, IngredientSerializer, { docs }),
+      meta: history,
+    };
   }
 
   private async findLineage(

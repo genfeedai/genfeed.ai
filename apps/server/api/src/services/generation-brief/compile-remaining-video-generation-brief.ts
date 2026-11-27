@@ -365,7 +365,8 @@ export function compileRemainingVideoGenerationBrief(
   }
   if (spec.videoReferenceField && videoReferenceAssetIds.length > 0) {
     dispatchPayload[spec.videoReferenceField] =
-      spec.videoReferenceField === 'reference_video'
+      spec.videoReferenceField === 'reference_video' ||
+      spec.videoReferenceField === 'video'
         ? videoReferenceAssetIds[0]
         : videoReferenceAssetIds;
   }

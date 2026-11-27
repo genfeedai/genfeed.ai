@@ -1,0 +1,13 @@
+{
+  "key": "studio-youtube-thumbnail",
+  "label": "YouTube thumbnail",
+  "type": "image",
+  "description": "A bold focal point that reads at small sizes.",
+  "prompt": "Create a YouTube thumbnail for your video topic.",
+  "values": {
+    "aspectRatio": "16:9",
+    "promptTemplate": "content.image.social-illustration",
+    "style": "high-contrast YouTube thumbnail",
+    "scene": "one expressive focal subject, clear background and room for a short headline"
+  }
+}

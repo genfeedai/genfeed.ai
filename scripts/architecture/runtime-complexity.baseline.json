@@ -192,12 +192,6 @@
     "symbol": "ApifySocialProvider.collectTimeline"
   },
   {
-    "actual": 172,
-    "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
-    "metric": "method-lines",
-    "symbol": "DesktopSyncService.pushAssets"
-  },
-  {
     "actual": 1016,
     "file": "apps/server/discord/src/services/discord-bot-manager.service.ts",
     "metric": "file-lines",

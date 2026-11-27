@@ -168,11 +168,7 @@ export function useMessagesActions({
         const idempotencyCacheKey = `${selectedId}:${action}:${draftRevisionRef.current}`;
         const idempotencyKey =
           pendingIdempotencyKeysRef.current.get(idempotencyCacheKey) ??
-          createMessagesIdempotencyKey(
-            selectedId,
-            action,
-            draftRevisionRef.current,
-          );
+          createMessagesIdempotencyKey(selectedId, action);
         pendingIdempotencyKeysRef.current.set(
           idempotencyCacheKey,
           idempotencyKey,

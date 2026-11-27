@@ -10,6 +10,10 @@ interface PublicBrandReachRow {
   views: bigint | number | null;
 }
 
+interface PublicBrandFollowersRow {
+  followers: bigint | number | null;
+}
+
 /**
  * Each post and platform keeps one cumulative snapshot per day, so the
  * lifetime total is the latest snapshot of every post and platform, summed.
@@ -42,6 +46,36 @@ function publicBrandReachSql(options: {
   `;
 }
 
+/**
+ * Each connected account keeps one audience snapshot per day, so the audience
+ * is the latest snapshot of every account that still has a count, summed. YouTube
+ * reports subscribers where the other networks report followers. An account that
+ * was disconnected, deleted or moved to another brand, or a snapshot that was deleted, is left out, and
+ * a brand with no count at all answers NULL, never 0.
+ */
+function publicBrandFollowersSql(options: {
+  brandId: string;
+  organizationId: string;
+}): Prisma.Sql {
+  return Prisma.sql`
+    SELECT SUM(latest."audience") AS followers
+    FROM (
+      SELECT DISTINCT ON (s."credentialId")
+        COALESCE(s."followers", s."subscribers") AS audience
+      FROM "account_analytics_snapshots" s
+      JOIN "credentials" c ON c."id" = s."credentialId"
+        AND c."isDeleted" = false
+        AND c."isConnected" = true
+        AND c."brandId" = s."brandId"
+      WHERE s."brandId" = ${options.brandId}
+        AND s."organizationId" = ${options.organizationId}
+        AND s."isDeleted" = false
+        AND COALESCE(s."followers", s."subscribers") IS NOT NULL
+      ORDER BY s."credentialId", s."date" DESC
+    ) latest
+  `;
+}
+
 function toCount(value: bigint | number | null | undefined): number | null {
   return value === null || value === undefined ? null : Number(value);
 }
@@ -49,9 +83,11 @@ function toCount(value: bigint | number | null | undefined): number | null {
 /** The aggregate row as the public contract: plain numbers, null when absent. */
 function toPublicBrandReach(
   row: PublicBrandReachRow | undefined,
+  followersRow: PublicBrandFollowersRow | undefined,
 ): IPublicBrandReach {
   return {
     engagements: toCount(row?.engagements),
+    followers: toCount(followersRow?.followers),
     impressions: toCount(row?.impressions),
     views: toCount(row?.views),
   };
@@ -72,9 +108,15 @@ export class BrandReachService {
     organizationId: string,
   ): Promise<IPublicBrandReach> {
     // sql-risk-audit: ignore raw-sql-review -- Filtered by brandId and organizationId on the (brandId, date) index; one brand's snapshots only, and the public route caches the answer for 30 minutes. Verified against PostgreSQL in public-brand-reach.postgres.spec.ts.
-    const rows = await this.prisma.$queryRaw<PublicBrandReachRow[]>(
-      publicBrandReachSql({ brandId, organizationId }),
-    );
-    return toPublicBrandReach(rows[0]);
+    const [rows, followersRows] = await Promise.all([
+      this.prisma.$queryRaw<PublicBrandReachRow[]>(
+        publicBrandReachSql({ brandId, organizationId }),
+      ),
+      // sql-risk-audit: ignore raw-sql-review -- Same brandId and organizationId filter, on the (brandId, isDeleted, date) index of account_analytics_snapshots; one row per connected account.
+      this.prisma.$queryRaw<PublicBrandFollowersRow[]>(
+        publicBrandFollowersSql({ brandId, organizationId }),
+      ),
+    ]);
+    return toPublicBrandReach(rows[0], followersRows[0]);
   }
 }

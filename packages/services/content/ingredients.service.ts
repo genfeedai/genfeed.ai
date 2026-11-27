@@ -16,6 +16,7 @@ import type {
   IIngredientGenerationCost,
   IIngredientLineagePage,
   IIngredientMetadataPatch,
+  IIngredientVersionHistory,
   IPaginatedResponse,
   IPost,
   MediaDeliveryGrant,
@@ -579,6 +580,57 @@ export class IngredientsService<
       pageSize: pagination?.limit ?? items.length,
       total: pagination?.total ?? items.length,
       totalPages,
+    };
+  }
+
+  /**
+   * The ordered versions of an asset and which one is active (#7397). `items`
+   * are the assets in history order; `versions` says what created each.
+   */
+  public async findVersions(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IIngredientVersionHistory> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `${encodeURIComponent(id)}/versions`,
+      { signal },
+    );
+    return this.toVersionHistory(id, response.data);
+  }
+
+  /** Makes one version active. Newer versions stay in the history. */
+  public async setActiveVersion(
+    id: string,
+    versionId: string,
+  ): Promise<IIngredientVersionHistory> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `${encodeURIComponent(id)}/versions/active`,
+      { versionId },
+    );
+    return this.toVersionHistory(id, response.data);
+  }
+
+  private async toVersionHistory(
+    ingredientId: string,
+    document: JsonApiResponseDocument,
+  ): Promise<IIngredientVersionHistory> {
+    const items = await this.mapMany(document);
+    const meta = (document.meta ?? {}) as Partial<
+      Omit<IIngredientVersionHistory, 'ingredientId' | 'items'>
+    >;
+    const versions = meta.versions ?? [];
+    const byId = new Map(items.map((item) => [item.id, item]));
+
+    return {
+      activeVersionId: meta.activeVersionId ?? ingredientId,
+      ingredientId,
+      isLineageAvailable: meta.isLineageAvailable ?? true,
+      items: versions.flatMap(({ id }) => {
+        const item = byId.get(id);
+        return item ? [item] : [];
+      }),
+      rootId: meta.rootId ?? ingredientId,
+      versions,
     };
   }
 

@@ -42,6 +42,8 @@ export interface DiscoveryDeskItem {
   text?: string;
   thumbnailUrl?: string;
   mediaUrl?: string;
+  /** A saved copy of a TikTok or Instagram clip, once a paid user has played it. */
+  playbackUrl?: string;
   sourceUrl?: string;
   contentType: 'image' | 'post' | 'tweet' | 'video';
   publishedAt?: string;
@@ -81,6 +83,7 @@ export interface DeskLightCardProps {
   isSelected: boolean;
   item: DiscoveryDeskItem;
   onCursor: (key: string) => void;
+  onOpenVideo: (item: DiscoveryDeskItem) => void;
   onSelectFinding?: (item: DiscoveryDeskItem) => void;
   onToggleSelect: (key: string) => void;
 }

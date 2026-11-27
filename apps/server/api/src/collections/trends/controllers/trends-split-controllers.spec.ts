@@ -30,7 +30,9 @@ describe('Trends split controllers', () => {
       return responses[method] ?? [];
     };
 
+  const noteBrandRead = vi.fn();
   const trendsService = {
+    noteBrandRead,
     getBrandTrendingHashtags: read('getBrandTrendingHashtags'),
     getBrandTrendingSounds: read('getBrandTrendingSounds'),
     getBrandViralVideos: read('getBrandViralVideos'),
@@ -41,11 +43,13 @@ describe('Trends split controllers', () => {
   };
   const analyticsController = new TrendsAnalyticsController(
     trendsService as unknown as TrendsService,
+    {} as never,
   );
 
   beforeEach(() => {
     reads = [];
     responses = {};
+    noteBrandRead.mockClear();
   });
 
   it.each([
@@ -119,6 +123,10 @@ describe('Trends split controllers', () => {
         { limit: 12, platform: undefined, timeframe: Timeframe.H24 },
       ],
     ]);
+    expect(noteBrandRead).toHaveBeenCalledExactlyOnceWith(
+      'org-1',
+      'brand-active',
+    );
     expect(result.summary).toEqual({
       avgViralScore: 41,
       platforms: ['tiktok', 'youtube'],
@@ -134,6 +142,7 @@ describe('Trends split controllers', () => {
       ),
     ).rejects.toThrow('Select an authorized brand');
     expect(reads).toEqual([]);
+    expect(noteBrandRead).not.toHaveBeenCalled();
   });
 
   it('scopes hashtags and sounds to the selected authorized brand by default', async () => {
@@ -182,5 +191,6 @@ describe('Trends split controllers', () => {
       ['getTrendingHashtags', market],
       ['getTrendingSounds', market],
     ]);
+    expect(noteBrandRead).not.toHaveBeenCalled();
   });
 });

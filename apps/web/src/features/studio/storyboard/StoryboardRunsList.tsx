@@ -4,8 +4,8 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SearchField from '@ui/content/search-field/SearchField';
+import { CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME } from '@ui/layout/agent-output-layout/agent-pane.constant';
 import Container from '@ui/layout/container/Container';
-import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
@@ -92,16 +92,10 @@ export default function StoryboardRunsList(): ReactElement {
   }
 
   const isEmpty = !isLoading && runs.length === 0 && !error;
-  useCreativeProjectsPresence(
-    runs.length > 0
-      ? 'populated'
-      : isEmpty && !isSearching
-        ? 'empty'
-        : 'unknown',
-  );
 
   return (
     <Container
+      bodyClassName={CREATIVE_PROJECTS_LIST_BODY_CLASS_NAME}
       label={translate('title')}
       leading={
         <SearchField
@@ -125,6 +119,7 @@ export default function StoryboardRunsList(): ReactElement {
         {isEmpty && !isSearching ? (
           <CreativeProjectsEmptyState
             description={translate('emptyDescription')}
+            hasPreview
             icon={Clapperboard}
             title={translate('emptyTitle')}
           />

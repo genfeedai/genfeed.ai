@@ -21,9 +21,15 @@ Upgrade note).
   bundle, and the GitHub release. `v1.0.0` marks Launch.
 - **Independent surfaces.** `desktop-v*`, `mobile-v*`, and
   `extension-browser-v*` version independently, as do the published npm
-  packages (`@genfeedai/cli`, `@genfeedai/create`) — each has its own
-  `package.json` version bumped in a normal PR. Matching numbers across
-  surfaces are a convenience, not a requirement.
+  packages (`@genfeedai/cli`, `@genfeedai/create`, and the shared design layer
+  `styles`, `ui`, `helpers`, `contracts`) — each has its own `package.json`
+  version bumped in the normal PR that changes what the package ships. Static
+  Checks fails a pull request that changes a published package's source while
+  its version is already on npm (`node scripts/npm-release-plan.mjs --check-bumps`,
+  also in `bun run preflight`), and names the package. A package version that is
+  bumped but not yet published already covers later changes, so only the first
+  pull request after a publish moves it. Matching numbers across surfaces are a
+  convenience, not a requirement.
 - **`0.x` semantics.** Before `v1.0.0`, minor releases may contain breaking
   changes for self-hosters. Every such release carries an **Upgrade note**
   section at the top of the release body that names the breaking change, the
@@ -358,6 +364,13 @@ previously fell months behind `master`.
 
 npm failure blocks the release: the GitHub release stays a draft, so a red npm
 lane is visible instead of silent.
+
+npm can hold a published version in a staging area until a maintainer approves
+it with 2FA (npmjs.com, Staged Packages tab, or `npm stage approve <id>`). The
+workflow cannot give 2FA, so a staged package is not live: the lane stages every
+package in the plan, then fails naming each one that is not live. Approve them,
+then dispatch the same workflow again; a version that is live is checked against
+the plan's tarball digest and skipped, and the run goes green.
 
 ### The public surface is two packages
 

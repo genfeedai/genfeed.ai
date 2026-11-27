@@ -24,7 +24,6 @@ const TSCONFIG_PACKAGE_DEPENDENTS = [
   'apps/web',
   'apps/marketing',
   'packages/agent',
-  'packages/desktop-prisma',
   'packages/fonts',
   'packages/hooks',
   'packages/models',

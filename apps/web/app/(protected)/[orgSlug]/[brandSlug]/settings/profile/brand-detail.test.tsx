@@ -399,6 +399,19 @@ describe('BrandDetail', () => {
     expect(screen.queryByText('Accounts 1 page')).toBeNull();
   });
 
+  it('puts the chosen tab in the URL without navigating', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/settings/profile?tab=articles&page=2',
+    );
+    render(<BrandDetail />);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+
+    expect(window.location.search).toBe('?tab=settings');
+  });
+
   it('shows Articles for the old Overview link', () => {
     mocks.searchParams = new URLSearchParams('tab=overview');
     render(<BrandDetail />);

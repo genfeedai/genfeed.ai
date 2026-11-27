@@ -4,6 +4,7 @@ import type { WorkflowNode } from '@genfeedai/contracts/types';
 import type { NodeTypes } from '@xyflow/react';
 import type { ReactNode } from 'react';
 import { WorkflowCanvas } from '../canvas/WorkflowCanvas';
+import GeometryEditorHost from '../controls/GeometryEditorHost';
 import { BottomBar } from '../toolbar/BottomBar';
 import { SmallGraphViewportGuard } from './SmallGraphViewportGuard';
 import { WorkflowMissingInputDialog } from './WorkflowMissingInputDialog';
@@ -47,6 +48,7 @@ export function WorkflowEditorShell({
       </div>
 
       <WorkflowMissingInputDialog />
+      <GeometryEditorHost />
       {modalContent}
     </>
   );

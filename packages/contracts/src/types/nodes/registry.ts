@@ -1,3 +1,4 @@
+import { MODEL_KEYS } from '../../constants/model-keys.constant';
 import type { NodeCategory, NodeType } from './base';
 import type { HandleDefinition, VisualHandleDefinition } from './handles';
 import type { WorkflowNodeData } from './union';
@@ -257,6 +258,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       keepOriginalSound: true,
       label: 'Motion Control',
       mode: 'video_transfer',
+      model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_MOTION_CONTROL,
       motionStrength: 50,
       negativePrompt: '',
       outputVideo: null,

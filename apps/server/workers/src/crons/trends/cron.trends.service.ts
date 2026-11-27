@@ -115,9 +115,12 @@ export class CronTrendsService implements OnModuleInit {
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_GLOBAL,
       () =>
-        runWithApifyCaller('trends.fetch-global', async () => ({
-          count: (await this.trendsService.fetchAndCacheTrends()).length,
-        })),
+        runWithApifyCaller('trends.fetch-global', async () => {
+          const trends = await this.trendsService.fetchAndCacheTrends();
+          // X hashtags come from the X trends just stored; nothing is bought.
+          await this.trendsService.deriveAndCacheTwitterHashtags();
+          return { count: trends.length };
+        }),
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_DATASET,
@@ -240,6 +243,23 @@ export class CronTrendsService implements OnModuleInit {
       }
     }
 
+    // The search is billed per run, so only a brand that read its trends in the
+    // last seven days keeps it. The first read of any other brand starts one
+    // search (TrendsService.noteBrandRead), so an idle brand costs nothing.
+    const unreadNicheBrands = (
+      await Promise.all(
+        [...nicheBrands.values()].map(async (task) =>
+          (await this.trendsService.hasBrandReadRecently(
+            task.organizationId,
+            task.brandId,
+          ))
+            ? null
+            : task.brandId,
+        ),
+      )
+    ).filter((brandId): brandId is string => brandId !== null);
+    for (const brandId of unreadNicheBrands) nicheBrands.delete(brandId);
+
     // A platform missing from this line was never scheduled; compare it with
     // the connected scopes the missed-window check counts for that platform.
     const scheduledByPlatform: Record<string, number> = {};
@@ -253,6 +273,7 @@ export class CronTrendsService implements OnModuleInit {
     this.loggerService.log('Discovered scoped trend refresh tasks', {
       context: this.context,
       nicheVideoBrands: nicheBrands.size,
+      nicheVideoBrandsSkippedUnread: unreadNicheBrands.length,
       scheduledByPlatform,
     });
 

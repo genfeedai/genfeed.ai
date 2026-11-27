@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "3.1177.0",
+    "@aws-sdk/client-cloudwatch": "3.1178.0",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/api": "workspace:*",
     "@genfeedai/config": "workspace:*",
@@ -11,10 +11,10 @@
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/axios": "12.0.2",
     "@nestjs/bullmq": "12.0.2",
-    "@nestjs/common": "12.6.2",
-    "@nestjs/core": "12.6.2",
+    "@nestjs/common": "12.6.3",
+    "@nestjs/core": "12.6.3",
     "@nestjs/event-emitter": "12.0.3",
-    "@sentry/nestjs": "11.17.0",
+    "@sentry/nestjs": "11.19.0",
     "bullmq": "6.7.10",
     "express": "5.3.0",
     "ioredis": "6.1.0",
@@ -26,7 +26,7 @@
   },
   "description": "Genfeed background jobs and recurring platform schedules",
   "devDependencies": {
-    "@nestjs/testing": "12.6.2",
+    "@nestjs/testing": "12.6.3",
     "@prisma/adapter-pg": "7.10.1",
     "@types/multer": "2.3.0",
     "@types/pg": "8.23.1",

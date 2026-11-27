@@ -60,8 +60,8 @@ const CONTRACTS: PageContextContract[] = [
     currentApp: 'editor',
     hasSecondaryNav: false,
     sectionLabel: 'Editor',
-    // With no project yet the New pane has the page to itself (#9160), so
-    // the canvas shows the prompt hero, not a projects list.
+    // With no project yet the New pane is still the left column, so the
+    // canvas shows the prompt hero.
     canvasHeading: 'What are we editing?',
     canvasHeadingLevel: 2,
     breadcrumbLabels: ['Editor'],

@@ -13,12 +13,14 @@ import { CreditTransfersService } from '@api/collections/credits/services/credit
 import { NewsletterRecipientAccessService } from '@api/collections/newsletter-sends/services/newsletter-recipient-access.service';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditTransactionCategory,
+  MemberRole,
 } from '@genfeedai/contracts';
 import type { NewsletterAccessLevel } from '@genfeedai/contracts/constants';
 import {
@@ -86,6 +88,8 @@ describe.skipIf(!connectionString)(
     let handle: string;
     let subscriptions: CreatorSubscriptionsService;
     let guardedPrisma: PrismaService;
+    let memberRoleId: string;
+    const extraUserIds: string[] = [];
 
     function workspace(role: string): Workspace {
       return {
@@ -149,6 +153,25 @@ describe.skipIf(!connectionString)(
         where: { isDeleted: false, organizationId: owner.organizationId },
       });
 
+    /** Another member of the reader's workspace, who pays from its shared credits. */
+    async function addReaderMember(firstName: string): Promise<string> {
+      const db = database();
+      const userId = `sub-member-${firstName.toLowerCase()}-${suffix}`;
+      extraUserIds.push(userId);
+      await db.user.create({ data: { firstName, handle: userId, id: userId } });
+      await db.member.create({
+        data: {
+          currentBrandId: reader.brandId,
+          isActive: true,
+          organizationId: reader.organizationId,
+          roleId: memberRoleId,
+          roleKey: MemberRole.USER,
+          userId,
+        },
+      });
+      return userId;
+    }
+
     /** Runs as the signed-in reader's request does: inside its tenant context. */
     const asReader = <T>(work: () => Promise<T>) =>
       runWithTenantContext({ organizationId: reader.organizationId }, work);
@@ -158,6 +181,12 @@ describe.skipIf(!connectionString)(
       suffix = randomUUID();
       reader = workspace('reader');
       creator = workspace('creator');
+      extraUserIds.length = 0;
+      memberRoleId = (
+        await database().role.create({
+          data: { key: `sub-member-role-${suffix}`, label: 'Member' },
+        })
+      ).id;
       handle = `sub-creator-${suffix}`;
       const prisma = database().$extends(
         createTenantGuardExtension({
@@ -215,6 +244,7 @@ describe.skipIf(!connectionString)(
       await db.creditTransaction.deleteMany({ where: scoped });
       await db.creditBalance.deleteMany({ where: scoped });
       await db.brandSubscriber.deleteMany({ where: scoped });
+      await db.member.deleteMany({ where: scoped });
       await db.brand.deleteMany({ where: scoped });
       await db.organization.deleteMany({
         where: { id: { in: organizationIds } },
@@ -224,8 +254,11 @@ describe.skipIf(!connectionString)(
           id: { in: [reader.billingAccountId, creator.billingAccountId] },
         },
       });
+      await db.role.deleteMany({ where: { id: memberRoleId } });
       await db.user.deleteMany({
-        where: { id: { in: [reader.userId, creator.userId] } },
+        where: {
+          id: { in: [reader.userId, creator.userId, ...extraUserIds] },
+        },
       });
     });
 
@@ -434,6 +467,152 @@ describe.skipIf(!connectionString)(
       );
       expect(await hasAccess()).toBe(false);
       expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
+    });
+
+    it('lets the workspace list and end a subscription another member opened', async () => {
+      await offerPlan(40);
+      const start = new Date('2026-11-09T10:00:00.000Z');
+      const benId = await addReaderMember('Ben');
+      const ben = { organizationId: reader.organizationId, userId: benId };
+      const own = await asReader(() =>
+        subscriptions.subscribe(readerContext(), { handle }, start),
+      );
+      const bens = await asReader(() =>
+        subscriptions.subscribe(ben, { handle }, start),
+      );
+
+      const outgoing = await asReader(() =>
+        subscriptions.listOutgoing(reader.organizationId),
+      );
+      expect(outgoing).toHaveLength(2);
+      expect(outgoing.find((row) => row.id === bens.id)).toMatchObject({
+        cancelAtPeriodEnd: false,
+        creatorHandle: handle,
+        creatorLabel: `Brand ${creator.brandId}`,
+        currentPeriodEnd: '2026-12-09T10:00:00.000Z',
+        priceCredits: 40,
+        readerId: benId,
+        readerName: 'Ben',
+      });
+      expect(outgoing.find((row) => row.id === own.id)?.readerName).toBe('Ada');
+      // The creator's workspace does not pay for these subscriptions.
+      expect(await subscriptions.listOutgoing(creator.organizationId)).toEqual(
+        [],
+      );
+
+      const cancelled = await asReader(() =>
+        subscriptions.setOutgoingCancelAtPeriodEnd(
+          reader.organizationId,
+          bens.id,
+          true,
+        ),
+      );
+      expect(cancelled).toMatchObject({
+        cancelAtPeriodEnd: true,
+        readerName: 'Ben',
+      });
+      expect(
+        await subscriptions.hasActivePaidSubscription(
+          creator.organizationId,
+          creator.brandId,
+          benId,
+        ),
+      ).toBe(true);
+
+      // Ben's ends at the period boundary without a charge; Ada's renews.
+      expect(await renewAt(new Date('2026-12-09T10:05:00.000Z'))).toMatchObject(
+        { charged: 1, ended: 1 },
+      );
+      expect(await wallet(reader)).toEqual({ balance: 80, earnedBalance: 0 });
+      expect(
+        await subscriptions.hasActivePaidSubscription(
+          creator.organizationId,
+          creator.brandId,
+          benId,
+        ),
+      ).toBe(false);
+    });
+
+    it('lets the workspace keep a subscription it cancelled', async () => {
+      await offerPlan(40);
+      const bens = await asReader(async () =>
+        subscriptions.subscribe(
+          {
+            organizationId: reader.organizationId,
+            userId: await addReaderMember('Ben'),
+          },
+          { handle },
+          new Date('2026-11-09T10:00:00.000Z'),
+        ),
+      );
+      await asReader(() =>
+        subscriptions.setOutgoingCancelAtPeriodEnd(
+          reader.organizationId,
+          bens.id,
+          true,
+        ),
+      );
+
+      const kept = await asReader(() =>
+        subscriptions.setOutgoingCancelAtPeriodEnd(
+          reader.organizationId,
+          bens.id,
+          false,
+        ),
+      );
+
+      expect(kept.cancelAtPeriodEnd).toBe(false);
+      expect(await renewAt(new Date('2026-12-09T10:05:00.000Z'))).toMatchObject(
+        { charged: 1, ended: 0 },
+      );
+    });
+
+    it('refuses to end a subscription another workspace pays for', async () => {
+      await offerPlan(40);
+      const subscribed = await asReader(() =>
+        subscriptions.subscribe(
+          readerContext(),
+          { handle },
+          new Date('2026-11-09T10:00:00.000Z'),
+        ),
+      );
+
+      await expect(
+        asCreator(() =>
+          subscriptions.setOutgoingCancelAtPeriodEnd(
+            creator.organizationId,
+            subscribed.id,
+            true,
+          ),
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect((await subscriptionRow()).status).toBe(
+        CreatorSubscriptionStatus.ACTIVE,
+      );
+      expect(
+        (await asReader(() => subscriptions.listMine(readerContext())))[0]
+          ?.cancelAtPeriodEnd,
+      ).toBe(false);
+    });
+
+    it('leaves a former member out of the workspace list', async () => {
+      await offerPlan(40);
+      const benId = await addReaderMember('Ben');
+      await asReader(() =>
+        subscriptions.subscribe(
+          { organizationId: reader.organizationId, userId: benId },
+          { handle },
+          new Date('2026-11-09T10:00:00.000Z'),
+        ),
+      );
+      await database().member.updateMany({
+        data: { isActive: false },
+        where: { organizationId: reader.organizationId, userId: benId },
+      });
+
+      expect(
+        await asReader(() => subscriptions.listOutgoing(reader.organizationId)),
+      ).toEqual([]);
     });
 
     it('marks a reader who cannot pay as past due, then ends it after the grace period', async () => {

@@ -284,7 +284,7 @@ test.describe('Admin Overview Activities', () => {
     // No column sorts, so no header carries a button or sort arrow.
     await expect(headers.getByRole('button')).toHaveCount(0);
 
-    await expect(table.getByText('06:08:26')).toBeVisible();
+    await expect(table.getByText('06:08')).toBeVisible();
     await expect(table.getByText(/· UTC$/)).toHaveCount(2);
 
     await expect(table.getByText('Acme Studio')).toBeVisible();

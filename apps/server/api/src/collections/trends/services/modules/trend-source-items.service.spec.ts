@@ -6,8 +6,8 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { Test, TestingModule } from '@nestjs/testing';
 
 type ApifyMock = {
+  getHeldInstagramHashtagPosts: ReturnType<typeof vi.fn>;
   searchInstagramByHashtag: ReturnType<typeof vi.fn>;
-  searchRedditPosts: ReturnType<typeof vi.fn>;
   searchTikTokByHashtag: ReturnType<typeof vi.fn>;
   searchYouTubeVideos: ReturnType<typeof vi.fn>;
 };
@@ -36,8 +36,8 @@ describe('TrendSourceItemsService', () => {
 
   beforeEach(async () => {
     apify = {
+      getHeldInstagramHashtagPosts: vi.fn().mockResolvedValue([]),
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
-      searchRedditPosts: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
@@ -83,6 +83,25 @@ describe('TrendSourceItemsService', () => {
       const result = await service.fetchTrendSourceItems(trend, 5);
 
       expect(result).toEqual([stored]);
+      expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
+    });
+
+    it('reuses the posts the shared Instagram pull already holds instead of buying them again', async () => {
+      apify.getHeldInstagramHashtagPosts.mockResolvedValue([
+        { caption: 'held', id: 'ig-held', shortCode: 'held1' },
+      ]);
+
+      const result = await service.fetchTrendSourceItems(
+        makeTrend({ metadata: { hashtags: ['#viral'] } }),
+        5,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: 'ig-held' });
+      expect(apify.getHeldInstagramHashtagPosts).toHaveBeenCalledWith(
+        'viral',
+        5,
+      );
       expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
     });
 
@@ -255,13 +274,13 @@ describe('TrendSourceItemsService', () => {
       await service.fetchTrendSourceItems(
         makeTrend({
           metadata: {},
-          platform: 'reddit',
+          platform: 'youtube',
           topic: 'creator stacks',
         }),
         5,
       );
 
-      expect(apify.searchRedditPosts).toHaveBeenCalledWith('creator stacks', {
+      expect(apify.searchYouTubeVideos).toHaveBeenCalledWith('creator stacks', {
         limit: 5,
       });
     });
@@ -291,6 +310,24 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
+    it('shows a TikTok video by its cover, not its author avatar', async () => {
+      apify.searchTikTokByHashtag.mockResolvedValue([
+        {
+          authorMeta: { avatar: 'https://cdn.test/avatar.jpg', name: 'tk' },
+          id: 'tk-1',
+          videoMeta: { coverUrl: 'https://cdn.test/cover.jpg' },
+          webVideoUrl: 'https://tiktok.com/v/1',
+        },
+      ]);
+
+      const result = await service.fetchTrendSourceItems(
+        makeTrend({ platform: 'tiktok' }),
+        5,
+      );
+
+      expect(result[0]?.thumbnailUrl).toBe('https://cdn.test/cover.jpg');
+    });
+
     it('dispatches YouTube and drops videos without a url', async () => {
       apify.searchYouTubeVideos.mockResolvedValue([
         {
@@ -316,31 +353,13 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
-    it('maps Reddit posts via permalink and drops urless posts', async () => {
-      apify.searchRedditPosts.mockResolvedValue([
-        {
-          author: 'redditor',
-          id: 'rd-1',
-          isVideo: false,
-          numComments: 3,
-          permalink: '/r/x/abc',
-          score: 12,
-          title: 'A thread',
-        },
-        { id: 'rd-2', title: 'no url' }, // no permalink/url -> null -> filtered
-      ]);
-
+    it('returns no live source items for Reddit, which has no scraper behind it', async () => {
       const result = await service.fetchTrendSourceItems(
         makeTrend({ platform: 'reddit' }),
         5,
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        contentType: 'post',
-        platform: 'reddit',
-        sourceUrl: 'https://reddit.com/r/x/abc',
-      });
+      expect(result).toEqual([]);
     });
   });
 

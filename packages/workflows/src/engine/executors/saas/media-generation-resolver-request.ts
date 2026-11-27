@@ -74,3 +74,26 @@ export function buildVideoGenerationResolverRequest(
     width: config.width ?? 1920,
   });
 }
+
+/**
+ * Motion control moves a character image with the motion of one reference
+ * video. Only the fields the provider honors are read, so an authored duration
+ * or aspect ratio never reaches preparation as if it were applied.
+ */
+export function buildMotionControlResolverRequest(
+  node: ExecutableNode,
+  inputs: ReadonlyMap<string, unknown>,
+): MediaGenerationResolverRequest {
+  const config = node.config;
+  const image = inputs.get('image') ?? config.image ?? undefined;
+  const video = inputs.get('video') ?? config.video ?? undefined;
+  return request(config, {
+    brandId: config.brandId ?? undefined,
+    characterOrientation: config.characterOrientation ?? undefined,
+    keepOriginalSound: config.keepOriginalSound ?? undefined,
+    prompt: inputs.get('prompt') ?? config.prompt ?? '',
+    qualityMode: config.qualityMode ?? undefined,
+    references: image ? [image] : undefined,
+    videoReferences: video ? [video] : undefined,
+  });
+}

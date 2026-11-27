@@ -20,7 +20,6 @@ export interface SkillRegistryEntry {
   category: string;
   checksum?: string;
   fileSize?: number;
-  price?: number;
 }
 
 interface CdnSkillRegistry {

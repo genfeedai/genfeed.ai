@@ -364,10 +364,9 @@ describe('OrgRootAppSurface', () => {
 
       render(element);
 
+      expect(screen.getByText('Select a brand')).toBeInTheDocument();
       expect(
-        screen.getByRole('heading', {
-          name: 'Select a brand to use Automation',
-        }),
+        screen.getByText('Pick one in the top bar to continue.'),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('link', { name: 'Manage brands' }),

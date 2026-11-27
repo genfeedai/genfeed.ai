@@ -258,7 +258,6 @@
     }
   },
   "desktopAuth": {
-    "localModeHint": "Local mode keeps its database and workspace files on this Mac. It starts only when you choose it.",
     "pasteCodeHint": "Source checkouts cannot open automatically. Copy the code from that tab and paste it here."
   },
   "oauth": {
@@ -311,6 +310,22 @@
         "partial": "Connected {connected} of {selected} accounts. Not connected: {missing}. Run connect again to add them.",
         "retry": "Try again",
         "title": "Choose accounts"
+      },
+      "selectAdsAccount": {
+        "alreadyConnected": "Already connected",
+        "back": "Go back",
+        "cancel": "Cancel",
+        "confirm": "Connect account",
+        "confirmError": "Failed to connect this account. Please try again.",
+        "confirming": "Connecting…",
+        "description": "Google shared more than one Google Ads account with Genfeed. Pick the account this brand should read campaigns from. Manager accounts group other accounts and have no campaigns of their own, so their client accounts are listed instead.",
+        "empty": "No Google Ads accounts were found for this Google login.",
+        "error": "Failed to load accounts. Please try again.",
+        "loading": "Loading accounts…",
+        "managerBadge": "Manager",
+        "ownAccounts": "Your accounts",
+        "retry": "Try again",
+        "title": "Choose an ads account"
       },
       "selectLocation": {
         "alreadyConnected": "Already connected",
@@ -557,8 +572,6 @@
     },
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
-    "loadingBrand": "Loading the selected brand…",
-    "selectBrand": "Select a brand to continue.",
     "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
@@ -601,6 +614,12 @@
       "selectionRequired": "Select at least one agent for a blank Program.",
       "title": "Start from a template"
     }
+  },
+  "brandRequired": {
+    "description": "Pick one in the top bar to continue.",
+    "loading": "Loading the selected brand…",
+    "manageBrands": "Manage brands",
+    "title": "Select a brand"
   },
   "selectionActions": {
     "count": "{count} selected",
@@ -1521,6 +1540,14 @@
     "resolve": "Resolve",
     "resolved": "Resolved",
     "search": "Search threads",
+    "selection": {
+      "bulkFailed": "{count, plural, one {# thread could not be updated and stays selected.} other {# threads could not be updated and stay selected.}}",
+      "clear": "Clear",
+      "count": "{count, plural, one {# selected} other {# selected}}",
+      "select": "Select {title}",
+      "selectGroup": "Select all in {group}",
+      "toolbar": "Selected threads"
+    },
     "share": {
       "accessBadge": "{owner} · {level}",
       "accessFor": "Access for {name}",
@@ -1600,72 +1627,6 @@
     "noSelection": "Select a record on the page to include it in the conversation."
   },
   "desktop": {
-    "generationCost": {
-      "local": "Local generation · no Genfeed credits",
-      "remote": "Your provider · no Genfeed credits. Provider fees may apply",
-      "unknown": "Provider cost unavailable",
-      "missing": "Choose a local provider"
-    },
-    "local": {
-      "description": "PGlite and local generation run only while local mode is selected. Genfeed Cloud, Redis, and a system PostgreSQL install are not required.",
-      "errors": {
-        "actionFailed": "The local workspace could not complete that action.",
-        "desktopOnly": "Local workspaces are available only in Genfeed Desktop.",
-        "retry": "Retry local mode",
-        "revealLogs": "Reveal logs",
-        "title": "Local mode needs attention"
-      },
-      "loading": "Starting local workspace…",
-      "generation": {
-        "description": "Uses the provider configured on this device.",
-        "generate": "Generate",
-        "promptLabel": "Local generation prompt",
-        "promptPlaceholder": "Draft a launch post for…",
-        "title": "Generate locally",
-        "working": "Working…"
-      },
-      "title": "Your work stays on this Mac",
-      "useCloud": "Use Genfeed Cloud",
-      "workspace": {
-        "chooseFolder": "Choose folder",
-        "description": "Choose a folder for drafts, assets, and generated content.",
-        "openAnother": "Open another",
-        "title": "Local workspace"
-      }
-    },
-    "provider": {
-      "actions": {
-        "save": "Save",
-        "saving": "Saving…",
-        "test": "Test",
-        "testing": "Testing…"
-      },
-      "description": "Genfeed server credits are the default when connected. Configure a local OpenAI-compatible provider only for offline or bring-your-own-key generation.",
-      "errors": {
-        "loadFailed": "Failed to load local provider.",
-        "saveFailed": "Failed to save provider.",
-        "startFailed": "Local mode could not start.",
-        "testFailed": "Provider test failed."
-      },
-      "fields": {
-        "apiKey": "Local provider API key",
-        "apiKeyOptional": "Optional local API key",
-        "apiKeySaved": "API key saved",
-        "baseUrl": "Local provider base URL",
-        "model": "Local provider model"
-      },
-      "inactive": {
-        "action": "Use Local Workspace",
-        "description": "PGlite and local provider settings start only after you switch to a local workspace.",
-        "title": "Local generation is off"
-      },
-      "status": {
-        "connected": "Connected in {latency}ms.",
-        "starting": "Starting local workspace…",
-        "using": "Using {provider}."
-      },
-      "title": "Local generation"
-    },
     "server": {
       "actions": {
         "current": "Current server",
@@ -1818,8 +1779,6 @@
       "description": "Activate a marketplace agent in one click, or describe a custom agent in chat.",
       "emptySearch": "No agents match this search.",
       "featured": "Featured",
-      "loadingBrand": "Loading the selected brand…",
-      "selectBrand": "Select a brand to continue.",
       "moreAgents": "More agents",
       "search": "Search agents",
       "title": "Add agent",
@@ -1977,11 +1936,6 @@
         "workflows": "Workflows"
       }
     },
-    "brandEmpty": {
-      "action": "Manage brands",
-      "description": "Choose a brand from the top bar to open this Automation page. Your current destination will stay selected when you switch brands.",
-      "title": "Select a brand to use Automation"
-    },
     "contentPlans": {
       "badgeColdStart": "Cold-start",
       "badgeGrounded": "Grounded",
@@ -2030,7 +1984,6 @@
       "emptyTitle": "No content runs yet",
       "goToDiscovery": "Go to Discovery",
       "loadError": "Content runs could not be loaded.",
-      "selectBrand": "Select a brand to view content runs.",
       "search": "Search content runs",
       "emptySearchTitle": "No content runs match your search"
     },

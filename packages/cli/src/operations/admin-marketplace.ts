@@ -1,9 +1,9 @@
 import { ListingStatus } from '@genfeedai/contracts';
-import { adminGet, adminPost } from '@/api/admin-client';
+import { adminGet, adminPost, adminRequest } from '@/api/admin-client';
 import { flattenCollection, flattenSingle, type JsonApiDocument } from '@/api/json-api';
 import { deriveMarketplaceApiUrl, parseMarketplaceApiUrl } from '@/config/endpoints';
 import { getApiUrl } from '@/config/store';
-import { GenfeedError } from '@/utils/errors';
+import { ApiError, GenfeedError } from '@/utils/errors';
 
 /** The marketplace API caps a page at 100 rows (`BaseQueryDto` in its `apps/api`). */
 const LISTINGS_PAGE_SIZE = 100;
@@ -14,13 +14,39 @@ export const MARKETPLACE_LISTING_STATUSES: readonly ListingStatus[] = Object.val
 export interface AdminMarketplaceListing {
   createdAt?: string;
   currency?: string;
+  description?: string;
+  downloadData?: Record<string, unknown>;
   id: string;
+  packageSlug?: string | null;
+  packageSource?: string | null;
+  previewData?: Record<string, unknown>;
   /** Price in cents; 0 is a free listing. */
   price?: number;
   rejectionReason?: string | null;
+  shortDescription?: string;
   slug?: string;
   status: ListingStatus;
+  tags?: string[];
   title: string;
+  type: string;
+  version?: string;
+}
+
+/** The fields a sync writes to a listing; the source key is set once, on create. */
+export interface MarketplaceListingFields {
+  description: string;
+  downloadData: Record<string, unknown>;
+  previewData: Record<string, unknown>;
+  price: number;
+  shortDescription: string;
+  tags: string[];
+  title: string;
+  version: string;
+}
+
+export interface MarketplaceListingCreate extends MarketplaceListingFields {
+  packageSlug: string;
+  packageSource: string;
   type: string;
 }
 
@@ -129,6 +155,84 @@ export async function reviewMarketplaceListing(
     await adminPost<JsonApiDocument>(
       `${LISTINGS_PATH}/${encodeURIComponent(listingId)}/${action}`,
       decision.reason ? { reason: decision.reason } : {},
+      marketplaceApiUrl
+    )
+  );
+}
+
+/** Every listing of any status that was synced from one source, in any order. */
+export async function readMarketplaceListingsBySource(
+  marketplaceApiUrl: string,
+  packageSource: string
+): Promise<AdminMarketplaceListing[]> {
+  const readPage = (page: number): Promise<MarketplaceCollection> =>
+    adminGet<MarketplaceCollection>(
+      `${LISTINGS_PATH}?${new URLSearchParams({
+        limit: String(LISTINGS_PAGE_SIZE),
+        packageSource,
+        page: String(page),
+      })}`,
+      marketplaceApiUrl
+    );
+
+  const first = await readPage(1);
+  const listings = flattenCollection<AdminMarketplaceListing>(first);
+  for (let page = 2; page <= readPageCount(first); page += 1) {
+    listings.push(...flattenCollection<AdminMarketplaceListing>(await readPage(page)));
+  }
+  return listings;
+}
+
+/** Whether the signed-in super admin already has the seller profile listings are created under. */
+export async function hasMarketplaceSellerProfile(marketplaceApiUrl: string): Promise<boolean> {
+  try {
+    await adminGet<JsonApiDocument>('/seller/profile', marketplaceApiUrl);
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) return false;
+    throw error;
+  }
+}
+
+export async function createMarketplaceSellerProfile(
+  marketplaceApiUrl: string,
+  displayName: string
+): Promise<void> {
+  await adminPost<JsonApiDocument>('/seller/profile', { displayName }, marketplaceApiUrl);
+}
+
+export async function createMarketplaceListing(
+  marketplaceApiUrl: string,
+  listing: MarketplaceListingCreate
+): Promise<AdminMarketplaceListing> {
+  return flattenSingle<AdminMarketplaceListing>(
+    await adminPost<JsonApiDocument>('/seller/listings', listing, marketplaceApiUrl)
+  );
+}
+
+export async function updateMarketplaceListing(
+  marketplaceApiUrl: string,
+  listingId: string,
+  fields: MarketplaceListingFields
+): Promise<AdminMarketplaceListing> {
+  return flattenSingle<AdminMarketplaceListing>(
+    await adminRequest<JsonApiDocument>(
+      'PUT',
+      `/seller/listings/${encodeURIComponent(listingId)}`,
+      fields,
+      marketplaceApiUrl
+    )
+  );
+}
+
+export async function submitMarketplaceListing(
+  marketplaceApiUrl: string,
+  listingId: string
+): Promise<AdminMarketplaceListing> {
+  return flattenSingle<AdminMarketplaceListing>(
+    await adminPost<JsonApiDocument>(
+      `/seller/listings/${encodeURIComponent(listingId)}/submit`,
+      {},
       marketplaceApiUrl
     )
   );

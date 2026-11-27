@@ -17,7 +17,6 @@ import {
 } from '@/components/analytics/trends';
 import TrendVideoGallery from '@/components/analytics/trends/trend-video-gallery';
 import HookRemixModal from '@/features/trends/list/components/HookRemixModal';
-import { SocialsNavigation } from '@/features/trends/shared/socials-navigation';
 
 import TrendingTopicsSection from './TrendingTopicsSection';
 import TrendsPageHeader from './TrendsPageHeader';
@@ -60,14 +59,11 @@ export default function DiscoveryTrends() {
     viralVideos,
   } = useDiscoveryTrends();
 
-  // Same composition as the per-platform drilldowns: the platform switcher
-  // lives in the module bar and the body gets the shared page inset.
   return (
     <>
       <SectionTopbar
         title={translate('heading')}
         icon={Flame}
-        tabs={<SocialsNavigation active="overview" />}
         refresh={
           <ButtonRefresh
             onClick={() => {

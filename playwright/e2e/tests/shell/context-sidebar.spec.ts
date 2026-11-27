@@ -106,8 +106,10 @@ async function openStudioList(page: Page): Promise<void> {
   // Below `xl` one pane shows at a time, and the prompt comes first.
   const results = await showOutputPane(page);
   // List rows expose the prompt as plain text, a stable non-control target.
-  // The gallery's View menu is the one inside the results pane.
-  await viewMenuTrigger(results).click();
+  // The gallery's View menu is the one inside the results pane. Below `xl` the
+  // pane header also carries the Agent / Output switch, which is named
+  // `View: Output` too, so name the gallery's layout, not any `View: ` button.
+  await viewMenuTrigger(results, 'Grid').click();
   await page.getByRole('menuitemradio', { exact: true, name: 'List' }).click();
   await expect(viewMenuTrigger(results, 'List')).toBeVisible();
   await expect(page.getByText(ASSET_PROMPT)).toBeVisible();

@@ -16,7 +16,12 @@ export const APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS = 15 * 60 * 1000;
  * capability the caller asked for, never the actor id or the token.
  */
 export class ApifyActorUnavailableException extends ServiceUnavailableException {
-  constructor(capability: string, unavailableUntilMs: number) {
+  constructor(
+    capability: string,
+    unavailableUntilMs: number,
+    /** Apify answered 404: the actor is gone, not merely slow. */
+    readonly isNotFound: boolean = true,
+  ) {
     super(
       `Apify actor for ${capability} is unavailable. Not retrying until ${new Date(unavailableUntilMs).toISOString()}.`,
     );
@@ -63,16 +68,26 @@ export function isApifyStartAccepted(status: number): boolean {
  */
 export class ApifyActorAvailabilityTracker {
   private readonly unavailableUntilMs = new Map<string, number>();
+  private readonly notFoundKeys = new Set<string>();
 
   markUnavailable(
     scope: string,
     actorId: string,
     now = Date.now(),
     holdMs = APIFY_ACTOR_UNAVAILABLE_MS,
+    isNotFound: boolean = true,
   ): number {
     const until = now + holdMs;
-    this.unavailableUntilMs.set(`${scope}:${actorId}`, until);
+    const key = `${scope}:${actorId}`;
+    this.unavailableUntilMs.set(key, until);
+    if (isNotFound) this.notFoundKeys.add(key);
+    else this.notFoundKeys.delete(key);
     return until;
+  }
+
+  /** True while the hold on this actor comes from a 404, not a slow run. */
+  isNotFound(scope: string, actorId: string): boolean {
+    return this.notFoundKeys.has(`${scope}:${actorId}`);
   }
 
   /** Returns the time the hold ends, or null once the actor may be tried. */
@@ -86,6 +101,7 @@ export class ApifyActorAvailabilityTracker {
     if (until === undefined) return null;
     if (now >= until) {
       this.unavailableUntilMs.delete(key);
+      this.notFoundKeys.delete(key);
       return null;
     }
     return until;

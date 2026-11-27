@@ -126,3 +126,48 @@ The existing 15-minute queue-health snapshot is a current-state view and is
 overwritten after recovery. It is not an incident archive. If logs or job records
 have expired, explicitly record which evidence is unavailable; never reconstruct
 an unobserved cause or trigger production test jobs to fill the gap.
+
+## ALB errors and latency
+
+A latency alarm on a target group watches the load balancer's p95
+`TargetResponseTime`. A 5xx alarm counts target 5xx answers. An alarm that went
+back to OK means the next period was under the threshold. It does not mean the
+cause is gone.
+
+### Why a p95 alarm on the MCP target group needs a higher threshold than the API's
+
+The MCP server answers a tool call by calling the API and waiting for it. Some
+tools are slow by design: confirming an upload re-reads the uploaded file, and a
+text generation waits for a model. A target group that serves 10 to 40 requests
+in a period has a p95 equal to its second slowest request, so a threshold sized
+for API reads fires on ordinary tool use. Size the MCP threshold above the
+slowest tool you consider normal.
+
+### Read a latency alarm
+
+1. Read the alarm history and the request count per period. Under about 20
+   requests, p95 is one or two requests, not a trend.
+2. List the slow requests in the service's own log: request events
+   (`kind: http`) with `duration_ms` over 1000 in the window. Requests over 1 s
+   and errors are always logged; fast successes are sampled at 5%, so counts of
+   fast requests need re-weighting by `sample_rate`.
+3. For the MCP service, group the slow request events by `mcp.tool_name`: every
+   tool call is the same `POST /mcp`, so the request event carries the JSON-RPC
+   method and the tool name (never the arguments). To see what a slow call
+   waited on, join its trace id to the API log. API events that came from the MCP
+   server carry `action_origin: mcp`, and every agent tool shares one route. The
+   MCP server reaches the API directly, not through the load balancer, so the API
+   target group's metrics do not include these calls.
+4. Tell a stalled process from slow work. Unrelated reads that are all slow at
+   the same instant (identity, lists, public reads) point at a stalled API
+   process: read the `gc_major` log lines (`stall_ms`) and
+   `runtime.event_loop_lag_max_ms` on the request events. One slow tool on its
+   own is that tool.
+5. Rule out the rest: service CPU and memory, task replacements and deployments
+   in the window, database and cache CPU and connections.
+
+### Read a 5xx alarm
+
+Errors are never sampled out of the log. List the request events with
+`status_code` of 500 or more in the window, group them by route, then check the
+service events for a task replacement at the same time.

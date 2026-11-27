@@ -67,10 +67,10 @@ export async function showOutputPane(page: Page): Promise<Locator> {
     .getByTestId('agent-output-layout')
     .filter({ visible: true });
   const output = layout.getByTestId('agent-output-output-pane');
-  const views = layout.getByRole('button', {
-    exact: true,
-    name: 'View: Agent',
-  });
+  // Each pane header carries the switch; only the pane on screen shows one.
+  const views = layout
+    .getByRole('button', { exact: true, name: 'View: Agent' })
+    .filter({ visible: true });
   // After a reload, or while a new page opens, the layout is not settled yet,
   // so isVisible() alone would skip the Output choice on a narrow viewport.
   await expect(layout).toHaveCount(1);
@@ -98,10 +98,9 @@ export async function showAgentPane(page: Page): Promise<Locator> {
     .getByTestId('agent-output-layout')
     .filter({ visible: true });
   const agent = layout.getByTestId('agent-output-agent-pane');
-  const views = layout.getByRole('button', {
-    exact: true,
-    name: 'View: Output',
-  });
+  const views = layout
+    .getByRole('button', { exact: true, name: 'View: Output' })
+    .filter({ visible: true });
   await expect(layout).toHaveCount(1);
   if (await views.isVisible())
     await expect(async () => {

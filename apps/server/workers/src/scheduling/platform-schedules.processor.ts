@@ -9,9 +9,10 @@ import { PlatformPublishingTaskHandlers } from '@workers/scheduling/platform-pub
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
   isPlatformScheduledTaskName,
+  isPublishSweepTask,
   PLATFORM_SCHEDULED_TASKS,
-  type PlatformScheduledTaskName,
   type PlatformTaskHandler,
+  type SystemSweepTaskName,
 } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import type { Job } from 'bullmq';
@@ -20,10 +21,7 @@ import type { Job } from 'bullmq';
 @Processor(PLATFORM_SCHEDULE_QUEUE)
 export class PlatformSchedulesProcessor extends WorkerHost {
   private readonly context = PlatformSchedulesProcessor.name;
-  private readonly handlers: Record<
-    PlatformScheduledTaskName,
-    PlatformTaskHandler
-  >;
+  private readonly handlers: Record<SystemSweepTaskName, PlatformTaskHandler>;
 
   constructor(
     private readonly configService: ConfigService,
@@ -87,7 +85,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowSchedules.recoverWorkspaceTaskRollups(),
       [PLATFORM_SCHEDULED_TASKS.AGENT_TRANSFER_RECOVERY]: () =>
         this.workflowSchedules.recoverAgentTransfers(),
-    } satisfies Partial<Record<PlatformScheduledTaskName, PlatformTaskHandler>>;
+    } satisfies Partial<Record<SystemSweepTaskName, PlatformTaskHandler>>;
   }
 
   async process(job: Job): Promise<void> {
@@ -106,6 +104,17 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       // knows the task, and a name no version knows is still reported.
       this.logger.warn(
         `Skipping platform schedule ${job.name}: this worker version does not know the task`,
+        this.context,
+      );
+      return;
+    }
+
+    // The publishing sweeps run on `publish-sweeps`. A scheduler left on this
+    // queue by a worker of the previous version is skipped here, so the sweep
+    // does not run twice a minute; the next boot removes the scheduler.
+    if (isPublishSweepTask(job.name)) {
+      this.logger.debug(
+        `Skipping platform schedule ${job.name}: it runs on the publish sweep queue`,
         this.context,
       );
       return;
