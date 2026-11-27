@@ -1,7 +1,7 @@
 /**
  * How the API proves itself to the marketplace. The marketplace checks the
  * same constants (apps/api/src/common/auth/service-auth.constants.ts in
- * genfeedai/marketplace.genfeed.ai): change them together.
+ * genfeedai/shop.genfeed.ai): change them together.
  */
 export const MARKETPLACE_SERVICE_AUDIENCE = 'marketplace-service';
 export const MARKETPLACE_SERVICE_SUBJECT = 'genfeed-api';

@@ -293,7 +293,7 @@ describe('CORS Configuration', () => {
         'chatgpt',
         'docs',
         'login',
-        'marketplace',
+        'shop',
         'studio',
         'website',
         'workflows',

@@ -1,9 +1,13 @@
-import { PLATFORM_SCHEDULE_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SCHEDULE_QUEUE,
+  PUBLISH_SWEEP_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@workers/config/config.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import {
+  isPublishSweepTask,
   PLATFORM_SCHEDULE_CATALOG,
   platformSchedulerId,
 } from '@workers/scheduling/platform-schedules.constants';
@@ -15,6 +19,11 @@ function flushMicrotasks(): Promise<void> {
 
 describe('PlatformScheduleRegistryService', () => {
   const queue = {
+    getJobSchedulers: vi.fn().mockResolvedValue([]),
+    removeJobScheduler: vi.fn(),
+    upsertJobScheduler: vi.fn(),
+  };
+  const publishSweepQueue = {
     getJobSchedulers: vi.fn().mockResolvedValue([]),
     removeJobScheduler: vi.fn(),
     upsertJobScheduler: vi.fn(),
@@ -39,6 +48,7 @@ describe('PlatformScheduleRegistryService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queue.getJobSchedulers.mockResolvedValue([]);
+    publishSweepQueue.getJobSchedulers.mockResolvedValue([]);
     workflowExecutionQueue.getJobs.mockResolvedValue([]);
     workflowExecutionQueue.getBackend.mockReturnValue({
       client: Promise.resolve(redisClient),
@@ -52,6 +62,7 @@ describe('PlatformScheduleRegistryService', () => {
     configService.isDevSchedulersEnabled = true;
     service = new PlatformScheduleRegistryService(
       queue as never,
+      publishSweepQueue as never,
       workflowExecutionQueue as never,
       workflowExecutions as never,
       cancellationIntent as never,
@@ -64,9 +75,19 @@ describe('PlatformScheduleRegistryService', () => {
     await service.reconcile();
 
     const entries = Object.entries(PLATFORM_SCHEDULE_CATALOG);
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(entries.length);
+    const publishSweeps = entries.filter(([taskName]) =>
+      isPublishSweepTask(taskName),
+    );
+    expect(publishSweeps).toHaveLength(2);
+    expect(publishSweepQueue.upsertJobScheduler).toHaveBeenCalledTimes(
+      publishSweeps.length,
+    );
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(
+      entries.length - publishSweeps.length,
+    );
     for (const [taskName, schedule] of entries) {
-      expect(queue.upsertJobScheduler).toHaveBeenCalledWith(
+      const target = isPublishSweepTask(taskName) ? publishSweepQueue : queue;
+      expect(target.upsertJobScheduler).toHaveBeenCalledWith(
         platformSchedulerId(taskName as keyof typeof PLATFORM_SCHEDULE_CATALOG),
         { pattern: schedule.pattern, tz: 'UTC' },
         expect.objectContaining({ name: taskName }),
@@ -95,6 +116,25 @@ describe('PlatformScheduleRegistryService', () => {
     );
   });
 
+  it('removes a publishing sweep a previous version left on system-sweeps', async () => {
+    queue.getJobSchedulers.mockResolvedValue([
+      { key: 'platform:posts-publish' },
+      { key: 'platform:posts-thread-comments' },
+      { key: 'platform:crun-task-reconcile' },
+    ]);
+    publishSweepQueue.getJobSchedulers.mockResolvedValue([
+      { key: 'platform:posts-publish' },
+    ]);
+
+    await service.reconcile();
+
+    expect(queue.removeJobScheduler.mock.calls.map(([key]) => key)).toEqual([
+      'platform:posts-publish',
+      'platform:posts-thread-comments',
+    ]);
+    expect(publishSweepQueue.removeJobScheduler).not.toHaveBeenCalled();
+  });
+
   it('does not touch Redis when local schedulers are disabled', async () => {
     configService.isDevSchedulersEnabled = false;
 
@@ -103,12 +143,19 @@ describe('PlatformScheduleRegistryService', () => {
 
     expect(queue.upsertJobScheduler).not.toHaveBeenCalled();
     expect(queue.getJobSchedulers).not.toHaveBeenCalled();
+    expect(publishSweepQueue.upsertJobScheduler).not.toHaveBeenCalled();
     expect(workflowExecutionQueue.getJobs).not.toHaveBeenCalled();
   });
 
   it('uses the established system-sweeps wire queue', () => {
     expect(getQueueToken(PLATFORM_SCHEDULE_QUEUE)).toBe(
       getQueueToken('system-sweeps'),
+    );
+  });
+
+  it('uses the publish-sweeps wire queue for the publishing sweeps', () => {
+    expect(getQueueToken(PUBLISH_SWEEP_QUEUE)).toBe(
+      getQueueToken('publish-sweeps'),
     );
   });
 

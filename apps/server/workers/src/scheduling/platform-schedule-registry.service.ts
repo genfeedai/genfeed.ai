@@ -7,6 +7,7 @@ import {
 } from '@api/collections/workflows/system-workflow-definition';
 import {
   PLATFORM_SCHEDULE_QUEUE,
+  PUBLISH_SWEEP_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,6 +16,7 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import { LEGACY_SWEEP_CANONICAL_IDS } from '@workers/scheduling/legacy-sweep-canonical-ids.constant';
 import {
+  isPublishSweepTask,
   PLATFORM_SCHEDULE_CATALOG,
   type PlatformSchedule,
   type PlatformScheduledTaskName,
@@ -74,6 +76,8 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
   constructor(
     @InjectQueue(PLATFORM_SCHEDULE_QUEUE)
     private readonly queue: Queue,
+    @InjectQueue(PUBLISH_SWEEP_QUEUE)
+    private readonly publishSweepQueue: Queue,
     @InjectQueue(WORKFLOW_EXECUTION_QUEUE)
     private readonly workflowExecutionQueue: Queue<WorkflowExecutionJobData>,
     private readonly workflowExecutions: WorkflowExecutionsService,
@@ -408,16 +412,21 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
   }
 
   async reconcile(): Promise<void> {
-    const desiredSchedulerIds = new Set<string>();
+    const systemSweepIds = new Set<string>();
+    const publishSweepIds = new Set<string>();
     const entries = Object.entries(PLATFORM_SCHEDULE_CATALOG) as Array<
       [PlatformScheduledTaskName, PlatformSchedule]
     >;
 
     for (const [taskName, schedule] of entries) {
       const schedulerId = platformSchedulerId(taskName);
-      desiredSchedulerIds.add(schedulerId);
+      const isPublishSweep = isPublishSweepTask(taskName);
+      (isPublishSweep ? publishSweepIds : systemSweepIds).add(schedulerId);
 
-      await this.queue.upsertJobScheduler(
+      await (isPublishSweep
+        ? this.publishSweepQueue
+        : this.queue
+      ).upsertJobScheduler(
         schedulerId,
         { pattern: schedule.pattern, tz: schedule.timezone },
         {
@@ -431,7 +440,25 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       );
     }
 
-    const currentSchedulers = await this.queue.getJobSchedulers(0, -1, true);
+    // Each queue keeps only its own schedulers, so the publishing sweeps a
+    // previous version registered on `system-sweeps` are removed here.
+    await this.removeUndesiredSchedulers(this.queue, systemSweepIds);
+    await this.removeUndesiredSchedulers(
+      this.publishSweepQueue,
+      publishSweepIds,
+    );
+
+    this.logger.log(
+      `Reconciled ${systemSweepIds.size + publishSweepIds.size} platform schedules`,
+      this.context,
+    );
+  }
+
+  private async removeUndesiredSchedulers(
+    queue: Queue,
+    desiredSchedulerIds: ReadonlySet<string>,
+  ): Promise<void> {
+    const currentSchedulers = await queue.getJobSchedulers(0, -1, true);
     for (const scheduler of currentSchedulers) {
       if (
         !scheduler.key ||
@@ -442,16 +469,11 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
         continue;
       }
 
-      await this.queue.removeJobScheduler(scheduler.key);
+      await queue.removeJobScheduler(scheduler.key);
       this.logger.log(
         `Removed retired platform scheduler ${scheduler.key}`,
         this.context,
       );
     }
-
-    this.logger.log(
-      `Reconciled ${desiredSchedulerIds.size} platform schedules`,
-      this.context,
-    );
   }
 }

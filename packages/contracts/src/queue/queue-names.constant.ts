@@ -170,6 +170,15 @@ export const BRAND_RELOCATION_QUEUE = 'brand-relocation';
  */
 export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
 
+/**
+ * Queue for the two per-minute publishing sweeps (due posts, thread comments).
+ * They were on `system-sweeps` behind every other platform task, whose
+ * processor runs one job at a time, so a post waited for whichever hourly
+ * task held the processor at that minute (36 s at 12:00 UTC on 2026-11-26).
+ * Like `system-sweeps`, it is not a contract queue in `ALL_QUEUE_NAMES`.
+ */
+export const PUBLISH_SWEEP_QUEUE = 'publish-sweeps';
+
 /** Platform tasks that re-import provider model prices into the pricing snapshot. */
 export const PROVIDER_PRICE_SYNC_TASKS = {
   fal: 'fal-model-discovery',

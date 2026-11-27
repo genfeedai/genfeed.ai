@@ -71,7 +71,13 @@ export function mcpToolFailureResult(error: unknown) {
  * refused instead of being answered from the wrong one.
  */
 export async function resolveRequestedOrganization(
-  client: Pick<ClientService, 'canSwitchOrganizations' | 'listOrganizations'>,
+  client: Pick<ClientService, 'listOrganizations'>,
+  /**
+   * Whether the connection may act in several organizations, as the identity
+   * check of this request already said. Asking the API again would repeat that
+   * lookup on every call (#11452).
+   */
+  canSwitchOrganizations: boolean,
   requested: unknown,
 ): Promise<OrganizationOption> {
   const wanted = typeof requested === 'string' ? requested.trim() : '';
@@ -80,7 +86,7 @@ export async function resolveRequestedOrganization(
       'organization must be a name, slug or id from get_context(action=organizations).',
     );
   }
-  if (!(await client.canSwitchOrganizations())) {
+  if (!canSwitchOrganizations) {
     throw new ForbiddenException({
       code: MCP_ORGANIZATION_BOUND,
       message:

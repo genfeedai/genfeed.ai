@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import {
   MCP_ORGANIZATION_HEADER,
@@ -124,6 +124,18 @@ export class BaseApiClient {
     work: () => Promise<T>,
   ): Promise<T> {
     return this.organizationScope.run(organizationId, work);
+  }
+
+  /**
+   * Identifies whose answer a shared lookup holds: the caller's token and the
+   * organization this call acts in. Only a hash, so no token reaches a map key
+   * that a heap dump or a log could show.
+   */
+  lookupKey(): string {
+    const organizationId = this.organizationScope.getStore() ?? '';
+    return createHash('sha256')
+      .update(`${this.bearerToken}\0${organizationId}`)
+      .digest('hex');
   }
 
   setBearerToken(token: string): void {

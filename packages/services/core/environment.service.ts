@@ -102,7 +102,7 @@ export const EnvironmentService = {
     },
     marketplace:
       process.env.NEXT_PUBLIC_APPS_MARKETPLACE_ENDPOINT ||
-      'https://marketplace.genfeed.ai',
+      'https://shop.genfeed.ai',
     website:
       getDesktopEnvironmentOverrides().websiteEndpoint ||
       process.env.NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT ||
@@ -153,7 +153,7 @@ export const EnvironmentService = {
     if (hostname.includes('app.genfeed.ai')) {
       return 'app';
     }
-    if (hostname.includes('marketplace.genfeed.ai')) {
+    if (hostname.includes('shop.genfeed.ai')) {
       return 'marketplace';
     }
     if (hostname === 'genfeed.ai' || hostname === 'www.genfeed.ai') {
