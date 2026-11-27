@@ -7,6 +7,7 @@ import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { helpArticleSlugs } from '@data/help-articles.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
+import { MCP_CHANNEL_SLUGS } from '@data/mcp-channels.data';
 import { getAllProductSlugs } from '@data/products.data';
 import { getPublishedReleases } from '@data/releases.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
@@ -357,6 +358,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
     );
 
+  const mcpChannelRoutes: MetadataRoute.Sitemap = MCP_CHANNEL_SLUGS.map(
+    (channel) => ({
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+      url: `https://genfeed.ai/mcp/${channel}`,
+    }),
+  );
+
   const productRoutes: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
     changeFrequency: 'weekly',
     priority: 0.9,
@@ -520,6 +529,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticRoutes,
     ...agentClientRoutes,
     ...agentClientChannelRoutes,
+    ...mcpChannelRoutes,
     ...productRoutes,
     ...appProductRoutes,
     ...competitorRoutes,
