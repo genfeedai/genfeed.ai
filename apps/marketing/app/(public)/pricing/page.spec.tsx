@@ -47,7 +47,11 @@ describe('pricing metadata', () => {
     expect(payg?.priceSpecification).toBeUndefined();
     const pro = jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro');
     expect(pro?.price).toBe('49');
-    expect(pro?.priceSpecification).toMatchObject({ billingDuration: 'P1M' });
+    expect(pro?.priceSpecification).toMatchObject({
+      billingDuration: 'P1M',
+      price: '49',
+      priceCurrency: 'USD',
+    });
     expect(jsonLd.about).toMatchObject({
       '@type': 'Service',
       name: 'Done for you',
@@ -60,5 +64,19 @@ describe('pricing metadata', () => {
         },
       },
     });
+  });
+
+  it('gives every unit price specification of an offer the offer price and currency', () => {
+    const { offers } = PageModule.buildPricingJsonLd().mainEntity;
+    const specified = offers.filter((offer) => offer.priceSpecification);
+
+    expect(specified.map((offer) => offer.name)).toEqual(['Pro', 'Scale']);
+    for (const offer of specified) {
+      expect(offer.priceSpecification).toMatchObject({
+        '@type': 'UnitPriceSpecification',
+        price: offer.price,
+        priceCurrency: offer.priceCurrency,
+      });
+    }
   });
 });
