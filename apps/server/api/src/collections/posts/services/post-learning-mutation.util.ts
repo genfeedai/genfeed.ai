@@ -15,7 +15,10 @@ import {
 } from '@api/collections/content-learning/services/learning-publication-source.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { readPostGenerationReceipts } from '@api/collections/posts/services/post-generation-receipts.read';
-import { preparePostPatchWrite } from '@api/collections/posts/services/post-patch-write.util';
+import {
+  preparePostPatchWrite,
+  syncReleaseTitleWithTargetLabel,
+} from '@api/collections/posts/services/post-patch-write.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { PostUpdateInput } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -655,6 +658,14 @@ export async function patchPostWithLearning(
     prepared.prismaWriteData,
     populate,
   );
+  if (dto.label !== undefined) {
+    await syncReleaseTitleWithTargetLabel(tx, {
+      groupId: updatedPost.groupId,
+      label: dto.label,
+      organizationId: plan.organizationId,
+      parentId: updatedPost.parentId,
+    });
+  }
   const afterWrite = await readPostMutationSnapshots(tx, plan);
   const index = before.findIndex((value) => value.row.id === id);
   if (
