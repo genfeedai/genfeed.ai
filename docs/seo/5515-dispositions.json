@@ -1282,7 +1282,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/marketing/app/(dev-landing)/developers/page.tsx"
+      "source": "apps/marketing/app/(public)/developers/page.tsx"
     },
     {
       "fingerprint": "228d62d4815108bc4201d14219bffe741bb8eb8a4154378b0ca09874fe178c74",
