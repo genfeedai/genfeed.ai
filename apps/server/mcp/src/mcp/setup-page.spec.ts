@@ -68,7 +68,8 @@ describe('MCP setup page', () => {
     expect(html).toContain('Authorize and verify');
     expect(html).not.toContain('step-title">Manual config');
     expect(html).not.toContain('http://localhost:3014');
-    expect(html).toContain('Muse &amp; Grok Bot');
+    expect(html).toContain('>Grok</a>');
+    expect(html).toContain('Meta Muse');
     expect(html).toContain('Other clients');
   });
 
@@ -337,7 +338,8 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="claude-code-command"');
       expect(html).toContain('id="codex-command"');
       expect(html).toContain('id="agent-setup-prompt"');
-      expect(html).toContain('id="chat-agent-prompt"');
+      expect(html).toContain('id="grok-prompt"');
+      expect(html).toContain('id="meta-muse-prompt"');
       expect(html).toContain('id="generic-client-config"');
     });
 
@@ -364,19 +366,22 @@ describe('MCP setup page', () => {
     });
   });
 
-  describe('Muse & Grok Bot and other MCP clients tabs', () => {
-    it('gives Meta Muse and Grok Bot a copy-paste chat prompt that builds their own connector', () => {
-      const html = renderSetupPage();
+  describe('Grok, Meta Muse and other MCP clients tabs', () => {
+    it.each(['grok', 'meta-muse'])(
+      'gives %s a copy-paste chat prompt that builds its own connector',
+      (id) => {
+        const html = renderSetupPage();
 
-      expect(html).toContain('Muse &amp; Grok Bot');
-      expect(html).toContain('id="chat-agent-prompt"');
-      expect(html).toContain('data-copy-source="chat-agent-prompt"');
-      expect(html).toContain('Add Genfeed as a custom connector.');
-      expect(html).toContain('MCP server URL: https://mcp.genfeed.ai/mcp');
-      expect(html).toContain(
-        'Send me the sign-in link and wait while I approve access in my browser.',
-      );
-    });
+        expect(html).toContain(`id="panel-${id}"`);
+        expect(html).toContain(`id="${id}-prompt"`);
+        expect(html).toContain(`data-copy-source="${id}-prompt"`);
+        expect(html).toContain('Add Genfeed as a custom connector.');
+        expect(html).toContain('MCP server URL: https://mcp.genfeed.ai/mcp');
+        expect(html).toContain(
+          'Send me the sign-in link and wait while I approve access in my browser.',
+        );
+      },
+    );
 
     it('gives other MCP clients (Claude.ai, ChatGPT, Cursor, Gemini) the generic JSON config', () => {
       const html = renderSetupPage();
@@ -404,7 +409,8 @@ describe('MCP setup page', () => {
       ['/claude-code/', 'claude-code'],
       ['/claude-cowork', 'claude-chat'],
       ['/codex', 'codex'],
-      ['/muse-grok-bot', 'chat-agent'],
+      ['/grok', 'grok'],
+      ['/meta-muse', 'meta-muse'],
       ['/other-clients', 'other-clients'],
       ['/agent-prompt', 'agent-prompt'],
     ] as const)('maps %s to the %s tab', (path, tab) => {
@@ -428,7 +434,8 @@ describe('MCP setup page', () => {
         '/claude-code',
         '/claude-cowork',
         '/codex',
-        '/muse-grok-bot',
+        '/grok',
+        '/meta-muse',
         '/other-clients',
         '/agent-prompt',
       ]);

@@ -2,7 +2,6 @@ export {
   ANALYTICS_EVENTS,
   type AnalyticsOutcome,
   type CheckoutKind,
-  type ConnectGenfeedStep,
   type ConversationShellRestorationFailureReason,
   type ConversationShellState,
   type ConversationShellTelemetryContext,

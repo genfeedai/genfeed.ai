@@ -1,8 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import ConnectGenfeedFlow from './connect-genfeed-flow';
+import ConnectorsAgentsContent from './content';
 
 export const generateMetadata = createPageMetadata('Connect Genfeed');
 
 export default function ConnectorsAgentsPage() {
-  return <ConnectGenfeedFlow />;
+  return <ConnectorsAgentsContent />;
 }

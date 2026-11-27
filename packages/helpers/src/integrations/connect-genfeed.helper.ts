@@ -119,10 +119,7 @@ export function buildConnectGenfeedInstructions(
   authMethod: ConnectGenfeedAuthMethod = 'oauth',
 ): ConnectGenfeedInstructions {
   const isClaude = client === 'claude-code';
-  // Chat agents build their own connector from a pasted prompt, so a key would
-  // land in the chat log: they take browser authorization only.
-  const isChatAgent = client === 'chat-agent';
-  if (isClaude || isChatAgent) {
+  if (isClaude) {
     authMethod = 'oauth';
   }
   const mcpEndpoint = isClaude
@@ -136,16 +133,13 @@ export function buildConnectGenfeedInstructions(
         ? 'Run codex mcp login genfeed if authorization did not open during setup. Sign in and approve access in your browser, then return to Codex.'
         : client === 'claude-code'
           ? 'Open /mcp inside Claude Code, select genfeed, and authenticate. Sign in and approve access in your browser, then return to Claude Code.'
-          : isChatAgent
-            ? 'Paste the prompt into your chat agent, then approve the sign-in link it sends back in your browser.'
-            : `Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth, and complete browser sign-in and consent. If your client does not support OAuth, use the advanced manual-key path.`;
+          : `Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth, and complete browser sign-in and consent. If your client does not support OAuth, use the advanced manual-key path.`;
     return {
       authMethod,
       authorizationInstruction,
       client,
-      configuration: isChatAgent
-        ? buildConnectGenfeedChatPrompt(mcpEndpoint)
-        : client === 'codex'
+      configuration:
+        client === 'codex'
           ? `[mcp_servers.genfeed]\nurl = ${JSON.stringify(mcpEndpoint)}`
           : JSON.stringify(
               { transport: 'streamable-http', url: mcpEndpoint },
@@ -153,9 +147,8 @@ export function buildConnectGenfeedInstructions(
               2,
             ),
       environmentCommand: '',
-      primaryCommand: isChatAgent
-        ? buildConnectGenfeedChatPrompt(mcpEndpoint)
-        : client === 'codex'
+      primaryCommand:
+        client === 'codex'
           ? `codex mcp add genfeed --url ${shellEndpoint}`
           : client === 'claude-code'
             ? `claude mcp add --transport http genfeed --scope user ${shellEndpoint}`

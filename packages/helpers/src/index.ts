@@ -34,6 +34,7 @@ export * from './generation-eta.helper';
 export * from './genfeed-default-brand-kit.helper';
 export * from './integrations/connect-genfeed.helper';
 export * from './integrations/connect-genfeed-clients.helper';
+export * from './integrations/connect-genfeed-setup-guide.helper';
 export * from './integrations/external-connection-request.helper';
 export * from './media/cdn/cdn.helper';
 export * from './media/clipper-reference-frame.helper';

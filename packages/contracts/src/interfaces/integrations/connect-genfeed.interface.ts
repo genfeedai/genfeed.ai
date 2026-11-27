@@ -1,8 +1,4 @@
-export type ConnectGenfeedClient =
-  | 'chat-agent'
-  | 'claude-code'
-  | 'codex'
-  | 'generic';
+export type ConnectGenfeedClient = 'claude-code' | 'codex' | 'generic';
 
 export type ConnectGenfeedAuthMethod = 'oauth' | 'manual-key';
 

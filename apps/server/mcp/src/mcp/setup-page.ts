@@ -6,17 +6,15 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import {
-  buildConnectGenfeedChatPrompt,
-  buildConnectGenfeedInstructions,
-  buildGenfeedAgentSetupPrompt,
-  GENFEED_SKILLS_INSTALL_COMMAND,
-} from '@genfeedai/helpers/integrations/connect-genfeed.helper';
-import {
   CONNECT_CLIENTS,
   type ConnectClientEntry,
   type ConnectClientMarkId,
   type ConnectClientTabId,
 } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
+import {
+  buildConnectSetupGuide,
+  splitConnectSetupText,
+} from '@genfeedai/helpers/integrations/connect-genfeed-setup-guide.helper';
 import {
   deriveMcpResourceIdentifierForMode,
   getMcpSupportedScopes,
@@ -51,7 +49,7 @@ const CONNECT_GENFEED_PATH = '/connectors';
 const DOCS_GUIDE_PATH = '/api-reference/mcp';
 const SETUP_PAGE_TITLE = 'Genfeed MCP Server — connect any AI agent';
 const SETUP_PAGE_DESCRIPTION =
-  'Connect Claude, ChatGPT, Cursor, Gemini, Meta Muse, Grok Bot, and other AI agents to Genfeed over MCP with browser OAuth — no API key required.';
+  'Connect Claude, ChatGPT, Cursor, Gemini, Grok, Meta Muse, and other AI agents to Genfeed over MCP with browser OAuth — no API key required.';
 // The website composes this card (apps/marketing marketing-og.data.ts); every
 // Genfeed surface shares its 1200x630 layout.
 const SETUP_PAGE_OG_IMAGE_PATH = '/og/mcp';
@@ -144,18 +142,6 @@ function readFirstPublicUrl(names: string[], fallback: string): string {
     }
   }
   return trimTrailingSlash(fallback);
-}
-
-function buildAgentSetupPrompt(params: {
-  apiKeysUrl: string;
-  mcpUrl: string;
-}): string {
-  const { apiKeysUrl, mcpUrl } = params;
-
-  return `${buildGenfeedAgentSetupPrompt(mcpUrl)}
-
-Guided connection flow: ${apiKeysUrl}
-For the Genfeed CLI, only if requested separately, run genfeed login with no flags. The human approves in the browser. Do not paste a secret into this chat.`;
 }
 
 /**
@@ -306,19 +292,54 @@ export function renderSetupPage(
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
 
-  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
-  const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
-  const generic = buildConnectGenfeedInstructions('generic', mcpUrl);
-  const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
-
-  const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
-  const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
-  const genericConfigSafe = escapeHtml(generic.configuration);
-  const genericAuthSafe = escapeHtml(generic.authorizationInstruction);
-  const chatPromptSafe = escapeHtml(chatPrompt);
-  const agentSetupPromptSafe = escapeHtml(
-    buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
-  );
+  const renderInlineText = (value: string): string =>
+    splitConnectSetupText(value)
+      .map((segment) =>
+        segment.isCode
+          ? `<code class="${ui.inlineCode}">${escapeHtml(segment.text)}</code>`
+          : escapeHtml(segment.text),
+      )
+      .join('');
+  const renderGuidePanel = (tab: SetupTab): string => {
+    const guide = buildConnectSetupGuide(tab.id, { connectUrl, mcpUrl });
+    const steps = guide.steps
+      .map((step, index) => {
+        const parts = step.parts
+          .map((part) =>
+            part.kind === 'text'
+              ? `<p class="step-copy">${renderInlineText(part.text)}</p>`
+              : renderCommandBlock({
+                  id: part.id,
+                  label: part.label,
+                  multiline: part.isMultiline,
+                  textSafe: escapeHtml(part.text),
+                  ui,
+                }),
+          )
+          .join('\n              ');
+        return `<li class="step">
+            <span class="step-number">${String(index + 1).padStart(2, '0')}</span>
+            <div>
+              <p class="step-title">${escapeHtml(step.title)}</p>
+              ${parts}
+            </div>
+          </li>`;
+      })
+      .join('\n          ');
+    const badge = guide.badge
+      ? `<span class="${ui.badge}">${escapeHtml(guide.badge)}</span>`
+      : '';
+    return `<section class="${panelClass(tab.id)}" id="panel-${tab.id}" role="tabpanel" aria-labelledby="tab-${tab.id}" data-panel="${tab.id}">
+        <div class="setup-title-row">
+          <h3 class="instruction-title">${escapeHtml(guide.title)}</h3>
+          ${badge}
+        </div>
+        <ol class="steps">
+          ${steps}
+        </ol>
+      </section>`;
+  };
+  const panelsMarkup = SETUP_TABS.map(renderGuidePanel).join('\n\n      ');
 
   return `<!doctype html>
 <html lang="en" class="${ui.root}">
@@ -739,134 +760,7 @@ ${postHogSnippet}
         ${tabsMarkup}
       </div>
 
-      <section class="${panelClass('claude-code')}" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">Claude Code setup</h3>
-          <span class="${ui.badge}">HTTP transport</span>
-        </div>
-        <ol class="steps">
-          <li class="step">
-            <span class="step-number">01</span>
-            <div>
-              <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">Registers Genfeed in user scope with browser OAuth.</p>
-              ${renderCommandBlock({ id: 'claude-code-command', label: 'Copy Claude Code command', textSafe: claudeCommandSafe, ui })}
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">02</span>
-            <div>
-              <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select genfeed, and sign in. Then ask it to list your Genfeed brands.</p>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <section class="${panelClass('claude-chat')}" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
-        <h3 class="instruction-title">Claude and Cowork setup</h3>
-        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth.</p>
-        ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Genfeed MCP URL', textSafe: mcpUrlSafe, ui })}
-      </section>
-
-      <section class="${panelClass('codex')}" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
-        <h3 class="instruction-title">Codex setup</h3>
-        <ol class="steps">
-          <li class="step">
-            <span class="step-number">01</span>
-            <div>
-              <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>. No bearer-token variable needed.</p>
-              ${renderCommandBlock({ id: 'codex-command', label: 'Copy Codex command', textSafe: codexCommandSafe, ui })}
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">02</span>
-            <div>
-              <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">Sign in and approve access in your browser. If the browser did not open during setup, run this command to start authorization.</p>
-              ${renderCommandBlock({ id: 'codex-login-command', label: 'Copy Codex login command', textSafe: 'codex mcp login genfeed', ui })}
-              <p class="step-copy">After approval, expect a Codex tab at <code class="${ui.inlineCode}">127.0.0.1</code> (localhost).
-                You can close that tab. Return to Codex and ask it to list your Genfeed brands.
-              </p>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <section class="${panelClass('chat-agent')}" id="panel-chat-agent" role="tabpanel" aria-labelledby="tab-chat-agent" data-panel="chat-agent">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">Muse &amp; Grok Bot</h3>
-          <span class="${ui.badge}">Chat-built connector</span>
-        </div>
-        <ol class="steps">
-          <li class="step">
-            <span class="step-number">01</span>
-            <div>
-              <p class="step-title">Paste this prompt</p>
-              <p class="step-copy">Meta Muse and Grok Bot can build their own MCP connector directly from a chat prompt.</p>
-              ${renderCommandBlock({ id: 'chat-agent-prompt', label: 'Copy chat agent prompt', multiline: true, textSafe: chatPromptSafe, ui })}
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">02</span>
-            <div>
-              <p class="step-title">Approve in your browser</p>
-              <p class="step-copy">Approve the sign-in link it sends back. Never share a password, token, or API key in the chat.</p>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <section class="${panelClass('other-clients')}" id="panel-other-clients" role="tabpanel" aria-labelledby="tab-other-clients" data-panel="other-clients">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">Other MCP clients</h3>
-          <span class="${ui.badge}">ChatGPT, Cursor, Gemini</span>
-        </div>
-        <ol class="steps">
-          <li class="step">
-            <span class="step-number">01</span>
-            <div>
-              <p class="step-title">Add this server configuration</p>
-              <p class="step-copy">Paste this into your client's remote MCP server settings.</p>
-              ${renderCommandBlock({ id: 'generic-client-config', label: 'Copy client configuration', multiline: true, textSafe: genericConfigSafe, ui })}
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">02</span>
-            <div>
-              <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">${genericAuthSafe} Then ask your agent to list your Genfeed brands.</p>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <section class="${panelClass('agent-prompt')}" id="panel-agent-prompt" role="tabpanel" aria-labelledby="tab-agent-prompt" data-panel="agent-prompt">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">AI agent setup prompt</h3>
-          <span class="${ui.badge}">Copy/paste</span>
-        </div>
-        <ol class="steps">
-          <li class="step">
-            <span class="step-number">01</span>
-            <div>
-              <p class="step-title">Give this to a local shell agent</p>
-              <p class="step-copy">Drop this into Claude Code, Codex, or another local agent with shell access. It configures Genfeed for your selected client (and installs the playbook where the client supports it), starts browser authorization, and verifies access with read-only calls.</p>
-              <p class="step-copy">For non-Claude clients only, run this command and select your client. Skip it if a Genfeed plugin already includes the playbook. Claude clients connect with OAuth. Do not install this skills bundle into any Claude client. Skills alone do not connect or authenticate MCP.</p>
-              ${renderCommandBlock({ id: 'skills-install-command', label: 'Copy skills install command', textSafe: escapeHtml(GENFEED_SKILLS_INSTALL_COMMAND), ui })}
-              ${renderCommandBlock({ id: 'agent-setup-prompt', label: 'Copy agent setup prompt', multiline: true, textSafe: agentSetupPromptSafe, ui })}
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">02</span>
-            <div>
-              <p class="step-title">Complete sign-in in your browser</p>
-              <p class="step-copy">You approve access yourself. Copying this prompt does not authorize your client.</p>
-            </div>
-          </li>
-        </ol>
-      </section>
+      ${panelsMarkup}
     </div>
   </section>
 

@@ -96,7 +96,7 @@ describe('buildConnectGenfeedChatPrompt', () => {
 });
 
 describe('buildConnectGenfeedInstructions', () => {
-  it.each(['codex', 'claude-code', 'generic', 'chat-agent'] as const)(
+  it.each(['codex', 'claude-code', 'generic'] as const)(
     'defaults %s to browser authorization without secret requirements',
     (client) => {
       const instructions = buildConnectGenfeedInstructions(
@@ -132,27 +132,6 @@ describe('buildConnectGenfeedInstructions', () => {
       'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
     );
     expect(claude.authorizationInstruction).toContain('/mcp');
-  });
-
-  it('gives chat agents the pasted connector prompt and browser authorization only', () => {
-    const chatAgent = buildConnectGenfeedInstructions(
-      'chat-agent',
-      'https://mcp.genfeed.ai/mcp/',
-      'manual-key',
-    );
-
-    expect(chatAgent.authMethod).toBe('oauth');
-    expect(chatAgent.primaryCommand).toBe(
-      buildConnectGenfeedChatPrompt('https://mcp.genfeed.ai/mcp'),
-    );
-    expect(chatAgent.primaryCommand).toContain(
-      'MCP server URL: https://mcp.genfeed.ai/mcp\n',
-    );
-    expect(chatAgent.verifyCommand).toBeUndefined();
-    expect(chatAgent.environmentCommand).toBe('');
-    expect(JSON.stringify(chatAgent)).not.toMatch(
-      /GENFEED_API_KEY|Bearer|bearer_token_env_var/,
-    );
   });
 
   it('quotes configured endpoints with shell metacharacters', () => {

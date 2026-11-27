@@ -5,28 +5,29 @@ export type ConnectClientMarkId = 'claude' | 'codex' | 'grok' | 'meta';
 
 export type ConnectClientTabId =
   | 'agent-prompt'
-  | 'chat-agent'
   | 'claude-chat'
   | 'claude-code'
   | 'codex'
+  | 'grok'
+  | 'meta-muse'
   | 'other-clients';
 
 export interface ConnectClientEntry {
-  /** The setup the in-app Connect flow runs for this client; null where only the setup page covers it. */
+  /** The client the onboarding step connects; null where only the setup guide covers it. */
   helperClient: ConnectGenfeedClient | null;
   id: ConnectClientTabId;
   label: string;
   marks: readonly ConnectClientMarkId[];
   /** Shareable route on the MCP setup page that opens this client. */
   path: string;
-  /** One line under the client picker in the in-app Connect flow. */
+  /** One line under the client in the in-app picker. */
   summary: string;
 }
 
 /**
  * The one list of MCP clients Genfeed documents: the MCP setup page, the in-app
- * Connect flow and the onboarding step all read it, so a label, a mark or a new
- * client changes in one place.
+ * Connectors page and the onboarding step all read it, so a label, a mark or a
+ * new client changes in one place.
  *
  * Claude Code and Claude & Cowork stay separate: the first registers the
  * server with `claude mcp add` and authorizes through `/mcp`, the second adds a
@@ -59,12 +60,20 @@ export const CONNECT_CLIENTS: readonly ConnectClientEntry[] = [
     summary: 'Browser authorization with CLI setup or config.toml.',
   },
   {
-    helperClient: 'chat-agent',
-    id: 'chat-agent',
-    label: 'Muse & Grok Bot',
-    marks: ['meta', 'grok'],
-    path: '/muse-grok-bot',
-    summary: 'Paste one prompt into the chat; the agent builds the connector.',
+    helperClient: null,
+    id: 'grok',
+    label: 'Grok',
+    marks: ['grok'],
+    path: '/grok',
+    summary: 'Paste one prompt into Grok; it builds the connector.',
+  },
+  {
+    helperClient: null,
+    id: 'meta-muse',
+    label: 'Meta Muse',
+    marks: ['meta'],
+    path: '/meta-muse',
+    summary: 'Paste one prompt into Muse; it builds the connector.',
   },
   {
     helperClient: 'generic',
@@ -83,14 +92,6 @@ export const CONNECT_CLIENTS: readonly ConnectClientEntry[] = [
     summary: 'Hand your local agent one setup prompt.',
   },
 ];
-
-/** The clients the in-app Connect flow offers, in the setup page's order. */
-export const CONNECT_FLOW_CLIENTS = CONNECT_CLIENTS.filter(
-  (
-    entry,
-  ): entry is ConnectClientEntry & { helperClient: ConnectGenfeedClient } =>
-    entry.helperClient !== null,
-);
 
 export function getConnectClient(
   client: ConnectGenfeedClient,
