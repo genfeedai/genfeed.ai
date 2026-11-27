@@ -399,11 +399,6 @@ describe('CredentialPublishingReadinessService', () => {
             'Pinterest scheduling is unavailable until live publishing is verified.',
         },
         {
-          platform: CredentialPlatform.THREADS,
-          status: 'planned',
-          message: 'Threads scheduling is planned and is not available yet.',
-        },
-        {
           platform: CredentialPlatform.GOOGLE_ADS,
           status: 'unsupported',
           message: 'google_ads scheduling is not supported.',
@@ -448,23 +443,26 @@ describe('CredentialPublishingReadinessService', () => {
         },
       );
 
-      it('keeps a supported healthy channel schedulable', async () => {
-        const readiness = await resolvePlatform(CredentialPlatform.TWITTER);
+      it.each([CredentialPlatform.TWITTER, CredentialPlatform.THREADS])(
+        'keeps a supported healthy %s channel schedulable',
+        async (platform) => {
+          const readiness = await resolvePlatform(platform);
 
-        expect(publishingProviderReadinessSchema.parse(readiness)).toEqual(
-          readiness,
-        );
-        expect(readiness).toMatchObject({
-          canSchedule: true,
-          state: 'publish_capable',
-          tokenFreshness: 'pass',
-        });
-        expect(
-          readiness?.diagnostics.some(
-            (entry) => entry.code === 'scheduler_channel_unavailable',
-          ),
-        ).toBe(false);
-      });
+          expect(publishingProviderReadinessSchema.parse(readiness)).toEqual(
+            readiness,
+          );
+          expect(readiness).toMatchObject({
+            canSchedule: true,
+            state: 'publish_capable',
+            tokenFreshness: 'pass',
+          });
+          expect(
+            readiness?.diagnostics.some(
+              (entry) => entry.code === 'scheduler_channel_unavailable',
+            ),
+          ).toBe(false);
+        },
+      );
 
       it('retains expired token and missing permission diagnostics alongside the channel restriction', async () => {
         const readiness = await resolvePlatform(CredentialPlatform.FANVUE, {

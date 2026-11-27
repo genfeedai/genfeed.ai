@@ -275,7 +275,7 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
       'threads_manage_replies',
       'threads_read_replies',
     ],
-    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against ThreadsController OAuth scopes, ThreadsService profile/publish containers, and the planned scheduler channel.`,
+    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against ThreadsController OAuth scopes, ThreadsService profile/publish containers, and the supported scheduler channel.`,
     nativeOnlyActions: [
       'Read the native Threads feed',
       'Reply in existing threads',
@@ -286,9 +286,9 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
     profilePostSignals:
       'Authorized id, username, profile picture, and biography. Insights and replies exist as scopes, not as a warm-up signal adapter.',
     publishingCapabilities:
-      'Text, image, video, and carousel containers via ThreadsService. Scheduler status is planned, not productized.',
+      'Text, image, video, and carousel containers via ThreadsService. The scheduler channel is supported.',
     rationale:
-      'Connection and a publisher exist, but there is no reviewed Threads warm-up skill, structured steps, or publishing-gate semantics. Scheduler is still planned.',
+      'Connection and a publisher exist, but there is no reviewed Threads warm-up skill, structured steps, or publishing-gate semantics. Scheduling is supported.',
     support: 'readiness_only',
     ui: {
       body: 'Genfeed can confirm the Threads account is connected. A guided warm-up plan is not available yet. Replies stay manual.',

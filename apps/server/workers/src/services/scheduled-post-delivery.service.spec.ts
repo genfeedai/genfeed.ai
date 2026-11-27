@@ -2850,6 +2850,51 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('publishes a scheduled text post on a connected Threads account', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.THREADS,
+    });
+    const post = createScheduledPost({
+      description: 'Shipping the new editor today.',
+      platform: CredentialPlatform.THREADS,
+    });
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        success: true,
+      }),
+    );
+    expect(publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a Threads post over 500 characters before the provider call', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.THREADS,
+    });
+    const post = createScheduledPost({
+      description: 'x'.repeat(501),
+      platform: CredentialPlatform.THREADS,
+    });
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({
+        executionState: TargetExecutionState.FAILED,
+        success: false,
+      }),
+    );
+    expect(result.error).toMatch(/Threads/);
+  });
+
   it('fails the pending thread children of a parent that fails before the provider', async () => {
     mocks.credentialsService.findOne.mockResolvedValue(null);
     const post = createScheduledPost({
