@@ -14,6 +14,8 @@ describe('CreatorPaymentsService HTTP methods', () => {
       'GET /articles/article%2F1': { hasAccess: true, id: 'article/1' },
       'GET /earnings': { balance: 40 },
       'GET /subscriptions/mine': [{ id: 'sub_1' }],
+      'GET /subscriptions/outgoing': [{ id: 'sub_2', readerName: 'Ben' }],
+      'PATCH /subscriptions/outgoing/sub_2': echo,
       'GET /subscriptions/offers/jane%20doe': { handle: 'jane doe' },
       'GET /subscriptions/plans': [{ brandId: 'brand_1' }],
       'GET /tips/jane%20doe': { handle: 'jane doe' },
@@ -61,6 +63,15 @@ describe('CreatorPaymentsService HTTP methods', () => {
     await expect(service.setCancelAtPeriodEnd('sub_1', true)).resolves.toEqual({
       received: { cancelAtPeriodEnd: true },
     });
+  });
+
+  it('lists and cancels the subscriptions the workspace pays for', async () => {
+    await expect(service.listTeamSubscriptions()).resolves.toEqual([
+      { id: 'sub_2', readerName: 'Ben' },
+    ]);
+    await expect(
+      service.setTeamSubscriptionCancelAtPeriodEnd('sub_2', true),
+    ).resolves.toEqual({ received: { cancelAtPeriodEnd: true } });
   });
 
   it('updates the subscription plan of a brand', async () => {

@@ -151,11 +151,13 @@ slowest tool you consider normal.
    (`kind: http`) with `duration_ms` over 1000 in the window. Requests over 1 s
    and errors are always logged; fast successes are sampled at 5%, so counts of
    fast requests need re-weighting by `sample_rate`.
-3. For the MCP service, find what each slow request waited on: join its trace id
-   to the API log. API events that came from the MCP server carry
-   `action_origin: mcp`, and every agent tool shares one route, so read the tool
-   name from the path. The MCP server reaches the API directly, not through the
-   load balancer, so the API target group's metrics do not include these calls.
+3. For the MCP service, group the slow request events by `mcp.tool_name`: every
+   tool call is the same `POST /mcp`, so the request event carries the JSON-RPC
+   method and the tool name (never the arguments). To see what a slow call
+   waited on, join its trace id to the API log. API events that came from the MCP
+   server carry `action_origin: mcp`, and every agent tool shares one route. The
+   MCP server reaches the API directly, not through the load balancer, so the API
+   target group's metrics do not include these calls.
 4. Tell a stalled process from slow work. Unrelated reads that are all slow at
    the same instant (identity, lists, public reads) point at a stalled API
    process: read the `gc_major` log lines (`stall_ms`) and

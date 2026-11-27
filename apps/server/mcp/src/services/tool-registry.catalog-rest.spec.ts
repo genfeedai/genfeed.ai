@@ -1,5 +1,6 @@
 import { MCP_CATALOG_TOOL_NAMES } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
+import { GENERATION_TOOL_TIMEOUT_MS } from '@mcp/services/agent-tool-timeouts';
 import { ClientService } from '@mcp/services/client.service';
 import {
   asMergedToolCall,
@@ -687,14 +688,20 @@ describe('ToolRegistryService — agent result mapping', () => {
     [
       'generate_content',
       { brandId: 'brand-1', topic: 'Launch week', type: 'post' },
+      [GENERATION_TOOL_TIMEOUT_MS],
     ],
-    ['get_generation_options', { type: 'image' }],
-  ])('proxies %s through the agent executor', async (name, args) => {
+    ['get_generation_options', { type: 'image' }, []],
+  ])('proxies %s through the agent executor', async (name, args, budget) => {
     const { client, registry } = build();
 
     await callTool(registry, name, args);
 
-    expect(client.executeAgentTool).toHaveBeenCalledWith(name, args, undefined);
+    expect(client.executeAgentTool).toHaveBeenCalledWith(
+      name,
+      args,
+      undefined,
+      ...budget,
+    );
     expect(client.createApproval).not.toHaveBeenCalled();
   });
 
