@@ -365,6 +365,13 @@ previously fell months behind `master`.
 npm failure blocks the release: the GitHub release stays a draft, so a red npm
 lane is visible instead of silent.
 
+npm can hold a published version in a staging area until a maintainer approves
+it with 2FA (npmjs.com, Staged Packages tab, or `npm stage approve <id>`). The
+workflow cannot give 2FA, so a staged package is not live: the lane stages every
+package in the plan, then fails naming each one that is not live. Approve them,
+then dispatch the same workflow again; a version that is live is checked against
+the plan's tarball digest and skipped, and the run goes green.
+
 ### The public surface is two packages
 
 Only the installable products are public:

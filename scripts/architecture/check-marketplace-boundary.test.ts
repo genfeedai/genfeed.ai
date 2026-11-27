@@ -39,7 +39,7 @@ describe('check-marketplace-boundary', () => {
       'packages/props/cards/listing-card.props.ts':
         "import type { IListingPreview } from '@genfeedai/contracts/interfaces';\nexport interface ListingCardProps { listing: IListingPreview; }",
       'packages/services/core/environment.service.ts':
-        "export const MARKETPLACE_ORIGIN = 'https://marketplace.genfeed.ai';",
+        "export const MARKETPLACE_ORIGIN = 'https://shop.genfeed.ai';",
     });
 
     expect(runCheckMarketplaceBoundary({ rootDir }).violations).toEqual([]);
