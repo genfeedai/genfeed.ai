@@ -1,6 +1,7 @@
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { CLIENT_LOGO_SVGS } from '@genfeedai/helpers/integrations/connect-client-logos.helper';
 import { McpResourceConfigurationError } from '@genfeedai/helpers/integrations/mcp-resource.helper';
-import { CLIENT_LOGO_SVGS, resolveClientLogo } from '@mcp/mcp/client-logos';
+import { resolveClientLogo } from '@mcp/mcp/client-logos';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,

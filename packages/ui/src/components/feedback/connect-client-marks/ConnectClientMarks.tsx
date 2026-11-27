@@ -1,29 +1,24 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { CLIENT_LOGO_SVGS } from '@genfeedai/helpers/integrations/connect-client-logos.helper';
 import type { ConnectClientMarkId } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
-import {
-  AnthropicIcon,
-  MetaIcon,
-  OpenAiIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
-import { XaiIcon } from '@genfeedai/helpers/ui/icons/brands/model-provider-icons';
 import type { ConnectClientMarksProps } from '@genfeedai/props/ui/feedback/connect-client-marks.props';
-import type { ComponentType, SVGProps } from 'react';
 
-interface MarkStyle {
-  /** Official marks are drawn on their owner's backing so they read in either theme, as on the MCP setup page. */
-  backing: string;
-  color: string;
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
-}
-
-const MARKS: Record<ConnectClientMarkId, MarkStyle> = {
-  claude: { backing: '#ffffff', color: '#d97757', Icon: AnthropicIcon },
-  codex: { backing: '#ffffff', color: '#000000', Icon: OpenAiIcon },
-  grok: { backing: '#050505', color: '#fcfcfc', Icon: XaiIcon },
-  meta: { backing: '#ffffff', color: '#0082fb', Icon: MetaIcon },
+/** Official marks sit on their owner's backing so they read in either theme. */
+const BACKINGS: Record<ConnectClientMarkId, string> = {
+  claude: '#ffffff',
+  codex: '#ffffff',
+  grok: '#050505',
+  meta: '#ffffff',
 };
 
-/** The application marks of a client, as the small tiles the MCP setup page shows on its tabs. */
+const MARK_SOURCES = Object.fromEntries(
+  Object.entries(CLIENT_LOGO_SVGS).map(([mark, svg]) => [
+    mark,
+    `data:image/svg+xml,${encodeURIComponent(svg)}`,
+  ]),
+) as Record<ConnectClientMarkId, string>;
+
+/** The application marks of a client, the same tiles the MCP setup page shows on its tabs. */
 export default function ConnectClientMarks({
   className,
   marks,
@@ -34,18 +29,21 @@ export default function ConnectClientMarks({
 
   return (
     <span aria-hidden="true" className={cn('inline-flex gap-1', className)}>
-      {marks.map((mark) => {
-        const { backing, color, Icon } = MARKS[mark];
-        return (
-          <span
-            className="inline-grid size-5 place-items-center rounded-[5px]"
-            key={mark}
-            style={{ backgroundColor: backing, color }}
-          >
-            <Icon className="size-3.5" />
-          </span>
-        );
-      })}
+      {marks.map((mark) => (
+        <span
+          className="inline-grid size-5 place-items-center rounded-[5px]"
+          key={mark}
+          style={{ backgroundColor: BACKINGS[mark], colorScheme: 'light' }}
+        >
+          <img
+            alt=""
+            className="size-3.5"
+            height={14}
+            src={MARK_SOURCES[mark]}
+            width={14}
+          />
+        </span>
+      ))}
     </span>
   );
 }
