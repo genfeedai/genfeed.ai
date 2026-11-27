@@ -64,9 +64,9 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('PricingContent', () => {
-  it('shows Pro, Scale and Enterprise side by side, with PAYG in its own block', () => {
+  it('shows Pro, Scale and Done for you side by side, with PAYG in its own block', () => {
     render(<PricingContent />);
-    const cards = ['Pro', 'Scale', 'Enterprise'].map((name) =>
+    const cards = ['Pro', 'Scale', 'Done for you'].map((name) =>
       screen.getByLabelText(name),
     );
     expect(cards[0]).toHaveTextContent('$39');
@@ -89,7 +89,7 @@ describe('PricingContent', () => {
     const table = within(screen.getByRole('table', { name: 'Compare plans' }));
     expect(
       table.getAllByRole('columnheader').map((header) => header.textContent),
-    ).toEqual(['Feature', 'Pay As You Go', 'Pro', 'Scale', 'Enterprise']);
+    ).toEqual(['Feature', 'Pay As You Go', 'Pro', 'Scale', 'Done for you']);
     const row = table.getByRole('row', {
       name: /Automation, Messages, Discovery/,
     });
@@ -103,16 +103,19 @@ describe('PricingContent', () => {
     ).toEqual(['—', '✓', '✓', '✓']);
   });
 
-  it('promises free credits after onboarding', () => {
+  it('prints the sign-up gift, the card grant and the expiry, not their sum', () => {
     render(<PricingContent />);
-    expect(
-      screen.getAllByText(/100 free credits after onboarding/).length,
-    ).toBeGreaterThan(0);
+    const grants =
+      '25 credits when you sign up, 75 more when you add a card. Free credits last 72 hours.';
+
+    // The Pay As You Go strip and the "Is there a free trial?" FAQ answer.
+    expect(screen.getAllByText(new RegExp(grants)).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/100 free credits/)).not.toBeInTheDocument();
   });
 
-  it('prices Enterprise, which includes our team making the content, as a from price with a direct booking link', () => {
+  it('prices Done for you, which includes our team making the content, as a from price with a direct booking link', () => {
     render(<PricingContent />);
-    const managed = within(screen.getByLabelText('Enterprise'));
+    const managed = within(screen.getByLabelText('Done for you'));
     expect(managed.getByText('From')).toBeInTheDocument();
     expect(managed.getByText('$2,500')).toBeInTheDocument();
     expect(managed.queryByText(/performance fee per contract/)).toBeNull();
@@ -173,7 +176,7 @@ describe('PricingContent', () => {
       ],
     ],
     [
-      'Enterprise',
+      'Done for you',
       [
         'Everything in Scale',
         'We run production, publishing',
@@ -189,12 +192,67 @@ describe('PricingContent', () => {
     expect(items.map((item) => item.textContent)).toEqual(bullets);
   });
 
+  it('names no Enterprise promise the product does not deliver', () => {
+    const { container } = render(<PricingContent />);
+    const text = container.textContent ?? '';
+
+    expect(text).not.toMatch(/\bSSO\b/);
+    expect(text).not.toMatch(/white-label/i);
+    expect(text).not.toMatch(/99\.9/);
+    expect(text).not.toMatch(/\bSLA\b/);
+  });
+
   it('uses the tokenized dark card surface for the featured plan', () => {
     render(<PricingContent />);
 
     expect(screen.getByText('Popular').closest('.gsap-card')).toHaveClass(
       'bg-card',
     );
+  });
+
+  it.each([
+    ['Pro', 'Start Pro', 'pro'],
+    ['Scale', 'Start Scale', 'scale'],
+    ['Done for you', 'Book a call', 'done_for_you'],
+  ])(
+    'sends one pricing_plan_click event carrying the plan from the %s card',
+    (card, buttonName, plan) => {
+      const listener = vi.fn();
+      window.addEventListener('genfeed:marketing:button-click', listener);
+      render(<PricingContent />);
+
+      fireEvent.click(
+        within(screen.getByLabelText(card)).getByRole('link', {
+          name: buttonName,
+        }),
+      );
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener.mock.calls[0][0].detail).toEqual({
+        trackingData: { plan },
+        trackingName: 'pricing_plan_click',
+      });
+      window.removeEventListener('genfeed:marketing:button-click', listener);
+    },
+  );
+
+  it('sends one pricing_plan_click event carrying payg from the Pay As You Go button', () => {
+    const listener = vi.fn();
+    window.addEventListener('genfeed:marketing:button-click', listener);
+    render(<PricingContent />);
+
+    fireEvent.click(
+      screen.getByRole('link', {
+        name: getPlanByTier('payg').cta || 'Get Started',
+      }),
+    );
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener.mock.calls[0][0].detail).toEqual({
+      trackingData: { plan: 'payg' },
+      trackingName: 'pricing_plan_click',
+    });
+    window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
   it('shows Pro at the launch price with the full price crossed out', () => {

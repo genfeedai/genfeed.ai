@@ -13,8 +13,8 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 // search results and flagged "Meta description too long" by the 2026-08-19
 // site audit.
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Pricing: Pro, Scale, Enterprise and PAYG',
-  `${PLAN_COPY.pro.nameWithPrice} for creators, ${PLAN_COPY.scale.nameWithPrice} for agencies, ${PLAN_COPY.enterprise.name} ${serviceOffering.priceLabel.toLowerCase()} with content made for you.`,
+  'Pricing: Pro, Scale, Done for you and PAYG',
+  `${PLAN_COPY.pro.nameWithPrice} for creators, ${PLAN_COPY.scale.nameWithPrice} for agencies, ${serviceOffering.name} ${serviceOffering.priceLabel.toLowerCase()} with content made for you.`,
   '/pricing',
 );
 
@@ -24,7 +24,7 @@ export const generateMetadata = createPageMetadataWithCanonical(
  */
 const OFFER_DESCRIPTIONS: Record<PlanTier, string> = {
   enterprise:
-    'Enterprise plan with custom output terms, SSO, SLA, and dedicated support.',
+    'Enterprise plan with custom output terms, custom API limits, and dedicated support.',
   payg: 'Pay-per-output credits with no monthly fee. Buy credit packs for images, video, voice, and articles.',
   pro: `For creators and single brands: every app, a pool of ${PLAN_COPY.pro.includedCredits}, clean exports, and any agent model.`,
   scale: `For agencies: unlimited seats and client workspaces, a shared pool of ${PLAN_COPY.scale.includedCredits}, clean exports, brand model training, and higher API limits.`,
@@ -35,7 +35,7 @@ export function buildPricingJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     about: buildDoneForYouJsonLd(),
-    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} adds every app and monthly credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats and client workspaces for agencies. ${PLAN_COPY.enterprise.name} is ${serviceOffering.priceLabel.toLowerCase()}, with our team making your content.`,
+    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} adds every app and monthly credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats and client workspaces for agencies. ${serviceOffering.name} is ${serviceOffering.priceLabel.toLowerCase()}, with our team making your content.`,
     mainEntity: {
       '@type': 'Product',
       brand: { '@type': 'Organization', name: 'Genfeed' },
