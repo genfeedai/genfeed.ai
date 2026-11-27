@@ -39,7 +39,11 @@ export function requiresMcpAgentConfirmation(
 ): boolean {
   if (!isMcpAgentConfirmedTool(name)) return false;
   if (name === 'control_scheduled_release') {
-    return args?.action === 'publish-now' || args?.action === 'resume';
+    return (
+      args?.action === 'publish-now' ||
+      args?.action === 'resume' ||
+      (args?.action === 'reopen' && Boolean(args.scheduledDate))
+    );
   }
   return isMcpApprovalGated(name, args);
 }

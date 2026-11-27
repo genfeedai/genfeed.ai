@@ -59,7 +59,7 @@ describe('PostLifecycleService', () => {
     const expected: Readonly<
       Record<TargetExecutionState, ReadonlySet<TargetExecutionState>>
     > = {
-      [TargetExecutionState.CANCELLED]: new Set(),
+      [TargetExecutionState.CANCELLED]: new Set([TargetExecutionState.DRAFT]),
       [TargetExecutionState.DRAFT]: new Set([
         TargetExecutionState.CANCELLED,
         TargetExecutionState.FAILED,

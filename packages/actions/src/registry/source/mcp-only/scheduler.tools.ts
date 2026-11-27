@@ -334,18 +334,23 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. publish-now and resume change nothing on the first call: show the person what returns, and after they agree in this conversation repeat the call with confirmed true. cancel and pause need no confirmation.',
+      'Request cancel, reopen, pause, resume or publish-now for an existing release. reopen undoes a cancel on the same release (back to a draft, or scheduled again at scheduledDate): use it instead of creating a new release for a post that was cancelled. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. publish-now, resume and reopen with scheduledDate change nothing on the first call: show the person what returns, and after they agree in this conversation repeat the call with confirmed true. cancel, pause and reopen without scheduledDate need no confirmation.',
     mcpDescription:
-      'Request cancel, pause, resume or publish-now. First review content/channels/timing with get_scheduled_release; check_channel(action=validate) before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. publish-now and resume: first call changes nothing; after the person agrees in this conversation, repeat with confirmed true. cancel and pause need none.',
+      'Request cancel, reopen, pause, resume or publish-now. reopen undoes a cancel on the same release (draft, or scheduled again at scheduledDate): never create a new release for a cancelled post. First review content/channels/timing with get_scheduled_release; check_channel(action=validate) before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. publish-now, resume and reopen with scheduledDate: first call changes nothing; after the person agrees in this conversation, repeat with confirmed true. cancel, pause and reopen without scheduledDate need none.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {
         action: {
-          enum: ['cancel', 'pause', 'resume', 'publish-now'],
+          enum: ['cancel', 'reopen', 'pause', 'resume', 'publish-now'],
           type: 'string',
         },
         confirmed: confirmedSchema,
         releaseId: { type: 'string' },
+        scheduledDate: {
+          description:
+            'Only with action=reopen: ISO 8601 time in the future to schedule the reopened post at. Omit to reopen it as a draft.',
+          type: 'string',
+        },
       },
       required: ['releaseId', 'action'],
       type: 'object',

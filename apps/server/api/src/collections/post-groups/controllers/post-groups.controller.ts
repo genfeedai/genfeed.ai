@@ -234,6 +234,15 @@ export class PostGroupsController {
         case 'cancel':
           data = await this.postGroupsService.cancel(organization, user.id, id);
           break;
+        case 'reopen':
+          data = await this.postGroupsService.reopen(
+            organization,
+            user.id,
+            id,
+            body,
+            metadata,
+          );
+          break;
         case 'publish-now':
           data = await this.postGroupsService.publishNow(
             organization,

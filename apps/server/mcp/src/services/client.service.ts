@@ -561,8 +561,13 @@ export class ClientService {
   controlScheduledRelease(
     releaseId: string,
     action: ScheduledReleaseControlAction,
+    scheduledDate?: string,
   ): Promise<IReleaseGroup> {
-    return this.scheduler.controlScheduledRelease(releaseId, action);
+    return this.scheduler.controlScheduledRelease(
+      releaseId,
+      action,
+      scheduledDate,
+    );
   }
 
   listSchedulerCapabilities(

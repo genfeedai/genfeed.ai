@@ -31,8 +31,10 @@ or the CLI.
 | `POST`  | `/v1/post-groups/recurrence/preview`      | Preview a recurrence rule without creating a release.                                                                                                           |
 | `PATCH` | `/v1/post-groups/{id}/series/future`      | Edit future occurrences in a recurring series.                                                                                                                  |
 
-`PATCH /v1/post-groups/{id}` accepts lifecycle actions `cancel`, `pause`,
-`resume`, and `publish-now`. Recurring-series actions and calendar moves use the
+`PATCH /v1/post-groups/{id}` accepts lifecycle actions `cancel`, `reopen`,
+`pause`, `resume`, and `publish-now`. `reopen` undoes a cancel on the same
+release (back to a draft, or scheduled again when the body carries a future
+`scheduledDate`). Recurring-series actions and calendar moves use the
 same route. To reschedule without changing content, send the request field
 `scheduledDate`; serialized responses expose the resulting timestamp as
 `scheduledAt`.
