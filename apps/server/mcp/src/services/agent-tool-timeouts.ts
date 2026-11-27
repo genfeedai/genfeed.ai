@@ -12,7 +12,7 @@
 export const GENERATION_TOOL_TIMEOUT_MS = 55_000;
 
 /** Agent tool name to its own budget, for the tools that wait on a model. */
-export const AGENT_TOOL_TIMEOUT_MS: Readonly<Record<string, number>> = {
+const AGENT_TOOL_TIMEOUT_MS: Readonly<Record<string, number>> = {
   generate: GENERATION_TOOL_TIMEOUT_MS,
   generate_content: GENERATION_TOOL_TIMEOUT_MS,
 };
