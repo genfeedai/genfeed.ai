@@ -216,7 +216,7 @@ describe('MCP input documentation', () => {
     });
     expect(tool('resolve_approval').description).toContain('Owners/admins');
     expect(original('control_scheduled_release').description).toContain(
-      'publish-now and resume: first call changes nothing',
+      'publish-now, resume and reopen with scheduledDate: first call changes nothing',
     );
     expect(original('update_scheduled_release').description).toContain(
       'Live-content changes may update public posts',
