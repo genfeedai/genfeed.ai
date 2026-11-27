@@ -17,6 +17,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Folder, FolderOpen, FolderPlus, Trash2 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -195,8 +196,8 @@ export default function DesktopWorkspaceSettings() {
       </div>
 
       {isNaming ? (
-        <form
-          className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-end"
+        <Form
+          className="rounded-lg border border-border p-4 sm:flex-row sm:items-end"
           onSubmit={handleCreate}
         >
           <div className="min-w-0 flex-1">
@@ -231,12 +232,12 @@ export default function DesktopWorkspaceSettings() {
               withWrapper={false}
             />
           </div>
-        </form>
+        </Form>
       ) : null}
 
       {state.workspaces.length > 0 ? (
         <div>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('recent')}
           </h3>
           <div className="overflow-hidden rounded-lg border border-border">

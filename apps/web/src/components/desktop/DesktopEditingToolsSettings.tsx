@@ -109,12 +109,8 @@ export default function DesktopEditingToolsSettings() {
           </p>
         </div>
         <Button
-          icon={
-            <RefreshCw
-              className={`size-4 ${isChecking ? 'animate-spin' : ''}`}
-            />
-          }
-          isDisabled={isChecking}
+          icon={<RefreshCw className="size-4" />}
+          isLoading={isChecking}
           label={translate('check')}
           onClick={() => void check()}
           size={ButtonSize.SM}
