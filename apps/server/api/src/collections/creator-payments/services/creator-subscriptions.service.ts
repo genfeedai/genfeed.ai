@@ -49,6 +49,9 @@ const CANNOT_PAY_CODES: ReadonlySet<string> = new Set([
   'INSUFFICIENT_CREDITS',
 ]);
 
+/** The most subscriptions one workspace's Team list shows, soonest charge first. */
+const OUTGOING_LIST_LIMIT = 200;
+
 const SUBSCRIPTION_SELECT = {
   brand: { select: { label: true, slug: true } },
   brandId: true,
@@ -465,7 +468,9 @@ export class CreatorSubscriptionsService {
     payerOrganizationId: string,
   ): Promise<ICreatorTeamSubscription[]> {
     const owners = await this.prisma.organization.findMany({
+      orderBy: { id: 'asc' },
       select: { id: true },
+      take: OUTGOING_LIST_LIMIT,
       where: {
         creatorSubscriptions: {
           some: {
@@ -485,6 +490,7 @@ export class CreatorSubscriptionsService {
             await this.prisma.creatorSubscription.findMany({
               orderBy: { currentPeriodEnd: 'asc' },
               select: SUBSCRIPTION_SELECT,
+              take: OUTGOING_LIST_LIMIT,
               where: scopedWhere(owner.id, {
                 payerOrganizationId,
                 status: { in: LIVE_STATUSES },
@@ -493,7 +499,13 @@ export class CreatorSubscriptionsService {
         ),
       ),
     );
-    const records = perOwner.flat();
+    const records = perOwner
+      .flat()
+      .sort(
+        (left, right) =>
+          left.currentPeriodEnd.getTime() - right.currentPeriodEnd.getTime(),
+      )
+      .slice(0, OUTGOING_LIST_LIMIT);
     const readerIds = [...new Set(records.map((record) => record.payerUserId))];
     const readers = await Promise.all(
       readerIds.map(async (userId) => ({
