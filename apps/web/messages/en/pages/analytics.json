@@ -84,6 +84,7 @@
     "analyzeHook": "Analyze hook",
     "baseline": "Baseline",
     "breakoutTier": "Breakout (10x+)",
+    "calculatedByGenfeed": "Calculated by Genfeed",
     "computed": "Computed",
     "contributingPosts": "Contributing posts",
     "empty": "No outlier posts for these filters",
@@ -115,6 +116,7 @@
     "unknownEligibilityReady": "Pinned and promoted state was available for this account.",
     "views": "Views",
     "window": "Window",
+    "youtubeMultipleNote": "This multiple is calculated by Genfeed from YouTube view counts. It is not a metric provided by YouTube.",
     "postsLabel": "Outlier posts",
     "postsTotalLabel": "posts",
     "loadError": "Unable to load outlier posts"

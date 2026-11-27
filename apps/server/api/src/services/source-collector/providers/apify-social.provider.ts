@@ -15,20 +15,6 @@ import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-/** YouTube channel ids are `UC` followed by 22 URL-safe characters. */
-const YOUTUBE_CHANNEL_ID_PATTERN = /^UC[\w-]{22}$/;
-
-/**
- * Build a YouTube channel URL for Apify's channel scraper from a bare
- * handle. A canonical channel id (`UC…`) resolves to `/channel/{id}`;
- * anything else is treated as an `@handle`.
- */
-function toYoutubeChannelUrl(handle: string): string {
-  return YOUTUBE_CHANNEL_ID_PATTERN.test(handle)
-    ? `https://www.youtube.com/channel/${handle}`
-    : `https://www.youtube.com/@${handle}`;
-}
-
 /**
  * Build a LinkedIn profile URL for Apify's profile scraper from a bare
  * handle. LinkedIn source handles already collapse `/in/`, `/company/` and
@@ -60,9 +46,11 @@ function readDate(value: unknown): Date | undefined {
 }
 
 /**
- * Apify fallback for public timelines (IG / TikTok / YouTube / LinkedIn).
- * YouTube and LinkedIn throw when APIFY_API_TOKEN is missing (honest
- * failure). X is read only through the official X API providers.
+ * Apify fallback for public timelines (IG / TikTok / LinkedIn). LinkedIn
+ * throws when APIFY_API_TOKEN is missing (honest failure). X is read only
+ * through the official X API providers. YouTube is never read through Apify:
+ * its API policy bars scraped data, so a read the official API cannot serve
+ * fails with the API provider's own error.
  */
 @Traced()
 @Injectable()
@@ -71,7 +59,6 @@ export class ApifySocialProvider implements SourceTimelineProvider {
   readonly platforms = [
     SocialSourcePlatform.INSTAGRAM,
     SocialSourcePlatform.TIKTOK,
-    SocialSourcePlatform.YOUTUBE,
     SocialSourcePlatform.LINKEDIN,
   ] as const;
 
@@ -157,49 +144,6 @@ export class ApifySocialProvider implements SourceTimelineProvider {
             thumbnailUrl: video.musicMeta?.coverUrl,
           }),
         ),
-        provider: 'apify',
-      };
-    }
-
-    if (platform === SocialSourcePlatform.YOUTUBE) {
-      const videos = await this.attributed(() =>
-        apify.getYouTubeChannelUploads(
-          toYoutubeChannelUrl(handle),
-          { limit },
-          researchContext,
-        ),
-      );
-      return {
-        handle,
-        platform,
-        posts: videos
-          .map((video): CollectedSourcePost | undefined => {
-            const id = readNonEmptyString(video.id);
-            if (!id) {
-              return undefined;
-            }
-            const url =
-              readNonEmptyString(video.url) ??
-              `https://www.youtube.com/watch?v=${id}`;
-            return {
-              ...normalizeSourcePostFlags(video),
-              authorId: readNonEmptyString(video.channelId),
-              authorUsername: readNonEmptyString(video.channelName) || handle,
-              contentType: 'video',
-              contentUrl: url,
-              createdAt: readDate(video.publishedAt),
-              id,
-              metrics: {
-                comments: readCount(video.commentCount),
-                likes: readCount(video.likeCount),
-                views: readCount(video.viewCount),
-              },
-              platform: SocialSourcePlatform.YOUTUBE,
-              text: readNonEmptyString(video.title) ?? '',
-              thumbnailUrl: readNonEmptyString(video.thumbnailUrl),
-            };
-          })
-          .filter((post): post is CollectedSourcePost => Boolean(post)),
         provider: 'apify',
       };
     }

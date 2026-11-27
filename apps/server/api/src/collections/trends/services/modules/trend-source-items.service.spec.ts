@@ -9,7 +9,6 @@ type ApifyMock = {
   getHeldInstagramHashtagPosts: ReturnType<typeof vi.fn>;
   searchInstagramByHashtag: ReturnType<typeof vi.fn>;
   searchTikTokByHashtag: ReturnType<typeof vi.fn>;
-  searchYouTubeVideos: ReturnType<typeof vi.fn>;
 };
 
 const makeTrend = (overrides: Record<string, unknown> = {}): TrendEntity =>
@@ -39,7 +38,6 @@ describe('TrendSourceItemsService', () => {
       getHeldInstagramHashtagPosts: vi.fn().mockResolvedValue([]),
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
-      searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
 
     twitter = { searchRecentTweets: vi.fn().mockResolvedValue([]) };
@@ -270,21 +268,6 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
-    it('falls back to the topic when no hashtag is present', async () => {
-      await service.fetchTrendSourceItems(
-        makeTrend({
-          metadata: {},
-          platform: 'youtube',
-          topic: 'creator stacks',
-        }),
-        5,
-      );
-
-      expect(apify.searchYouTubeVideos).toHaveBeenCalledWith('creator stacks', {
-        limit: 5,
-      });
-    });
-
     it('dispatches TikTok and drops videos without a web url', async () => {
       apify.searchTikTokByHashtag.mockResolvedValue([
         {
@@ -328,29 +311,13 @@ describe('TrendSourceItemsService', () => {
       expect(result[0]?.thumbnailUrl).toBe('https://cdn.test/cover.jpg');
     });
 
-    it('dispatches YouTube and drops videos without a url', async () => {
-      apify.searchYouTubeVideos.mockResolvedValue([
-        {
-          channelName: 'chan',
-          id: 'yt-1',
-          title: 'A video',
-          url: 'https://youtu.be/1',
-        },
-        { id: 'yt-2', title: 'missing url' }, // no url -> null -> filtered
-      ]);
-
+    it('returns no live source items for YouTube, whose API policy bars scraped data', async () => {
       const result = await service.fetchTrendSourceItems(
         makeTrend({ platform: 'youtube' }),
         5,
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        authorHandle: 'chan',
-        platform: 'youtube',
-        sourceUrl: 'https://youtu.be/1',
-        title: 'A video',
-      });
+      expect(result).toEqual([]);
     });
 
     it('returns no live source items for Reddit, which has no scraper behind it', async () => {

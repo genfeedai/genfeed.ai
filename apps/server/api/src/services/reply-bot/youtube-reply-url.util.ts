@@ -5,7 +5,7 @@ const YOUTUBE_HOST_PATTERN = /youtube\.com\//i;
 const YOUTU_BE_HOST_PATTERN = /youtu\.be\//i;
 
 /**
- * Pure YouTube URL normalizers for reply-inbox Apify/startUrl inputs.
+ * Pure YouTube URL normalizers for reply-inbox channel/video URL inputs.
  * SocialMonitor YouTube handlers forward strings as channel/video URLs — bare
  * UC… / handle / videoId strings do not resolve.
  */

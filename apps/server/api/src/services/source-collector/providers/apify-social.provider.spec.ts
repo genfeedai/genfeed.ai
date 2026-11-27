@@ -15,7 +15,6 @@ describe('ApifySocialProvider', () => {
     getInstagramUserPosts: vi.fn(),
     getLinkedInProfilePosts: vi.fn(),
     getTikTokUserVideos: vi.fn(),
-    getYouTubeChannelUploads: vi.fn(),
   };
 
   let provider: ApifySocialProvider;
@@ -32,93 +31,20 @@ describe('ApifySocialProvider', () => {
     ).resolves.toBe(false);
   });
 
-  it('serves Instagram, TikTok, YouTube and LinkedIn', async () => {
+  it('serves Instagram, TikTok and LinkedIn', async () => {
     for (const platform of [
       SocialSourcePlatform.INSTAGRAM,
       SocialSourcePlatform.TIKTOK,
-      SocialSourcePlatform.YOUTUBE,
       SocialSourcePlatform.LINKEDIN,
     ]) {
       await expect(provider.canCollect(platform)).resolves.toBe(true);
     }
   });
 
-  describe('YouTube', () => {
-    it('maps channel uploads by @handle into collected posts', async () => {
-      apifyService.getYouTubeChannelUploads.mockResolvedValue([
-        {
-          channelId: 'UC123',
-          channelName: 'Creator',
-          commentCount: 4,
-          id: 'v1',
-          likeCount: 10,
-          publishedAt: '2026-08-01T00:00:00Z',
-          thumbnailUrl: 'https://img/v1.jpg',
-          title: 'A video',
-          url: 'https://youtube.com/watch?v=v1',
-          viewCount: 100,
-        },
-      ]);
-
-      const result = await provider.collectTimeline(
-        SocialSourcePlatform.YOUTUBE,
-        'creator',
-        { limit: 10 },
-      );
-
-      expect(apifyService.getYouTubeChannelUploads).toHaveBeenCalledWith(
-        'https://www.youtube.com/@creator',
-        { limit: 10 },
-        undefined,
-      );
-      expect(result.provider).toBe('apify');
-      expect(result.posts).toEqual([
-        {
-          authorId: 'UC123',
-          authorUsername: 'Creator',
-          contentType: 'video',
-          contentUrl: 'https://youtube.com/watch?v=v1',
-          createdAt: new Date('2026-08-01T00:00:00Z'),
-          id: 'v1',
-          isPinned: null,
-          isPromoted: null,
-          metrics: { comments: 4, likes: 10, views: 100 },
-          platform: SocialSourcePlatform.YOUTUBE,
-          text: 'A video',
-          thumbnailUrl: 'https://img/v1.jpg',
-        },
-      ]);
-    });
-
-    it('resolves a canonical channel id to a /channel/ url', async () => {
-      apifyService.getYouTubeChannelUploads.mockResolvedValue([]);
-
-      await provider.collectTimeline(
-        SocialSourcePlatform.YOUTUBE,
-        'UC1234567890123456789012',
-        {},
-      );
-
-      expect(apifyService.getYouTubeChannelUploads).toHaveBeenCalledWith(
-        'https://www.youtube.com/channel/UC1234567890123456789012',
-        { limit: 25 },
-        undefined,
-      );
-    });
-
-    it('drops videos without an id', async () => {
-      apifyService.getYouTubeChannelUploads.mockResolvedValue([
-        { title: 'no id' },
-      ]);
-
-      const result = await provider.collectTimeline(
-        SocialSourcePlatform.YOUTUBE,
-        'creator',
-        {},
-      );
-
-      expect(result.posts).toEqual([]);
-    });
+  it('never serves YouTube, whose policy bars scraped data', async () => {
+    await expect(
+      provider.canCollect(SocialSourcePlatform.YOUTUBE),
+    ).resolves.toBe(false);
   });
 
   describe('LinkedIn', () => {
@@ -205,7 +131,6 @@ describe('ApifySocialProvider', () => {
   it.each([
     [SocialSourcePlatform.INSTAGRAM, 'getInstagramUserPosts'],
     [SocialSourcePlatform.TIKTOK, 'getTikTokUserVideos'],
-    [SocialSourcePlatform.YOUTUBE, 'getYouTubeChannelUploads'],
     [SocialSourcePlatform.LINKEDIN, 'getLinkedInProfilePosts'],
   ] as const)(
     'passes canonical scope to hosted %s fallback',

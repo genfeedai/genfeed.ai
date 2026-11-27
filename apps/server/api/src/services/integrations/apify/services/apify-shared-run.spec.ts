@@ -80,7 +80,6 @@ describe('one billed run per source for every dataset built from it', () => {
       new ApifyInstagramService(base, {} as never),
       {} as never,
       {} as never,
-      {} as never,
     );
   });
 

@@ -12,7 +12,6 @@ import { CacheService } from '@api/services/cache/cache.service';
 import type {
   ApifyInstagramPost,
   ApifyTikTokVideo,
-  ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
@@ -137,18 +136,6 @@ export class TrendSourceItemsService {
         );
         return this.normalizeSourceItems(tweets.slice(0, limit), (tweet) =>
           this.mapTweetToSourceItem(tweet),
-        );
-      },
-      youtube: async () => {
-        const videos = await runWithDefaultApifyCaller(
-          'trends.source-preview',
-          () =>
-            this.apifyService.searchYouTubeVideos(searchTerm, {
-              limit,
-            }),
-        );
-        return this.normalizeSourceItems(videos, (video) =>
-          this.mapYouTubeVideoToSourceItem(video),
         );
       },
     };
@@ -348,32 +335,6 @@ export class TrendSourceItemsService {
       sourceUrl,
       text: tweet.text,
       title: this.truncateText(tweet.text, 100),
-    };
-  }
-
-  private mapYouTubeVideoToSourceItem(
-    video: ApifyYouTubeVideo,
-  ): TrendSourceItem | null {
-    if (!video.url) {
-      return null;
-    }
-
-    return {
-      authorHandle: video.channelName || undefined,
-      contentType: 'video',
-      id: video.id,
-      mediaUrl: video.url,
-      metrics: {
-        comments: video.commentCount,
-        likes: video.likeCount,
-        views: video.viewCount,
-      },
-      platform: 'youtube',
-      publishedAt: video.publishedAt || undefined,
-      sourceUrl: video.url,
-      text: video.description,
-      thumbnailUrl: video.thumbnailUrl,
-      title: video.title,
     };
   }
 

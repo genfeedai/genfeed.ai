@@ -218,6 +218,53 @@ describe('AnalyticsOutliers', () => {
     );
   });
 
+  it('labels a YouTube multiple as calculated by Genfeed, and no other platform', async () => {
+    const doc = {
+      baselineSnapshotId: 'snap-1',
+      exclusionReasons: [],
+      medianViews: 30000,
+      outlierRatio: 10,
+      outlierTier: 'breakout',
+      sampleSize: 20,
+      sourcePostId: null,
+      views: 300000,
+    };
+    mocks.listPosts.mockResolvedValue({
+      docs: [
+        {
+          ...doc,
+          id: 'p1',
+          logicalPostId: 'youtube-post',
+          platform: 'youtube',
+          postId: 'post-1',
+        },
+        {
+          ...doc,
+          id: 'p2',
+          logicalPostId: 'tiktok-post',
+          platform: 'tiktok',
+          postId: 'post-2',
+        },
+      ],
+      total: 2,
+    });
+
+    render(
+      <ContextSidebarProvider>
+        <AnalyticsProvider>
+          <AnalyticsOutliers />
+        </AnalyticsProvider>
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>,
+    );
+
+    await screen.findByRole('link', { name: 'youtube-post' });
+    expect(screen.getAllByText('calculatedByGenfeed')).toHaveLength(1);
+
+    fireEvent.click(screen.getByText('YouTube'));
+    expect(await screen.findByText('youtubeMultipleNote')).toBeInTheDocument();
+  });
+
   it('shows insufficient-data empty copy when the ranked list is empty', async () => {
     mocks.listPosts.mockResolvedValue({ docs: [], total: 0 });
     render(

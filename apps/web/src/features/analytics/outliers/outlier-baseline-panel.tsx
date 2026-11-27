@@ -98,6 +98,11 @@ export default function OutlierBaselinePanel({
           <Text size="sm" color="subtle-60">
             {translate('sheetDescription')}
           </Text>
+          {post.platform === 'youtube' ? (
+            <Text size="sm" color="subtle-60">
+              {translate('youtubeMultipleNote')}
+            </Text>
+          ) : null}
         </div>
         {isLoading ? (
           <Text size="sm" color="subtle-60">

@@ -53,7 +53,6 @@ describe('TrendSourcePreviewService', () => {
     apify = {
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
-      searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
     cache = {
       claimOnce: vi.fn().mockResolvedValue('claimed'),

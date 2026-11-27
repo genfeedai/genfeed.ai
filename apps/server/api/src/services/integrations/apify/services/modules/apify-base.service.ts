@@ -40,7 +40,6 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 const ACTOR_PATH_PATTERN = /^[^/~]+\/[^/~]+$/;
-const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
 type ApifyActorRegistration = {
   capability: string;
@@ -69,10 +68,6 @@ export const APIFY_ACTOR_IDS = {
 
   // Twitter/X scrapers
   TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
-  YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
-
-  // YouTube scrapers
-  YOUTUBE_SCRAPER: 'streamers/youtube-scraper',
 };
 
 /**
@@ -128,14 +123,6 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
   'lexis-solutions/google-ads-scraper': {
     capability: 'google.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
-  },
-  'streamers/youtube-channel-scraper': {
-    capability: 'youtube.channel-lookup',
-    mode: 'fallback_only',
-  },
-  'streamers/youtube-scraper': {
-    capability: 'youtube.video-discovery',
-    mode: 'fallback_only',
   },
 };
 
@@ -821,26 +808,6 @@ export class ApifyBaseService {
     }
 
     return 0;
-  }
-
-  /**
-   * Parse YouTube duration string to seconds
-   */
-  parseDuration(duration?: string): number | undefined {
-    if (!duration) {
-      return undefined;
-    }
-
-    // Handle ISO 8601 duration format (PT1H2M3S)
-    const match = duration.match(ISO8601_DURATION_PATTERN);
-    if (match) {
-      const hours = parseInt(match[1] || '0', 10);
-      const minutes = parseInt(match[2] || '0', 10);
-      const seconds = parseInt(match[3] || '0', 10);
-      return hours * 3600 + minutes * 60 + seconds;
-    }
-
-    return undefined;
   }
 
   /**
