@@ -215,11 +215,26 @@ async function routeTikTokTrend(page: Page): Promise<void> {
   });
 }
 
+// The Desk also lists the default fixture's own signal ("Workflow demo"), which
+// has no remix selector and so a disabled Remix; the TikTok trend's is the
+// enabled one.
+function tikTokTrendRemix(page: Page): Locator {
+  return page.getByRole('button', { disabled: false, name: 'Remix' });
+}
+
+// Row actions sit under the card until the pointer is over it.
+async function remixTikTokTrend(page: Page): Promise<void> {
+  await page
+    .getByRole('button', { name: /A source caption that must remain/ })
+    .hover();
+  await tikTokTrendRemix(page).click();
+}
+
 async function openTikTokTrendFeed(page: Page): Promise<void> {
   // Platforms are a Filters facet on the feed now, so the TikTok trend arrives
   // through the Signal Desk's own trend content request.
   await page.goto(`${BRAND_BASE}/discovery/feed`);
-  await expect(page.getByRole('button', { name: 'Remix' })).toBeVisible();
+  await expect(tikTokTrendRemix(page)).toBeVisible();
 }
 
 /**
@@ -426,7 +441,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     });
 
     await openTikTokTrendFeed(authenticatedPage);
-    await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
+    await remixTikTokTrend(authenticatedPage);
     await editRemixConceptAndGenerate(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(/\/storyboard\/run-tiktok-1$/);
@@ -761,7 +776,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     );
 
     await openTikTokTrendFeed(authenticatedPage);
-    await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
+    await remixTikTokTrend(authenticatedPage);
 
     await expect(
       authenticatedPage.getByText(

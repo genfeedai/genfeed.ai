@@ -145,15 +145,37 @@ async function installBridge(
         (session: IDesktopSession | null) => void
       >();
       let resolve!: (context: IDesktopRuntimeContext) => void;
+      let selected = context;
+      // The bootstrap the shell reads names the same server as the runtime
+      // context; the generation quote scopes itself to its endpoint.
+      const bootstrapOf = (
+        runtime: IDesktopRuntimeContext,
+      ): IDesktopBootstrap => ({
+        environment: {
+          apiEndpoint: runtime.selectedApiEndpoint,
+          appEndpoint: 'http://localhost:3000',
+          appName: 'Genfeed',
+          appPort: 3000,
+          authEndpoint: runtime.selectedApiEndpoint,
+          cdnUrl: 'https://cdn.genfeed.ai',
+          mcpEndpoint: `${runtime.selectedApiEndpoint}/mcp`,
+          serverId: runtime.selectedServerId,
+          serverKind: runtime.selectedServerKind,
+          wsEndpoint: 'wss://notifications.genfeed.ai',
+        },
+        preferences: { nativeNotificationsEnabled: false },
+      });
       target.desktopRuntimeReads = 0;
       // This fixture supplies only the allowlisted runtime slice; the production
       // hook, shared store and shell components consume it unchanged.
       const app: Pick<
         IGenfeedDesktopBridge['app'],
+        | 'getBootstrap'
         | 'getRuntimeContext'
         | 'onDidChangeRuntimeContext'
         | 'onDidBootstrapChange'
       > = {
+        getBootstrap: () => Promise.resolve(bootstrapOf(selected)),
         getRuntimeContext: () => {
           target.desktopRuntimeReads++;
           return pending
@@ -190,7 +212,9 @@ async function installBridge(
         configurable: true,
       });
       target.desktopRuntimeEmit = (value) => {
+        selected = value;
         for (const callback of callbacks) callback(value);
+        for (const callback of bootstrapCallbacks) callback(bootstrapOf(value));
       };
       target.desktopRuntimeResolve = () => resolve(context);
     },
