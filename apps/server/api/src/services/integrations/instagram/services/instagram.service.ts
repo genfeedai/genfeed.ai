@@ -743,6 +743,20 @@ export class InstagramService {
     );
   }
 
+  /** Create a post's container ahead of time without publishing it. */
+  public prepareContainer(
+    ...args: Parameters<InstagramPublishingService['prepareContainer']>
+  ): ReturnType<InstagramPublishingService['prepareContainer']> {
+    return this.publishingService.prepareContainer(...args);
+  }
+
+  /** Publish a container `prepareContainer` made. */
+  public publishPreparedContainer(
+    ...args: Parameters<InstagramPublishingService['publishPreparedContainer']>
+  ): ReturnType<InstagramPublishingService['publishPreparedContainer']> {
+    return this.publishingService.publishPreparedContainer(...args);
+  }
+
   /**
    * @param credentialId - which connected Instagram account posts this carousel.
    */

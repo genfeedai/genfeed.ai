@@ -64,6 +64,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   PATTERN_EXTRACTION: 'pattern-extraction',
   PENDING_WORKFLOW_EXECUTION_RECONCILE: 'pending-workflow-execution-reconcile',
   POSTS_MANUAL_POST_REMINDERS: 'posts-manual-post-reminders',
+  POSTS_PREPARE: 'posts-prepare',
   POSTS_PUBLISH: 'posts-publish',
   POSTS_THREAD_COMMENTS: 'posts-thread-comments',
   QUEUE_METRICS_PUBLISH: 'queue-metrics-publish',
@@ -265,6 +266,13 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '* * * * *',
     timezone: 'UTC',
   },
+  // Uploads the media of posts due in the next few minutes (Instagram only for
+  // now), so the publish at the due time is one provider call. It fires on
+  // `publish-sweeps`.
+  [PLATFORM_SCHEDULED_TASKS.POSTS_PREPARE]: {
+    pattern: '* * * * *',
+    timezone: 'UTC',
+  },
   // The sweep only finds due posts and enqueues one job each (the publish runs
   // on the dedicated `scheduled-publish` queue), so a per-minute tick is one
   // indexed query per page of due posts. It fires on `publish-sweeps`.
@@ -380,9 +388,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
 /**
  * Tasks that fire on `PUBLISH_SWEEP_QUEUE` instead of `system-sweeps`. A due
  * post must not wait behind unrelated platform tasks for the processor, so the
- * two per-minute publishing sweeps have a queue and a processor of their own.
+ * per-minute publishing sweeps have a queue and a processor of their own.
  */
 export const PUBLISH_SWEEP_TASKS = [
+  PLATFORM_SCHEDULED_TASKS.POSTS_PREPARE,
   PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH,
   PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS,
 ] as const;

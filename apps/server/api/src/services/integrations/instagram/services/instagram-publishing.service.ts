@@ -11,6 +11,7 @@ import {
   type InstagramAudioConfiguration,
   type InstagramAudioTrack,
   type InstagramAudioType,
+  type InstagramContainerRequest,
 } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import type {
   InstagramCredentialResponse,
@@ -308,21 +309,20 @@ export class InstagramPublishingService {
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     try {
-      const createRes = await this.createMediaContainer(
+      const containerId = await this.createPostContainer(
         externalId,
+        accessToken,
         {
-          access_token: accessToken,
+          altText,
           caption: formatCaption(caption, hashtags),
-          image_url: imageUrl,
+          imageUrl,
+          isAiGenerated,
+          kind: 'image',
         },
-        decorationAttempts(
-          aiLabelParams(isAiGenerated),
-          altTextParams(altText),
-        ),
       );
       const publishRes = await this.publishContainer(
         externalId,
-        createRes.data.id,
+        containerId,
         accessToken,
       );
 
@@ -361,24 +361,19 @@ export class InstagramPublishingService {
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     try {
-      const params: Record<string, string | boolean> = {
-        access_token: accessToken,
-        caption: formatCaption(caption, hashtags),
-        media_type: InstagramMediaType.REELS,
-        share_to_feed: isShareToFeedSelected,
-        video_url: videoUrl,
-      };
-
-      const createRes = await this.createMediaContainer(
+      const containerId = await this.createPostContainer(
         externalId,
-        params,
-        decorationAttempts(
-          aiLabelParams(isAiGenerated),
-          coverImageUrl ? { cover_url: coverImageUrl } : {},
-          audioParams(audio),
-        ),
+        accessToken,
+        {
+          audio,
+          caption: formatCaption(caption, hashtags),
+          coverImageUrl,
+          isAiGenerated,
+          isShareToFeedSelected,
+          kind: 'reel',
+          videoUrl,
+        },
       );
-      const containerId = createRes.data.id;
       await this.waitForMediaProcessing(containerId, accessToken);
       const publishRes = await this.publishContainer(
         externalId,
@@ -465,16 +460,11 @@ export class InstagramPublishingService {
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     try {
-      const createRes = await this.createMediaContainer(
+      const containerId = await this.createPostContainer(
         externalId,
-        {
-          access_token: accessToken,
-          media_type: InstagramMediaType.STORIES,
-          ...(isVideo ? { video_url: mediaUrl } : { image_url: mediaUrl }),
-        },
-        decorationAttempts(aiLabelParams(isAiGenerated), {}),
+        accessToken,
+        { isAiGenerated, isVideo, kind: 'story', mediaUrl },
       );
-      const containerId = createRes.data.id;
       if (isVideo) {
         await this.waitForMediaProcessing(containerId, accessToken);
       }
@@ -513,34 +503,20 @@ export class InstagramPublishingService {
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     try {
-      const containerIds = [];
-      for (const [index, mediaUrl] of mediaUrls.entries()) {
-        // The alt text rides on each slide's own container.
-        const response = await this.createMediaContainer(
-          externalId,
-          {
-            access_token: accessToken,
-            image_url: mediaUrl,
-            is_carousel_item: true,
-          },
-          decorationAttempts({}, altTextParams(altTexts[index])),
-        );
-        containerIds.push(response.data.id);
-      }
-
-      const carouselRes = await this.createMediaContainer(
+      const containerId = await this.createPostContainer(
         externalId,
+        accessToken,
         {
-          access_token: accessToken,
+          altTexts,
           caption: formatCaption(caption, hashtags),
-          children: containerIds.join(','),
-          media_type: InstagramMediaType.CAROUSEL,
+          imageUrls: mediaUrls,
+          isAiGenerated,
+          kind: 'carousel',
         },
-        decorationAttempts(aiLabelParams(isAiGenerated), {}),
       );
       const publishRes = await this.publishContainer(
         externalId,
-        carouselRes.data.id,
+        containerId,
         accessToken,
       );
 
@@ -549,6 +525,87 @@ export class InstagramPublishingService {
       return {
         mediaId,
         shortcode: await this.getMediaShortcode(mediaId, accessToken),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a post's container without publishing it and waits until
+   * Instagram has processed it, so publishing it later is a single
+   * `media_publish` call. Used ahead of a scheduled post's due time; a
+   * container nobody publishes expires on Instagram's side.
+   */
+  @Traced()
+  async prepareContainer(
+    organizationId: string,
+    brandId: string,
+    request: InstagramContainerRequest,
+    credentialId?: string,
+  ): Promise<string> {
+    const url = `InstagramService ${CallerUtil.getCallerName()}`;
+    const credential = await this.resolveCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+
+    try {
+      const containerId = await this.createPostContainer(
+        externalId,
+        accessToken,
+        request,
+      );
+      await this.waitForMediaProcessing(containerId, accessToken);
+      this.loggerService.log(`${url} succeeded`, {
+        containerId,
+        kind: request.kind,
+      });
+      return containerId;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Publishes a container `prepareContainer` made, from the same account. A
+   * story has no shortcode, so none is read for it.
+   */
+  @Traced()
+  async publishPreparedContainer(
+    organizationId: string,
+    brandId: string,
+    containerId: string,
+    isStory: boolean,
+    credentialId?: string,
+  ): Promise<{ mediaId: string; shortcode: string | null }> {
+    const url = `InstagramService ${CallerUtil.getCallerName()}`;
+    const credential = await this.resolveCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+
+    try {
+      const publishRes = await this.publishContainer(
+        externalId,
+        containerId,
+        accessToken,
+      );
+      this.loggerService.log(`${url} succeeded`, publishRes.data);
+      const mediaId = publishRes.data.id;
+      return {
+        mediaId,
+        shortcode: isStory
+          ? null
+          : await this.getMediaShortcode(mediaId, accessToken),
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -621,6 +678,91 @@ export class InstagramPublishingService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Creates the container that publishes one post and returns its id. A
+   * carousel creates one container per slide first (each carries its own alt
+   * text), then the carousel container. It does not wait for processing.
+   */
+  private async createPostContainer(
+    externalId: string,
+    accessToken: string,
+    request: InstagramContainerRequest,
+  ): Promise<string> {
+    const label = aiLabelParams(request.isAiGenerated);
+    switch (request.kind) {
+      case 'image': {
+        const response = await this.createMediaContainer(
+          externalId,
+          {
+            access_token: accessToken,
+            caption: request.caption,
+            image_url: request.imageUrl,
+          },
+          decorationAttempts(label, altTextParams(request.altText)),
+        );
+        return response.data.id;
+      }
+      case 'reel': {
+        const response = await this.createMediaContainer(
+          externalId,
+          {
+            access_token: accessToken,
+            caption: request.caption,
+            media_type: InstagramMediaType.REELS,
+            share_to_feed: request.isShareToFeedSelected,
+            video_url: request.videoUrl,
+          },
+          decorationAttempts(
+            label,
+            request.coverImageUrl ? { cover_url: request.coverImageUrl } : {},
+            audioParams(request.audio),
+          ),
+        );
+        return response.data.id;
+      }
+      case 'story': {
+        const response = await this.createMediaContainer(
+          externalId,
+          {
+            access_token: accessToken,
+            media_type: InstagramMediaType.STORIES,
+            ...(request.isVideo
+              ? { video_url: request.mediaUrl }
+              : { image_url: request.mediaUrl }),
+          },
+          decorationAttempts(label, {}),
+        );
+        return response.data.id;
+      }
+      case 'carousel': {
+        const containerIds: string[] = [];
+        for (const [index, imageUrl] of request.imageUrls.entries()) {
+          const response = await this.createMediaContainer(
+            externalId,
+            {
+              access_token: accessToken,
+              image_url: imageUrl,
+              is_carousel_item: true,
+            },
+            decorationAttempts({}, altTextParams(request.altTexts[index])),
+          );
+          containerIds.push(response.data.id);
+        }
+        const response = await this.createMediaContainer(
+          externalId,
+          {
+            access_token: accessToken,
+            caption: request.caption,
+            children: containerIds.join(','),
+            media_type: InstagramMediaType.CAROUSEL,
+          },
+          decorationAttempts(label, {}),
+        );
+        return response.data.id;
+      }
     }
   }
 

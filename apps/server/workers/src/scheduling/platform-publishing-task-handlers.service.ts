@@ -48,6 +48,8 @@ export class PlatformPublishingTaskHandlers {
     PlatformTaskHandler
   > {
     return {
+      [PLATFORM_SCHEDULED_TASKS.POSTS_PREPARE]: () =>
+        this.posts.prepareUpcomingUploads(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>
         this.posts.publishScheduledPosts(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: () =>

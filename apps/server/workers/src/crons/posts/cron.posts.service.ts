@@ -15,6 +15,7 @@ import {
   ScheduledPostDiscoveryService,
 } from '@workers/services/scheduled-post-discovery.service';
 import {
+  POST_UPLOAD_PREPARE_SWEEP_LOCK_KEY,
   type ScheduledPostSweepLease,
   ScheduledPostSweepLockService,
 } from '@workers/services/scheduled-post-sweep-lock.service';
@@ -77,6 +78,33 @@ export class CronPostsService {
       await this.sweepDuePosts(lease);
     } catch (error: unknown) {
       this.logger.error('CronPostsService scheduled publish sweep failed', {
+        error,
+      });
+    } finally {
+      await lease?.release();
+    }
+  }
+
+  /**
+   * Uploads the media of posts due in the next few minutes, so the publish at
+   * the due time is one provider call (#11515). Fired every minute on
+   * `publish-sweeps`, under its own lock: an upload burst never holds back the
+   * due-post sweep, and a run still uploading makes the next tick skip.
+   */
+  async prepareUpcomingUploads(): Promise<void> {
+    let lease: ScheduledPostSweepLease | null = null;
+    try {
+      lease = await this.sweepLock.acquire(POST_UPLOAD_PREPARE_SWEEP_LOCK_KEY);
+      if (!lease) return;
+      const held = lease;
+      const outcome = await this.delivery.preparedUploads.prepareUpcoming(() =>
+        held.extend(),
+      );
+      if (outcome.found > 0) {
+        this.logger.log('CronPostsService prepared uploads', outcome);
+      }
+    } catch (error: unknown) {
+      this.logger.error('CronPostsService upload prepare sweep failed', {
         error,
       });
     } finally {

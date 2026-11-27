@@ -17,6 +17,7 @@ export type {
   IPublisher,
   MediaInfo,
   PostValidationResult,
+  PreparedProviderUpload,
   PublishContext,
   PublisherPostInput,
   PublishResult,

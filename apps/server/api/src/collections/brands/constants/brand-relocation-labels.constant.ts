@@ -161,6 +161,10 @@ export const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'publish receipt',
     plural: 'publish receipts',
   },
+  postPreparedUpload: {
+    singular: 'prepared upload',
+    plural: 'prepared uploads',
+  },
   postPublishFinalization: {
     singular: 'publish finalization',
     plural: 'publish finalizations',

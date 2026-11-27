@@ -78,7 +78,7 @@ describe('PlatformScheduleRegistryService', () => {
     const publishSweeps = entries.filter(([taskName]) =>
       isPublishSweepTask(taskName),
     );
-    expect(publishSweeps).toHaveLength(2);
+    expect(publishSweeps).toHaveLength(3);
     expect(publishSweepQueue.upsertJobScheduler).toHaveBeenCalledTimes(
       publishSweeps.length,
     );

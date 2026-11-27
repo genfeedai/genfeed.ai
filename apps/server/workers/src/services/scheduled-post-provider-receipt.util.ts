@@ -96,6 +96,17 @@ export class ProviderPublishInFlightError extends Error {
   }
 }
 
+/** The receipt identity a transition fences on, without the attempt's other fields. */
+export function toAttemptFence(attempt: ProviderPublishAttemptRef): {
+  attemptToken: string;
+  receiptId: string;
+} {
+  return {
+    attemptToken: attempt.attemptToken,
+    receiptId: attempt.receiptId,
+  };
+}
+
 function readDate(post: PostEntity, key: string): string | null {
   const value = (post as unknown as Record<string, unknown>)[key];
   // Delivery and discovery loaders may surface the same instant as a Date or
@@ -142,7 +153,7 @@ function providerPublishOccurrenceKey(post: PostEntity): string {
     .digest('hex');
 }
 
-function occurrenceScope(post: PostEntity): {
+export function occurrenceScope(post: PostEntity): {
   organizationId: string;
   postId: string;
   occurrenceKey: string;

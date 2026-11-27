@@ -161,6 +161,7 @@ describe('InstagramPublisherService', () => {
         {
           provide: ConfigService,
           useValue: {
+            cdnSignedUrlTtlSeconds: 900,
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
             isAuthorizedMediaDeliveryEnabled: true,
@@ -179,6 +180,8 @@ describe('InstagramPublisherService', () => {
           provide: InstagramService,
           useValue: {
             postComment: vi.fn(),
+            prepareContainer: vi.fn(),
+            publishPreparedContainer: vi.fn(),
             uploadCarousel: vi.fn(),
             uploadImage: vi.fn(),
             uploadReel: vi.fn(),
@@ -1177,6 +1180,91 @@ describe('InstagramPublisherService', () => {
           postId: context.postId,
         }),
       );
+    });
+  });
+
+  describe('container prepared ahead of the due time', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('prepares a carousel container that stays usable for ten minutes', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-27T11:55:00.000Z') });
+      instagramService.prepareContainer.mockResolvedValue('container-9');
+
+      const upload = await service.prepareUpload(
+        createPublishContext(mockCarouselPost, { aiGenerated: true }),
+      );
+
+      expect(upload).toEqual({
+        expiresAt: new Date('2026-11-27T12:05:00.000Z'),
+        providerUploadId: 'container-9',
+      });
+      expect(instagramService.prepareContainer.mock.calls[0][2]).toMatchObject({
+        caption: 'Carousel post',
+        isAiGenerated: true,
+        kind: 'carousel',
+      });
+    });
+
+    it('prepares a reel-only placement without the feed copy', async () => {
+      instagramService.prepareContainer.mockResolvedValue('container-9');
+
+      await service.prepareUpload(
+        createPublishContext(mockVideoPost, { placement: 'reel' }),
+      );
+
+      expect(instagramService.prepareContainer.mock.calls[0][2]).toMatchObject({
+        isShareToFeedSelected: false,
+        kind: 'reel',
+      });
+    });
+
+    it('prepares nothing for a post Instagram cannot take', async () => {
+      const upload = await service.prepareUpload(
+        createPublishContext(mockTextPost),
+      );
+
+      expect(upload).toBeNull();
+      expect(instagramService.prepareContainer).not.toHaveBeenCalled();
+    });
+
+    it('publishes a prepared container as a post with its shortcode link', async () => {
+      instagramService.publishPreparedContainer.mockResolvedValue({
+        mediaId: 'media-1',
+        shortcode: 'SHORT1',
+      });
+
+      const result = await service.publishPrepared(
+        createPublishContext(mockCarouselPost),
+        { expiresAt: new Date(), providerUploadId: 'container-9' },
+      );
+
+      expect(result).toMatchObject({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'media-1',
+        externalShortcode: 'SHORT1',
+        success: true,
+        url: 'https://www.instagram.com/p/SHORT1',
+      });
+    });
+
+    it('publishes a prepared story with a stories link', async () => {
+      instagramService.publishPreparedContainer.mockResolvedValue({
+        mediaId: 'story-1',
+        shortcode: null,
+      });
+
+      const result = await service.publishPrepared(
+        createPublishContext(mockImagePost, { placement: 'story' }),
+        { expiresAt: new Date(), providerUploadId: 'container-9' },
+      );
+
+      expect(result).toMatchObject({
+        externalId: 'story-1',
+        success: true,
+        url: 'https://www.instagram.com/stories/testuser/story-1/',
+      });
     });
   });
 });

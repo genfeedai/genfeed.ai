@@ -138,6 +138,18 @@ export interface PublishContext {
 }
 
 /**
+ * A provider upload made before the due time and not yet published, such as
+ * an Instagram media container. Only `publishPrepared` of the publisher that
+ * made it can publish it.
+ */
+export interface PreparedProviderUpload {
+  /** The provider's id of the unpublished upload. */
+  providerUploadId: string;
+  /** After this the upload must not be published; publish from scratch instead. */
+  expiresAt: Date;
+}
+
+/**
  * Media info extracted from post
  */
 export interface MediaInfo {
@@ -213,6 +225,28 @@ export interface IPublisher {
     context: PublishContext,
     attemptStartedAt: Date,
   ): Promise<PublishResult | null>;
+
+  /**
+   * Optional: upload the post's media without publishing it, ahead of the due
+   * time, so the delivery only has to publish. Resolve null when this post
+   * has nothing worth preparing. A publisher with it must also implement
+   * `publishPrepared`.
+   * @param context The publishing context, as the delivery will build it
+   */
+  prepareUpload?(
+    context: PublishContext,
+  ): Promise<PreparedProviderUpload | null>;
+
+  /**
+   * Optional: publish an upload made by `prepareUpload` for this same context.
+   * Called at most once per upload; the result means what `publish`'s does.
+   * @param context The publishing context of the delivery
+   * @param upload The upload `prepareUpload` returned
+   */
+  publishPrepared?(
+    context: PublishContext,
+    upload: PreparedProviderUpload,
+  ): Promise<PublishResult>;
 
   /**
    * Publish thread children (for platforms that support threads)

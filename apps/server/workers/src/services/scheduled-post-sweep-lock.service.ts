@@ -7,6 +7,8 @@ import { SCHEDULED_POST_SWEEP_LOCK_TTL_MS } from '@workers/services/scheduled-po
 const SCHEDULED_POST_SWEEP_LOCK_KEY = 'genfeed:lock:scheduled-post-sweep';
 export const THREAD_COMMENT_SWEEP_LOCK_KEY =
   'genfeed:lock:thread-comment-sweep';
+export const POST_UPLOAD_PREPARE_SWEEP_LOCK_KEY =
+  'genfeed:lock:post-upload-prepare-sweep';
 
 const EXTEND_SCRIPT = `
 if redis.call('GET', KEYS[1]) == ARGV[1] then

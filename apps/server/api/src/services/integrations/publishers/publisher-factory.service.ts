@@ -123,6 +123,16 @@ export class PublisherFactoryService
         const { hydratedContext } = await this.hydrateMedia(context);
         return publishToProvider(hydratedContext);
       },
+      ...(publisher.prepareUpload && publisher.publishPrepared
+        ? {
+            prepareUpload: async (context: PublishContext) => {
+              const { hydratedContext } = await this.hydrateMedia(context);
+              return publisher.prepareUpload?.(hydratedContext) ?? null;
+            },
+            // The media was fetched when the upload was made.
+            publishPrepared: publisher.publishPrepared.bind(publisher),
+          }
+        : {}),
       ...(publisher.publishThreadChildren
         ? {
             publishThreadChildren: async (
