@@ -85,7 +85,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Playground is the Genfeed app for one-off generation. You write a prompt, pick an output type and a model, and refine the result until it fits. Images, video, audio and text all start from the same prompt bar, and everything you make is saved to your Library.',
     description:
-      'Playground generates images, video, audio and text from a single prompt bar, enriched with your brand. Refine with follow-up prompts; every asset is saved to your Library.',
+      'Playground makes images, video, audio and text from one prompt bar, enriched with your brand. Refine with follow-up prompts; every asset is saved.',
     faqs: [
       {
         answer:
@@ -142,7 +142,7 @@ export const appProducts: AppProduct[] = [
       'playground',
       'The Genfeed Playground with the prompt bar open and generated images in the canvas',
     ),
-    seoTitle: 'Playground: AI Image, Video and Audio Generation',
+    seoTitle: 'Playground: AI Image, Video and Audio Maker',
     slug: 'playground',
     steps: [
       {
@@ -237,7 +237,7 @@ export const appProducts: AppProduct[] = [
       'storyboard',
       'The Genfeed Storyboard showing a shot list with a still frame for each scene',
     ),
-    seoTitle: 'Storyboard: Plan and Generate Video Scene by Scene',
+    seoTitle: 'Storyboard: Plan Video Scene by Scene',
     slug: 'storyboard',
     steps: [
       {
@@ -378,7 +378,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Motion is the Genfeed app for animated visuals. You describe an animated title, caption or branded graphic, preview it, and render it to video or still frames that land in your Library.',
     description:
-      'Motion turns a prompt into animated titles, captions and branded graphics, previews them, and renders to video or stills. Review a credit quote before anything renders.',
+      'Motion turns a prompt into animated titles, captions and branded graphics, previews them and renders to video or stills, after a credit quote.',
     faqs: [
       {
         answer:
@@ -424,7 +424,7 @@ export const appProducts: AppProduct[] = [
       'motion',
       'The Genfeed Motion app with a prompt, a presets list and a preview of an animated title',
     ),
-    seoTitle: 'Motion: AI Animated Titles, Captions and Graphics',
+    seoTitle: 'Motion: AI Animated Titles and Captions',
     slug: 'motion',
     steps: [
       {
@@ -468,7 +468,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Turbo is the Genfeed app for creating content in bulk. It drafts content ideas from your brand, generates them in one batch, and lines up the ones you keep to publish.',
     description:
-      'Turbo drafts content ideas from your brand, generates images and video in bulk, and lines up the keepers to publish. Review every idea and a credit quote before anything runs.',
+      'Turbo drafts ideas from your brand, generates images and video in bulk, and lines up the keepers to publish. Review each idea and credit quote first.',
     faqs: [
       {
         answer:
@@ -563,7 +563,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Editor is the Genfeed app for assembling and finishing video on a timeline. You combine clips, images and audio, trim and arrange them, apply effects, and export the finished video.',
     description:
-      'Editor assembles clips, images and audio on a timeline. Trim, layer audio, add effects and export the finished video, with your generated videos imported directly.',
+      'Editor assembles clips, images and audio on a timeline. Trim, layer audio, add effects and export, with your generated videos imported directly.',
     faqs: [
       {
         answer:
@@ -602,7 +602,7 @@ export const appProducts: AppProduct[] = [
       'editor',
       'The Genfeed Editor with clips and audio arranged on a timeline',
     ),
-    seoTitle: 'Editor: Timeline Video Editing for AI-Generated Content',
+    seoTitle: 'Editor: Timeline Editing for Generated Video',
     slug: 'editor',
     steps: [
       {
@@ -644,7 +644,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Publishing is the Genfeed app for scheduling and posting content. It takes drafts from every other surface and publishes them to your connected channels from one composer and calendar.',
     description:
-      'Publishing schedules and posts content to X, LinkedIn, Instagram, TikTok, YouTube, Facebook, Pinterest, Reddit, Discord and Twitch from one place. Review drafts, schedule weeks ahead.',
+      'Publishing schedules and posts to X, LinkedIn, Instagram, TikTok, YouTube, Facebook, Pinterest, Reddit, Discord and Twitch. Review drafts, schedule ahead.',
     faqs: [
       {
         answer:
@@ -729,7 +729,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Analytics is the Genfeed app for measuring published content. It shows available views and engagement for each post and brand, so you can plan the next brief from what worked.',
     description:
-      'Analytics reviews available views and engagement across your published content. Compare posts and brands, find the formats that earn attention, and plan the next brief.',
+      'Analytics reviews available views and engagement across published content. Compare posts and brands, find formats that earn attention, plan the next brief.',
     faqs: [
       {
         answer:
@@ -773,7 +773,7 @@ export const appProducts: AppProduct[] = [
       'analytics',
       'The Genfeed Analytics dashboard with post performance and a brand roll-up',
     ),
-    seoTitle: 'Analytics: Content Performance Across Every Brand',
+    seoTitle: 'Analytics: Content Performance by Brand',
     slug: 'analytics',
     steps: [
       {
@@ -816,7 +816,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Discovery is the Genfeed app for finding what to make next. It researches what is trending on social platforms in your brand’s niche, ranks it, and turns a trend into a content idea.',
     description:
-      'Discovery researches trending topics on social platforms for your brand’s niche, ranks them by niche match and turns a trend into a post idea or a saved brief.',
+      'Discovery researches trending topics for your brand’s niche, ranks them by niche match and turns a trend into a post idea or a saved brief.',
     faqs: [
       {
         answer:
@@ -861,7 +861,7 @@ export const appProducts: AppProduct[] = [
       'discovery',
       'The Genfeed Discovery app listing trending topics ranked by niche match',
     ),
-    seoTitle: 'Discovery: Find Trends and Content Opportunities',
+    seoTitle: 'Discovery: Find Trends and Content Ideas',
     slug: 'discovery',
     steps: [
       {
@@ -976,7 +976,7 @@ export const appProducts: AppProduct[] = [
     definition:
       'Agent is the Genfeed chat that does the work. You ask in plain language and the agent generates images and video, drafts and edits posts, schedules and publishes, and reads performance data, all with your brand context.',
     description:
-      'The Genfeed Agent generates images and video, drafts and edits posts, schedules and publishes, and reads performance data from a chat thread that knows your brand.',
+      'The Genfeed Agent generates images and video, drafts and edits posts, schedules and publishes, and reads performance data from a chat that knows your brand.',
     faqs: [
       {
         answer:
@@ -1021,7 +1021,7 @@ export const appProducts: AppProduct[] = [
       'agent',
       'The Genfeed Agent chat with a prompt in the input and a saved thread list',
     ),
-    seoTitle: 'Agent: Create and Publish by Chatting With Genfeed',
+    seoTitle: 'Agent: Create and Publish by Chatting',
     slug: 'agent',
     steps: [
       {
@@ -1189,7 +1189,7 @@ export const appProducts: AppProduct[] = [
       'library',
       'The Genfeed Library showing a grid of saved images and videos',
     ),
-    seoTitle: 'Library: Every Asset Saved, Searchable, Reusable',
+    seoTitle: 'Library: Every Asset Saved and Searchable',
     slug: 'library',
     steps: [
       {

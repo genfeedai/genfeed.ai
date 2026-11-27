@@ -1,4 +1,8 @@
-import { getAllUseCaseSlugs } from '@data/use-cases.data';
+import {
+  getAllUseCaseSlugs,
+  getUseCaseBySlug,
+  type UseCase,
+} from '@data/use-cases.data';
 import {
   Children,
   isValidElement,
@@ -10,8 +14,9 @@ import UseCasesPage, {
   buildUseCaseBreadcrumbJsonLd,
   generateMetadata,
   generateStaticParams,
+  getUseCaseAudienceName,
 } from './page';
-import { formatUseCaseSlug, getUseCaseBySlugCached } from './use-case-loader';
+import { getUseCaseBySlugCached } from './use-case-loader';
 
 const EMPTY_PARENT = Promise.resolve({}) as unknown as Parameters<
   typeof generateMetadata
@@ -31,18 +36,6 @@ function readJsonLdScripts(element: ReactNode): unknown[] {
     )
     .map((script) => JSON.parse(String(script.props.children)));
 }
-
-describe('formatUseCaseSlug', () => {
-  it('title-cases every dash-separated word', () => {
-    expect(formatUseCaseSlug('social-media-managers')).toBe(
-      'Social Media Managers',
-    );
-  });
-
-  it('leaves a single word capitalised', () => {
-    expect(formatUseCaseSlug('agencies')).toBe('Agencies');
-  });
-});
 
 describe('getUseCaseBySlugCached', () => {
   it('resolves a known slug and returns undefined for an unknown one', async () => {
@@ -84,9 +77,9 @@ describe('generateMetadata', () => {
       EMPTY_PARENT,
     );
 
-    const audience = formatUseCaseSlug(KNOWN_SLUG);
-    expect(meta.title).toBe(`Genfeed for ${audience}`);
-    expect(meta.description).toContain(audience.toLowerCase());
+    const useCase = getUseCaseBySlug(KNOWN_SLUG);
+    expect(meta.title).toBe(`${useCase?.seoTitle} | Genfeed.ai`);
+    expect(meta.description).toBe(useCase?.seoDescription);
     expect(meta.alternates?.canonical).toContain(`/use-cases/${KNOWN_SLUG}`);
     expect(meta.openGraph?.images).toEqual([
       expect.objectContaining({
@@ -132,7 +125,7 @@ describe('UseCasesPage', () => {
 
     expect(serviceJsonLd['@type']).toBe('Service');
     expect(serviceJsonLd.audience.audienceType).toBe(
-      formatUseCaseSlug(KNOWN_SLUG),
+      getUseCaseAudienceName(getUseCaseBySlug(KNOWN_SLUG) as UseCase),
     );
     expect(breadcrumbJsonLd.itemListElement).toHaveLength(2);
   });

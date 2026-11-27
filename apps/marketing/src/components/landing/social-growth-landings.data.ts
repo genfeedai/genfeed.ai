@@ -178,7 +178,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     intro:
       'Your product updates, customer questions and hard-earned lessons give you something worth sharing. Ask your connected agent to turn them into content for X. Choose relevant conversations, prepare replies that add something useful and review every draft. Genfeed keeps the content and publishing work in one workspace so you can keep building.',
     metaDescription:
-      'Build an audience around what you ship on X. Use Genfeed with your agent for posts, threads, visuals and reply drafts, then review and schedule approved content.',
+      'Build an audience around what you ship on X. Use Genfeed with your agent for posts, threads, visuals and reply drafts, then review and schedule them.',
     metaTitle: 'Grow Your X Account With Your Agent | Genfeed.ai',
     outcomes: [
       {
@@ -283,7 +283,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       'LinkedIn rewards people who post a clear point of view every week and show up in the comments of the conversations their buyers read. That is a second job on top of running the business. Genfeed handles research, drafting in your voice, visuals, scheduling, and analytics. Ask your connected agent for the next batch from your product updates, notes, or customer insights. Review the drafts in Genfeed before publishing.',
     metaDescription:
       'Create LinkedIn posts, clips, and carousels with your existing AI agent. Review in Genfeed, schedule approved content, and track results.',
-    metaTitle: 'LinkedIn Growth With Your Agent | Genfeed.ai',
+    metaTitle: 'AI LinkedIn Post Generator With Your Agent | Genfeed.ai',
     outcomes: [
       {
         description:
@@ -387,7 +387,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       'Instagram rewards accounts that ship Reels consistently, ride formats while they are moving, and make carousels people save. That is a small media team worth of work. Genfeed handles trend research, image and video generation, captions, scheduling, and analytics. Ask your connected agent for the next batch from your product updates, notes, or customer insights. Review the drafts in Genfeed before publishing.',
     metaDescription:
       'Create Instagram Reels, carousels, and captions with your existing AI agent. Review in Genfeed, schedule approved posts, and track reach.',
-    metaTitle: 'Instagram Growth With Your Agent | Genfeed.ai',
+    metaTitle: 'AI Instagram Post Generator With Your Agent | Genfeed.ai',
     outcomes: [
       {
         description:
@@ -490,7 +490,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       'TikTok rewards accounts that post every day, test hooks fast, and jump on formats while they are still climbing. Almost nobody can film and edit at that pace. Genfeed handles trend research, video generation and clipping, captions, scheduling, and analytics. Ask your connected agent for the next batch from your product updates, notes, or customer insights. Review the drafts in Genfeed before publishing.',
     metaDescription:
       'Create TikTok videos, slideshows, and captions with your existing AI agent. Review in Genfeed, schedule approved posts, and track results.',
-    metaTitle: 'TikTok Growth With Your Agent | Genfeed.ai',
+    metaTitle: 'AI TikTok Video Generator With Your Agent | Genfeed.ai',
     outcomes: [
       {
         description:
