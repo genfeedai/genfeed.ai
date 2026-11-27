@@ -686,6 +686,7 @@ export class InstagramPublishingService {
    * carousel creates one container per slide first (each carries its own alt
    * text), then the carousel container. It does not wait for processing.
    */
+  @Traced()
   private async createPostContainer(
     externalId: string,
     accessToken: string,
