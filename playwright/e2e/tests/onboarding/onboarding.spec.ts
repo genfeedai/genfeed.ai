@@ -34,7 +34,7 @@ test.describe('Output-first onboarding', () => {
       }),
     ).toBeVisible();
     await expect(
-      page.getByText('Waiting for Claude Code to connect'),
+      page.getByText('Waiting for Claude to connect'),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Connect Agent' }),
