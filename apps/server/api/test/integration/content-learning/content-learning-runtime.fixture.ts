@@ -1342,6 +1342,38 @@ export async function learningRuntimeServices(application: RuntimeApplication) {
 export type RuntimeServices = Awaited<
   ReturnType<typeof learningRuntimeServices>
 >;
+/**
+ * Cloud has no free tier: an organization that never paid may not schedule or
+ * publish. The acceptance organizations buy a credit pack first, written as the
+ * Stripe checkout webhook writes it, so publication runs the real admission.
+ */
+async function seedFirstCreditPackPurchase(
+  application: RuntimeApplication,
+  organizationId: string,
+) {
+  const { ActivitySource, CreditTransactionCategory } = await import(
+    '@genfeedai/contracts'
+  );
+  const { readIsNeverPaid } = await import(
+    '@api/collections/credits/services/free-trial-state.util'
+  );
+  await application.prisma.creditTransaction.create({
+    data: {
+      organizationId,
+      amount: 100,
+      balanceAfter: 100,
+      category: CreditTransactionCategory.ADD,
+      source: ActivitySource.PAY_AS_YOU_GO,
+      description: 'Credit pack purchase (100 credits)',
+      referenceId: `cs_learning_${organizationId}`,
+      referenceType: 'stripe-checkout-session:organization-payment',
+    },
+  });
+  ensure(
+    !(await readIsNeverPaid(application.prisma, organizationId)),
+    'ACTUAL_FIRST_PAYMENT',
+  );
+}
 export async function seedLearningRuntimeScenario(
   application: RuntimeApplication,
   services: RuntimeServices,
@@ -1370,6 +1402,7 @@ export async function seedLearningRuntimeScenario(
         slug: `learning-${organizationId}`,
       },
     });
+    await seedFirstCreditPackPurchase(application, organizationId);
     for (const id of [brandId, spareBrandId])
       await application.prisma.brand.create({
         data: {
