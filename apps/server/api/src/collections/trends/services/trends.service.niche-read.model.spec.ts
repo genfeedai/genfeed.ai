@@ -96,6 +96,10 @@ function serviceFor(sim: Simulation, world: World): TrendsService {
       { warn: vi.fn() } as never,
       niche,
     ),
+    // Outside a plan check, a scan only runs what it is given.
+    {
+      runScan: (_input: unknown, run: () => Promise<number>) => run(),
+    } as never,
   );
 }
 

@@ -254,6 +254,8 @@ export interface AdWatchedAdvertiser {
 export interface AdWatchedAdvertiserPollResult {
   advertiserId: string;
   errorCode?: string;
+  /** ISO time the next scan opens, set with `research_scan_limit_reached`. */
+  nextScanAt?: string;
   recordCount: number;
   status: 'error' | 'success' | 'unavailable';
 }

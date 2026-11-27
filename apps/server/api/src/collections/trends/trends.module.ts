@@ -53,6 +53,7 @@ import { XaiService } from '@api/services/integrations/xai/services/xai.service'
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { ResearchAccessModule } from '@api/services/research-access/research-access.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -90,6 +91,7 @@ import { Module } from '@nestjs/common';
     PinterestModule,
     RedditModule,
     ReplicateModule,
+    ResearchAccessModule,
     TiktokModule,
     TwitterModule,
     XaiModule,

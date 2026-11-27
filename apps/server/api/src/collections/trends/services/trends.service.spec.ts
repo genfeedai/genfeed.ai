@@ -30,6 +30,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { ResearchScanService } from '@api/services/research-access/research-scan.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -188,6 +189,12 @@ describe('TrendsService', () => {
         TrendBrandNicheVideoService,
         TrendBrandDigestService,
         { provide: TrendBrandReadService, useValue: {} },
+        {
+          provide: ResearchScanService,
+          useValue: {
+            runScan: (_input: unknown, run: () => Promise<unknown>) => run(),
+          },
+        },
         {
           provide: TrendRefreshHealthService,
           useValue: { record: vi.fn().mockResolvedValue(undefined) },

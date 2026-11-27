@@ -4,6 +4,7 @@ import { buildPaidCreativeReferenceClassification } from '@api/collections/trend
 import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ResearchScanLimitReachedException } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import type {
   PaidCreativeIngestionErrorCode,
   PaidCreativeIngestionResult,
@@ -12,6 +13,7 @@ import type {
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { ResearchAccessService } from '@api/services/research-access/research-access.service';
 import type { ResearchAccessDecision } from '@api/services/research-access/research-paid-access';
+import { ResearchScanService } from '@api/services/research-access/research-scan.service';
 import type {
   NormalizedPaidCreativeRecord,
   PaidCreativePlatform,
@@ -54,6 +56,12 @@ export type PaidCreativeIngestionOptions = {
   countries?: string[];
   limit?: number;
   platform?: PaidCreativePlatform;
+  /**
+   * `manual`: a person asked for this poll, so the scan limit admits it with
+   * or without a plan. `scheduled` (the default): the daily workflow, which
+   * runs only for an organization on a plan and spends one of its scans.
+   */
+  trigger?: 'manual' | 'scheduled';
 };
 
 /**
@@ -82,6 +90,7 @@ export class PaidCreativeResearchIngestionService {
     private readonly providerRegistry: PaidCreativeProviderRegistry,
     private readonly researchAccessService: ResearchAccessService,
     private readonly autonomousProducerInstallService: AutonomousProducerInstallService,
+    private readonly researchScanService: ResearchScanService,
   ) {}
 
   assertCollectionAccess(
@@ -144,8 +153,16 @@ export class PaidCreativeResearchIngestionService {
       );
     }
 
-    const result = await this.ingestOne(organizationId, advertiser, {});
-    if (result.status === 'success' && scope.principal) {
+    const result = await this.ingestOne(organizationId, advertiser, {
+      trigger: 'manual',
+    });
+    // The daily rescan is a plan's, so a poll by an organization without one
+    // does not opt it in.
+    if (
+      result.status === 'success' &&
+      scope.principal &&
+      (await this.assertCollectionAccess(organizationId)).isAllowed
+    ) {
       await this.installDailyPolling(organizationId, scope.principal);
     }
 
@@ -194,8 +211,15 @@ export class PaidCreativeResearchIngestionService {
       );
     }
 
+    // A person's poll is admitted by the scan limit, plan or not. Only a
+    // plan's scheduled rescan needs the plan, and an unreadable plan fails
+    // both closed.
     const access = await this.assertCollectionAccess(organizationId);
-    if (!access.isAllowed) {
+    if (
+      !access.isAllowed &&
+      (options.trigger !== 'manual' ||
+        access.reason === 'research_subscription_unverified')
+    ) {
       return this.denyCollection(
         organizationId,
         advertiser,
@@ -223,19 +247,42 @@ export class PaidCreativeResearchIngestionService {
 
     let creatives: NormalizedPaidCreativeRecord[];
     try {
-      creatives = await adapter.fetchCreatives({
-        ...(options.countries ? { countries: options.countries } : {}),
-        limit: options.limit ?? DEFAULT_CREATIVE_LIMIT,
-        externalAdvertiserId: advertiser.externalAdvertiserId ?? undefined,
-        mode: 'advertiser',
-        organizationId,
-        platform,
-        query:
-          platform === 'tiktok'
-            ? (advertiser.advertiserName ?? advertiser.advertiserHandle)
-            : (advertiser.externalAdvertiserId ?? advertiser.advertiserHandle),
-      });
+      // One poll of one competitor is one scan, however many archive runs
+      // (one per country) it takes. The scan is reserved before the first.
+      creatives = await this.researchScanService.runScan(
+        {
+          library: 'ads',
+          organizationId,
+          subjectKey: advertiser.id,
+        },
+        () =>
+          adapter.fetchCreatives({
+            ...(options.countries ? { countries: options.countries } : {}),
+            limit: options.limit ?? DEFAULT_CREATIVE_LIMIT,
+            externalAdvertiserId: advertiser.externalAdvertiserId ?? undefined,
+            mode: 'advertiser',
+            organizationId,
+            platform,
+            query:
+              platform === 'tiktok'
+                ? (advertiser.advertiserName ?? advertiser.advertiserHandle)
+                : (advertiser.externalAdvertiserId ??
+                  advertiser.advertiserHandle),
+          }),
+      );
     } catch (error: unknown) {
+      if (error instanceof ResearchScanLimitReachedException) {
+        // Not a failure of the archive and not a reason to mark the last
+        // snapshot stale: the limit refused the scan before it started.
+        return {
+          advertiserId: advertiser.id,
+          errorCode: 'research_scan_limit_reached',
+          nextScanAt: error.nextAvailableAt.toISOString(),
+          platform,
+          recordCount: 0,
+          status: 'unavailable',
+        };
+      }
       const accessCode = collectionAccessErrorCode(error);
       if (accessCode) {
         return this.denyCollection(

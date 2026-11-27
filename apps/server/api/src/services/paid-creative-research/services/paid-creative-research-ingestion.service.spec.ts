@@ -2,6 +2,7 @@ import type { AdPerformanceService } from '@api/collections/ad-performance/servi
 import type { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import type { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ResearchScanLimitReachedException } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import type {
   PaidCreativeProviderAdapter,
   PaidCreativeReadiness,
@@ -48,6 +49,7 @@ function buildCreative(
 
 type Harness = {
   access: { decide: ReturnType<typeof vi.fn> };
+  scan: { runScan: ReturnType<typeof vi.fn> };
   autonomousProducerInstallService: {
     installOnOptIn: ReturnType<typeof vi.fn>;
   };
@@ -105,8 +107,13 @@ function buildHarness(
       .mockResolvedValue({ isAllowed: true, reason: 'active_paid' }),
   };
 
+  const scan = {
+    runScan: vi.fn((_input: unknown, run: () => Promise<unknown>) => run()),
+  };
+
   return {
     access,
+    scan,
     autonomousProducerInstallService,
     adPerformanceService,
     adWatchedAdvertisersService,
@@ -123,6 +130,7 @@ function buildHarness(
       providerRegistry as unknown as PaidCreativeProviderRegistry,
       access as never,
       autonomousProducerInstallService as unknown as AutonomousProducerInstallService,
+      scan as never,
     ),
   };
 }
@@ -537,6 +545,105 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
         );
 
         expect(result.status).toBe('success');
+      });
+    });
+
+    describe('scan limit (#11623)', () => {
+      const noPlan = {
+        isAllowed: false,
+        reason: 'research_paid_access_required',
+      };
+
+      it('polls for an organization without a plan as one ads scan, and does not opt it in to daily polling', async () => {
+        const harness = buildHarness([META_ADVERTISER]);
+        harness.access.decide.mockResolvedValue(noPlan);
+
+        const result = await harness.service.pollWatchedAdvertiser(
+          'org-1',
+          'watch-1',
+          {
+            principal: {
+              isApiKey: false,
+              organizationId: 'org-1',
+              scopes: [],
+              userId: 'user-1',
+            },
+          },
+        );
+
+        expect(result).toMatchObject({ status: 'success' });
+        expect(harness.scan.runScan).toHaveBeenCalledWith(
+          { library: 'ads', organizationId: 'org-1', subjectKey: 'watch-1' },
+          expect.any(Function),
+        );
+        expect(
+          harness.autonomousProducerInstallService.installOnOptIn,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('answers a refused scan with when the next one opens, before any run and without touching the last snapshot', async () => {
+        const harness = buildHarness([META_ADVERTISER]);
+        harness.access.decide.mockResolvedValue(noPlan);
+        harness.scan.runScan.mockRejectedValue(
+          new ResearchScanLimitReachedException({
+            hasPlan: false,
+            library: 'ads',
+            limit: { maxScans: 1, windowMs: 7 * 24 * 60 * 60 * 1000 },
+            nextAvailableAt: new Date('2026-12-04T10:00:00.000Z'),
+          }),
+        );
+
+        const result = await harness.service.pollWatchedAdvertiser(
+          'org-1',
+          'watch-1',
+        );
+
+        expect(result).toEqual({
+          advertiserId: 'watch-1',
+          errorCode: 'research_scan_limit_reached',
+          nextScanAt: '2026-12-04T10:00:00.000Z',
+          platform: 'meta',
+          recordCount: 0,
+          status: 'unavailable',
+        });
+        expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+        expect(
+          harness.adPerformanceService.markResearchSnapshotStale,
+        ).not.toHaveBeenCalled();
+        expect(
+          harness.adWatchedAdvertisersService.recordIngestionResult,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('fails a poll closed when the plan cannot be read', async () => {
+        const harness = buildHarness([META_ADVERTISER]);
+        harness.access.decide.mockResolvedValue({
+          isAllowed: false,
+          reason: 'research_subscription_unverified',
+        });
+
+        const result = await harness.service.pollWatchedAdvertiser(
+          'org-1',
+          'watch-1',
+        );
+
+        expect(result).toMatchObject({
+          errorCode: 'research_subscription_unverified',
+          status: 'unavailable',
+        });
+        expect(harness.scan.runScan).not.toHaveBeenCalled();
+      });
+
+      it('leaves a scheduled rescan of an organization without a plan unrun', async () => {
+        const harness = buildHarness([META_ADVERTISER]);
+        harness.access.decide.mockResolvedValue(noPlan);
+
+        const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
+
+        expect(result).toMatchObject({
+          errorCode: 'research_paid_access_required',
+        });
+        expect(harness.scan.runScan).not.toHaveBeenCalled();
       });
     });
 

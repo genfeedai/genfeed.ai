@@ -215,7 +215,9 @@ export class TrendsController {
     };
   }
 
+  // A scan, not a plan feature: the scan limit admits it (#11623).
   @Post('refresh')
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async refreshTrends(@CurrentUser() user: User) {

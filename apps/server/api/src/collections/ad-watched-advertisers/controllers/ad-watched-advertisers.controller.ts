@@ -27,6 +27,7 @@ import {
   ForbiddenException,
   Param,
   Patch,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -125,7 +126,20 @@ export class AdWatchedAdvertisersController extends BaseCRUDController<
     } as CreateAdWatchedAdvertiserDto;
   }
 
+  // Watching a competitor is how a scan finds its target, so every
+  // organization may add, change and remove its own watchlist (#11623).
+  @Post()
+  @OrganizationModule('discovery', 'read')
+  override async create(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() createDto: CreateAdWatchedAdvertiserDto,
+  ): Promise<JsonApiSingleResponse> {
+    return super.create(request, user, createDto);
+  }
+
   @Patch(':id')
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   override async patch(
     @Req() request: Request,
@@ -150,6 +164,7 @@ export class AdWatchedAdvertisersController extends BaseCRUDController<
   }
 
   @Delete(':id')
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   override async remove(
     @Req() request: Request,

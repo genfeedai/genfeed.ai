@@ -1,5 +1,6 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { ResearchScanLimitReachedException } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
@@ -157,6 +158,10 @@ export class HttpExceptionFilter extends AllExceptionFilter {
           ? exception.persistedVideoIngredientIds
           : undefined,
       pointer: redactEmailTrackingUrl(req.originalUrl),
+      scanLimit:
+        exception instanceof ResearchScanLimitReachedException
+          ? exception.meta
+          : undefined,
       source,
       status,
       title,

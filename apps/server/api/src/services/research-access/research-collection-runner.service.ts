@@ -14,6 +14,7 @@ import {
   type ResearchCollectionJobRecord,
   ResearchCollectionJobService,
 } from '@api/services/research-access/research-collection-job.service';
+import { noteResearchRunStarted } from '@api/services/research-access/research-scan.context';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
@@ -203,6 +204,9 @@ export class ResearchCollectionRunner {
         'research_collection_recovery_pending',
       );
     }
+    // The request is about to reach the scraper: from here the scan counts,
+    // whether or not the start is confirmed.
+    noteResearchRunStarted(job.organizationId);
     const run = await this.startActorOrStop(
       scopedJob,
       actorId,
