@@ -40,6 +40,33 @@ describe('buildContentSecurityPolicy', () => {
     );
   });
 
+  it('lets the sign-up captcha load its script and render its frame', () => {
+    const policy = buildContentSecurityPolicy();
+
+    expect(directive(policy, 'script-src')).toContain(
+      'https://challenges.cloudflare.com',
+    );
+    expect(directive(policy, 'frame-src')).toContain(
+      'https://challenges.cloudflare.com',
+    );
+  });
+
+  it('keeps the video embeds beside the captcha frame', () => {
+    expect(directive(buildContentSecurityPolicy(), 'frame-src')).toEqual(
+      expect.arrayContaining([
+        'https://www.youtube.com',
+        'https://www.tiktok.com',
+        'https://www.instagram.com',
+      ]),
+    );
+  });
+
+  it('allows the runtime font file fetch seen in production reports', () => {
+    expect(directive(buildContentSecurityPolicy(), 'connect-src')).toContain(
+      'https://fonts.gstatic.com',
+    );
+  });
+
   it('reports violations to the same-origin report route', () => {
     expect(directive(buildContentSecurityPolicy(), 'report-uri')).toEqual([
       '/api/csp-report',

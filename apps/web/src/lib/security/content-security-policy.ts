@@ -35,6 +35,14 @@ const SENTRY_ORIGINS = ['https://*.ingest.sentry.io', 'https://*.sentry.io'];
 
 const GENFEED_ORIGINS = ['https://*.genfeed.ai'];
 
+// Cloudflare Turnstile guards sign-up: its script loads from this origin and
+// it renders inside a frame served from it. Sentry reports from production
+// named it for both `script-src-elem` and `frame-src`.
+const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
+
+// Production reports show a runtime fetch of font files from this origin.
+const FONT_FILE_ORIGIN = 'https://fonts.gstatic.com';
+
 const EMBED_ORIGINS = [
   'https://www.youtube.com',
   'https://www.youtube-nocookie.com',
@@ -80,11 +88,21 @@ function buildContentSecurityPolicy(
     // Direct-to-storage uploads use presigned bucket URLs.
     'https://*.amazonaws.com',
     'https://*.cloudfront.net',
+    FONT_FILE_ORIGIN,
   ]);
 
   const directives: Array<[string, readonly string[]]> = [
     ['default-src', ["'self'"]],
-    ['script-src', ["'self'", "'unsafe-inline'", ...POSTHOG_ORIGINS, 'blob:']],
+    [
+      'script-src',
+      [
+        "'self'",
+        "'unsafe-inline'",
+        ...POSTHOG_ORIGINS,
+        TURNSTILE_ORIGIN,
+        'blob:',
+      ],
+    ],
     ['style-src', ["'self'", "'unsafe-inline'"]],
     // Generated and imported media come from provider CDNs the app does not
     // control, so images and media stay open to https until reports show the
@@ -93,7 +111,7 @@ function buildContentSecurityPolicy(
     ['media-src', ["'self'", 'blob:', 'data:', 'https:']],
     ['font-src', ["'self'", 'data:']],
     ['connect-src', connectSources],
-    ['frame-src', EMBED_ORIGINS],
+    ['frame-src', [...EMBED_ORIGINS, TURNSTILE_ORIGIN]],
     ['worker-src', ["'self'", 'blob:']],
     ['manifest-src', ["'self'"]],
     ['object-src', ["'none'"]],
