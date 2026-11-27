@@ -11,8 +11,14 @@ import HomePricing from '@web-components/home/_pricing';
 import HomeProduct from '@web-components/home/_product';
 import HomeProviders from '@web-components/home/_providers';
 import HomeReveal from '@web-components/home/_reveal';
+import type { ReactNode } from 'react';
 
-export default function HomeContent() {
+interface HomeContentProps {
+  /** The real-posts section, which loads its data and so is passed in by the page. */
+  proof?: ReactNode;
+}
+
+export default function HomeContent({ proof }: HomeContentProps) {
   return (
     <HomeReveal>
       <HomeHero />
@@ -22,6 +28,7 @@ export default function HomeContent() {
       <HomeAgents />
       <HomeHow />
       <HomeAsks />
+      {proof}
       <HomeProviders />
       <HomePricing />
       <HomeFaq />

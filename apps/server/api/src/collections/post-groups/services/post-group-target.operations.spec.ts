@@ -32,6 +32,8 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { Prisma } from '@genfeedai/prisma';
+import { ConflictException } from '@nestjs/common';
 import { type Mock, vi } from 'vitest';
 
 describe('applyReleaseTargetUpdates', () => {
@@ -560,6 +562,96 @@ describe('schedulePostGroupTarget legacy group ids', () => {
     );
     expect(transaction).not.toHaveBeenCalled();
     expect(enqueueReleaseTargets).not.toHaveBeenCalled();
+  });
+
+  it('schedules a failed target again with a clean error, fresh attempts and a new approval', async () => {
+    getTargetOrThrow.mockResolvedValue(
+      makeTarget({
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
+    );
+
+    await schedulePostGroupTarget(
+      {
+        groupId: releaseId,
+        organizationId: 'org-1',
+        scheduledDate: new Date('2026-07-08T22:25:13.000Z'),
+        targetId: 'target-1',
+        userId: 'user-1',
+        workflowSource: 'publish_now',
+      },
+      dependencies,
+    );
+
+    expect(dependencies.postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        guard: expect.objectContaining({
+          priorExecutionStates: [TargetExecutionState.FAILED],
+        }),
+        mutation: expect.objectContaining({
+          lastAttemptAt: null,
+          retryCount: 0,
+          targetError: Prisma.JsonNull,
+        }),
+        nextState: TargetExecutionState.SCHEDULED,
+      }),
+      tx,
+    );
+    expect(
+      dependencies.publishApprovalsService.createForCurrentPost,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'immediate', postId: 'target-1' }),
+    );
+    expect(enqueueReleaseTargets).toHaveBeenCalledWith(
+      expect.objectContaining({ id: releaseId }),
+      'user-1',
+      ['target-1'],
+      'publish_now',
+    );
+  });
+
+  it('does not touch the error or attempts when a draft target is scheduled', async () => {
+    await schedulePostGroupTarget(
+      {
+        groupId: releaseId,
+        organizationId: 'org-1',
+        scheduledDate: new Date('2026-07-09T10:00:00.000Z'),
+        targetId: 'target-1',
+        userId: 'user-1',
+        workflowSource: 'scheduled_sweep',
+      },
+      dependencies,
+    );
+
+    const [input] = vi.mocked(dependencies.postLifecycleService.transition).mock
+      .calls[0] ?? [{}];
+    expect(input.mutation).not.toHaveProperty('retryCount');
+    expect(input.mutation).not.toHaveProperty('targetError');
+  });
+
+  it('still refuses to schedule a published target', async () => {
+    getTargetOrThrow.mockResolvedValue(
+      makeTarget({
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+    );
+
+    await expect(
+      schedulePostGroupTarget(
+        {
+          groupId: releaseId,
+          organizationId: 'org-1',
+          scheduledDate: new Date('2026-07-09T10:00:00.000Z'),
+          targetId: 'target-1',
+          userId: 'user-1',
+          workflowSource: 'scheduled_sweep',
+        },
+        dependencies,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(dependencies.postLifecycleService.transition).not.toHaveBeenCalled();
   });
 
   it('404s a real release that does not contain the target', async () => {

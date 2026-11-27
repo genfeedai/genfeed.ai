@@ -48,6 +48,10 @@ import {
   observedHashtags,
   observedSounds,
 } from '@api/collections/trends/utils/observed-trends.util';
+import {
+  hasEnoughMarketMentions,
+  isLiveTrend,
+} from '@api/collections/trends/utils/trend-read-filter.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { runWithDefaultApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
@@ -335,14 +339,9 @@ export class TrendsService {
       },
     );
 
-    if (options.relevance !== 'market') {
-      trends = trends.filter(
-        (trend) =>
-          trend.isCurrent !== false &&
-          (!trend.expiresAt ||
-            new Date(trend.expiresAt).getTime() > Date.now()),
-      );
-    }
+    trends = trends.filter(
+      options.relevance === 'market' ? hasEnoughMarketMentions : isLiveTrend,
+    );
     if (options.timeframe) {
       trends = trends.filter((trend) =>
         isWithinTimeframe(

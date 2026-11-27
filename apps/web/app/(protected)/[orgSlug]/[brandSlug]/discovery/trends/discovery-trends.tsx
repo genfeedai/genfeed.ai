@@ -171,6 +171,7 @@ export default function DiscoveryTrends() {
           >
             <TrendingTopicsSection
               isLoadingTrends={isLoadingTrends}
+              relevance={relevance}
               trendingTopics={trendingTopics}
               platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
               getRowLink={(item) => ({

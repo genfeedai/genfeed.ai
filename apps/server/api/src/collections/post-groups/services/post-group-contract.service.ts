@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { toValidationMediaFromIngredients } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { createPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
+import type { PostLifecycleMutation } from '@api/index';
 import {
   CredentialPlatform,
   PostCategory,
@@ -70,8 +71,12 @@ const CREATE_ALLOWED_STATUSES = new Set<string>([
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
 
+// A failed target is schedulable again: scheduling it is the retry. The failure
+// message ("Review it and schedule it again") promises this path, and it is the
+// one that issues a fresh approval for the current version.
 const SCHEDULABLE_TARGET_STATES = new Set<string>([
   TargetExecutionState.DRAFT,
+  TargetExecutionState.FAILED,
   TargetExecutionState.PAUSED,
   TargetExecutionState.SCHEDULED,
 ]);
@@ -172,6 +177,21 @@ export class PostGroupContractService {
         `Target ${target.credentialId} on ${target.platform} failed validation.`,
       title: 'Invalid channel target',
     });
+  }
+
+  /**
+   * Scheduling a failed target again is a new attempt: the old error and the
+   * spent attempts would otherwise follow the post into its next run.
+   */
+  freshAttemptMutation(
+    target: Pick<SchedulerPostTarget, 'targetExecutionState'>,
+  ): Pick<
+    PostLifecycleMutation,
+    'lastAttemptAt' | 'retryCount' | 'targetError'
+  > {
+    return target.targetExecutionState === TargetExecutionState.FAILED
+      ? { lastAttemptAt: null, retryCount: 0, targetError: Prisma.JsonNull }
+      : {};
   }
 
   assertSchedulableTarget(

@@ -13,6 +13,10 @@ import {
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 
 const config = createAppNextConfig({
+  // Marketing pages are mostly static copy. Inlined CSS is written into each
+  // response three times (about 745 KB per page, 83% of /about) and cannot be
+  // cached between pages, so the site serves one cached stylesheet instead.
+  inlineCss: false,
   headers: async () => [
     {
       headers: [

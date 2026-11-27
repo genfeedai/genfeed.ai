@@ -10,6 +10,13 @@ interface AppNextConfigOptions {
   configAccessor?: NextConfigAccessor;
   env?: NextConfig['env'];
   headers?: NextConfig['headers'];
+  /**
+   * Inline the Tailwind chunk into every page (default). Next writes the inlined
+   * stylesheet three times into the response: the `<style>` tag and twice in the
+   * flight payload, so a 246 KB stylesheet adds about 745 KB to each page. An
+   * app of mostly static pages turns this off and serves one cached stylesheet.
+   */
+  inlineCss?: boolean;
   output?: NextConfig['output'];
   redirects?: NextConfig['redirects'];
   rewrites?: NextConfig['rewrites'];
@@ -21,6 +28,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     configAccessor = { get: (key) => process.env[key] },
     env,
     headers,
+    inlineCss = true,
     output,
     redirects,
     rewrites,
@@ -56,7 +64,8 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       // round trip (#3287). Next file-tracing then pulls the monorepo CSS graph
       // into `output: 'standalone'` (Desktop QA: 90.7 MiB → 783 MiB). Desktop
       // builds set GENFEED_DESKTOP_BUNDLE=1 and keep the linked stylesheet.
-      inlineCss: configAccessor.get('GENFEED_DESKTOP_BUNDLE') !== '1',
+      inlineCss:
+        inlineCss && configAccessor.get('GENFEED_DESKTOP_BUNDLE') !== '1',
       // Do NOT add lucide-react here. Turbopack rewrites multi-alias default
       // re-exports (ChartColumn / BarChart3 → chart-column.mjs) into a broken
       // binding that crashes client render as "X is not a function".

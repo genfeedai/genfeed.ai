@@ -88,15 +88,26 @@ describe('HomeContent', () => {
     expect(sections[6]).toBe(screen.getByTestId('home-asks'));
   });
 
-  // The providers wall is supporting depth, not part of the opening claim.
-  it('places the providers wall, the price strip and the questions after the examples, then the close', () => {
-    render(<HomeContent />);
+  it('shows the real posts after the examples', () => {
+    render(
+      <HomeContent proof={<section data-testid="home-proof">Proof</section>} />,
+    );
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[7]).toBe(screen.getByTestId('home-providers'));
-    expect(sections[8]).toBe(screen.getByTestId('home-pricing'));
-    expect(sections[9]).toBe(screen.getByTestId('home-faq'));
-    expect(sections[10]).toBe(screen.getByTestId('home-cta'));
+    expect(sections[7]).toBe(screen.getByTestId('home-proof'));
+  });
+
+  // The providers wall is supporting depth, not part of the opening claim.
+  it('places the providers wall, the price strip and the questions after the proof, then the close', () => {
+    render(
+      <HomeContent proof={<section data-testid="home-proof">Proof</section>} />,
+    );
+    const sections = Array.from(screen.getByTestId('home-reveal').children);
+
+    expect(sections[8]).toBe(screen.getByTestId('home-providers'));
+    expect(sections[9]).toBe(screen.getByTestId('home-pricing'));
+    expect(sections[10]).toBe(screen.getByTestId('home-faq'));
+    expect(sections[11]).toBe(screen.getByTestId('home-cta'));
   });
 
   it('keeps the newsletter in the footer, not as a page section', () => {

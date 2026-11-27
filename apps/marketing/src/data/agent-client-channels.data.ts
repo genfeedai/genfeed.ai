@@ -164,6 +164,15 @@ const CHANNEL_COPY: Record<AgentClientChannelSlug, ChannelCopy> = {
   },
 };
 
+/** What an agent is asked for on a channel, and what one piece is called. */
+export function getAgentClientChannelCopy(slug: AgentClientChannelSlug): {
+  noun: string;
+  prompts: readonly string[];
+} {
+  const { noun, prompts } = CHANNEL_COPY[slug];
+  return { noun, prompts };
+}
+
 export interface AgentClientChannelPage {
   channelName: string;
   channelSlug: AgentClientChannelSlug;
