@@ -48,6 +48,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.GHOST,
       CredentialPlatform.WORDPRESS,
       CredentialPlatform.FACEBOOK,
+      CredentialPlatform.THREADS,
       CredentialPlatform.BLUESKY,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
@@ -72,9 +73,7 @@ describe('channel capability catalog', () => {
     ).toContain(CredentialPlatform.REDDIT);
 
     expect(
-      listChannelCapabilities({ includePlanned: true }).map(
-        (capability) => capability.platform,
-      ),
+      listChannelCapabilities().map((capability) => capability.platform),
     ).toContain(CredentialPlatform.THREADS);
   });
 
@@ -554,15 +553,11 @@ describe('validateChannelTargetSettings', () => {
       ]),
     );
 
+    const hidden = getChannelCapability(CredentialPlatform.REDDIT);
     expect(
-      validateChannelTargetSettings({
-        caption: 'Thread draft',
-        platform: CredentialPlatform.THREADS,
-      }).errors,
+      hidden && resolveChannelStatusIssue({ ...hidden, status: 'planned' }),
     ).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: 'channel_target.planned_channel' }),
-      ]),
+      expect.objectContaining({ code: 'channel_target.planned_channel' }),
     );
   });
 
@@ -889,6 +884,131 @@ describe('Google Business Profile channel', () => {
 
     expect(result.errors).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: 'caption' })]),
+    );
+  });
+});
+
+describe('Threads channel', () => {
+  const image = (id: string) => ({ id, kind: 'image' as const });
+
+  test('is listed and schedulable', () => {
+    const capability = getChannelCapability(CredentialPlatform.THREADS);
+
+    expect(capability?.status).toBe('supported');
+    expect(capability?.publishModes).toEqual(
+      expect.arrayContaining(['publish_now', 'scheduled']),
+    );
+    expect(
+      validateChannelTargetSettings({
+        caption: 'Shipping the new editor today.',
+        platform: CredentialPlatform.THREADS,
+        publishMode: 'scheduled',
+      }),
+    ).toMatchObject({ errors: [], valid: true });
+  });
+
+  test.each([
+    ['one image', [image('a')]],
+    ['one video', [{ id: 'a', kind: 'video' as const }]],
+    [
+      'an image and a video carousel',
+      [image('a'), { id: 'b', kind: 'video' as const }],
+    ],
+    [
+      'a 20 image carousel',
+      Array.from({ length: 20 }, (_, index) => image(`asset_${index}`)),
+    ],
+  ])('accepts %s', (_label, media) => {
+    expect(
+      validateChannelTargetSettings({
+        caption: 'Post',
+        media,
+        platform: CredentialPlatform.THREADS,
+        publishMode: 'scheduled',
+      }).errors,
+    ).toEqual([]);
+  });
+
+  test('refuses a 501 character caption and accepts exactly 500', () => {
+    expect(
+      validateChannelTargetSettings({
+        caption: 'x'.repeat(500),
+        platform: CredentialPlatform.THREADS,
+      }).errors,
+    ).toEqual([]);
+    expect(
+      validateChannelTargetSettings({
+        caption: 'x'.repeat(501),
+        platform: CredentialPlatform.THREADS,
+      }).errors,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'channel_target.caption_too_long' }),
+      ]),
+    );
+  });
+
+  test('refuses a 21 item carousel and a link, which the publisher cannot send', () => {
+    expect(
+      validateChannelTargetSettings({
+        caption: 'Post',
+        media: Array.from({ length: 21 }, (_, index) =>
+          image(`asset_${index}`),
+        ),
+        platform: CredentialPlatform.THREADS,
+      }).errors,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.too_many_media_items',
+          message: 'Threads allows at most 20 media item(s).',
+        }),
+      ]),
+    );
+    expect(
+      validateChannelTargetSettings({
+        caption: 'Post',
+        media: [{ id: 'link_1', kind: 'link' }],
+        platform: CredentialPlatform.THREADS,
+      }).errors,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.unsupported_media_kind',
+          message: 'Threads does not support link media.',
+        }),
+      ]),
+    );
+  });
+
+  test('requires text and warns that a GIF will not animate', () => {
+    expect(
+      validateChannelTargetSettings({
+        platform: CredentialPlatform.THREADS,
+      }).errors,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'channel_target.caption_required' }),
+      ]),
+    );
+    expect(
+      validateChannelTargetSettings({
+        caption: 'Post',
+        media: [{ id: 'gif_1', isAnimated: true, kind: 'image' }],
+        platform: CredentialPlatform.THREADS,
+      }).warnings,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.animated_media_flattened',
+        }),
+      ]),
+    );
+  });
+
+  test('carries follow-ups as a reply chain', () => {
+    expect(getChannelThreadChildCapability(CredentialPlatform.THREADS)).toEqual(
+      { kind: 'reply_chain', mediaKinds: ['image', 'video', 'carousel'] },
     );
   });
 });
