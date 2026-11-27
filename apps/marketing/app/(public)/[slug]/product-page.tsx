@@ -136,6 +136,28 @@ export default function ProductPage({ product }: { product: Product }) {
         </section>
       )}
 
+      {product.relatedLinks && product.relatedLinks.length > 0 && (
+        <section className="max-w-4xl mx-auto pb-20">
+          <Card isHeaderInside label="Go deeper">
+            <ul className="flex flex-col gap-4">
+              {product.relatedLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    className="font-semibold text-foreground underline-offset-4 hover:underline"
+                    href={link.href}
+                  >
+                    {link.label}
+                  </Link>
+                  <p className="text-sm text-foreground/70">
+                    {link.description}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+      )}
+
       <ProductPricingCTA
         cta={product.cta}
         githubUrl={product.githubUrl}

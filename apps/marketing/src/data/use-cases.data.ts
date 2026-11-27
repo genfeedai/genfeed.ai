@@ -17,6 +17,8 @@ export interface UseCase {
     example: string;
   }[];
   results: string[];
+  /** One pointer to a deeper page, shown above the pricing card. */
+  relatedLink?: { description: string; href: string; label: string };
   pricing: {
     /** Stable tier id; the display name is resolved via getPlanLabel at render. */
     recommended: PlanTier;
@@ -376,6 +378,11 @@ export const useCases: UseCase[] = [
     pricing: {
       recommended: 'payg',
       why: `Try it on your brand, then pay per output with credits from $10.`,
+    },
+    relatedLink: {
+      description: 'Calling Genfeed from your own code?',
+      href: '/developers',
+      label: 'Open the developer hub',
     },
     results: [
       'Explain your product through posts, threads and visuals',

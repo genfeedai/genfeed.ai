@@ -166,7 +166,12 @@ export default function AgentContent() {
             Give the agent you already use access to Genfeed’s tools, or run
             Genfeed’s own agent in your terminal. Connect directly from this
             page, then sign in or create your Genfeed account when your agent
-            requests approval. Developers can find the full reference in{' '}
+            requests approval. If you call Genfeed from your own code, start at
+            the{' '}
+            <Link className="link" href="/developers">
+              developer hub
+            </Link>{' '}
+            or read{' '}
             <a
               className="link"
               href={DOCS_URL}
