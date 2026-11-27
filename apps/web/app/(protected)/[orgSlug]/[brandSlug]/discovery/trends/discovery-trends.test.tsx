@@ -251,6 +251,7 @@ function makeViralVideo(overrides: Record<string, unknown> = {}) {
     engagementRate: 8.5,
     id: 'viral-1',
     platform: Platform.TIKTOK,
+    thumbnailUrl: 'https://example.test/thumbnail.jpg',
     title: 'Launch hook',
     velocity: 40,
     videoUrl: 'https://example.test/video',
