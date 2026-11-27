@@ -656,7 +656,7 @@ describe('DiscoveryTrends', () => {
     mocks.getTrendsDiscovery.mockResolvedValue({ trends: [] });
     renderDiscoveryTrends();
     expect(
-      await screen.findByText('No trending topics available.'),
+      await screen.findByText('No trends match this brand yet.'),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/Connect your social accounts/),

@@ -43,7 +43,9 @@ const trend = {
   viralityScore: 72,
 } as TrendItem;
 
-function renderSection() {
+function renderSection(
+  props: { relevance?: 'brand' | 'market'; trendingTopics?: TrendItem[] } = {},
+) {
   return render(
     <TrendingTopicsSection
       getRowLink={(item) => ({
@@ -52,7 +54,8 @@ function renderSection() {
       })}
       isLoadingTrends={false}
       platformConfigLookup={{ tiktok: { label: 'TikTok' } }}
-      trendingTopics={[trend]}
+      relevance={props.relevance ?? 'brand'}
+      trendingTopics={props.trendingTopics ?? [trend]}
     />,
   );
 }
@@ -83,5 +86,22 @@ describe('TrendingTopicsSection', () => {
     const sidebar = screen.getByTestId('context-sidebar');
     expect(sidebar).toHaveAttribute('data-kind', 'trend');
     expect(within(sidebar).getByText('Sample post body')).toBeVisible();
+  });
+
+  it('tells a brand with nothing matched where the match comes from, not to check collection', () => {
+    renderSection({ relevance: 'brand', trendingTopics: [] });
+
+    expect(screen.getByText('No trends match this brand yet.')).toBeVisible();
+    expect(
+      screen.getByText(/matched to the brand description and its keywords/i),
+    ).toBeVisible();
+    expect(screen.queryByText(/collection health/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps the collection hint for an empty market view', () => {
+    renderSection({ relevance: 'market', trendingTopics: [] });
+
+    expect(screen.getByText('No trending topics available.')).toBeVisible();
+    expect(screen.getByText(/check collection health/i)).toBeVisible();
   });
 });

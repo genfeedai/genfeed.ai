@@ -13,6 +13,7 @@ type PlatformConfigEntry = {
 
 export type Props = {
   isLoadingTrends: boolean;
+  relevance: 'brand' | 'market';
   trendingTopics: TrendItem[];
   platformConfigLookup: Record<string, PlatformConfigEntry>;
   getRowLink: (item: TrendItem) => TableRowLink;

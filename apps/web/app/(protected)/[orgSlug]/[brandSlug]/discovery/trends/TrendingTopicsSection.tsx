@@ -29,6 +29,7 @@ function getViralityBadgeProps(score: number): {
 
 export default function TrendingTopicsSection({
   isLoadingTrends,
+  relevance,
   trendingTopics,
   platformConfigLookup,
   getRowLink,
@@ -66,9 +67,15 @@ export default function TrendingTopicsSection({
         </div>
       ) : trendingTopics.length === 0 ? (
         <EmptyState
-          description={translate('topics.emptyDescription')}
+          description={translate(
+            relevance === 'brand'
+              ? 'topics.emptyBrandDescription'
+              : 'topics.emptyDescription',
+          )}
           icon={Flame}
-          title={translate('topics.empty')}
+          title={translate(
+            relevance === 'brand' ? 'topics.emptyBrand' : 'topics.empty',
+          )}
         />
       ) : (
         <Table<TrendItem>
