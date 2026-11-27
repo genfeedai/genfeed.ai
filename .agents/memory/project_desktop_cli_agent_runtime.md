@@ -3,7 +3,7 @@ name: desktop_cli_agent_runtime
 description: Desktop can run agent turns on the user's own Claude Code / Codex CLI; architecture is CLI + Genfeed MCP + Desktop, threads stay in Genfeed, no credits
 type: project
 status: active
-last_verified: 2026-09-25
+last_verified: 2026-11-27
 topics: [desktop, agent, mcp, cli, runtime, billing]
 ---
 
@@ -32,7 +32,12 @@ actions as any external agent — no second tool API.
   Claude Code or Codex subscription", "Server selection", "Terminal"); user
   docs (`apps/docs/content/deployment/index.mdx`) summarize and link to it.
 - Never bypass CLI permissions or grant built-in file/shell tools to the
-  agent turn. The `gf_` key reaches Claude through a `0600` MCP config deleted
+  agent turn. One scoped exception is decided (owner, 2026-11-25) and **not
+  built yet**: a workspace agent may use file and shell tools inside one folder
+  the user picked, enforced by the operating system
+  ([ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS](architecture/ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS.md),
+  #11252). Until that boundary is proven, and for every turn outside a
+  workspace folder, the rule above stands: `--tools ""`, Genfeed MCP tools only. The `gf_` key reaches Claude through a `0600` MCP config deleted
   after the turn, and Codex only through the child environment.
 - Genfeed tools called by the CLI (generation, publishing) still bill credits;
   only the model turn is free.

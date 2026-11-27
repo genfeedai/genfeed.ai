@@ -49,8 +49,8 @@ The **brand** is the unit of content context (a brand owns one or more social ac
 
 | | SaaS | Community | Desktop |
 |---|---|---|---|
-| Orgs | **multiple** (isolated tenants) | **one** | one (local) |
-| Brands | multiple per org | **multiple** | multiple (local) |
+| Orgs | **multiple** (isolated tenants) | **one** | those of the server it signs in to |
+| Brands | multiple per org | **multiple** | multiple per org |
 | **Org switcher** | **shown** | **hidden** | hidden |
 | **Brand switcher** | **shown** | **shown** | **shown** |
 
@@ -68,7 +68,7 @@ Better Auth ships **magic link, social OAuth, organizations/teams, and admin imp
 |---|---|
 | **SaaS** | Better Auth (email/password, magic link, Google) + multi-tenant orgs |
 | **Community** | Better Auth, fully self-hostable + offline; **single org**. None required for solo/local; a login wall is just enabling it. |
-| **Desktop** | local-first; the optional "connect" signs in via Better Auth → desktop↔cloud sync + cloud features + credits |
+| **Desktop** | Better Auth on the server it picked (Genfeed Cloud or a self-hosted API); one sign-in per server |
 
 **Headless / API-first:** first-party `gf_*` API keys with a self-service management UI **and** CLI (#747) make the whole product drivable via the API + MCP with zero web-UI dependency.
 
@@ -109,7 +109,7 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 
 ### 9. Desktop
 
-**Local-first**: offline BYOK generation + PGlite local cache, no account needed. The optional **"connect"** (Better Auth sign-in) unlocks desktop↔cloud sync + managed features + credits. **No bundled backend** — a thin local-first client, not a fourth product. (Community-in-a-box — bundling the single-container self-hosted stack for a fully-offline full-featured app — is feasible later since Community is one image, but is **deferred**.)
+**A client of Cloud or a self-hosted server, with no backend of its own.** Desktop has no local mode, database or generation ([decisions-desktop-local-mode-removed](../decisions-desktop-local-mode-removed.md)); it talks to the API of the server picked in the in-app switcher. It adds the terminal, the user's own Claude Code and Codex, and project folders for editing with local tools. Which surfaces are web, Desktop or both, and the agent's file access rule, are in [ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS](ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS.md). (Community-in-a-box — bundling the single-container self-hosted stack for a fully-offline full-featured app — is feasible later since Community is one image, but is **deferred**.)
 
 ## Consequences (implementation — tracked on epics #735 and #740)
 
