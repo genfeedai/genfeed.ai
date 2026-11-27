@@ -1,11 +1,9 @@
 import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
-import { getAllUseCaseSlugs } from '@data/use-cases.data';
+import { withBrandSuffix } from '@data/seo-copy';
+import { getAllUseCaseSlugs, type UseCase } from '@data/use-cases.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
-import {
-  formatUseCaseSlug,
-  getUseCaseBySlugCached,
-} from '@public/use-cases/[slug]/use-case-loader';
+import { getUseCaseBySlugCached } from '@public/use-cases/[slug]/use-case-loader';
 import UseCasesContent from '@public/use-cases/[slug]/use-cases-content';
 import { EnvironmentService } from '@services/core/environment.service';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
@@ -15,6 +13,13 @@ import { Suspense } from 'react';
 
 export function generateStaticParams() {
   return getAllUseCaseSlugs().map((slug) => ({ slug }));
+}
+
+const GENFEED_FOR_PREFIX = /^Genfeed for /;
+
+/** "Genfeed for AI Influencers" -> "AI Influencers". */
+export function getUseCaseAudienceName(useCase: UseCase): string {
+  return useCase.title.replace(GENFEED_FOR_PREFIX, '');
 }
 
 export function buildUseCaseBreadcrumbJsonLd(
@@ -46,9 +51,14 @@ export async function generateMetadata(
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { slug } = await params;
-  const audienceName = formatUseCaseSlug(slug);
-  const title = `Genfeed for ${audienceName}`;
-  const description = `How ${audienceName.toLowerCase()} turn one brief into videos, images and posts with Genfeed.`;
+  const useCase = await getUseCaseBySlugCached(slug);
+  if (!useCase) {
+    notFound();
+  }
+
+  const audienceName = getUseCaseAudienceName(useCase);
+  const title = withBrandSuffix(useCase.seoTitle);
+  const description = useCase.seoDescription;
   const url = `${EnvironmentService.apps.website}/use-cases/${slug}`;
 
   const previousImages = [
@@ -88,9 +98,9 @@ export default async function UseCasesPage({
     notFound();
   }
 
-  const audienceName = formatUseCaseSlug(slug);
+  const audienceName = getUseCaseAudienceName(useCase);
   const url = `${EnvironmentService.apps.website}/use-cases/${slug}`;
-  const description = `How ${audienceName.toLowerCase()} turn one brief into videos, images and posts with Genfeed.`;
+  const description = useCase.seoDescription;
 
   const useCaseJsonLd = {
     '@context': 'https://schema.org',
