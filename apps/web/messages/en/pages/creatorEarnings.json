@@ -53,5 +53,24 @@
     "cancel": "Cancel",
     "keep": "Keep",
     "updateFailed": "Could not update the subscription."
+  },
+  "team": {
+    "title": "Team subscriptions",
+    "description": "Creator subscriptions your workspace pays for. Each renews monthly from your shared credits until it is cancelled.",
+    "columns": {
+      "reader": "Member",
+      "creator": "Creator",
+      "price": "Monthly price",
+      "nextCharge": "Next charge"
+    },
+    "you": "You",
+    "price": "{amount, plural, one {# credit} other {# credits}}",
+    "ends": "Ends {date}",
+    "pastDue": "Renewal failed",
+    "cancel": "Cancel",
+    "keep": "Keep",
+    "cancelled": "{creator} will end on {date}. Access lasts until then.",
+    "kept": "{creator} will keep renewing.",
+    "updateFailed": "Could not update the subscription. Owners and admins can manage team subscriptions."
   }
 }

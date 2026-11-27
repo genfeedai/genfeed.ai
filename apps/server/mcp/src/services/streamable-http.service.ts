@@ -8,6 +8,7 @@ import {
   mostRestrictiveMcpAccessMode,
 } from '@genfeedai/mcp-kit';
 import { LoggerService } from '@libs/logger/logger.service';
+import { enrichWideEvent } from '@libs/logger/wide-event/wide-event.context';
 import { ConfigService } from '@mcp/config/config.service';
 import {
   buildMcpServerInstructions,
@@ -23,6 +24,7 @@ import {
   readApprovalPromptRound,
 } from '@mcp/services/mcp-approval-prompt.util';
 import { createCardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
+import { describeMcpRequest } from '@mcp/services/mcp-request-event.util';
 import { withMcpStructuredContent } from '@mcp/services/mcp-structured-result.util';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -121,6 +123,9 @@ export class StreamableHttpService {
   private async processRequest(req: Request, res: Response): Promise<void> {
     const request = req as StatelessMcpRequest;
     const authContext = request.authContext;
+    // The request event is the only record of a call in production, which logs
+    // at info: put the method and tool name on it, never the arguments.
+    enrichWideEvent(describeMcpRequest(request.body));
     const handler = createMcpHandler(
       () => this.buildServer(authContext, request.routeAccessMode),
       {

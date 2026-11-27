@@ -4,7 +4,7 @@ import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.
 
 /**
  * Integration test for role enforcement through the FULL handleToolCall path
- * using the REAL `McpAuthGuard.checkToolRole` + `AuthService.hasRequiredRole`
+ * using the REAL `McpAuthGuard.checkToolRole` + `hasRequiredRole` from `@genfeedai/mcp-kit`
  * (deliberately NOT mocked). This proves the role threaded into the constructor
  * actually denies/permits a role-gated tool — the unit specs mock the guard, so
  * they only prove delegation, not enforcement.
