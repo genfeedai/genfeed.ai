@@ -8,13 +8,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const findAllPublicArticles = vi.fn<() => Promise<Article[]>>();
 const findPublicBrands = vi.fn<() => Promise<Brand[]>>();
 const findPublicPosts = vi.fn<() => Promise<Post[]>>();
+const findPublicArticlesPage = vi.fn();
+const findPublicImagesPage = vi.fn();
+const findPublicPostsPage = vi.fn();
+const findPublicVideosPage = vi.fn();
+
+/** A listing page that holds `total` published items. */
+const listing = (total: number) => ({ items: [], total });
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
       findAllPublicArticles,
+      findPublicArticlesPage,
       findPublicBrands,
+      findPublicImagesPage,
       findPublicPosts,
+      findPublicPostsPage,
+      findPublicVideosPage,
     }),
   },
 }));
@@ -34,6 +45,15 @@ beforeEach(() => {
   findPublicPosts.mockResolvedValue([]);
   getPublishedReleases.mockReset();
   getPublishedReleases.mockResolvedValue([]);
+  for (const page of [
+    findPublicArticlesPage,
+    findPublicImagesPage,
+    findPublicPostsPage,
+    findPublicVideosPage,
+  ]) {
+    page.mockReset();
+    page.mockResolvedValue(listing(1));
+  }
 });
 
 describe('website sitemap', () => {
@@ -179,6 +199,44 @@ describe('website sitemap', () => {
       'https://genfeed.ai/@shayla',
       'https://genfeed.ai/@acme',
     ]);
+  });
+
+  it('leaves out a public profile with nothing published and lists it once it has an item', async () => {
+    findAllPublicArticles.mockResolvedValue([]);
+    findPublicBrands.mockResolvedValue([
+      { id: 'empty', slug: 'empty-brand' },
+      { id: 'one-image', slug: 'one-image-brand' },
+    ] as Brand[]);
+    for (const page of [
+      findPublicArticlesPage,
+      findPublicImagesPage,
+      findPublicPostsPage,
+      findPublicVideosPage,
+    ]) {
+      page.mockResolvedValue(listing(0));
+    }
+    findPublicImagesPage.mockImplementation(async (query: { brand: string }) =>
+      listing(query.brand === 'one-image' ? 1 : 0),
+    );
+
+    const urls = new Set((await sitemap()).map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/@empty-brand')).toBe(false);
+    expect(urls.has('https://genfeed.ai/@one-image-brand')).toBe(true);
+    expect(urls.has('https://genfeed.ai/@genfeedai')).toBe(true);
+  });
+
+  it('keeps a public profile listed when its content cannot be counted', async () => {
+    findAllPublicArticles.mockResolvedValue([]);
+    findPublicBrands.mockResolvedValue([{ id: 'b1', slug: 'acme' }] as Brand[]);
+    findPublicArticlesPage.mockResolvedValue(listing(0));
+    findPublicImagesPage.mockResolvedValue(listing(0));
+    findPublicPostsPage.mockResolvedValue(listing(0));
+    findPublicVideosPage.mockRejectedValue(new Error('API unavailable'));
+
+    const urls = new Set((await sitemap()).map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/@acme')).toBe(true);
   });
 
   it('keeps article authors listed when the brand list is unavailable', async () => {

@@ -230,6 +230,60 @@ describe('generateMetadata', () => {
     );
   });
 
+  it('indexes a profile that has published something', async () => {
+    findPublicProfileBySlug.mockResolvedValue(brand({ id: 'brand-indexed' }));
+    findPublicArticlesPage.mockResolvedValue(page([], 0));
+    findPublicPostsPage.mockResolvedValue(page([POST], 1));
+
+    const meta = await generateMetadata({
+      params: Promise.resolve({ handle: 'indexed' }),
+    });
+
+    expect(meta.robots).toBeUndefined();
+  });
+
+  it('keeps a profile with nothing published out of the index but lets crawlers follow its links', async () => {
+    findPublicProfileBySlug.mockResolvedValue(brand({ id: 'brand-empty' }));
+    findPublicArticlesPage.mockResolvedValue(EMPTY);
+    findPublicPostsPage.mockResolvedValue(EMPTY);
+
+    const meta = await generateMetadata({
+      params: Promise.resolve({ handle: 'empty' }),
+    });
+
+    expect(meta.robots).toEqual({ follow: true, index: false });
+    expect(meta.alternates?.canonical).toBe('https://genfeed.ai/@acme');
+  });
+
+  it('judges a tab by its own listing, not by the rest of the profile', async () => {
+    findPublicProfileBySlug.mockResolvedValue(brand({ id: 'brand-tab' }));
+    findPublicArticlesPage.mockResolvedValue(page([], 0));
+    findPublicPostsPage.mockResolvedValue(page([POST], 1));
+
+    const articles = await generateArticlesMetadata({
+      params: Promise.resolve({ handle: 'tab' }),
+      searchParams: Promise.resolve({}),
+    });
+    const profile = await generateMetadata({
+      params: Promise.resolve({ handle: 'tab' }),
+    });
+
+    expect(articles.robots).toEqual({ follow: true, index: false });
+    expect(profile.robots).toBeUndefined();
+  });
+
+  it('keeps a profile indexable when a listing cannot be loaded', async () => {
+    findPublicProfileBySlug.mockResolvedValue(brand({ id: 'brand-flaky' }));
+    findPublicArticlesPage.mockResolvedValue(EMPTY);
+    findPublicPostsPage.mockRejectedValue(new Error('offline'));
+
+    const meta = await generateMetadata({
+      params: Promise.resolve({ handle: 'flaky' }),
+    });
+
+    expect(meta.robots).toBeUndefined();
+  });
+
   it('keeps an unknown handle out of the index', async () => {
     findPublicProfileBySlug.mockResolvedValue(null);
 
