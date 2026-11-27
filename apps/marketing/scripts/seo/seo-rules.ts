@@ -553,14 +553,14 @@ export function checkSitemapEntriesResolve(
 }
 
 /** Fewest other pages that must link to an indexable page. */
-export const MIN_INBOUND_LINKS = 3;
+const MIN_INBOUND_LINKS = 3;
 
 /**
  * The HTML directory lists every page, so a link from it says nothing about the
  * page it points at. It is left out of the count; the 2026-11-27 crawl found 41
  * pages whose only link was this one.
  */
-export const SITEMAP_DIRECTORY_PATH = '/sitemap';
+const SITEMAP_DIRECTORY_PATH = '/sitemap';
 
 /**
  * Cross-page rule: an indexable page that few other pages link to is crawled
