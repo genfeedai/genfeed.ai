@@ -10,7 +10,6 @@ import type { PublishApprovalsService } from '@api/collections/publish-approvals
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   fromPrismaCredentialPlatform,
   TargetExecutionState,
@@ -435,38 +434,4 @@ function applyPreparedTimezone(
 
     prismaWriteData.scheduledDate = convertedDate;
   }
-}
-
-/**
- * A single-target release shows its title in the list, and the post detail page
- * edits the target's label. When the label of such a target changes, the release
- * title follows, so the list and the detail page never name the same post
- * differently. A release with several targets keeps its own title.
- */
-export async function syncReleaseTitleWithTargetLabel(
-  tx: Prisma.TransactionClient,
-  params: {
-    groupId: string | null | undefined;
-    label: unknown;
-    organizationId: string;
-    parentId: string | null | undefined;
-  },
-): Promise<void> {
-  const title = typeof params.label === 'string' ? params.label.trim() : '';
-  if (!params.groupId || params.parentId || !title) {
-    return;
-  }
-  const targetCount = await tx.post.count({
-    where: scopedWhere(params.organizationId, {
-      groupId: params.groupId,
-      parentId: null,
-    }),
-  });
-  if (targetCount !== 1) {
-    return;
-  }
-  await tx.postGroup.updateMany({
-    data: { title },
-    where: scopedWhere(params.organizationId, { id: params.groupId }),
-  });
 }

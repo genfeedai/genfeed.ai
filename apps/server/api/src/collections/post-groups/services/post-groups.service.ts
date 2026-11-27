@@ -458,19 +458,6 @@ export class PostGroupsService {
         where: scopedWhere(organizationId, { id: existing.id }),
       })) as SchedulerPostGroup;
 
-      // The post detail page edits the target's label while the list shows the
-      // release title, so a renamed release renames its unpublished targets too.
-      if (input.title !== undefined) {
-        await tx.post.updateMany({
-          data: { label: input.title },
-          where: scopedWhere(organizationId, {
-            groupId: existing.id,
-            parentId: null,
-            targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-          }),
-        });
-      }
-
       // Campaign membership belongs to the whole release, including targets
       // that already published, so it is not gated on lifecycle state.
       if (input.campaignId !== undefined) {
