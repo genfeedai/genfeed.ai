@@ -6,19 +6,15 @@ import {
   getDeployment,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
-import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type {
   ConnectGenfeedAuthMethod,
   ConnectGenfeedClient,
   ConnectGenfeedVerificationResult,
 } from '@genfeedai/contracts/interfaces';
-import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
-import {
-  CONNECT_FLOW_CLIENTS,
-  getConnectClient,
-} from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
+import { CONNECT_FLOW_CLIENTS } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
@@ -49,7 +45,7 @@ import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { StatusDot } from '@ui/primitives/status-dot';
-import { Tabs } from '@ui/primitives/tabs';
+import { Stepper } from '@ui/primitives/stepper';
 import {
   ArrowRight,
   CircleCheck,
@@ -76,24 +72,6 @@ const CLIENTS = CONNECT_FLOW_CLIENTS.map((entry) => ({
   marks: entry.marks,
   value: entry.helperClient,
 }));
-
-function ClaudeCodeTabIcon() {
-  return <ConnectClientMarks marks={getConnectClient('claude-code').marks} />;
-}
-
-function CodexTabIcon() {
-  return <ConnectClientMarks marks={getConnectClient('codex').marks} />;
-}
-
-function ChatAgentTabIcon() {
-  return <ConnectClientMarks marks={getConnectClient('chat-agent').marks} />;
-}
-
-const CLIENT_TAB_ICONS: Partial<Record<ConnectGenfeedClient, IconComponent>> = {
-  'chat-agent': ChatAgentTabIcon,
-  'claude-code': ClaudeCodeTabIcon,
-  codex: CodexTabIcon,
-};
 
 /** How often the browser-authorization tab re-reads the agent connection state. */
 const OAUTH_CONNECTION_POLL_MS = 4000;
@@ -130,6 +108,7 @@ export default function ConnectGenfeedFlow() {
   const params = useRouteParams<{ orgSlug: string }>();
   const { brands, isReady, organizationId, settings } = useBrand();
   const [client, setClient] = useState<ConnectGenfeedClient>('codex');
+  const [step, setStep] = useState(0);
   const [authMethod, setAuthMethod] =
     useState<ConnectGenfeedAuthMethod>('oauth');
   const [chosenKeyId, setChosenKeyId] = useState('');
@@ -477,123 +456,165 @@ export default function ConnectGenfeedFlow() {
         : `/${params.orgSlug}/~/publishing`
       : `/${params.orgSlug}/~/settings/brands`;
 
-  return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
-      <h1 className="sr-only">{translate('title')}</h1>
+  const stepLabels =
+    authMethod === 'oauth'
+      ? [
+          translate('chooseClient'),
+          translate('addGenfeed'),
+          translate('authorize'),
+          translate('verifyInClient'),
+        ]
+      : [
+          translate('chooseClient'),
+          translate('chooseKey'),
+          translate('copyConfig'),
+          translate('verify'),
+        ];
+  const isLastStep = step === stepLabels.length - 1;
+  const supportsManualKey = client !== 'claude-code' && client !== 'chat-agent';
 
-      <ol
-        className="grid gap-px bg-border sm:grid-cols-4"
-        aria-label={translate('progressLabel')}
-      >
-        {(authMethod === 'oauth'
-          ? [
-              translate('chooseClient'),
-              translate('addGenfeed'),
-              translate('authorize'),
-              translate('verifyInClient'),
-            ]
-          : [
-              translate('chooseClient'),
-              translate('chooseKey'),
-              translate('copyConfig'),
-              translate('verify'),
-            ]
-        ).map((label, index) => (
-          <li
-            className="bg-card px-4 py-3 text-xs text-muted-foreground"
-            key={label}
+  const renderStep = () => {
+    if (step === 0) {
+      return (
+        <div className="flex flex-col gap-4">
+          <OptionTileGroup
+            ariaLabel={translate('clientLabel')}
+            columns={2}
+            onValueChange={handleClientChange}
+            value={client}
           >
-            <span className="mr-2 font-mono text-foreground">{index + 1}</span>
-            {label}
-          </li>
-        ))}
-      </ol>
-
-      <Card padding={CardPadding.LG} label={translate('clientTitle')}>
-        <Tabs
-          activeTab={client}
-          ariaLabel={translate('clientLabel')}
-          fullWidth={false}
-          items={CLIENTS.map((item) => ({
-            icon: CLIENT_TAB_ICONS[item.value],
-            id: item.value,
-            label: item.label,
-          }))}
-          onTabChange={handleClientChange}
-        >
-          <p className="pt-2 text-xs text-muted-foreground">
-            {CLIENTS.find((item) => item.value === client)?.description}
-          </p>
-        </Tabs>
-      </Card>
-
-      <Tabs
-        activeTab={authMethod}
-        ariaLabel={translate('authMethodLabel')}
-        items={[
-          { id: 'oauth', label: translate('browserAuthorization') },
-          ...(client === 'claude-code' || client === 'chat-agent'
-            ? []
-            : [{ id: 'manual-key', label: translate('manualKey') }]),
-        ]}
-        onTabChange={function handleAuthMethodChange(value) {
-          setAuthMethod(value === 'manual-key' ? 'manual-key' : 'oauth');
-          setVerification(null);
-          setCopiedItem('');
-        }}
-      />
-
-      {authMethod === 'oauth' ? (
-        <Card
-          padding={CardPadding.LG}
-          label={translate('browserTitle')}
-          description={translate('endpointDescription', { endpoint })}
-        >
-          <p className="text-sm text-muted-foreground">
-            {translate(
-              client === 'chat-agent'
-                ? 'chatAgentDescription'
-                : 'browserDescription',
-            )}
-          </p>
-          <pre className="my-4 overflow-x-auto bg-background p-3 font-mono text-xs">
-            <code>{instructions.primaryCommand ?? endpoint}</code>
-          </pre>
-          <Button
-            onClick={() =>
-              void copyText(
-                instructions.primaryCommand ? 'Client setup' : 'Server URL',
-                instructions.primaryCommand ?? endpoint,
-              )
-            }
-            withWrapper={false}
-          >
-            {client === 'chat-agent'
-              ? translate('copyChatPrompt')
-              : instructions.primaryCommand
-                ? translate('copySetupCommand')
-                : translate('copyServerUrl')}
-          </Button>
-          <p className="mt-4 text-sm">
-            {instructions.authorizationInstruction}
-          </p>
-          {connectedAgent ? (
-            <div
-              className="mt-4 flex flex-col items-center gap-4 border border-border bg-background p-6"
-              data-testid="connect-genfeed-agent-connected"
-            >
-              <ConnectionSuccess
-                brand={connectedAgentBrand}
-                description={translate('agentConnectedDescription', {
-                  client: connectedAgentName,
-                })}
-                title={translate('agentConnectedTitle', {
-                  client: connectedAgentName,
-                })}
+            {CLIENTS.map((item) => (
+              <OptionTile
+                description={item.description}
+                icon={<ConnectClientMarks marks={item.marks} />}
+                key={item.value}
+                title={item.label}
+                value={item.value}
               />
-              <pre className="w-full overflow-x-auto bg-card p-3 font-mono text-xs">
-                <code>{FIRST_ACTION_PROMPT}</code>
+            ))}
+          </OptionTileGroup>
+          {supportsManualKey ? (
+            <div>
+              <Button
+                onClick={() => {
+                  setAuthMethod(
+                    authMethod === 'oauth' ? 'manual-key' : 'oauth',
+                  );
+                  setVerification(null);
+                  setCopiedItem('');
+                }}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              >
+                {authMethod === 'oauth'
+                  ? translate('manualKey')
+                  : translate('browserAuthorization')}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (authMethod === 'oauth') {
+      if (step === 1) {
+        return (
+          <Card padding={CardPadding.LG}>
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                {translate(
+                  client === 'chat-agent'
+                    ? 'chatAgentDescription'
+                    : 'browserDescription',
+                )}
+              </p>
+              <pre className="overflow-x-auto whitespace-pre-wrap bg-background p-3 font-mono text-xs">
+                <code>{instructions.primaryCommand ?? endpoint}</code>
               </pre>
+              <div>
+                <Button
+                  icon={<Clipboard aria-hidden="true" className="size-4" />}
+                  onClick={() =>
+                    void copyText(
+                      instructions.primaryCommand
+                        ? 'Client setup'
+                        : 'Server URL',
+                      instructions.primaryCommand ?? endpoint,
+                    )
+                  }
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                >
+                  {client === 'chat-agent'
+                    ? translate('copyChatPrompt')
+                    : instructions.primaryCommand
+                      ? translate('copySetupCommand')
+                      : translate('copyServerUrl')}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {translate('endpointDescription', { endpoint })}
+              </p>
+              <p aria-live="polite" className="text-xs text-success">
+                {copiedItem ? `${copiedItem} copied.` : ''}
+              </p>
+            </div>
+          </Card>
+        );
+      }
+
+      if (step === 2) {
+        return (
+          <Card padding={CardPadding.LG}>
+            <div className="flex flex-col gap-4">
+              <p className="text-sm">{instructions.authorizationInstruction}</p>
+              {connectedAgent ? (
+                <div
+                  className="flex flex-col items-center gap-4 border border-border bg-background p-6"
+                  data-testid="connect-genfeed-agent-connected"
+                >
+                  <ConnectionSuccess
+                    brand={connectedAgentBrand}
+                    description={translate('agentConnectedDescription', {
+                      client: connectedAgentName,
+                    })}
+                    title={translate('agentConnectedTitle', {
+                      client: connectedAgentName,
+                    })}
+                  />
+                </div>
+              ) : (
+                <>
+                  <p
+                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                    data-testid="connect-genfeed-waiting"
+                  >
+                    <StatusDot isPulsing />
+                    {translate('waitingForAgent', {
+                      client: selectedClientLabel,
+                    })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {translate('authorizationRecovery')}
+                  </p>
+                </>
+              )}
+            </div>
+          </Card>
+        );
+      }
+
+      return (
+        <Card padding={CardPadding.LG}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              {translate('finishDescription')}
+            </p>
+            <pre className="overflow-x-auto whitespace-pre-wrap bg-background p-3 font-mono text-xs">
+              <code>{FIRST_ACTION_PROMPT}</code>
+            </pre>
+            <div>
               <Button
                 icon={<Clipboard aria-hidden="true" className="size-4" />}
                 onClick={() =>
@@ -605,384 +626,391 @@ export default function ConnectGenfeedFlow() {
                 {translate('copyFirstAction')}
               </Button>
             </div>
-          ) : (
-            <>
-              <Alert className="mt-4">
-                <AlertTitle>{translate('finishTitle')}</AlertTitle>
-                <AlertDescription>
-                  {translate('finishDescription')}
-                </AlertDescription>
-              </Alert>
-              <p
-                className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"
-                data-testid="connect-genfeed-waiting"
-              >
-                <StatusDot isPulsing />
-                {translate('waitingForAgent', { client: selectedClientLabel })}
-              </p>
-              <p className="mt-4 text-sm text-muted-foreground">
-                {translate('authorizationRecovery')}
-              </p>
-            </>
-          )}
-          <p aria-live="polite" className="mt-3 text-xs">
-            {copiedItem
-              ? `${copiedItem} copied. Complete authorization in your client.`
-              : ''}
-          </p>
+            <p aria-live="polite" className="text-xs text-success">
+              {copiedItem ? `${copiedItem} copied.` : ''}
+            </p>
+          </div>
         </Card>
-      ) : (
-        <>
-          <Card
-            padding={CardPadding.LG}
-            label={translate('keyTitle')}
-            description={translate('keyDescription')}
-          >
-            {isLoadingKeys ? (
-              <p className="text-sm text-muted-foreground" role="status">
-                {translate('loadingKeys')}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {apiKeys.length > 0 ? (
-                  <OptionTileGroup
-                    ariaLabel={translate('keyTitle')}
-                    className="sm:grid-cols-2"
-                    columns={1}
-                    onValueChange={(keyId) => {
-                      const apiKey = apiKeys.find(
-                        (entry) => entry.id === keyId,
-                      );
-                      if (apiKey) {
-                        handleSelectKey(apiKey);
-                      }
-                    }}
-                    value={selectedKeyId || undefined}
-                  >
-                    {apiKeys.map((apiKey) => {
-                      const isSelected = apiKey.id === selectedKeyId;
-                      const isScoped = hasRequiredMcpScopes(apiKey);
+      );
+    }
 
-                      return (
-                        <OptionTile
-                          description={
-                            isScoped
-                              ? translate('scopesReady')
-                              : translate('scopesMissing')
-                          }
-                          key={apiKey.id}
-                          title={apiKey.label ?? translate('unnamedKey')}
-                          trailing={
-                            isSelected ? (
-                              <CircleCheck
-                                aria-hidden="true"
-                                className="size-5"
-                              />
-                            ) : (
-                              <Key aria-hidden="true" className="size-5" />
-                            )
-                          }
-                          value={apiKey.id}
-                        />
-                      );
-                    })}
-                  </OptionTileGroup>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {translate('emptyKeys')}
-                  </p>
-                )}
-
-                <Button
-                  icon={<Plus aria-hidden="true" className="size-4" />}
-                  isDisabled={!hasProductApiAccess}
-                  isLoading={isCreatingKey}
-                  onClick={() => void handleCreateKey()}
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
+    if (step === 1) {
+      return (
+        <Card
+          padding={CardPadding.LG}
+          description={translate('keyDescription')}
+        >
+          {isLoadingKeys ? (
+            <p className="text-sm text-muted-foreground" role="status">
+              {translate('loadingKeys')}
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {apiKeys.length > 0 ? (
+                <OptionTileGroup
+                  ariaLabel={translate('keyTitle')}
+                  className="sm:grid-cols-2"
+                  columns={1}
+                  onValueChange={(keyId) => {
+                    const apiKey = apiKeys.find((entry) => entry.id === keyId);
+                    if (apiKey) {
+                      handleSelectKey(apiKey);
+                    }
+                  }}
+                  value={selectedKeyId || undefined}
                 >
-                  {translate('createKey')}
-                </Button>
+                  {apiKeys.map((apiKey) => {
+                    const isSelected = apiKey.id === selectedKeyId;
+                    const isScoped = hasRequiredMcpScopes(apiKey);
 
-                {!hasProductApiAccess ? (
-                  <p className="text-xs text-warning">
-                    {translate('apiAccessDescription')}
-                  </p>
-                ) : null}
-
-                {createdPlainKey ? (
-                  <Alert
-                    variant="warning"
-                    icon={<Key aria-hidden="true" className="size-4" />}
-                  >
-                    <AlertTitle>{translate('copyKeyTitle')}</AlertTitle>
-                    <AlertDescription>
-                      <p className="break-all font-mono text-xs">
-                        {createdPlainKey}
-                      </p>
-                      <Button
-                        className="mt-3"
-                        icon={
-                          <Clipboard aria-hidden="true" className="size-4" />
+                    return (
+                      <OptionTile
+                        description={
+                          isScoped
+                            ? translate('scopesReady')
+                            : translate('scopesMissing')
                         }
-                        onClick={() =>
-                          void copyText('API key', createdPlainKey)
+                        key={apiKey.id}
+                        title={apiKey.label ?? translate('unnamedKey')}
+                        trailing={
+                          isSelected ? (
+                            <CircleCheck
+                              aria-hidden="true"
+                              className="size-5"
+                            />
+                          ) : (
+                            <Key aria-hidden="true" className="size-5" />
+                          )
                         }
-                        variant={ButtonVariant.SECONDARY}
-                        withWrapper={false}
-                      >
-                        {translate('copyKey')}
-                      </Button>
-                      <p className="mt-2 text-xs">
-                        {translate('copyOnceDescription')}
-                      </p>
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-              </div>
-            )}
-          </Card>
-
-          <Card
-            padding={CardPadding.LG}
-            label={translate('configurationTitle')}
-            description={translate('endpointDescription', { endpoint })}
-          >
-            <div className="space-y-4">
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h2 className="text-xs font-medium">
-                    {translate('enterKeyTitle')}
-                  </h2>
-                  <Button
-                    ariaLabel={translate('copyEnvironment')}
-                    icon={<Clipboard aria-hidden="true" className="size-4" />}
-                    onClick={() =>
-                      void copyText(
-                        'Environment command',
-                        instructions.environmentCommand,
-                      )
-                    }
-                    variant={ButtonVariant.GHOST}
-                  />
-                </div>
-                <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
-                  <code>{instructions.environmentCommand}</code>
-                </pre>
-              </div>
-
-              {instructions.primaryCommand ? (
-                <div>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <h2 className="text-xs font-medium">
-                      {translate('addGenfeed')}
-                    </h2>
-                    <Button
-                      ariaLabel={translate('copyClientSetup')}
-                      icon={<Clipboard aria-hidden="true" className="size-4" />}
-                      onClick={() =>
-                        void copyText(
-                          'Client setup command',
-                          instructions.primaryCommand ?? '',
-                        )
-                      }
-                      variant={ButtonVariant.GHOST}
-                    />
-                  </div>
-                  <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
-                    <code>{instructions.primaryCommand}</code>
-                  </pre>
-                </div>
-              ) : null}
-
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h2 className="text-xs font-medium">
-                    {client === 'codex'
-                      ? translate('equivalentConfig')
-                      : translate('configuration')}
-                  </h2>
-                  <Button
-                    ariaLabel={translate('copyConfiguration')}
-                    icon={<Clipboard aria-hidden="true" className="size-4" />}
-                    onClick={() =>
-                      void copyText(
-                        'MCP configuration',
-                        instructions.configuration,
-                      )
-                    }
-                    variant={ButtonVariant.GHOST}
-                  />
-                </div>
-                <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
-                  <code>{instructions.configuration}</code>
-                </pre>
-              </div>
-
-              <p aria-live="polite" className="text-xs text-success">
-                {copiedItem ? `${copiedItem} copied. No key was embedded.` : ''}
-              </p>
-            </div>
-          </Card>
-
-          <Card
-            padding={CardPadding.LG}
-            label={translate('verificationTitle')}
-            description={translate('verificationDescription')}
-          >
-            <div className="space-y-4">
-              {!createdPlainKey ? (
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs" htmlFor="connect-genfeed-key">
-                    {translate('storedKeyLabel')}
-                  </Label>
-                  <Input
-                    autoComplete="off"
-                    id="connect-genfeed-key"
-                    onChange={(event) => {
-                      bindSecretToSelectedKey();
-                      setVerificationSecret(event.target.value);
-                    }}
-                    placeholder="gf_live_..."
-                    type="password"
-                    value={verificationSecret}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {translate('storedKeyDescription')}
-                  </p>
-                </div>
-              ) : null}
-
-              <Button
-                icon={<LinkIcon aria-hidden="true" className="size-4" />}
-                isDisabled={!selectedKeyId || !verificationSecret.trim()}
-                isLoading={isVerifying}
-                onClick={() => void handleVerify()}
-                withWrapper={false}
-              >
-                {translate('verifyConnection')}
-              </Button>
-
-              {instructions.verifyCommand ? (
-                <p className="text-xs text-muted-foreground">
-                  {translate('manualFallback')}{' '}
-                  <code className="font-mono text-foreground">
-                    {instructions.verifyCommand}
-                  </code>
-                </p>
+                        value={apiKey.id}
+                      />
+                    );
+                  })}
+                </OptionTileGroup>
               ) : (
-                <p className="text-xs text-muted-foreground">
-                  {translate('manualFallbackDescription')}
+                <p className="text-sm text-muted-foreground">
+                  {translate('emptyKeys')}
                 </p>
               )}
 
-              <div aria-live="polite">
-                {verification?.status === 'failed' ? (
-                  <Alert
-                    variant={
-                      verification.reason === 'unreachable_endpoint'
-                        ? 'warning'
-                        : 'destructive'
-                    }
-                    icon={false}
-                  >
-                    <AlertTitle>
-                      {verification.reason === 'invalid_scope'
-                        ? translate('invalidScopeTitle')
-                        : verification.reason === 'invalid_key'
-                          ? translate('invalidKeyTitle')
-                          : translate('unavailableTitle')}
-                    </AlertTitle>
-                    <AlertDescription>
-                      <p>{verification.message}</p>
-                      {verification.missingScopes?.length ? (
-                        <p className="mt-2 font-mono text-xs">
-                          {translate('missingScopes', {
-                            scopes: verification.missingScopes.join(', '),
-                          })}
-                        </p>
-                      ) : null}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
+              <Button
+                icon={<Plus aria-hidden="true" className="size-4" />}
+                isDisabled={!hasProductApiAccess}
+                isLoading={isCreatingKey}
+                onClick={() => void handleCreateKey()}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                {translate('createKey')}
+              </Button>
 
-                {verification?.status === 'connected' ? (
-                  <ConnectionSuccess
-                    brand={selectedClientBrand}
-                    className="py-2"
-                    description={translate('verifiedDescription', {
-                      verifiedAt: new Date(
-                        verification.verifiedAt,
-                      ).toLocaleString(),
-                    })}
-                    title={translate('verifiedTitle')}
-                  />
-                ) : null}
-              </div>
-            </div>
-          </Card>
+              {!hasProductApiAccess ? (
+                <p className="text-xs text-warning">
+                  {translate('apiAccessDescription')}
+                </p>
+              ) : null}
 
-          {verification?.status === 'connected' ? (
-            <Card
-              padding={CardPadding.LG}
-              label={translate('firstActionTitle')}
-              description={
-                verification.publishing.isReady
-                  ? translate('publishingReady', {
-                      count: verification.publishing.connectedAccountCount,
-                    })
-                  : translate('publishingUnavailable')
-              }
-            >
-              <div className="space-y-4">
-                {verification.publishing.isReady ? (
-                  <>
-                    <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
-                      <code>{FIRST_ACTION_PROMPT}</code>
-                    </pre>
+              {createdPlainKey ? (
+                <Alert
+                  variant="warning"
+                  icon={<Key aria-hidden="true" className="size-4" />}
+                >
+                  <AlertTitle>{translate('copyKeyTitle')}</AlertTitle>
+                  <AlertDescription>
+                    <p className="break-all font-mono text-xs">
+                      {createdPlainKey}
+                    </p>
                     <Button
+                      className="mt-3"
                       icon={<Clipboard aria-hidden="true" className="size-4" />}
-                      onClick={() =>
-                        void copyText(
-                          'First action prompt',
-                          FIRST_ACTION_PROMPT,
-                        )
-                      }
+                      onClick={() => void copyText('API key', createdPlainKey)}
                       variant={ButtonVariant.SECONDARY}
                       withWrapper={false}
                     >
-                      {translate('copyFirstAction')}
+                      {translate('copyKey')}
                     </Button>
-                  </>
-                ) : (
-                  <Alert variant="warning" icon={false}>
-                    <AlertTitle>
-                      {translate('connectPublishingTitle')}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {translate('connectPublishingDescription')}
-                    </AlertDescription>
-                  </Alert>
-                )}
+                    <p className="mt-2 text-xs">
+                      {translate('copyOnceDescription')}
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+          )}
+        </Card>
+      );
+    }
 
-                <Button asChild withWrapper={false}>
-                  <Link
-                    href={publishingHref}
-                    onClick={() => trackStep('publishing_handoff', 'success')}
-                  >
-                    {verification.publishing.isReady
-                      ? firstBrandSlug
-                        ? translate('draftWithAgent')
-                        : translate('openPublishing')
-                      : translate('connectPublishing')}
-                    <ArrowRight aria-hidden="true" className="size-4" />
-                  </Link>
-                </Button>
+    if (step === 2) {
+      return (
+        <Card padding={CardPadding.LG}>
+          <div className="space-y-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="text-xs font-medium">
+                  {translate('enterKeyTitle')}
+                </h2>
+                <Button
+                  ariaLabel={translate('copyEnvironment')}
+                  icon={<Clipboard aria-hidden="true" className="size-4" />}
+                  onClick={() =>
+                    void copyText(
+                      'Environment command',
+                      instructions.environmentCommand,
+                    )
+                  }
+                  variant={ButtonVariant.GHOST}
+                />
               </div>
-            </Card>
-          ) : null}
-        </>
-      )}
+              <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
+                <code>{instructions.environmentCommand}</code>
+              </pre>
+            </div>
+
+            {instructions.primaryCommand ? (
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <h2 className="text-xs font-medium">
+                    {translate('addGenfeed')}
+                  </h2>
+                  <Button
+                    ariaLabel={translate('copyClientSetup')}
+                    icon={<Clipboard aria-hidden="true" className="size-4" />}
+                    onClick={() =>
+                      void copyText(
+                        'Client setup command',
+                        instructions.primaryCommand ?? '',
+                      )
+                    }
+                    variant={ButtonVariant.GHOST}
+                  />
+                </div>
+                <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
+                  <code>{instructions.primaryCommand}</code>
+                </pre>
+              </div>
+            ) : null}
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="text-xs font-medium">
+                  {client === 'codex'
+                    ? translate('equivalentConfig')
+                    : translate('configuration')}
+                </h2>
+                <Button
+                  ariaLabel={translate('copyConfiguration')}
+                  icon={<Clipboard aria-hidden="true" className="size-4" />}
+                  onClick={() =>
+                    void copyText(
+                      'MCP configuration',
+                      instructions.configuration,
+                    )
+                  }
+                  variant={ButtonVariant.GHOST}
+                />
+              </div>
+              <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
+                <code>{instructions.configuration}</code>
+              </pre>
+            </div>
+
+            <p aria-live="polite" className="text-xs text-success">
+              {copiedItem ? `${copiedItem} copied. No key was embedded.` : ''}
+            </p>
+          </div>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-6">
+        <Card
+          padding={CardPadding.LG}
+          description={translate('verificationDescription')}
+        >
+          <div className="space-y-4">
+            {!createdPlainKey ? (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs" htmlFor="connect-genfeed-key">
+                  {translate('storedKeyLabel')}
+                </Label>
+                <Input
+                  autoComplete="off"
+                  id="connect-genfeed-key"
+                  onChange={(event) => {
+                    bindSecretToSelectedKey();
+                    setVerificationSecret(event.target.value);
+                  }}
+                  placeholder="gf_live_..."
+                  type="password"
+                  value={verificationSecret}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {translate('storedKeyDescription')}
+                </p>
+              </div>
+            ) : null}
+
+            <Button
+              icon={<LinkIcon aria-hidden="true" className="size-4" />}
+              isDisabled={!selectedKeyId || !verificationSecret.trim()}
+              isLoading={isVerifying}
+              onClick={() => void handleVerify()}
+              withWrapper={false}
+            >
+              {translate('verifyConnection')}
+            </Button>
+
+            {instructions.verifyCommand ? (
+              <p className="text-xs text-muted-foreground">
+                {translate('manualFallback')}{' '}
+                <code className="font-mono text-foreground">
+                  {instructions.verifyCommand}
+                </code>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {translate('manualFallbackDescription')}
+              </p>
+            )}
+
+            <div aria-live="polite">
+              {verification?.status === 'failed' ? (
+                <Alert
+                  variant={
+                    verification.reason === 'unreachable_endpoint'
+                      ? 'warning'
+                      : 'destructive'
+                  }
+                  icon={false}
+                >
+                  <AlertTitle>
+                    {verification.reason === 'invalid_scope'
+                      ? translate('invalidScopeTitle')
+                      : verification.reason === 'invalid_key'
+                        ? translate('invalidKeyTitle')
+                        : translate('unavailableTitle')}
+                  </AlertTitle>
+                  <AlertDescription>
+                    <p>{verification.message}</p>
+                    {verification.missingScopes?.length ? (
+                      <p className="mt-2 font-mono text-xs">
+                        {translate('missingScopes', {
+                          scopes: verification.missingScopes.join(', '),
+                        })}
+                      </p>
+                    ) : null}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {verification?.status === 'connected' ? (
+                <ConnectionSuccess
+                  brand={selectedClientBrand}
+                  className="py-2"
+                  description={translate('verifiedDescription', {
+                    verifiedAt: new Date(
+                      verification.verifiedAt,
+                    ).toLocaleString(),
+                  })}
+                  title={translate('verifiedTitle')}
+                />
+              ) : null}
+            </div>
+          </div>
+        </Card>
+        {verification?.status === 'connected' ? (
+          <Card
+            padding={CardPadding.LG}
+            label={translate('firstActionTitle')}
+            description={
+              verification.publishing.isReady
+                ? translate('publishingReady', {
+                    count: verification.publishing.connectedAccountCount,
+                  })
+                : translate('publishingUnavailable')
+            }
+          >
+            <div className="space-y-4">
+              {verification.publishing.isReady ? (
+                <>
+                  <pre className="overflow-x-auto bg-background p-3 font-mono text-xs text-foreground shadow-border">
+                    <code>{FIRST_ACTION_PROMPT}</code>
+                  </pre>
+                  <Button
+                    icon={<Clipboard aria-hidden="true" className="size-4" />}
+                    onClick={() =>
+                      void copyText('First action prompt', FIRST_ACTION_PROMPT)
+                    }
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
+                  >
+                    {translate('copyFirstAction')}
+                  </Button>
+                </>
+              ) : (
+                <Alert variant="warning" icon={false}>
+                  <AlertTitle>{translate('connectPublishingTitle')}</AlertTitle>
+                  <AlertDescription>
+                    {translate('connectPublishingDescription')}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Button asChild withWrapper={false}>
+                <Link
+                  href={publishingHref}
+                  onClick={() => trackStep('publishing_handoff', 'success')}
+                >
+                  {verification.publishing.isReady
+                    ? firstBrandSlug
+                      ? translate('draftWithAgent')
+                      : translate('openPublishing')
+                    : translate('connectPublishing')}
+                  <ArrowRight aria-hidden="true" className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        ) : null}
+      </div>
+    );
+  };
+
+  return (
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
+      <h1 className="sr-only">{translate('title')}</h1>
+      <Stepper
+        aria-label={translate('progressLabel')}
+        currentStep={step}
+        onStepSelect={(index) => setStep(index)}
+        steps={stepLabels.map((label, index) => ({
+          id: `step-${index}`,
+          isDisabled: index > step,
+          label,
+        }))}
+      />
+      {renderStep()}
+      <div className="flex items-center justify-between gap-3">
+        {step > 0 ? (
+          <Button
+            onClick={() => setStep(step - 1)}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+          >
+            {translate('back')}
+          </Button>
+        ) : (
+          <span />
+        )}
+        {isLastStep ? null : (
+          <Button onClick={() => setStep(step + 1)} withWrapper={false}>
+            {translate('continue')}
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </Button>
+        )}
+      </div>
     </main>
   );
 }
