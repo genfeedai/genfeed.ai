@@ -67,7 +67,8 @@ export function useAgentDockThreads(
   const hasStartedFreshThread = useRef(false);
   // The record whose conversation the dock currently holds.
   const openedThreadKey = useRef<string | null>(null);
-  // The master read in flight, shared across runs of the effect that opens it.
+  // The master read for this API client, shared across runs of the effect that
+  // opens it. A failed read is dropped so the next run can try again.
   const masterRequest = useRef<{
     controller: AbortController;
     pending: Promise<AgentThread>;
@@ -259,14 +260,13 @@ export function useAgentDockThreads(
   // The dock opens on the master conversation unless a thread is already open,
   // the operator asked for a blank one, or the page holds a record's thread.
   // The read is shared by every run of this effect: a dependency that changes
-  // while it is in flight (the thread store settling on load) must not abort
-  // it and ask the server again, so the master is requested once per load.
+  // while it is in flight (the thread store settling on load, the dock host
+  // flickering off and on) must not abort it and ask the server again, so the
+  // master is requested once per API client.
   // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled) {
       hasStartedFreshThread.current = false;
-      masterRequest.current?.controller.abort();
-      masterRequest.current = null;
       return;
     }
     if (
@@ -287,13 +287,11 @@ export function useAgentDockThreads(
       request = { controller, pending, service: apiService };
       masterRequest.current = request;
       const started = request;
-      void pending
-        .catch(() => undefined)
-        .finally(() => {
-          if (masterRequest.current === started) {
-            masterRequest.current = null;
-          }
-        });
+      void pending.catch(() => {
+        if (masterRequest.current === started) {
+          masterRequest.current = null;
+        }
+      });
     }
 
     const { controller, pending } = request;

@@ -21,11 +21,14 @@ test.describe('Workspace overview — requests on a hard load', () => {
     authenticatedPage: page,
   }) => {
     const apiRequests: string[] = [];
+    const requestLog: string[] = [];
+    const startedAt = Date.now();
     page.on('request', (request) => {
       const { pathname, search } = new URL(request.url());
       const apiPath = pathname.split('/v1').at(1);
       if (apiPath !== undefined && pathname.includes('/v1/')) {
         apiRequests.push(`${apiPath}${search}`);
+        requestLog.push(`+${Date.now() - startedAt}ms ${apiPath}${search}`);
       }
     });
 
@@ -41,9 +44,10 @@ test.describe('Workspace overview — requests on a hard load', () => {
       const requestsForRead = apiRequests.filter(
         (path) => path.split('?').at(0) === read,
       );
-      expect(requestsForRead.length, `${read} requested`).toBeLessThanOrEqual(
-        1,
-      );
+      expect(
+        requestsForRead.length,
+        `${read} requested; every request: ${requestLog.join(' | ')}`,
+      ).toBeLessThanOrEqual(1);
     }
   });
 });

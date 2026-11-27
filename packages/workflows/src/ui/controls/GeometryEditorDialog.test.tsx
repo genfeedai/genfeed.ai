@@ -15,6 +15,40 @@ function pickTool(name: string) {
   fireEvent.click(screen.getByRole('radio', { name }));
 }
 
+/** A 100 by 100 stage at the page origin, so a pointer at (x, y) is x%, y%. */
+function sizeStage(): HTMLElement {
+  const element = stage();
+  element.getBoundingClientRect = () =>
+    ({
+      bottom: 100,
+      height: 100,
+      left: 0,
+      right: 100,
+      top: 0,
+      width: 100,
+      x: 0,
+      y: 0,
+    }) as DOMRect;
+  return element;
+}
+
+function pointer(
+  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  x: number,
+  y: number,
+  target: Element = stage(),
+) {
+  fireEvent(
+    target,
+    new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }),
+  );
+}
+
+function savedShapes(onSaveShapes: ReturnType<typeof vi.fn>) {
+  fireEvent.click(screen.getByRole('button', { name: 'Save annotations' }));
+  return onSaveShapes.mock.calls[0][0];
+}
+
 function renderAnnotation(
   props: Partial<Parameters<typeof GeometryEditorDialog>[0]> = {},
 ) {
@@ -247,5 +281,174 @@ describe('GeometryEditorDialog trajectory', () => {
         (point: { frame: number }) => point.frame,
       ),
     ).toEqual([0, 119]);
+  });
+});
+
+describe('GeometryEditorDialog pointer drawing', () => {
+  it('draws a rectangle by dragging, from any corner', () => {
+    const { onSaveShapes } = renderAnnotation();
+    sizeStage();
+    pickTool('Rectangle');
+
+    pointer('pointerdown', 60, 70);
+    pointer('pointermove', 20, 30);
+    pointer('pointerup', 20, 30);
+
+    const [saved] = savedShapes(onSaveShapes);
+    expect(saved).toMatchObject({ kind: 'rectangle' });
+    expect(saved.x).toBeCloseTo(0.2);
+    expect(saved.y).toBeCloseTo(0.3);
+    expect(saved.width).toBeCloseTo(0.4);
+    expect(saved.height).toBeCloseTo(0.4);
+  });
+
+  it('draws an ellipse the same way', () => {
+    const { onSaveShapes } = renderAnnotation();
+    sizeStage();
+    pickTool('Ellipse');
+
+    pointer('pointerdown', 10, 10);
+    pointer('pointermove', 50, 40);
+    pointer('pointerup', 50, 40);
+
+    const [saved] = savedShapes(onSaveShapes);
+    expect(saved).toMatchObject({ kind: 'ellipse' });
+    expect(saved.width).toBeCloseTo(0.4);
+    expect(saved.height).toBeCloseTo(0.3);
+  });
+
+  it('draws an arrow from the press to the release', () => {
+    const { onSaveShapes } = renderAnnotation();
+    sizeStage();
+    pickTool('Arrow');
+
+    pointer('pointerdown', 10, 20);
+    pointer('pointermove', 70, 80);
+    pointer('pointerup', 70, 80);
+
+    const [saved] = savedShapes(onSaveShapes);
+    expect(saved.kind).toBe('arrow');
+    expect(saved.points).toHaveLength(2);
+    expect(saved.points[0].x).toBeCloseTo(0.1);
+    expect(saved.points[1].y).toBeCloseTo(0.8);
+  });
+
+  it('keeps every point of a freehand stroke', () => {
+    const { onSaveShapes } = renderAnnotation();
+    sizeStage();
+    pickTool('Freehand');
+
+    pointer('pointerdown', 10, 10);
+    pointer('pointermove', 30, 20);
+    pointer('pointermove', 50, 60);
+    pointer('pointerup', 50, 60);
+
+    const [saved] = savedShapes(onSaveShapes);
+    expect(saved.kind).toBe('freehand');
+    expect(saved.points.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('drops a click that draws nothing', () => {
+    renderAnnotation();
+    sizeStage();
+    pickTool('Rectangle');
+
+    pointer('pointerdown', 40, 40);
+    pointer('pointerup', 40, 40);
+
+    expect(
+      screen.getByText('Pick a tool, then draw on the image.'),
+    ).toBeTruthy();
+  });
+
+  it('drops an arrow with no length', () => {
+    renderAnnotation();
+    sizeStage();
+    pickTool('Arrow');
+
+    pointer('pointerdown', 40, 40);
+    pointer('pointerup', 40, 40);
+
+    expect(
+      screen.getByText('Pick a tool, then draw on the image.'),
+    ).toBeTruthy();
+  });
+
+  it('places a text box where the stage is clicked', () => {
+    renderAnnotation();
+    sizeStage();
+    pickTool('Text');
+
+    pointer('pointerdown', 25, 75);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Text 1 is empty');
+  });
+
+  it('moves a shape by dragging it with the select tool', () => {
+    const { onSaveShapes } = renderAnnotation();
+    sizeStage();
+    pickTool('Rectangle');
+    pointer('pointerdown', 20, 20);
+    pointer('pointermove', 40, 40);
+    pointer('pointerup', 40, 40);
+    pickTool('Select and move');
+
+    const shape = stage().querySelector('[data-item]') as Element;
+    pointer('pointerdown', 30, 30, shape);
+    pointer('pointermove', 50, 60);
+    pointer('pointerup', 50, 60);
+
+    const [saved] = savedShapes(onSaveShapes);
+    expect(saved.x).toBeCloseTo(0.4);
+    expect(saved.y).toBeCloseTo(0.5);
+  });
+
+  it('deselects when empty canvas is pressed with the select tool', () => {
+    renderAnnotation();
+    sizeStage();
+    pickTool('Rectangle');
+    pointer('pointerdown', 20, 20);
+    pointer('pointermove', 40, 40);
+    pointer('pointerup', 40, 40);
+    pickTool('Select and move');
+
+    pointer('pointerdown', 90, 90);
+
+    expect(screen.getByRole('button', { name: 'Rectangle 1' })).toBeTruthy();
+  });
+});
+
+describe('GeometryEditorDialog trajectory pointer', () => {
+  it('adds a point where the stage is clicked and drags it', () => {
+    const { onSavePoints } = renderTrajectory();
+    sizeStage();
+
+    pointer('pointerdown', 10, 10);
+    pointer('pointerdown', 60, 60);
+    const second = stage().querySelector('[data-item]:last-of-type');
+    expect(second).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save trajectory' }));
+    const saved = onSavePoints.mock.calls[0][0];
+    expect(saved).toHaveLength(2);
+    expect(saved[1].x).toBeCloseTo(0.6);
+    expect(saved[1].y).toBeCloseTo(0.6);
+  });
+
+  it('moves a point by dragging it', () => {
+    const { onSavePoints } = renderTrajectory();
+    sizeStage();
+    pointer('pointerdown', 10, 10);
+    pointer('pointerdown', 60, 60);
+
+    const items = stage().querySelectorAll('[data-item]');
+    pointer('pointerdown', 60, 60, items[items.length - 1]);
+    pointer('pointermove', 80, 90);
+    pointer('pointerup', 80, 90);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save trajectory' }));
+    const saved = onSavePoints.mock.calls[0][0];
+    expect(saved[saved.length - 1].x).toBeCloseTo(0.8);
+    expect(saved[saved.length - 1].y).toBeCloseTo(0.9);
   });
 });

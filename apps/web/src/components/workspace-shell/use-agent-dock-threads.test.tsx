@@ -176,6 +176,46 @@ describe('useAgentDockThreads history and lifecycle', () => {
       expect(slowMaster).toHaveBeenCalledTimes(1);
     });
 
+    it('asks for the master once when the dock switches off and on again', async () => {
+      const once = vi.fn(async (): Promise<AgentThread> => master);
+      const onceApi = { getMasterThread: once, getMessages, getThreads };
+
+      const { result, rerender } = renderHook(
+        ({ isEnabled }) => useAgentDockThreads(onceApi, isEnabled),
+        { initialProps: { isEnabled: true } },
+      );
+      rerender({ isEnabled: false });
+      await act(async () => undefined);
+      rerender({ isEnabled: true });
+
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('master-1'),
+      );
+      expect(once).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks again after the master could not be read', async () => {
+      const flaky = vi
+        .fn<() => Promise<AgentThread>>()
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValue(master);
+      const flakyApi = { getMasterThread: flaky, getMessages, getThreads };
+
+      const { result, rerender } = renderHook(
+        ({ isEnabled }) => useAgentDockThreads(flakyApi, isEnabled),
+        { initialProps: { isEnabled: true } },
+      );
+      await waitFor(() => expect(flaky).toHaveBeenCalledTimes(1));
+      await act(async () => undefined);
+      rerender({ isEnabled: false });
+      rerender({ isEnabled: true });
+
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('master-1'),
+      );
+      expect(flaky).toHaveBeenCalledTimes(2);
+    });
+
     it('keeps a thread that is already open', async () => {
       useAgentChatStore.getState().setActiveThread('thread-1');
 
