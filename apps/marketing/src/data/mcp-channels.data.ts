@@ -122,7 +122,7 @@ function describeMedia(capability: ChannelCapability): string {
   const kinds = joinWords(
     capability.media.kinds.map((kind) => MEDIA_KIND_LABEL[kind]),
   );
-  const { images, maxItems, minItems } = capability.media;
+  const { images, maxItems, minItems = 0 } = capability.media;
   const count =
     maxItems === 1
       ? 'One media item per post.'
