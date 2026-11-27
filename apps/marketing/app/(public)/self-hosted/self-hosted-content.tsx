@@ -76,7 +76,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Self-host gives you full control and zero platform fees, but you run the infrastructure and updates yourself, and you bring your own model provider keys. Managed cloud handles all of that, adds managed credits and support, and starts free. Most teams self-host to evaluate, then move to cloud to skip the ops.',
+      'Self-host gives you full control and zero platform fees, but you run the infrastructure and updates yourself, and you bring your own model provider keys. Managed cloud handles all of that, adds managed credits and support, and you pay when you publish. Most teams self-host to evaluate, then move to cloud to skip the ops.',
     question: 'Self-host or managed cloud?',
   },
   {
@@ -99,7 +99,7 @@ export default function SelfHostedContent() {
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         title={<>Open source. Self-host on your own infra.</>}
-        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops and start free on managed cloud."
+        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops on managed cloud and pay when you publish."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

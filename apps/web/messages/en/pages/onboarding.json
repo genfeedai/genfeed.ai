@@ -387,7 +387,9 @@
     "skillsLink": "Get the skills",
     "paidTitle": "You're all set",
     "paidBody": "Your workspace is paid for. Your first posts are in Publishing, ready to schedule.",
-    "openWorkspace": "Open my workspace"
+    "openWorkspace": "Open my workspace",
+    "loadFailed": "Your plan options did not load.",
+    "retry": "Try again"
   },
   "success": {
     "starterCredits": "{gift} credits now, {trial} more when you add a verified card. Free credits last {hours} hours."

@@ -56,7 +56,8 @@ export default function PlansContent() {
 
 function PlanChoiceScreen() {
   const translate = useTranslations('pages.onboarding.plans');
-  const { accessState, isLoading, isSuperAdmin } = useAccessState();
+  const { accessState, isLoading, isSuperAdmin, refreshAccessState } =
+    useAccessState();
   const { brands, selectedBrand } = useBrand();
   const openCheckout = useStartCheckout();
   const [choice, setChoice] = useState<PlanChoice>('pro');
@@ -67,10 +68,32 @@ function PlanChoiceScreen() {
     true,
   );
 
-  if (isLoading || !accessState) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Spinner className="size-6 text-foreground" />
+      </div>
+    );
+  }
+
+  // The access read failed: offer a retry, and the drafts stay reachable.
+  if (!accessState) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col gap-4 pt-12">
+        <Text as="p" color="muted">
+          {translate('loadFailed')}
+        </Text>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => void refreshAccessState()}
+            variant={ButtonVariant.DEFAULT}
+          >
+            {translate('retry')}
+          </Button>
+          <Button asChild variant={ButtonVariant.SECONDARY}>
+            <Link href={draftsHref}>{translate('draftsLink')}</Link>
+          </Button>
+        </div>
       </div>
     );
   }

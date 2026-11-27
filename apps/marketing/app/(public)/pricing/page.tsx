@@ -1,6 +1,10 @@
 import { stringifyJsonLd } from '@data/json-ld';
 import type { PlanTier } from '@genfeedai/pricing';
-import { PLAN_COPY, websitePlans } from '@genfeedai/pricing';
+import {
+  PAYG_MIN_PURCHASE_USD,
+  PLAN_COPY,
+  websitePlans,
+} from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import PricingContent from '@public/pricing/pricing-content';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
@@ -52,7 +56,8 @@ export function buildPricingJsonLd() {
           '@type': 'Offer',
           description: OFFER_DESCRIPTIONS[plan.tier],
           name: plan.label,
-          price: String(plan.price),
+          // Pay As You Go has no monthly price; its offer is the smallest pack.
+          price: String(plan.price === 0 ? PAYG_MIN_PURCHASE_USD : plan.price),
           priceCurrency: 'USD',
           priceSpecification:
             plan.type === 'subscription'

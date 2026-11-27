@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
     accessState: null as null | { trialEndsAt: string | null },
     isLoading: false,
     isSuperAdmin: false,
+    refreshAccessState: vi.fn(),
   },
   openCheckout: vi.fn(),
 }));
@@ -68,6 +69,7 @@ describe('PlansContent', () => {
       accessState: { trialEndsAt: '2026-11-30T10:00:00.000Z' },
       isLoading: false,
       isSuperAdmin: false,
+      refreshAccessState: vi.fn().mockResolvedValue(undefined),
     };
   });
 
@@ -129,6 +131,18 @@ describe('PlansContent', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open my workspace' }),
+    ).toHaveAttribute('href', '/acme/main/publishing/posts?status=draft');
+  });
+
+  it('offers a retry and the drafts when the access read failed', () => {
+    mocks.access.accessState = null;
+    render(<PlansContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(mocks.access.refreshAccessState).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('link', { name: 'Read my drafts first' }),
     ).toHaveAttribute('href', '/acme/main/publishing/posts?status=draft');
   });
 });
