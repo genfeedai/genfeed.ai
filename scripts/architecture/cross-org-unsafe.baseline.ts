@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 266,
+      line: 287,
     },
     // Platform-admin cross-organization media: the admin Library and Generations
     // list other tenants' assets, so preview grants for ids the organization
@@ -89,7 +89,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and only a signed preview URL leaves the service.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 840,
+      line: 882,
     },
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.
@@ -103,11 +103,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only the signed picture URL leaves the service (never the storage key).
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 478,
+      line: 499,
     },
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 505,
+      line: 526,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
