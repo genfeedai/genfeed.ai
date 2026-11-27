@@ -6,6 +6,7 @@ import {
   mostRestrictiveMcpAccessMode,
 } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
+import { enrichWideEvent } from '@libs/logger/wide-event/wide-event.context';
 import { ConfigService } from '@mcp/config/config.service';
 import {
   buildMcpServerInstructions,
@@ -21,6 +22,7 @@ import {
   readApprovalPromptRound,
 } from '@mcp/services/mcp-approval-prompt.util';
 import { createCardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
+import { describeMcpRequest } from '@mcp/services/mcp-request-event.util';
 import { withMcpStructuredContent } from '@mcp/services/mcp-structured-result.util';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -28,6 +30,7 @@ import type {
   McpAuthContext,
   McpRequest,
 } from '@mcp/shared/interfaces/mcp-request.interface';
+import { McpSharedLookups } from '@mcp/shared/utils/mcp-shared-lookups';
 import { filterBrandKitTools } from '@mcp/tools/brand-kit.tool';
 import {
   CallToolResultSchema,
@@ -61,6 +64,9 @@ export class StreamableHttpService {
    * them. Health and manifest endpoints report this, and nothing else.
    */
   private isTransportMounted = false;
+
+  /** Account reads that parallel calls on one connection share. */
+  private readonly sharedLookups = new McpSharedLookups();
 
   constructor(
     private readonly logger: LoggerService,
@@ -119,6 +125,9 @@ export class StreamableHttpService {
   private async processRequest(req: Request, res: Response): Promise<void> {
     const request = req as StatelessMcpRequest;
     const authContext = request.authContext;
+    // The request event is the only record of a call in production, which logs
+    // at info: put the method and tool name on it, never the arguments.
+    enrichWideEvent(describeMcpRequest(request.body));
     const handler = createMcpHandler(
       () => this.buildServer(authContext, request.routeAccessMode),
       {
@@ -262,6 +271,7 @@ export class StreamableHttpService {
       this.logger,
       this.httpService,
       this.configService,
+      this.sharedLookups,
     );
 
     if (bearerToken) {

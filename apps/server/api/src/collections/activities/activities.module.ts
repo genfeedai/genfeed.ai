@@ -3,6 +3,7 @@
  * Activity history: reads, read state and the recording API that writes
  * activities and raises their alerts (#5197).
  */
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { ActivitiesController } from '@api/collections/activities/controllers/activities.controller';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -15,7 +16,12 @@ import { Module } from '@nestjs/common';
   exports: [ActivitiesService, ActivityRecordingModule],
   // StreaksModule registers the listener that advances streaks when a
   // qualifying activity is recorded.
-  imports: [ActivityRecordingModule, MembersModule, StreaksModule],
+  imports: [
+    ActivityRecordingModule,
+    BrandAccessModule,
+    MembersModule,
+    StreaksModule,
+  ],
   providers: [ActivitiesService],
 })
 export class ActivitiesModule {}

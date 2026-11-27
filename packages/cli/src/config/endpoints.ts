@@ -81,7 +81,7 @@ export function deriveAppUrl(apiUrl: string): string {
 /**
  * Derive the marketplace API origin from the Genfeed API base URL.
  *
- * - `https://api.example.com/v1` -> `https://api.marketplace.example.com`
+ * - `https://api.example.com/v1` -> `https://api.shop.example.com`
  * - `http://localhost:3010/v1`   -> `http://localhost:3200`
  *
  * Returns undefined when neither rule applies (a single-domain deployment has
@@ -103,7 +103,7 @@ export function deriveMarketplaceApiUrl(apiUrl: string): string | undefined {
   }
 
   if (parsed.hostname.startsWith('api.')) {
-    parsed.hostname = `api.marketplace.${parsed.hostname.slice('api.'.length)}`;
+    parsed.hostname = `api.shop.${parsed.hostname.slice('api.'.length)}`;
     return normalizeBaseUrl(parsed.origin);
   }
 

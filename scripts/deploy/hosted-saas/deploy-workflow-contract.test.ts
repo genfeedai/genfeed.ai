@@ -15,7 +15,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
     for (const content of [vercel, deploy, release]) {
       expect(content).not.toContain('marketplace_source_sha');
       expect(content).not.toContain('MARKETPLACE_DEPLOY_TOKEN');
-      expect(content).not.toContain('genfeedai/marketplace.genfeed.ai');
+      expect(content).not.toContain('genfeedai/shop.genfeed.ai');
     }
     expect(vercel).toContain('Require Vercel token');
     expect(vercel).toContain('Require selected Vercel project ids');

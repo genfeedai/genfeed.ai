@@ -34,7 +34,7 @@ const STRIPE_SECRET_KEY_PATTERN = /^[sr]k_(live|test)_/;
  * to its own pages after Stripe. Its public origin is fixed, so it is listed
  * here and not read from config.
  */
-const MARKETPLACE_RETURN_ORIGIN = 'https://marketplace.genfeed.ai';
+const MARKETPLACE_RETURN_ORIGIN = 'https://shop.genfeed.ai';
 
 @Traced()
 @Injectable()

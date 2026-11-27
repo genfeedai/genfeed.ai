@@ -27,7 +27,7 @@ import type { ProviderPublishAttemptRef } from '@workers/services/scheduled-post
  * the validity of a prepared upload (ten minutes for Instagram), so an upload
  * made at the start of the window is still usable at the due time.
  */
-export const PREPARED_UPLOAD_LEAD_MS = 5 * 60_000;
+const PREPARED_UPLOAD_LEAD_MS = 5 * 60_000;
 
 /** Most posts one prepare sweep reads; the rest publish as before. */
 const PREPARE_SWEEP_MAX_POSTS = 200;
@@ -46,7 +46,7 @@ const FRESH_UPLOAD_KINDS: ReadonlySet<PublishErrorKind | undefined | null> =
 
 type PrepareCandidate = { id: string; organizationId: string };
 
-export type PrepareSweepOutcome = { found: number; prepared: number };
+type PrepareSweepOutcome = { found: number; prepared: number };
 
 /**
  * Uploads made before a scheduled post is due, so the delivery at the due time

@@ -54,7 +54,7 @@ export default function SubscriptionPlanRow({
   return (
     <Form
       aria-label={plan.label}
-      className="flex flex-col gap-3 px-4 py-3"
+      className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0"
       onSubmit={submit}
       spacing="none"
     >

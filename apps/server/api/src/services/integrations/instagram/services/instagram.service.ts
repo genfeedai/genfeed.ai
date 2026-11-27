@@ -725,35 +725,21 @@ export class InstagramService {
   }
 
   /** Publish one image or video as a Story from the given connected account. */
-  public async uploadStory(
-    organizationId: string,
-    brandId: string,
-    mediaUrl: string,
-    isVideo: boolean,
-    credentialId?: string,
-    isAiGenerated?: boolean,
+  public uploadStory(
+    ...args: Parameters<InstagramPublishingService['uploadStory']>
   ): Promise<{ mediaId: string }> {
-    return this.publishingService.uploadStory(
-      organizationId,
-      brandId,
-      mediaUrl,
-      isVideo,
-      credentialId,
-      isAiGenerated,
-    );
+    return this.publishingService.uploadStory(...args);
   }
 
-  /** Create a post's container ahead of time without publishing it. */
   public prepareContainer(
     ...args: Parameters<InstagramPublishingService['prepareContainer']>
-  ): ReturnType<InstagramPublishingService['prepareContainer']> {
+  ) {
     return this.publishingService.prepareContainer(...args);
   }
 
-  /** Publish a container `prepareContainer` made. */
   public publishPreparedContainer(
     ...args: Parameters<InstagramPublishingService['publishPreparedContainer']>
-  ): ReturnType<InstagramPublishingService['publishPreparedContainer']> {
+  ) {
     return this.publishingService.publishPreparedContainer(...args);
   }
 

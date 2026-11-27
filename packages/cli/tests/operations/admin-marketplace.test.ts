@@ -217,7 +217,7 @@ describe('operations/admin-marketplace', () => {
   });
 
   it.each([
-    ['https://api.genfeed.ai/v1', undefined, 'https://api.marketplace.genfeed.ai'],
+    ['https://api.genfeed.ai/v1', undefined, 'https://api.shop.genfeed.ai'],
     ['https://api.genfeed.ai/v1', 'https://staging.example.com/', 'https://staging.example.com'],
   ])(
     'resolves the marketplace URL for profile %s and override %s',
@@ -232,7 +232,7 @@ describe('operations/admin-marketplace', () => {
     mockGetApiUrl.mockResolvedValue('https://example.com/api/v1');
 
     await expect(resolveMarketplaceApiUrl()).rejects.toThrow(GenfeedError);
-    await expect(resolveMarketplaceApiUrl('http://api.marketplace.genfeed.ai')).rejects.toThrow(
+    await expect(resolveMarketplaceApiUrl('http://api.shop.genfeed.ai')).rejects.toThrow(
       'Invalid marketplace URL'
     );
   });

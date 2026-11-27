@@ -168,10 +168,10 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
+      file: 'apps/server/workers/src/services/scheduled-post-prepared-uploads.ts',
       id: 'scheduled-post-delivery-action',
       reason:
-        'Provider publishing is the bounded delivery action inside the immutable scheduled-post publish graph.',
+        'Provider publishing is the bounded delivery action inside the immutable scheduled-post publish graph; the delivery takes a prepared Instagram upload through this adapter inside its provider attempt.',
       systemWorkflowIds: ['scheduled-post.publish'],
     },
     {

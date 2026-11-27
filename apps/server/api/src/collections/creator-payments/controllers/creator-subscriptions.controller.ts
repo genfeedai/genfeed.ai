@@ -18,6 +18,7 @@ import type {
   ICreatorSubscriptionOffer,
   ICreatorSubscriptionPlan,
   ICreatorSubscriptionSummary,
+  ICreatorTeamSubscription,
 } from '@genfeedai/contracts/interfaces/billing';
 import {
   Body,
@@ -80,6 +81,17 @@ export class CreatorSubscriptionsController {
     });
   }
 
+  /** Every creator subscription the organization pays for; owners and admins only. */
+  @Get('outgoing')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  async listOutgoing(
+    @CurrentUser() user: User,
+  ): Promise<ICreatorTeamSubscription[]> {
+    const { organizationId } = extractRequestContext(user);
+    return this.creatorSubscriptionsService.listOutgoing(organizationId);
+  }
+
   /** What a creator offers the reader, and whether they already subscribe. */
   @Get('offers/:handle')
   async getOffer(
@@ -120,6 +132,23 @@ export class CreatorSubscriptionsController {
     const { organizationId, userId } = extractRequestContext(user);
     return this.creatorSubscriptionsService.setCancelAtPeriodEnd(
       { organizationId, userId },
+      subscriptionId,
+      body.cancelAtPeriodEnd,
+    );
+  }
+
+  /** Cancel any subscription the organization pays for at period end, or keep it. */
+  @Patch('outgoing/:subscriptionId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  async setOutgoingCancelAtPeriodEnd(
+    @Param('subscriptionId') subscriptionId: string,
+    @Body() body: SetCreatorSubscriptionCancelDto,
+    @CurrentUser() user: User,
+  ): Promise<ICreatorTeamSubscription> {
+    const { organizationId } = extractRequestContext(user);
+    return this.creatorSubscriptionsService.setOutgoingCancelAtPeriodEnd(
+      organizationId,
       subscriptionId,
       body.cancelAtPeriodEnd,
     );
