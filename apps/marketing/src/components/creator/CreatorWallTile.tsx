@@ -15,6 +15,9 @@ import Link from 'next/link';
 import CreatorPostMetrics from './CreatorPostMetrics';
 
 const TILE_CLASS = `group relative block aspect-[4/5] overflow-hidden rounded-lg bg-card outline-media ${focusRingClassName}`;
+const MEDIA_TILE_CLASS = `block rounded-lg ${focusRingClassName}`;
+const PICTURE_CLASS =
+  'relative block aspect-[4/5] overflow-hidden rounded-lg bg-card outline-media';
 
 // Marks and captions sit on the creator's own picture, so they stay light on
 // dark in both themes rather than following the page theme.
@@ -87,59 +90,71 @@ export default function CreatorWallTile({
   return (
     <Link
       aria-label={label}
-      className={TILE_CLASS}
+      className={`${MEDIA_TILE_CLASS} group`}
       href={creatorPostPath(handle, post.id)}
     >
-      {lead.kind === 'video' ? (
-        <video
-          className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-          muted
-          playsInline
-          preload="metadata"
-          src={`${lead.url}#t=0.1`}
-        />
-      ) : (
-        // biome-ignore lint/performance/noImgElement: media URLs are signed per request, so next/image cannot cache them.
-        <img
-          alt=""
-          className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          src={lead.url}
-        />
-      )}
-      {post.platform ? (
-        <PlatformBadge
-          className="absolute left-2 top-2"
-          platform={post.platform}
-          showLabel={false}
-          variant="solid"
-        />
-      ) : null}
-      <span className="absolute right-2 top-2 flex gap-1.5">
-        {media.length > 1 ? (
-          <Badge
-            icon={<Layers aria-hidden="true" className="size-3.5" />}
-            isSolid
-            shape="pill"
-            value={media.length}
-            variant="secondary"
+      <span className={PICTURE_CLASS}>
+        {lead.kind === 'video' ? (
+          <video
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            muted
+            playsInline
+            preload="metadata"
+            src={`${lead.url}#t=0.1`}
+          />
+        ) : (
+          // biome-ignore lint/performance/noImgElement: media URLs are signed per request, so next/image cannot cache them.
+          <img
+            alt=""
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            src={lead.url}
+          />
+        )}
+        {post.platform ? (
+          <PlatformBadge
+            className="absolute left-2 top-2"
+            platform={post.platform}
+            showLabel={false}
+            variant="solid"
           />
         ) : null}
-        {lead.kind === 'video' ? (
-          <span
-            className={`inline-flex size-6 items-center justify-center rounded-full ${MARK_CLASS}`}
-          >
-            <Play aria-hidden="true" className="size-3.5 fill-current" />
+        <span className="absolute right-2 top-2 flex gap-1.5">
+          {media.length > 1 ? (
+            <Badge
+              icon={<Layers aria-hidden="true" className="size-3.5" />}
+              isSolid
+              shape="pill"
+              value={media.length}
+              variant="secondary"
+            />
+          ) : null}
+          {lead.kind === 'video' ? (
+            <span
+              className={`inline-flex size-6 items-center justify-center rounded-full ${MARK_CLASS}`}
+            >
+              <Play aria-hidden="true" className="size-3.5 fill-current" />
+            </span>
+          ) : null}
+        </span>
+        {/* A mouse reads the caption on hover, over the picture. */}
+        <span
+          className={`absolute inset-x-0 bottom-0 flex flex-col gap-1 p-3 pt-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 [@media(hover:none)]:hidden ${CAPTION_CLASS}`}
+        >
+          <span className="line-clamp-2 text-sm font-semibold leading-snug">
+            {title}
           </span>
-        ) : null}
+          <span className="text-xs opacity-80">
+            <CreatorPostMetrics post={post} />
+          </span>
+        </span>
       </span>
-      <span
-        className={`absolute inset-x-0 bottom-0 flex flex-col gap-1 p-3 pt-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 [@media(hover:none)]:opacity-100 ${CAPTION_CLASS}`}
-      >
-        <span className="line-clamp-2 text-sm font-semibold leading-snug">
+      {/* A touch screen has no hover, so the caption sits under the picture and the picture stays clear. */}
+      <span className="hidden flex-col gap-0.5 px-0.5 pt-1.5 [@media(hover:none)]:flex">
+        <span className="line-clamp-1 text-xs font-medium text-foreground">
           {title}
         </span>
-        <span className="text-xs opacity-80">
+        <span className="text-xs text-foreground/60">
           <CreatorPostMetrics post={post} />
         </span>
       </span>
