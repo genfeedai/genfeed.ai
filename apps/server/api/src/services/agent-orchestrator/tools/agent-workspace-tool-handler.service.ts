@@ -605,6 +605,19 @@ export class AgentWorkspaceToolHandler {
       // The brand the caller names owns the asset; without one the call's
       // brand scope or the member's current brand applies.
       const requestedBrandId = readRequiredString(params.brandId);
+      // With several brands, the member's current brand is a guess that files
+      // the asset under whichever brand they last opened (#11076 follow-up:
+      // Koro photos landed in another brand's Library). Ask the caller to name one.
+      if (!requestedBrandId && !(ctx.brandId || ctx.validatedScope?.brandId)) {
+        const brands = await this.listAccessibleBrands(ctx);
+        if (brands.length > 1) {
+          return toolFailure(
+            `This organization has several brands. Pass brandId to say which brand owns the upload: ${brands
+              .map((candidate) => `${candidate.label} (${candidate.id})`)
+              .join(', ')}.`,
+          );
+        }
+      }
       const brand = await this.findCurrentBrand(
         requestedBrandId ? { ...ctx, brandId: requestedBrandId } : ctx,
       );
