@@ -2130,7 +2130,6 @@ model PlatformSetting {
   untrustedContentDecisionMode     String    @default("off")
   untrustedContentMinConfidence    Float     @default(0.95)
   isAgentContextCompressionEnabled Boolean   @default(true)
-  isAgentTokenStreamingEnabled     Boolean   @default(true)
   isBrandVisualAnalysisEnabled     Boolean   @default(false)
   // Catalog models (`models.key`) that read text from and detect logo or product
   // regions in branded visuals (#6727). Null leaves the analysis unavailable.
@@ -2199,6 +2198,11 @@ contentLearningPolicyVersions ContentLearningPolicyVersion[]
   /// token belongs to (Instagram Unified Login). An Instagram credential
   /// without one is a retired Facebook-Login connection and must reconnect.
   externalBusinessId              String?
+  /// Google Ads: the manager account a client account was reached through.
+  /// Every read of the client sends it as the login-customer-id header. NULL
+  /// for an account the Google login can open directly, and on every other
+  /// platform.
+  externalParentId                String?
   oauthState                      String?
   oauthToken                      String?
   oauthTokenHash                  String?

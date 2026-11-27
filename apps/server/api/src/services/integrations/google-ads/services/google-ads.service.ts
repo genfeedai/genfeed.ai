@@ -84,7 +84,7 @@ export class GoogleAdsService {
     return headers;
   }
 
-  private async executeGaql<T>(
+  async executeGaql<T>(
     accessToken: string,
     customerId: string,
     query: string,

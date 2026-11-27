@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { CardGap, CardPadding } from '@genfeedai/contracts';
+import { CardGap, CardPadding, MemberRole } from '@genfeedai/contracts';
 import type {
   ICreatorEarningsByArticle,
   ICreatorPaymentRow,
@@ -23,8 +23,10 @@ import { Text } from '@ui/typography/text';
 import { HandCoins, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect } from 'react';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import MySubscriptionsCard from './my-subscriptions-card';
 import SubscriptionPlansCard from './subscription-plans-card';
+import TeamSubscriptionsCard from './team-subscriptions-card';
 
 const NO_PAYMENTS: ICreatorPaymentRow[] = [];
 
@@ -37,6 +39,8 @@ export default function SettingsEarningsPage() {
   const translate = useTranslations('pages.creatorEarnings');
   const { organizationId } = useBrand();
   const { sessionId, userId } = useAuthIdentity();
+  const role = useUserRole();
+  const canManageTeam = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const getService = useAuthedService(
     useCallback(
       (token: string) => CreatorPaymentsService.getInstance(token),
@@ -170,7 +174,7 @@ export default function SettingsEarningsPage() {
           </div>
         </div>
 
-        <MetricCardGrid className="border-t border-border pt-4" columns={3}>
+        <MetricCardGrid columns={3}>
           <MetricCard
             appearance="inset"
             isLoading={isLoading}
@@ -234,7 +238,7 @@ export default function SettingsEarningsPage() {
         />
       </Card>
 
-      <MySubscriptionsCard />
+      {canManageTeam ? <TeamSubscriptionsCard /> : <MySubscriptionsCard />}
 
       <Card label={translate('sentTitle')} padding={CardPadding.NONE}>
         <AppTable<ICreatorPaymentRow>
