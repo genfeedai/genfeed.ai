@@ -1,7 +1,6 @@
 import { Heading } from '@ui/typography/heading';
-import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import Link from 'next/link';
+import HomePriceLine from '@web-components/home/_price-line';
 
 export default function HomeCTA(): React.ReactElement {
   return (
@@ -21,14 +20,7 @@ export default function HomeCTA(): React.ReactElement {
           <div className="flex flex-row items-center flex-wrap justify-center gap-3">
             <AgentFirstActions trackingName="home_cta_click" />
           </div>
-          <Text as="p" className="text-sm text-foreground/80">
-            <Link
-              className="font-semibold underline underline-offset-4"
-              href="/pricing"
-            >
-              See plans and pricing
-            </Link>
-          </Text>
+          <HomePriceLine className="" />
         </div>
       </div>
     </section>

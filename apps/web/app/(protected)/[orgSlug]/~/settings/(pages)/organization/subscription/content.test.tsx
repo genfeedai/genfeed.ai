@@ -177,7 +177,7 @@ describe('SettingsSubscriptionPage', () => {
 
     expect(screen.getByText('$499/mo')).toBeInTheDocument();
     expect(
-      screen.getByText('Unlimited seats and workspaces'),
+      screen.getByText('Unlimited seats and client workspaces'),
     ).toBeInTheDocument();
   });
 

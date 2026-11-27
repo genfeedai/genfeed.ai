@@ -2,8 +2,8 @@ import SelfHostedContent from '@public/self-hosted/self-hosted-content';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Self-Host Genfeed',
-  'Genfeed is open source. Self-host it with Docker Compose, point your agent at your own MCP endpoint, and bring your own model provider keys. Or use managed cloud and pay when you publish.',
+  'Open Source Social Media Scheduler, Self-Hosted',
+  'Genfeed is open source. Self-host it with Docker Compose, point your agent at your own MCP endpoint and bring your own model keys, or use managed cloud.',
   '/self-hosted',
 );
 

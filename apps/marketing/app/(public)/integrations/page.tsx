@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Integrations: Channels Your Agent Publishes To',
-  'Connect YouTube, TikTok, Instagram, LinkedIn and more to Genfeed. Your agent drafts and schedules, you review, and Genfeed publishes to the channels you connect.',
+  'Connect YouTube, TikTok, Instagram, LinkedIn and more to Genfeed. Your agent drafts and schedules, you review, and Genfeed publishes to your channels.',
   '/integrations',
 );
 

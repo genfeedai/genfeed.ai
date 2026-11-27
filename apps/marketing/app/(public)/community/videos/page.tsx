@@ -14,7 +14,7 @@ import CommunitySectionLayout from '../community-section-layout';
 export const dynamic = 'force-dynamic';
 
 const DESCRIPTION =
-  'The newest videos creators made with Genfeed, from public profiles, with the model behind each one.';
+  'The newest AI videos creators made with Genfeed, from public profiles, with the model behind each one, so you can see what each model can do.';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Videos made with Genfeed',
