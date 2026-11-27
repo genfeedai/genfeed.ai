@@ -1,16 +1,6 @@
-import { render, screen, within } from '@testing-library/react';
-import type { ImgHTMLAttributes } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import HomeMarket from './_market';
-
-vi.mock('next/image', () => ({
-  default: ({
-    fill: _fill,
-    ...props
-  }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
-    <span aria-label={props.alt ?? ''} role="img" />
-  ),
-}));
 
 describe('HomeMarket', () => {
   it('sells starting from what already works', () => {
@@ -22,20 +12,6 @@ describe('HomeMarket', () => {
         name: 'Start from what is already working',
       }),
     ).toBeInTheDocument();
-  });
-
-  it('shows trends and a competitor ad', () => {
-    render(<HomeMarket />);
-
-    const tiles = within(
-      screen.getByRole('list', { name: /example trends and competitor ads/i }),
-    ).getAllByRole('listitem');
-
-    expect(tiles.map((tile) => tile.textContent)).toEqual([
-      expect.stringContaining('Trend'),
-      expect.stringContaining('Trend'),
-      expect.stringContaining('Competitor ad'),
-    ]);
   });
 
   it('names what every account gets and what a plan adds', () => {
@@ -53,6 +29,13 @@ describe('HomeMarket', () => {
       'href',
       '/pricing',
     );
+  });
+
+  it('shows no invented product screen', () => {
+    render(<HomeMarket />);
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('does not promise results', () => {
