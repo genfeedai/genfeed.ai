@@ -9,9 +9,10 @@ import type { ChannelSettingDefinition } from './channel-setting-validation.cont
 export const DEVTO_TAGS_SETTING_KEY = 'tags';
 export const DEVTO_CANONICAL_URL_SETTING_KEY = 'canonicalUrl';
 export const DEVTO_SERIES_SETTING_KEY = 'series';
+export const DEVTO_SAVE_AS_DRAFT_SETTING_KEY = 'saveAsDraft';
 
 /**
- * Tags, canonical URL and series. Without a canonical URL Dev.to is the
+ * Tags, canonical URL, series and draft delivery. Without a canonical URL Dev.to is the
  * original, so set it when the article was first published elsewhere.
  */
 export const DEVTO_PUBLISHING_SETTINGS: ChannelSettingDefinition[] = [
@@ -34,5 +35,13 @@ export const DEVTO_PUBLISHING_SETTINGS: ChannelSettingDefinition[] = [
     key: DEVTO_SERIES_SETTING_KEY,
     label: 'Series',
     type: 'string',
+  },
+  {
+    defaultValue: false,
+    description:
+      'Create the article as a private Dev.to draft (published: false) instead of publishing it. Open it in the Dev.to editor to review and publish.',
+    key: DEVTO_SAVE_AS_DRAFT_SETTING_KEY,
+    label: 'Save as Dev.to draft',
+    type: 'boolean',
   },
 ];
