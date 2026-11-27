@@ -220,7 +220,9 @@
     "topics": {
       "description": "Click on a trend to see detailed analytics and cross-platform data.",
       "empty": "No trending topics available.",
-      "emptyDescription": "Try another publication window or check collection health for this market."
+      "emptyDescription": "Try another publication window or check collection health for this market.",
+      "emptyBrand": "No trends match this brand yet.",
+      "emptyBrandDescription": "Brand trends are matched to the brand description and its keywords, categories and hashtags. Add them to the brand, or switch Filters to Market trends."
     },
     "detail": {
       "loadingTitle": "Loading trend…",

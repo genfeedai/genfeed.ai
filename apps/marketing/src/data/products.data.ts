@@ -1,3 +1,5 @@
+import { getIntegrationBySlug } from '@data/integrations.data';
+import { MCP_CHANNEL_SLUGS } from '@data/mcp-channels.data';
 import type { PlanTier } from '@genfeedai/pricing';
 
 export interface Product {
@@ -417,6 +419,11 @@ export const products: Product[] = [
         href: '/developers',
         label: 'Developer hub',
       },
+      ...MCP_CHANNEL_SLUGS.map((channel) => ({
+        description: `What an agent can do on ${getIntegrationBySlug(channel)?.name ?? channel} through Genfeed, and its limits.`,
+        href: `/mcp/${channel}`,
+        label: `${getIntegrationBySlug(channel)?.name ?? channel} MCP server`,
+      })),
     ],
     relatedProducts: ['chatgpt', 'hire-agents'],
     seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',

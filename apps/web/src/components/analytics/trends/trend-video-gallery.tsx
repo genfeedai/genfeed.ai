@@ -26,6 +26,8 @@ export default function TrendVideoGallery({
   onClearHashtag,
 }: TrendVideoGalleryProps) {
   const translate = useTranslations('ui.discovery');
+  // A video without a thumbnail renders as a black tile, so it is not listed.
+  const playable = videos.filter((video) => video.thumbnailUrl);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -63,7 +65,7 @@ export default function TrendVideoGallery({
       ) : null}
       {isLoading ? (
         <p role="status">{translate('loadingContent')}</p>
-      ) : !videos.length ? (
+      ) : !playable.length ? (
         <p className="py-8 text-sm text-muted-foreground">
           {selectedHashtag
             ? translate('noHashtagContent')
@@ -71,7 +73,7 @@ export default function TrendVideoGallery({
         </p>
       ) : (
         <CollectionGrid maxColumns={3}>
-          {videos.slice(0, 12).map((video) => (
+          {playable.slice(0, 12).map((video) => (
             <Card key={video.id || `${video.platform}:${video.externalId}`}>
               <SocialMediaPlayer
                 contentType="video"

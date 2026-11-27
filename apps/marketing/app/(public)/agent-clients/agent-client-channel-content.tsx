@@ -3,6 +3,7 @@ import {
   getAgentClientChannels,
 } from '@data/agent-client-channels.data';
 import { type AgentClient, agentClients } from '@data/agent-clients.data';
+import { isMcpChannelSlug } from '@data/mcp-channels.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import AgentClientInstallAction from '@public/agent-clients/agent-client-install-action';
 import AgentClientSetup from '@public/agent-clients/agent-client-setup';
@@ -142,6 +143,18 @@ export default function AgentClientChannelContent({
             className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             title={`Connect ${page.channelName} to other AI agents`}
           />
+          {isMcpChannelSlug(page.channelSlug) ? (
+            <p className="mb-6 text-center text-sm text-foreground/80">
+              Setting up an agent that is not listed?{' '}
+              <Link
+                className="font-semibold text-foreground underline-offset-4 hover:underline"
+                href={`/mcp/${page.channelSlug}`}
+              >
+                Read the {page.channelName} MCP server guide
+              </Link>
+              .
+            </p>
+          ) : null}
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {otherClients.map((entry) => (
               <li key={entry.slug}>
