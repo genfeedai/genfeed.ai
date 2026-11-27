@@ -33,9 +33,7 @@ test.describe('Output-first onboarding', () => {
         exact: false,
       }),
     ).toBeVisible();
-    await expect(
-      page.getByText('Waiting for Claude to connect'),
-    ).toBeVisible();
+    await expect(page.getByText('Waiting for Claude to connect')).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Connect Agent' }),
     ).toHaveAttribute('aria-current', 'step');
