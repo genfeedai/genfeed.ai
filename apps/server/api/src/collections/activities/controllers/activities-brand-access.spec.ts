@@ -1,5 +1,5 @@
-import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ActivitiesController } from '@api/collections/activities/controllers/activities.controller';
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
@@ -65,9 +65,7 @@ function matches(activity: ActivityRow, condition: Condition): boolean {
       );
     }
     if (field === 'AND') {
-      return (expected as Condition[]).every((part) =>
-        matches(activity, part),
-      );
+      return (expected as Condition[]).every((part) => matches(activity, part));
     }
     const actual = activity[field as keyof ActivityRow];
     if (expected && typeof expected === 'object' && 'in' in expected) {
@@ -135,7 +133,7 @@ describe('activity feed brand access', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('hides activity from brands a restricted member cannot access in the organization feed', async () => {
-    const controller = controllerFor(MemberRole.MEMBER, ['brand-a']);
+    const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
 
     expect(await idsListedFor(controller, member)).toEqual([
       'allowed-brand',
@@ -145,7 +143,7 @@ describe('activity feed brand access', () => {
   });
 
   it('returns no activity from a brand the member cannot access when they ask for it by id', async () => {
-    const controller = controllerFor(MemberRole.MEMBER, ['brand-a']);
+    const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
 
     expect(
       await idsListedFor(controller, member, { brandId: 'brand-b' }),
@@ -153,7 +151,7 @@ describe('activity feed brand access', () => {
   });
 
   it('does not let a stale active brand widen a restricted member to a brand they lost', async () => {
-    const controller = controllerFor(MemberRole.MEMBER, ['brand-a']);
+    const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
 
     expect(
       await idsListedFor(controller, { ...member, brandId: 'brand-b' }),
@@ -161,7 +159,7 @@ describe('activity feed brand access', () => {
   });
 
   it('shows a brand the member can access when they ask for it by id', async () => {
-    const controller = controllerFor(MemberRole.MEMBER, ['brand-a']);
+    const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
 
     expect(
       await idsListedFor(controller, member, { brandId: 'brand-a' }),
@@ -169,7 +167,7 @@ describe('activity feed brand access', () => {
   });
 
   it('counts unread activity only inside the brands the member can access', async () => {
-    const controller = controllerFor(MemberRole.MEMBER, ['brand-a']);
+    const controller = controllerFor(MemberRole.CREATOR, ['brand-a']);
 
     const result = await controller.unreadCount({} as Request, query(), member);
 
