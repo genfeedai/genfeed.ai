@@ -153,6 +153,44 @@ describe('DesktopTerminalService', () => {
     expect(call?.args.join(' ')).toContain('npm install -g @genfeedai/cli');
   });
 
+  it('gives only a Genfeed CLI session the Desktop sign-in', async () => {
+    const service = new DesktopTerminalService(() => ({
+      GENFEED_API_KEY: 'gf_desktop',
+      GENFEED_API_URL: 'https://api.example.com/v1',
+    }));
+
+    for (const kind of ['genfeed', 'shell', 'claude', 'codex'] as const) {
+      await service.createSession(
+        { kind },
+        () => {},
+        () => {},
+      );
+    }
+
+    const signedIn = ptyState.spawnCalls.map((call) => ({
+      key: call.options.env.GENFEED_API_KEY,
+      url: call.options.env.GENFEED_API_URL,
+    }));
+    expect(signedIn).toEqual([
+      { key: 'gf_desktop', url: 'https://api.example.com/v1' },
+      { key: undefined, url: undefined },
+      { key: undefined, url: undefined },
+      { key: undefined, url: undefined },
+    ]);
+  });
+
+  it('starts a Genfeed CLI session without sign-in when Desktop has no session', async () => {
+    const service = new DesktopTerminalService(() => null);
+
+    await service.createSession(
+      { kind: 'genfeed' },
+      () => {},
+      () => {},
+    );
+
+    expect(ptyState.spawnCalls[0]?.options.env.GENFEED_API_KEY).toBeUndefined();
+  });
+
   it('removes exited sessions before later writes', async () => {
     const exitEvents: Array<{ exitCode?: number; sessionId: string }> = [];
     const service = new DesktopTerminalService();

@@ -12,7 +12,8 @@ export interface IGenfeedCliLaunch {
 const POSIX_SCRIPT = [
   `if ! command -v ${GENFEED_CLI_COMMAND} >/dev/null 2>&1; then`,
   `  printf '%s\\n' 'The Genfeed CLI (${GENFEED_CLI_COMMAND}) is not installed on this computer.' '' 'Install it with:' '' '  ${GENFEED_CLI_INSTALL_COMMAND}' '' 'Then open a new Genfeed CLI session.' ''`,
-  '  exec "${SHELL:-/bin/sh}" -l',
+  // The sign-in the Desktop passes to `gf` must not reach a plain shell.
+  '  exec env -u GENFEED_API_KEY -u GENFEED_API_URL "${SHELL:-/bin/sh}" -l',
   'fi',
   `if ${GENFEED_CLI_COMMAND} auth status 2>/dev/null | grep -q '^Logged in: yes'; then`,
   "  printf '%s\\n' 'Genfeed CLI: signed in.'",
@@ -30,6 +31,7 @@ const POWERSHELL_SCRIPT = [
   `  Write-Host '  ${GENFEED_CLI_INSTALL_COMMAND}'`,
   "  Write-Host ''",
   "  Write-Host 'Then open a new Genfeed CLI session.'",
+  '  Remove-Item Env:GENFEED_API_KEY, Env:GENFEED_API_URL -ErrorAction SilentlyContinue',
   '} else {',
   `  if ((& ${GENFEED_CLI_COMMAND} auth status 2>$null) -match '^Logged in: yes') {`,
   "    Write-Host 'Genfeed CLI: signed in.'",

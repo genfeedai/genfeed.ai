@@ -59,6 +59,7 @@ export const DESKTOP_IPC_CHANNELS = {
   appBootstrap: 'desktop:app:bootstrap',
   appRuntimeContext: 'desktop:app:runtimeContext',
   runtimeContextChanged: 'desktop:app:runtimeContextChanged',
+  appDetectEditingTools: 'desktop:app:detectEditingTools',
   appDetectLocalTools: 'desktop:app:detectLocalTools',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
   appOpenExternalPath: 'desktop:app:openExternalPath',
@@ -639,6 +640,37 @@ export interface IDesktopLocalToolReadiness {
   upgradesRequired?: IDesktopLocalToolUpgrade[];
 }
 
+/** Programs a local edit or render calls, which Desktop does not ship. */
+export type DesktopEditingToolKey =
+  | 'browser'
+  | 'bun'
+  | 'ffmpeg'
+  | 'ffprobe'
+  | 'genfeed-cli'
+  | 'python'
+  | 'speech-to-text'
+  | 'yt-dlp';
+
+export type DesktopEditingToolStatus = 'found' | 'missing' | 'too-old';
+
+export interface IDesktopEditingTool {
+  /** The one command that installs it. Desktop never runs it itself. */
+  installCommand: string;
+  key: DesktopEditingToolKey;
+  label: string;
+  /** Oldest version the Genfeed skills need; null when any version works. */
+  minimumVersion: string | null;
+  /** Where it was found; null when it is missing. */
+  path: string | null;
+  status: DesktopEditingToolStatus;
+  /** Null when it is missing, or its build reports no version number. */
+  version: string | null;
+}
+
+export interface IDesktopEditingToolsReadiness {
+  tools: IDesktopEditingTool[];
+}
+
 export interface IGenfeedDesktopBridge {
   agentRuntime: {
     cancelTurn: (turnId: string) => Promise<void>;
@@ -654,6 +686,7 @@ export interface IGenfeedDesktopBridge {
     onDidChangeRuntimeContext: (
       callback: (context: IDesktopRuntimeContext) => void,
     ) => () => void;
+    detectEditingTools: () => Promise<IDesktopEditingToolsReadiness>;
     detectLocalTools: () => Promise<IDesktopLocalToolReadiness>;
     getDiagnostics: () => Promise<{
       isPackaged: boolean;

@@ -418,6 +418,7 @@ export function useAppProtectedLayout(
       buildSettingsMenuItems({
         scope: settingsScope,
         showCredits,
+        isDesktop: isDesktopClient(),
         isEnterprise: hasOrganizationBillingHint(),
       })
         .filter(

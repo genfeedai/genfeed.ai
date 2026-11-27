@@ -1,0 +1,49 @@
+{
+  "title": "Desktop",
+  "unavailable": "Workspace folders and editing tools are part of the Genfeed Desktop app.",
+  "workspace": {
+    "title": "Workspace",
+    "description": "The folder Desktop works in on this computer. Finished files go to the Library of the brand it is paired with; everything else stays on disk.",
+    "empty": "No workspace is open. Open a folder you already have, or start a new project.",
+    "active": "Active",
+    "library": "Library: {brand}",
+    "libraryUnknown": "Library: another brand",
+    "libraryUnpaired": "Not paired with a brand",
+    "openFolder": "Open folder…",
+    "newProject": "New project",
+    "showInFileManager": "Show in file manager",
+    "projectName": "Project name",
+    "projectNameHelp": "Created in {home}",
+    "projectNamePlaceholder": "Episode 13 recap",
+    "create": "Create",
+    "cancel": "Cancel",
+    "recent": "Recent",
+    "open": "Open",
+    "forget": "Forget {name}",
+    "forgetHint": "Forget (files stay on disk)",
+    "homeTitle": "New projects are created in",
+    "homeHelp": "Existing folders stay where they are when you change this.",
+    "changeHome": "Change…",
+    "errors": {
+      "loadFailed": "Could not read the workspace folders.",
+      "actionFailed": "That did not work. Try again."
+    }
+  },
+  "tools": {
+    "title": "Editing tools",
+    "description": "Programs a local edit or render calls. Desktop only looks for them; it never installs anything.",
+    "check": "Check again",
+    "attention": "{count, plural, one {# tool needs attention.} other {# tools need attention.}} A skill that needs one stops before it starts and names it.",
+    "found": "Found",
+    "missing": "Missing",
+    "tooOld": "Too old",
+    "version": "Version {version}",
+    "installed": "Installed",
+    "needsVersion": "Needs {minimum} or newer",
+    "tooOldVersion": "Version {version}, needs {minimum} or newer",
+    "copyCommand": "Copy install command for {label}",
+    "errors": {
+      "loadFailed": "Could not check the editing tools."
+    }
+  }
+}

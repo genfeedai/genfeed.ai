@@ -43,6 +43,7 @@ const PERSONAL_SETTINGS_SEGMENTS = new Set<string>([
   'progress',
   'help',
   'about',
+  'desktop',
 ]);
 
 /**

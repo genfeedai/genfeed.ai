@@ -214,6 +214,7 @@ describe('routes.constant', () => {
     expect(isPersonalSettingsPath('/settings/notifications')).toBe(true);
     expect(isPersonalSettingsPath('/settings/progress')).toBe(true);
     expect(isPersonalSettingsPath('/settings/help')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/desktop')).toBe(true);
     expect(isPersonalSettingsPath('/settings/members')).toBe(false);
     expect(isPersonalSettingsPath('/settings/general')).toBe(false);
     expect(isPersonalSettingsPath('/genfeed/~/settings')).toBe(false);

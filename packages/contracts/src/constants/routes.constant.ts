@@ -315,6 +315,8 @@ export const APP_ROUTES = {
     BRAND_KIT_VOICE: '/settings/brand-kit#voice',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    /** Desktop only: the workspace folder and the editing tools on this computer. */
+    DESKTOP: '/settings/desktop',
     /** What creators earned from readers, and what the organization paid. */
     EARNINGS: '/settings/earnings',
     /**
@@ -452,6 +454,7 @@ export const PERSONAL_SETTINGS_CHILD_SEGMENTS = [
   'progress',
   'help',
   'about',
+  'desktop',
 ] as const;
 
 export function isPersonalSettingsPath(pathname: string): boolean {
