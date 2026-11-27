@@ -141,7 +141,7 @@ export function HomeProofView({
         {posts.length ? (
           <ul
             aria-label="Posts published with Genfeed"
-            className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-6"
+            className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"
             data-reveal="up"
           >
             {posts.map((post) => (
