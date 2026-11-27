@@ -7,7 +7,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import type { Metadata } from 'next';
-import { getPublicBrandBySlug } from './creator-loader';
+import { getPublicBrandBySlug, hasPublicContent } from './creator-loader';
 
 const TAB_TITLES: Record<CreatorProfileTab, string> = {
   articles: 'Articles',
@@ -39,6 +39,10 @@ export async function buildCreatorMetadata(
       };
     }
 
+    // A profile or tab with nothing published is thin content. It stays
+    // reachable, but out of the index until the first item is published.
+    const hasContent = await hasPublicContent(brand.id, tab);
+
     const canonicalHandle = brand.slug || handle;
     const canonicalPath = tab
       ? creatorTabPath(canonicalHandle, tab)
@@ -69,6 +73,7 @@ export async function buildCreatorMetadata(
         },
       },
       description,
+      ...(hasContent ? {} : { robots: { follow: true, index: false } }),
       openGraph: {
         description,
         images: [

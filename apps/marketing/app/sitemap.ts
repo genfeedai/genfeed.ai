@@ -1,3 +1,4 @@
+import { hasPublicContent } from '@creator/(showcase)/creator-loader';
 import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { getAllAgentClientSlugs } from '@data/agent-clients.data';
 import { getAllAppProductSlugs } from '@data/app-products.data';
@@ -449,17 +450,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           url,
         }));
 
-  // Every handle that published an article, plus the newest public profiles.
+  // Every handle that published an article, plus the newest public profiles
+  // that have something published. An empty profile is thin content: it joins
+  // the sitemap with its first item.
   const profileHandles = new Set(articleHandles);
   try {
     const brands = await PublicService.getInstance().findPublicBrands({
       limit: SITEMAP_PROFILE_LIMIT,
     });
-    for (const brand of brands) {
-      if (brand.slug) {
+    const candidates = brands.filter(
+      (brand) => brand.slug && !profileHandles.has(brand.slug),
+    );
+    const published = await Promise.all(
+      candidates.map((brand) => hasPublicContent(brand.id)),
+    );
+    candidates.forEach((brand, index) => {
+      if (published[index]) {
         profileHandles.add(brand.slug);
       }
-    }
+    });
   } catch {
     // Profiles behind published articles stay listed without the brand list.
   }

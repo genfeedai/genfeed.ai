@@ -1,4 +1,5 @@
 import { AssetScope } from '@genfeedai/contracts';
+import type { CreatorProfileTab } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
   IPublicBrandReach,
@@ -157,6 +158,56 @@ export const getCreatorPlatformPosts = cache(
     } catch {
       return emptyPage(pageSize);
     }
+  },
+);
+
+/**
+ * Whether the profile, or one of its tabs, has anything published. A profile
+ * with nothing on it is thin content: it stays out of the index and the
+ * sitemap until its first item is published. A listing that cannot be loaded
+ * reads as "has content", so an outage never takes a real profile out of the
+ * index.
+ */
+export const hasPublicContent = cache(
+  async (
+    brandId: string,
+    tab: CreatorProfileTab | null = null,
+  ): Promise<boolean> => {
+    const publicService = PublicService.getInstance();
+    const mediaQuery = {
+      brand: brandId,
+      limit: 1,
+      page: 1,
+      scope: AssetScope.PUBLIC,
+    };
+    const totals: Record<
+      CreatorProfileTab,
+      () => Promise<IPaginatedResponse<unknown>>
+    > = {
+      articles: () =>
+        publicService.findPublicArticlesPage({
+          brand: brandId,
+          limit: 1,
+          page: 1,
+        }),
+      images: () => publicService.findPublicImagesPage(mediaQuery),
+      posts: () =>
+        publicService.findPublicPostsPage({
+          brand: brandId,
+          limit: 1,
+          page: 1,
+        }),
+      videos: () => publicService.findPublicVideosPage(mediaQuery),
+    };
+    const tabs = tab ? [tab] : (Object.keys(totals) as CreatorProfileTab[]);
+
+    const results = await Promise.allSettled(
+      tabs.map((kind) => totals[kind]()),
+    );
+
+    return results.some(
+      (result) => result.status === 'rejected' || result.value.total > 0,
+    );
   },
 );
 
