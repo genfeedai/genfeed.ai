@@ -1,14 +1,9 @@
-'use client';
-
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { CreatorAccountsProps } from '@props/content/creator.props';
 import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
-import {
-  getSocialAppUrl,
-  isMobileDevice,
-  openSocialApp,
-} from './social-app-link';
+import SocialAccountLink from './SocialAccountLink';
+import { getSocialAppUrl } from './social-app-link';
 
 /**
  * The social accounts the creator connected: each one's picture with its
@@ -33,18 +28,10 @@ export default function CreatorAccounts({
 
         return (
           <li key={`${social.platform}:${social.handle}`}>
-            <a
-              aria-label={`${formatPlatformLabel(social.platform) ?? social.platform}: @${social.handle}`}
-              className="inline-flex rounded-full"
-              href={webUrl}
-              onClick={(event) => {
-                if (appUrl && isMobileDevice()) {
-                  event.preventDefault();
-                  openSocialApp(appUrl, webUrl);
-                }
-              }}
-              rel="noopener noreferrer"
-              target="_blank"
+            <SocialAccountLink
+              appUrl={appUrl}
+              label={`${formatPlatformLabel(social.platform) ?? social.platform}: @${social.handle}`}
+              webUrl={webUrl}
             >
               <ConnectedAccountAvatar
                 account={{
@@ -55,7 +42,7 @@ export default function CreatorAccounts({
                 isDecorative
                 size="md"
               />
-            </a>
+            </SocialAccountLink>
           </li>
         );
       })}
