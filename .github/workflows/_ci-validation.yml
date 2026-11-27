@@ -637,6 +637,8 @@ jobs:
       # when metadata-only changes select no affected typecheck build tasks.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
+      - name: Build mcp-kit for executable imports
+        run: bun run --cwd packages/mcp-kit build
       # The repository contracts run in the Source Contracts job.
       - name: Run executable contracts
         run: bun run test:executable-contracts:static
@@ -704,6 +706,8 @@ jobs:
       # Real workspace imports resolve the contracts package dist exports.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
+      - name: Build mcp-kit for executable imports
+        run: bun run --cwd packages/mcp-kit build
       - name: Run repository contracts
         run: bun run test:repository-contracts
 

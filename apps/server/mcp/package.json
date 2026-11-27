@@ -4,6 +4,7 @@
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/actions": "workspace:*",
+    "@genfeedai/mcp-kit": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@nestjs/axios": "12.0.2",

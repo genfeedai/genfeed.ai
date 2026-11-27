@@ -407,6 +407,35 @@ describe('handleSchedulerTool', () => {
     );
   });
 
+  it('reopens a cancelled release in place, at a new time when one is given', async () => {
+    const client = buildClient();
+
+    await call(client, 'control_scheduled_release', {
+      action: 'reopen',
+      releaseId: 'release-1',
+      scheduledDate: '2026-11-27T15:00:00.000Z',
+    });
+
+    expect(client.controlScheduledRelease).toHaveBeenCalledWith(
+      'release-1',
+      'reopen',
+      '2026-11-27T15:00:00.000Z',
+    );
+  });
+
+  it('refuses a scheduledDate on any action but reopen', async () => {
+    const client = buildClient();
+
+    const failure = await call(client, 'control_scheduled_release', {
+      action: 'resume',
+      releaseId: 'release-1',
+      scheduledDate: '2026-11-27T15:00:00.000Z',
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ field: 'scheduledDate' });
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+  });
+
   it('rejects an unknown tool name', () => {
     const client = buildClient();
     expect(() => call(client, 'not_a_scheduler_tool', {})).toThrow(

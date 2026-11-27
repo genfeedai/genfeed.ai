@@ -8,13 +8,13 @@ summary; the canonical, decision-of-record version is the ADR at
 
 |                       | **SaaS**                                                                     | **Community**                                                   | **Desktop**                                                                        |
 | --------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **For**               | Customers using the hosted product                                           | Self-hosters running the whole stack                            | Solo creators on their own machine                                                 |
+| **For**               | Customers using the hosted product                                           | Self-hosters running the whole stack                            | Creators who want the app plus their own machine's tools (terminal, CLIs, local edits) |
 | **Get it**            | app.genfeed.ai                                                               | Download the checksummed GitHub release bundle                  | Build from source; tagged macOS artifacts appear in GitHub Releases when published |
-| **Orgs**              | many (isolated tenants)                                                      | **one**                                                         | one                                                                                |
+| **Orgs**              | many (isolated tenants)                                                      | **one**                                                         | those of the server it signs in to                                                 |
 | **Brands**            | many per org                                                                 | **many**                                                        | many                                                                               |
-| **Auth**              | Better Auth (email/password, magic link, Google)                             | Better Auth, self-hostable — local sign-up by default, optional no-login mode | none for local/offline work; Better Auth for explicit Cloud connection             |
-| **Storage**           | S3                                                                           | local filesystem                                                | Cloud shell by default; opt-in local PGlite + optional cloud sync                  |
-| **Generation**        | managed                                                                      | your own provider keys (BYOK), free                             | BYOK local, free                                                                   |
+| **Auth**              | Better Auth (email/password, magic link, Google)                             | Better Auth, self-hostable — local sign-up by default, optional no-login mode | Better Auth on the server it picked (Genfeed Cloud or a self-hosted API)           |
+| **Storage**           | S3                                                                           | local filesystem                                                | the server's (the Library). Working folders stay on disk; only final products upload |
+| **Generation**        | managed                                                                      | your own provider keys (BYOK), free                             | through the server's API, on credits; no local models                              |
 | **Managed inference** | credit-backed managed providers; included credits depend on the current plan | buy cloud credits, use via API                                  | buy cloud credits, use via API                                                     |
 
 ## Choosing a mode (env)
@@ -30,8 +30,13 @@ summary; the canonical, decision-of-record version is the ADR at
   Community is still one org and does not require a Better Auth cloud account.
 - **Desktop** — the Electron shell sets `NEXT_PUBLIC_DESKTOP_SHELL=1`. The
   current release workflow packages macOS only; this repository does not claim
-  Windows or Linux installers. Cloud startup does not initialize PGlite; the
-  embedded database starts only after an explicit local-workspace selection.
+  Windows or Linux installers. Desktop is a client of Genfeed Cloud or a
+  self-hosted server, picked in the in-app server switcher, and has no local
+  mode, database or generation. It adds what a machine gives: a terminal, the
+  user's own Claude Code and Codex, and project folders for editing with local
+  tools. Which surfaces are web, Desktop or both, and what an agent may do in a
+  folder, is decided in
+  [`ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS`](../.agents/memory/architecture/ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS.md).
 
 Code must read these axes through `@genfeedai/config/deployment`; direct mode
 checks against the environment are rejected by the architecture guard. Boolean
@@ -72,7 +77,8 @@ licensed-self-host bindings.
 - **Brand is the content context.** You always pick a brand to create content, so
   the **brand switcher is shown in every mode**. The **org switcher only appears
   in SaaS**, where there are multiple tenants to switch between.
-- **Single-tenant by default.** Community and Desktop are one org. Multi-tenant
+- **Single-tenant by default.** Community is one org, and Desktop uses the orgs of
+  the server it signs in to. Multi-tenant
   isolation (many orgs in one deployment) is a SaaS/Enterprise feature.
 - **BYOK is always free.** Bring your own provider keys and generate at no cost to
   Genfeed.

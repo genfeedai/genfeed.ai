@@ -1,6 +1,6 @@
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import type { McpAccessMode } from '@genfeedai/actions';
 import type { ActionOrigin } from '@genfeedai/contracts';
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 
 interface IAuthenticatedEmailAddress {
   emailAddress?: string | null;

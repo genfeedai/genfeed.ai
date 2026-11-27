@@ -80,6 +80,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
           listener,
         );
     },
+    detectEditingTools: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appDetectEditingTools),
     detectLocalTools: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appDetectLocalTools),
     getBootstrap: async () =>

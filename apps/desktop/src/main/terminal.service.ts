@@ -46,6 +46,18 @@ const nodeRequire = createRequire(import.meta.url);
 export class DesktopTerminalService {
   private readonly sessions = new Map<string, DesktopTerminalProcess>();
 
+  /**
+   * @param getGenfeedCliEnvironment Sign-in for the Genfeed CLI: the Desktop
+   * session's key and server, so `gf` does not ask for a second browser login.
+   * Only a Genfeed CLI session receives it, never a shell or an agent CLI.
+   */
+  constructor(
+    private readonly getGenfeedCliEnvironment: () => Record<
+      string,
+      string
+    > | null = () => null,
+  ) {}
+
   async createSession(
     options: IDesktopTerminalCreateOptions | undefined,
     onData: TerminalDataCallback,
@@ -61,7 +73,9 @@ export class DesktopTerminalService {
     const pty = spawn(command, args, {
       cols: options?.cols ?? DEFAULT_COLS,
       cwd,
-      env: this.buildEnvironment(),
+      env: this.buildEnvironment(
+        kind === 'genfeed' ? this.getGenfeedCliEnvironment() : null,
+      ),
       name: 'xterm-256color',
       rows: options?.rows ?? DEFAULT_ROWS,
     });
@@ -125,7 +139,9 @@ export class DesktopTerminalService {
     session.exitSubscription.dispose();
   }
 
-  private buildEnvironment(): NodeJS.ProcessEnv {
+  private buildEnvironment(
+    extra: Record<string, string> | null,
+  ): NodeJS.ProcessEnv {
     const existingPath = process.env.PATH ?? '';
     const nextPath = [
       ...TERMINAL_PATHS,
@@ -134,6 +150,7 @@ export class DesktopTerminalService {
 
     return {
       ...process.env,
+      ...extra,
       COLORTERM: process.env.COLORTERM ?? 'truecolor',
       PATH: nextPath,
       TERM: 'xterm-256color',

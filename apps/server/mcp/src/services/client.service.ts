@@ -48,7 +48,6 @@ import { Models3dClient } from '@mcp/services/client/models3d.client';
 import { PresetsClient } from '@mcp/services/client/presets.client';
 import { RemixClient } from '@mcp/services/client/remix.client';
 import {
-  type ScheduledReleaseControlAction,
   type SchedulerCapabilityListOptions,
   SchedulerClient,
   type ValidateSchedulerTargetInput,
@@ -564,10 +563,9 @@ export class ClientService {
   }
 
   controlScheduledRelease(
-    releaseId: string,
-    action: ScheduledReleaseControlAction,
+    ...args: Parameters<SchedulerClient['controlScheduledRelease']>
   ): Promise<IReleaseGroup> {
-    return this.scheduler.controlScheduledRelease(releaseId, action);
+    return this.scheduler.controlScheduledRelease(...args);
   }
 
   listSchedulerCapabilities(

@@ -1,42 +1,8 @@
+import type { McpAccessMode } from '@genfeedai/mcp-kit';
 import { curatedActionNames } from './curated-action-catalog';
 import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
 import { getRetiredMcpCatalogTool } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
-
-/**
- * Endpoint and OAuth grant policy, independent of the client's reported name.
- * `admin` is the staff endpoint (`/mcp/admin`): the admin-gated tools only,
- * which no other endpoint lists.
- */
-export type McpAccessMode = 'standard' | 'claude' | 'admin';
-
-/** Anything unrecognised fails closed to the narrowest mode. */
-export function parseMcpAccessMode(value: unknown): McpAccessMode {
-  if (value === undefined || value === 'standard') {
-    return 'standard';
-  }
-  return value === 'admin' ? 'admin' : 'claude';
-}
-
-/**
- * Combine the modes a request carries (route, key). An absent mode takes no
- * part. `admin` survives only when every given mode is `admin`, so an admin
- * key on another route, or a standard key on the admin route, never gains the
- * admin tools.
- */
-export function mostRestrictiveMcpAccessMode(
-  ...modes: unknown[]
-): McpAccessMode {
-  const parsed = modes
-    .filter((mode) => mode !== undefined)
-    .map(parseMcpAccessMode);
-  if (parsed.includes('claude')) {
-    return 'claude';
-  }
-  return parsed.length > 0 && parsed.every((mode) => mode === 'admin')
-    ? 'admin'
-    : 'standard';
-}
 
 /**
  * MCP tools gated to organization admins. They are listed and callable only

@@ -23,6 +23,17 @@ Boundary spec version: v1.4.0.
 - Cloud signup handoff parameters are onboarding hints. They are not data replication.
 - A Cloud API key authorizes explicit Cloud service calls only. It must not be exposed to the browser.
 
+## Desktop Execution
+
+Desktop is a client of Genfeed Cloud or a self-hosted server, not a runtime mode of its own. It has no local mode, database or generation.
+
+- **Generation** from Desktop goes through the server's API, on credits as on the web. The one exception is a local CLI on the user's own plan (Codex images); its result still lands in the cloud Library.
+- **Editing** may run on the user's machine, with local tools (ffmpeg, a headless browser, Bun), inside a project folder under `~/.genfeedai/projects`. The cloud Library is the one list of assets: only the final product uploads, one way, and an upload never publishes. Raw footage and intermediates stay on disk and are never synced.
+- **Surfaces:** the web app keeps everything. Desktop adds the project folder, the terminal, local agents and local renders. Admin is web only.
+- **Agent file access:** an ordinary agent turn gets only Genfeed MCP tools. A workspace agent may use file and shell tools inside one folder the user picked, with the boundary enforced by the operating system. That rule is decided but not in force until #11252 proves the boundary.
+
+Decision record: [`ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS`](../.agents/memory/architecture/ADR-DESKTOP-SURFACES-AND-AGENT-FILE-ACCESS.md).
+
 ## Workflow and Runtime Package Boundary
 
 - Public workflow contracts, public workflow templates, registry metadata, and generic Comfy-compatible self-hosted helpers live in this repository.

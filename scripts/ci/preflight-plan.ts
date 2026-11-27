@@ -367,6 +367,12 @@ export function planPreflight(input: PreflightPlanInput): PreflightStep[] {
       stage: 'contracts',
     },
     {
+      command: ['bun', 'run', '--cwd', 'packages/mcp-kit', 'build'],
+      id: 'mcp-kit-build',
+      label: 'Build mcp-kit for executable imports',
+      stage: 'contracts',
+    },
+    {
       command: ['bun', 'run', 'test:executable-contracts'],
       id: 'executable-contracts',
       label: 'Executable contracts',

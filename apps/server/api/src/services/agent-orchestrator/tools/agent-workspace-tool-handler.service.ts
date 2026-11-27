@@ -22,7 +22,11 @@ import {
   readOrganizationLogoUrl,
 } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
 import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
-import { brandListData } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
+import {
+  authorizedBrandReader,
+  brandListData,
+  severalBrandsUploadFailure,
+} from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
   type AgentMembersServiceLike,
@@ -378,7 +382,11 @@ export class AgentWorkspaceToolHandler {
   ): Promise<{ brandId?: string } | { error: AgentToolResult }> {
     const explicitBrandId = readRequiredString(params.brandId);
     const brand = await resolveGenerationBrand({
-      brandsService: await this.authorizedBrandReader(ctx),
+      brandsService: await authorizedBrandReader(
+        this.brandsService,
+        this.brandAccessService,
+        ctx,
+      ),
       contextBrandId: ctx.brandId ?? ctx.validatedScope?.brandId,
       explicitBrandId,
       membersService: this.membersService,
@@ -453,26 +461,16 @@ export class AgentWorkspaceToolHandler {
     // #5219: thread/route scope first, then the acting member's
     // currentBrandId. No implicit "any brand in the org" fallback.
     return resolveGenerationBrand({
-      brandsService: await this.authorizedBrandReader(ctx),
+      brandsService: await authorizedBrandReader(
+        this.brandsService,
+        this.brandAccessService,
+        ctx,
+      ),
       contextBrandId: scopedBrandId,
       membersService: this.membersService,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
-  }
-
-  private async authorizedBrandReader(
-    ctx: ToolExecutionContext,
-  ): Promise<Pick<AgentBrandsServiceLike, 'findOne'>> {
-    if (!isCloudDeployment()) return this.brandsService;
-    const where = await this.brandAccessService.predicate({
-      userId: ctx.userId,
-      organizationId: ctx.organizationId,
-      ...ctx.apiKeyContext,
-    });
-    return {
-      findOne: (query) => this.brandsService.findOne({ AND: [query, where] }),
-    };
   }
 
   async listPosts(
@@ -602,9 +600,13 @@ export class AgentWorkspaceToolHandler {
     }
 
     try {
-      // The brand the caller names owns the asset; without one the call's
-      // brand scope or the member's current brand applies.
+      // A named brand owns the asset; else the call's scope or current brand.
       const requestedBrandId = readRequiredString(params.brandId);
+      const severalBrands =
+        !requestedBrandId && !(ctx.brandId || ctx.validatedScope?.brandId)
+          ? severalBrandsUploadFailure(await this.listAccessibleBrands(ctx))
+          : null;
+      if (severalBrands) return severalBrands;
       const brand = await this.findCurrentBrand(
         requestedBrandId ? { ...ctx, brandId: requestedBrandId } : ctx,
       );

@@ -15,6 +15,7 @@ import {
   Coins,
   Cpu,
   CreditCard,
+  Folder,
   Grip,
   HandHeart,
   IdCard,
@@ -45,6 +46,8 @@ export interface BuildSettingsMenuItemsParams {
    * Defaults true so community self-host still reaches managed Cloud credits.
    */
   showCredits?: boolean;
+  /** The Desktop app: adds the page for the workspace folder and local tools. */
+  isDesktop?: boolean;
 }
 
 /**
@@ -55,7 +58,8 @@ export interface BuildSettingsMenuItemsParams {
  *   Connectors page, not in Settings.
  * - Brand: Brand (public + identity) · Automation (how content runs) ·
  *   Billing (cost attribution)
- * - Personal: Account (Personal, Notifications, Chat, Progress, Help).
+ * - Personal: Account (Personal, Notifications, Chat, Progress, Help, and
+ *   Desktop in the Desktop app).
  *
  * Naming / paths (deliberate):
  * - Settings is a shell. Personal home is `/settings/personal`. Org home is
@@ -66,7 +70,20 @@ export interface BuildSettingsMenuItemsParams {
  *   `/settings/agents` so the slug matches the sidebar label.
  */
 
-function buildPersonalMenuItems(): MenuItemConfig[] {
+function buildPersonalMenuItems(isDesktop: boolean): MenuItemConfig[] {
+  const desktopItems: MenuItemConfig[] = isDesktop
+    ? [
+        {
+          group: 'Account',
+          href: APP_ROUTES.SETTINGS.DESKTOP,
+          hrefScope: 'personal',
+          label: 'Desktop',
+          outline: Folder,
+          solid: Folder,
+        },
+      ]
+    : [];
+
   return [
     {
       group: 'Account',
@@ -101,6 +118,7 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       outline: CircleQuestionMark,
       solid: CircleQuestionMark,
     },
+    ...desktopItems,
     {
       group: 'Account',
       href: APP_ROUTES.SETTINGS.ABOUT,
@@ -319,6 +337,7 @@ export function buildSettingsMenuItems({
   scope,
   isEnterprise = false,
   showCredits = true,
+  isDesktop = false,
 }: BuildSettingsMenuItemsParams): MenuItemConfig[] {
   if (scope === 'brand') {
     return withCollapsibleGroups(buildBrandMenuItems());
@@ -330,5 +349,5 @@ export function buildSettingsMenuItems({
     );
   }
 
-  return buildPersonalMenuItems();
+  return buildPersonalMenuItems(isDesktop);
 }

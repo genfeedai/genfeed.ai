@@ -17,6 +17,25 @@ describe('buildSettingsMenuItems', () => {
       ]);
     });
 
+    it('adds the Desktop page, before About, only in the Desktop app', () => {
+      const desktopItems = buildSettingsMenuItems({
+        isDesktop: true,
+        scope: SettingsSurface.PERSONAL,
+      });
+
+      expect(desktopItems.map((item) => item.label)).toEqual([
+        'Personal',
+        'Notifications',
+        'Progress',
+        'Help',
+        'Desktop',
+        'About',
+      ]);
+      expect(desktopItems.find((i) => i.label === 'Desktop')?.href).toBe(
+        APP_ROUTES.SETTINGS.DESKTOP,
+      );
+    });
+
     it('scopes every entry to the personal context', () => {
       expect(items.every((item) => item.hrefScope === 'personal')).toBe(true);
       expect(items.find((i) => i.label === 'Notifications')?.href).toBe(

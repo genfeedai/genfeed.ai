@@ -4,8 +4,6 @@ import {
   CLAUDE_MCP_AGENT_TOOL_NAMES,
   CLAUDE_MCP_TOOL_NAMES,
   isToolAllowedInMcpAccessMode,
-  mostRestrictiveMcpAccessMode,
-  parseMcpAccessMode,
 } from './mcp-access-modes';
 import { getToolsForSurface } from './tool-registry';
 
@@ -104,12 +102,6 @@ describe('Claude MCP access policy', () => {
     ).toBe(false);
   });
   it('fails closed for unknown modes and never widens a restricted grant', () => {
-    expect(parseMcpAccessMode(undefined)).toBe('standard');
-    for (const value of [null, '', 'full', {}, 'claude']) {
-      expect(parseMcpAccessMode(value)).toBe('claude');
-    }
-    expect(mostRestrictiveMcpAccessMode('standard', 'claude')).toBe('claude');
-    expect(mostRestrictiveMcpAccessMode('claude', 'standard')).toBe('claude');
     expect(
       isToolAllowedInMcpAccessMode('claude', 'future_generation_tool'),
     ).toBe(false);
@@ -192,15 +184,5 @@ describe('Admin MCP access policy', () => {
         'agent',
       ),
     ).toBe(true);
-  });
-
-  it('keeps admin only when every mode is admin', () => {
-    expect(parseMcpAccessMode('admin')).toBe('admin');
-    expect(mostRestrictiveMcpAccessMode('admin', 'admin')).toBe('admin');
-    expect(mostRestrictiveMcpAccessMode(undefined, 'admin')).toBe('admin');
-    expect(mostRestrictiveMcpAccessMode('admin', 'standard')).toBe('standard');
-    expect(mostRestrictiveMcpAccessMode('standard', 'admin')).toBe('standard');
-    expect(mostRestrictiveMcpAccessMode('admin', 'claude')).toBe('claude');
-    expect(mostRestrictiveMcpAccessMode(undefined)).toBe('standard');
   });
 });

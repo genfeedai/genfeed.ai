@@ -1,9 +1,9 @@
-import { mostRestrictiveMcpAccessMode } from '@genfeedai/actions';
 import {
   MCP_ACCESS_MODE_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { mostRestrictiveMcpAccessMode } from '@genfeedai/mcp-kit';
 import type { Prisma } from '@genfeedai/prisma';
 
 const BRAND_VIEW_RECORDED_MODES: readonly unknown[] = [

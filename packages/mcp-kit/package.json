@@ -1,0 +1,41 @@
+{
+  "description": "MCP server plumbing shared by Genfeed's MCP servers: roles, access modes, mutation policy, credit pricing, annotations and tool caps",
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@typescript/native": "npm:typescript@7.0.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/mcp-kit",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "packages/mcp-kit",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
+  },
+  "scripts": {
+    "build": "tsc --build && test -f dist/index.js",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "prepublishOnly": "bun run build",
+    "test": "vitest run --config vitest.config.ts",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "version": "0.1.0"
+}

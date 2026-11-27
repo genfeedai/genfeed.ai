@@ -8,7 +8,10 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SkillCatalogSeedService } from './skill-catalog-seed.service';
+import {
+  type SkillCatalogItemDetail,
+  SkillCatalogSeedService,
+} from './skill-catalog-seed.service';
 
 const imagePrompt: FirstPartySkillDefinition = {
   category: 'image',
@@ -312,5 +315,98 @@ describe('SkillCatalogSeedService', () => {
     ]);
     expect(prisma.skill.create).not.toHaveBeenCalled();
     expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
+
+  describe('rows edited here', () => {
+    const edited = (text: string) => ({
+      config: {
+        category: 'image',
+        channels: [],
+        defaultInstructions: text,
+        description: 'Craft image prompts',
+        isBuiltIn: true,
+        modalities: ['image'],
+        name: 'Image Prompt Engineer',
+        runsOn: 'web',
+        slug: imagePrompt.slug,
+        source: 'built_in',
+        sourceContentHash: 'loaded-from-an-older-repo-version',
+        status: 'published',
+        surfaces: ['agent', 'studio'],
+        systemPromptTemplate: text,
+        version: '1.0.0',
+        workflowStage: 'creation',
+      },
+      id: imagePrompt.id,
+      isDeleted: false,
+      label: imagePrompt.name,
+      organizationId: null,
+    });
+
+    it('leaves a row edited here alone and reports it as a conflict with both texts', async () => {
+      prisma.skill.findUnique.mockResolvedValue(edited('# My own version'));
+      const details: SkillCatalogItemDetail[] = [];
+
+      const result = await service.reconcileCatalog([imagePrompt], {
+        onOutcome: (_slug, _outcome, detail) => details.push(detail),
+      });
+
+      expect(result).toEqual({ inserted: 0, skipped: 1, updated: 0 });
+      expect(prisma.skill.update).not.toHaveBeenCalled();
+      expect(details).toEqual([
+        {
+          after: `name: Image Prompt Engineer\ndescription: Craft image prompts\n\n${imagePrompt.instructions}`,
+          before:
+            'name: Image Prompt Engineer\ndescription: Craft image prompts\n\n# My own version',
+          change: 'conflict',
+        },
+      ]);
+    });
+
+    it('takes the repo version when the admin chooses it', async () => {
+      prisma.skill.findUnique.mockResolvedValue(edited('# My own version'));
+
+      const result = await service.reconcileCatalog([imagePrompt], {
+        decisions: { [imagePrompt.slug]: 'repo' },
+      });
+
+      expect(result).toEqual({ inserted: 0, skipped: 0, updated: 1 });
+      expect(prisma.skill.update.mock.calls[0][0].data.config).toMatchObject({
+        defaultInstructions: imagePrompt.instructions,
+        systemPromptTemplate: imagePrompt.instructions,
+      });
+    });
+
+    it('keeps the edited text, and records the repo version it was compared with, when the admin keeps theirs', async () => {
+      prisma.skill.findUnique.mockResolvedValue(edited('# My own version'));
+      const result = await service.reconcileCatalog([imagePrompt], {
+        decisions: { [imagePrompt.slug]: 'mine' },
+      });
+
+      const written = prisma.skill.update.mock.calls[0][0].data.config;
+      expect(result).toEqual({ inserted: 0, skipped: 0, updated: 1 });
+      expect(written.defaultInstructions).toBe('# My own version');
+      expect(written.sourceContentHash).not.toBe(
+        'loaded-from-an-older-repo-version',
+      );
+    });
+
+    it('does not touch a row edited here when the repo has not changed since it was loaded', async () => {
+      await service.reconcileCatalog([imagePrompt]);
+      const data = prisma.skill.create.mock.calls[0][0].data;
+      prisma.skill.findUnique.mockResolvedValue({
+        ...data,
+        config: { ...data.config, defaultInstructions: '# Edited' },
+      });
+      const details: SkillCatalogItemDetail[] = [];
+
+      const result = await service.reconcileCatalog([imagePrompt], {
+        onOutcome: (_slug, _outcome, detail) => details.push(detail),
+      });
+
+      expect(result).toEqual({ inserted: 0, skipped: 1, updated: 0 });
+      expect(details[0].change).toBe('edited');
+      expect(prisma.skill.update).not.toHaveBeenCalled();
+    });
   });
 });

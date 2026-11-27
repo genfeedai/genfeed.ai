@@ -2,8 +2,8 @@ import {
   ADMIN_MCP_TOOL_NAMES,
   getRetiredMcpCatalogTool,
 } from '@genfeedai/actions';
+import type { McpRole } from '@genfeedai/mcp-kit';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { McpRole } from '@mcp/services/auth.service';
 import type { ClientService } from '@mcp/services/client.service';
 import type { CardApprovalProofs } from '@mcp/services/mcp-card-approval-proof.util';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';

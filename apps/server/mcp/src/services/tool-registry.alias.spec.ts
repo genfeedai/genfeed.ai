@@ -2,8 +2,8 @@ import {
   ALL_TOOLS,
   CLAUDE_MCP_TOOL_NAMES,
   getMcpCatalogOperations,
-  MCP_TOOL_CAP,
 } from '@genfeedai/actions';
+import { MCP_TOOL_CAP } from '@genfeedai/mcp-kit';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';

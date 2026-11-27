@@ -62,9 +62,18 @@ export function handleSchedulerTool(
     ) => Promise<{ content: Array<{ text: string; type: 'text' }> }>
   > = {
     control_scheduled_release: async (a) => {
+      const action = controlAction(a);
+      const scheduledDate = optionalString(a, 'scheduledDate');
+      if (scheduledDate && action !== 'reopen') {
+        throw new McpToolInputError(
+          'scheduledDate is only allowed when action is "reopen"',
+          'scheduledDate',
+        );
+      }
       const result = await client.controlScheduledRelease(
         requiredString(a, 'releaseId'),
-        controlAction(a),
+        action,
+        ...(scheduledDate ? [scheduledDate] : []),
       );
       return textDataResult('Scheduled release updated', result);
     },
@@ -305,12 +314,13 @@ function controlAction(
   const action = args.action;
   if (
     action !== 'cancel' &&
+    action !== 'reopen' &&
     action !== 'pause' &&
     action !== 'resume' &&
     action !== 'publish-now'
   ) {
     throw new McpToolInputError(
-      'action must be "cancel", "pause", "resume", or "publish-now"',
+      'action must be "cancel", "reopen", "pause", "resume", or "publish-now"',
       'action',
     );
   }

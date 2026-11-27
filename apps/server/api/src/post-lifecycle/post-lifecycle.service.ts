@@ -42,7 +42,9 @@ const MAX_SERIALIZABLE_ATTEMPTS = 3;
 export const POST_LIFECYCLE_TRANSITIONS: Readonly<
   Record<TargetExecutionState, ReadonlySet<TargetExecutionState>>
 > = {
-  [TargetExecutionState.CANCELLED]: new Set(),
+  // A cancelled target reopens as a draft, so cancelling by mistake is undone on
+  // the same row instead of by making a second post.
+  [TargetExecutionState.CANCELLED]: new Set([TargetExecutionState.DRAFT]),
   [TargetExecutionState.DRAFT]: new Set([
     TargetExecutionState.CANCELLED,
     TargetExecutionState.FAILED,

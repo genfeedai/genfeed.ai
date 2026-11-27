@@ -64,6 +64,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../actions/src/index.ts'),
       },
       {
+        find: /^@genfeedai\/mcp-kit$/,
+        replacement: path.resolve(__dirname, '../mcp-kit/src/index.ts'),
+      },
+      {
         find: '@',
         replacement: path.resolve(__dirname, './src'),
       },

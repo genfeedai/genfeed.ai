@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { type McpAccessMode, parseMcpAccessMode } from '@genfeedai/actions';
 import {
   ApiKeyScope,
   hasExplicitApiKeyAdminScope,
@@ -9,6 +8,11 @@ import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
+import {
+  type McpAccessMode,
+  type McpRole,
+  parseMcpAccessMode,
+} from '@genfeedai/mcp-kit';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
@@ -17,8 +21,6 @@ import { createMcpOriginProof } from '@mcp/shared/utils/mcp-origin-proof.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-
-export type McpRole = 'user' | 'admin' | 'superadmin';
 
 export interface AuthResult {
   valid: boolean;
@@ -278,15 +280,6 @@ export class AuthService {
     if (role === 'superadmin') return 'superadmin';
     if (role === 'owner' || role === 'admin') return 'admin';
     return 'user';
-  }
-
-  static hasRequiredRole(userRole: McpRole, requiredRole: McpRole): boolean {
-    const hierarchy: Record<McpRole, number> = {
-      admin: 2,
-      superadmin: 3,
-      user: 1,
-    };
-    return hierarchy[userRole] >= hierarchy[requiredRole];
   }
 
   extractBearerToken(authHeader: string | undefined): string | null {

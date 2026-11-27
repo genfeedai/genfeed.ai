@@ -247,6 +247,23 @@ export class ReleaseGroupsService extends HTTPBaseService {
   }
 
   /**
+   * Brings a cancelled release back on the same record: as a draft, or
+   * scheduled again when a future `scheduledDate` is given.
+   */
+  async reopen(
+    groupId: string,
+    scheduledDate?: string,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      scheduledDate
+        ? { action: 'reopen', scheduledDate }
+        : { action: 'reopen' },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /**
    * Partial edit of a release's shared fields — the release-level reschedule
    * path when `scheduledDate` is supplied.
    */

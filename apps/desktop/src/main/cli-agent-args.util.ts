@@ -8,6 +8,8 @@ import {
 
 export interface ClaudeCliArgsInput {
   mcpConfigPath: string;
+  /** A model the user's Claude Code can run; omitted, the CLI decides. */
+  model?: string | null;
   resumeSessionId: string | null;
   systemPrompt: string;
 }
@@ -33,12 +35,15 @@ export function buildClaudeCliArgs(input: ClaudeCliArgsInput): string[] {
     '',
     '--append-system-prompt',
     input.systemPrompt,
+    ...(input.model ? ['--model', input.model] : []),
     ...(input.resumeSessionId ? ['--resume', input.resumeSessionId] : []),
   ];
 }
 
 export interface CodexCliArgsInput {
   mcpEndpoint: string;
+  /** A model the user's Codex can run; omitted, the CLI decides. */
+  model?: string | null;
   resumeSessionId: string | null;
 }
 
@@ -88,6 +93,7 @@ export function buildCodexCliArgs(input: CodexCliArgsInput): string[] {
     '--json',
     '--skip-git-repo-check',
     CODEX_IGNORE_USER_CONFIG_FLAG,
+    ...(input.model ? ['--model', input.model] : []),
     '--sandbox',
     'read-only',
     ...CODEX_DISABLED_FEATURES.flatMap((feature) => ['--disable', feature]),

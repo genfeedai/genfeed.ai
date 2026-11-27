@@ -18,13 +18,16 @@ describe('resolveGenfeedCliLaunch', () => {
     fs.writeFileSync(file, `#!/bin/sh\n${body}\n`, { mode: 0o755 });
   };
 
-  const run = (): { output: string; status: number | null } => {
+  const run = (
+    extraEnv: Record<string, string> = {},
+  ): { output: string; status: number | null } => {
     const { args, command } = resolveGenfeedCliLaunch('darwin');
     const result = spawnSync(command, args, {
       encoding: 'utf8',
       env: {
         PATH: `${root}:/usr/bin:/bin`,
         SHELL: path.join(root, 'fake-shell'),
+        ...extraEnv,
       },
     });
 
@@ -50,6 +53,34 @@ describe('resolveGenfeedCliLaunch', () => {
       expect(output).toContain('user shell -l');
     },
   );
+
+  posixIt(
+    'does not hand the Desktop sign-in to the shell it opens when gf is missing',
+    () => {
+      writeExecutable(
+        'fake-shell',
+        'echo "key=[${GENFEED_API_KEY:-}] url=[${GENFEED_API_URL:-}]"',
+      );
+
+      const { output } = run({
+        GENFEED_API_KEY: 'gf_secret',
+        GENFEED_API_URL: 'https://api.genfeed.ai/v1',
+      });
+
+      expect(output).toContain('key=[] url=[]');
+    },
+  );
+
+  posixIt('lets gf use the Desktop sign-in it was started with', () => {
+    writeExecutable(
+      'gf',
+      'if [ "$1" = auth ]; then [ "$GENFEED_API_KEY" = gf_secret ] && echo "Logged in: yes"; else echo "gf started"; fi',
+    );
+
+    const { output } = run({ GENFEED_API_KEY: 'gf_secret' });
+
+    expect(output).toContain('Genfeed CLI: signed in.');
+  });
 
   posixIt('reports a signed-in CLI and then starts it', () => {
     writeExecutable(

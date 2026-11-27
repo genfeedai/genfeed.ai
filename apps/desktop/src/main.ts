@@ -43,6 +43,7 @@ import {
 import { DesktopCliAgentRuntimeService } from './main/cli-agent-runtime.service';
 import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
+import { detectDesktopEditingTools } from './main/editing-tools.util';
 import { buildExternalAppUrl } from './main/external-url.util';
 import { detectDesktopLocalTools } from './main/local-tools.util';
 import { DesktopLogService } from './main/log.service';
@@ -94,7 +95,12 @@ let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
 let desktopStore: DesktopStoreService;
 let sessionService: DesktopSessionService;
-const terminalService = new DesktopTerminalService();
+const terminalService = new DesktopTerminalService(() => {
+  const token = sessionService?.getSession()?.token;
+  return token
+    ? { GENFEED_API_KEY: token, GENFEED_API_URL: environment.apiEndpoint }
+    : null;
+});
 let isLocalTerminalApproved = false;
 let cliAgentRuntimeService: DesktopCliAgentRuntimeService | null = null;
 let serverService: DesktopServerService;
@@ -870,6 +876,10 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appDetectLocalTools,
     async () => detectDesktopLocalTools(),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.appDetectEditingTools,
+    async () => detectDesktopEditingTools(),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appGetDiagnostics,

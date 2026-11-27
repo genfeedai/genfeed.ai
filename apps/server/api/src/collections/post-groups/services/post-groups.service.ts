@@ -880,7 +880,7 @@ export class PostGroupsService {
     }
   }
 
-  private async transitionGroupTargets(
+  async transitionGroupTargets(
     organizationId: string,
     userId: string,
     groupId: string,

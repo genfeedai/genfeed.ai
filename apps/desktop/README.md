@@ -219,9 +219,21 @@ gateway.
 The Genfeed CLI session starts `gf` through a small wrapper
 (`src/main/genfeed-cli-launch.util.ts`). When `gf` is missing it prints
 `npm install -g @genfeedai/cli` and leaves a shell open; otherwise it reports
-whether `gf auth status` is signed in and then starts the CLI. The CLI keeps
-its own login in `~/.gf/config.json`; Desktop does not hand it its session
-(#11287).
+whether `gf auth status` is signed in and then starts the CLI. A Genfeed CLI
+session (never a shell or an agent CLI) starts with the Desktop session's `gf_`
+key and the selected server in `GENFEED_API_KEY` and `GENFEED_API_URL`, so the
+user signs in once; the CLI does not write them to `~/.gf/config.json`. When
+`gf` is missing, the shell the wrapper opens has both removed.
+
+## Editing tools
+
+`window.genfeedDesktop.app.detectEditingTools()` reports which programs a local
+edit calls (`src/main/editing-tools.util.ts`): ffmpeg, ffprobe, Chrome or
+Chromium, Bun, Python 3, a speech-to-text tool (`whisper-cli` or `whisper`),
+yt-dlp and the Genfeed CLI. Each is `found`, `missing` or `too-old`, with the
+version, its path and the one command that installs it. Desktop looks, never
+installs, and bundles none of them (150 MiB app-shell budget, #11060). See
+`.agents/memory/decisions-desktop-editing-toolchain.md`.
 
 ## Platform admin
 

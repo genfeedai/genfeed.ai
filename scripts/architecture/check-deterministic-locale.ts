@@ -123,11 +123,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/web/app/(protected)/[orgSlug]/~/connectors/agents/connect-genfeed-flow.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/web/app/(protected)/admin/overview/overview-page.tsx',
     'to-locale-string',
     2,

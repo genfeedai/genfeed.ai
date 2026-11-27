@@ -7,6 +7,7 @@ import { PostGroupIdempotencyService } from '@api/collections/post-groups/servic
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
+import { PostGroupReopenService } from '@api/collections/post-groups/services/post-group-reopen.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
@@ -42,6 +43,7 @@ import { Module } from '@nestjs/common';
     PostGroupIdempotencyService,
     PostGroupPersistenceService,
     PostGroupReadinessService,
+    PostGroupReopenService,
     PostGroupsService,
     PostGroupRecurrenceService,
     XPostingBillingGate,
