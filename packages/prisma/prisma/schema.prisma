@@ -9474,6 +9474,68 @@ model OutlierConfiguration {
   @@map("outlier_configurations")
 }
 
+/// Other creators' public accounts tracked once for every organization
+/// (#11641). Platform rows with no tenant column, like `trending_videos`: who
+/// follows a creator stays tenant data in `social_sources`. Never holds a
+/// video file or anything read from an embed endpoint.
+model OutlierCreator {
+  id             String        @id @default(cuid())
+  platform       String
+  externalId     String
+  handle         String
+  displayName    String?
+  followersCount Int?
+  nicheTags      String[]      @default([])
+  /// active | unreadable | removed (OutlierCreatorStatus in contracts).
+  status         String        @default("active")
+  lastReadAt     DateTime?
+  medianViews    Float?
+  sampleSize     Int           @default(0)
+  isDeleted      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  posts          OutlierPost[]
+
+  @@unique([platform, externalId])
+  @@index([platform, status, lastReadAt])
+  @@map("outlier_creators")
+}
+
+/// A listed post of a tracked creator: it beat that creator's typical post by
+/// the outlier threshold or more (#11641). Numbers, a link and short text
+/// only: never a video file or a re-hosted thumbnail.
+model OutlierPost {
+  id             String         @id @default(cuid())
+  creatorId      String
+  creator        OutlierCreator @relation(fields: [creatorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  platform       String
+  externalId     String
+  url            String
+  publishedAt    DateTime
+  views          Float
+  likes          Float?
+  comments       Float?
+  /// When the counts above were read; they are refreshed at least every 30 days.
+  countsReadAt   DateTime
+  medianViews    Float
+  sampleSize     Int
+  outlierRatio   Float
+  /// outlier | breakout (OutlierLibraryTier in contracts).
+  outlierTier    String
+  soundId        String?
+  hashtags       String[]       @default([])
+  captionExcerpt String?
+  format         String?
+  isDeleted      Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([platform, externalId])
+  @@index([creatorId, isDeleted])
+  @@index([isDeleted, platform, outlierTier, outlierRatio(sort: Desc), publishedAt(sort: Desc)], map: "outlier_posts_list_idx")
+  @@map("outlier_posts")
+}
+
 /// Immutable provider measurements collected prospectively. These observations
 /// carry evidence, never generation or publication authority.
 model PostExposureObservation {
