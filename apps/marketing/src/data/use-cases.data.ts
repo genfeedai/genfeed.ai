@@ -39,7 +39,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'payg',
-      why: `Start free with pay-per-output credits and pay only for what you generate.`,
+      why: `Try it on your brand, then pay per output with credits from $10.`,
     },
     results: [
       'Generate avatar content with pay-per-output credits',
@@ -102,7 +102,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'payg',
-      why: `Start free with pay-per-output credits and pay only for what you generate.`,
+      why: `Try it on your brand, then pay per output with credits from $10.`,
     },
     results: [
       'Create variations from the same brief',
@@ -375,7 +375,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'payg',
-      why: `Start free with pay-per-output credits and pay only for what you generate.`,
+      why: `Try it on your brand, then pay per output with credits from $10.`,
     },
     results: [
       'Explain your product through posts, threads and visuals',

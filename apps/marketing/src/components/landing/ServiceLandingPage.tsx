@@ -1,4 +1,4 @@
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL, SIGN_UP_OFFER } from '@data/app-links';
 import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
@@ -68,7 +68,7 @@ function LandingActions({
       <Link href={BOOKING_HREF}>Book a call</Link>
     </ButtonTracked>
   );
-  const startFree = (
+  const startCreating = (
     <ButtonTracked
       asChild
       key="start"
@@ -77,11 +77,13 @@ function LandingActions({
       trackingName="service_landing_click"
       variant={isBookingPage ? ButtonVariant.SECONDARY : undefined}
     >
-      <a href={SIGN_UP_HREF}>Start free</a>
+      <a href={SIGN_UP_HREF}>{SIGN_UP_LABEL}</a>
     </ButtonTracked>
   );
 
-  return <>{isBookingPage ? [bookCall, startFree] : [startFree, bookCall]}</>;
+  return (
+    <>{isBookingPage ? [bookCall, startCreating] : [startCreating, bookCall]}</>
+  );
 }
 
 export default function ServiceLandingPage({
@@ -98,7 +100,7 @@ export default function ServiceLandingPage({
           ? 'Connect Agent'
           : isBookingPage
             ? 'Book a call'
-            : 'Start free'
+            : SIGN_UP_LABEL
       }
       hideActionWhileVisible={
         config.isAgentFirst ? HERO_CTA_SELECTOR : undefined
@@ -114,7 +116,7 @@ export default function ServiceLandingPage({
         config.isAgentFirst
           ? undefined
           : isBookingPage
-            ? 'Start free'
+            ? SIGN_UP_LABEL
             : 'Book a call'
       }
       primaryAction={
@@ -173,8 +175,8 @@ export default function ServiceLandingPage({
                 <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/70">
                   <span className="border border-foreground/10 px-3 py-2 text-foreground/70">
                     {config.isAgentFirst
-                      ? 'Start for $0'
-                      : 'Self-serve: start free'}
+                      ? SIGN_UP_OFFER
+                      : 'Self-serve, pay when you publish'}
                   </span>
                   <span className="border border-foreground/10 px-3 py-2 text-foreground/70">
                     {config.priceLabel ??

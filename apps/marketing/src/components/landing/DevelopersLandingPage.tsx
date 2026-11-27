@@ -1,5 +1,5 @@
 import { agentClients } from '@data/agent-clients.data';
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -106,7 +106,7 @@ const FAQS = [
   },
   {
     answer:
-      'Start for $0 on managed cloud. Paid usage follows your plan and credits. Self-hosting has no Genfeed platform fee; you pay for your infrastructure and model providers.',
+      'On managed cloud, try it on your brand and pay when you publish: a plan or a credit pack. Self-hosting has no Genfeed platform fee; you pay for your infrastructure and model providers.',
     question: 'How does pricing work?',
   },
 ];
@@ -129,7 +129,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               trackingData={{ action: 'start_free' }}
             >
               <Link href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Start for $0
+                {SIGN_UP_LABEL}
                 <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
@@ -306,7 +306,8 @@ export default function DevelopersLandingPage(): React.ReactElement {
             </Heading>
             <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Connect your agent for a first draft, or explore the source to run
-              and adapt Genfeed yourself. Start for $0 on managed cloud.
+              and adapt Genfeed yourself. On managed cloud, pay when you
+              publish.
             </Text>
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <ButtonTracked
@@ -320,7 +321,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Start for $0
+                  {SIGN_UP_LABEL}
                 </Link>
               </ButtonTracked>
               <ButtonTracked

@@ -71,7 +71,7 @@ function socialGrowthFaqs({
     },
     {
       answer:
-        'Start for $0. Paid usage follows your Genfeed plan and credits. Connect your agent to the same workspace; no sales call is required.',
+        'Try it on your brand first. Publishing starts with a Genfeed plan or a credit pack. Connect your agent to the same workspace; no sales call is required.',
       question: 'How does pricing work?',
     },
   ];

@@ -1,4 +1,4 @@
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL, SIGN_UP_OFFER } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatPrice, IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
@@ -131,9 +131,9 @@ const DIFFERENTIATORS = [
   {
     body: (
       <>
-        {PLAN_COPY.payg.name} is free to join: top up from $10 and pay only for
-        what you generate. Subscriptions are month to month, and{' '}
-        {PLAN_COPY.scale.nameWithPrice} includes{' '}
+        Try it on your brand, then pay when you publish: {PLAN_COPY.payg.name}{' '}
+        tops up from $10 and you pay only for what you generate. Subscriptions
+        are month to month, and {PLAN_COPY.scale.nameWithPrice} includes{' '}
         {PLAN_COPY.scale.includedCredits} at a{' '}
         {PLAN_COPY.scale.creditRateAdvantage} better rate.
       </>
@@ -151,7 +151,7 @@ const AUDIENCES = [
 
 const HOW_IT_WORKS = [
   {
-    description: `Sign up free, connect your channels, and set up a brand with its voice and visuals. No sales call is needed; ${PLAN_COPY.enterprise.name} rollouts start with a demo.`,
+    description: `Sign up, connect your channels, and set up a brand with its voice and visuals. No sales call is needed; ${PLAN_COPY.enterprise.name} rollouts start with a demo.`,
     title: 'Onboarding',
   },
   {
@@ -267,7 +267,7 @@ const FAQ_ITEMS = [
     question: 'Is Genfeed really open source?',
   },
   {
-    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${ENTERPRISE_PRICE}.`,
+    answer: `There is no free tier on the cloud: you try it on your brand, then pay when you publish. ${PLAN_COPY.payg.name} is pay per output, at one cent per credit. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${ENTERPRISE_PRICE}.`,
     question: 'How much does Genfeed cost?',
   },
   {
@@ -429,12 +429,12 @@ export default function AboutContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start free on Genfeed"
-          description={`Sign up on ${PLAN_COPY.payg.name} and pay only for what you generate.`}
+          title="Start creating on Genfeed"
+          description={`${SIGN_UP_OFFER} ${PLAN_COPY.payg.name} credits start at $10.`}
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-              Start free
+              {SIGN_UP_LABEL}
             </a>
           </Button>
           <Button

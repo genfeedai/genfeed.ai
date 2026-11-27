@@ -1,6 +1,10 @@
 import { stringifyJsonLd } from '@data/json-ld';
 import type { PlanTier } from '@genfeedai/pricing';
-import { PLAN_COPY, websitePlans } from '@genfeedai/pricing';
+import {
+  PAYG_MIN_PURCHASE_USD,
+  PLAN_COPY,
+  websitePlans,
+} from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import PricingContent from '@public/pricing/pricing-content';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
@@ -35,7 +39,7 @@ export function buildPricingJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     about: buildDoneForYouJsonLd(),
-    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} adds every app and monthly credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats and client workspaces for agencies. ${serviceOffering.name} is ${serviceOffering.priceLabel.toLowerCase()}, with our team making your content.`,
+    description: `Try Genfeed on your brand and pay when you publish, with credits from $10. ${PLAN_COPY.pro.nameWithPrice} adds every app and monthly credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats and client workspaces for agencies. ${serviceOffering.name} is ${serviceOffering.priceLabel.toLowerCase()}, with our team making your content.`,
     mainEntity: {
       '@type': 'Product',
       brand: { '@type': 'Organization', name: 'Genfeed' },
@@ -52,7 +56,8 @@ export function buildPricingJsonLd() {
           '@type': 'Offer',
           description: OFFER_DESCRIPTIONS[plan.tier],
           name: plan.label,
-          price: String(plan.price),
+          // Pay As You Go has no monthly price; its offer is the smallest pack.
+          price: String(plan.price === 0 ? PAYG_MIN_PURCHASE_USD : plan.price),
           priceCurrency: 'USD',
           priceSpecification:
             plan.type === 'subscription'

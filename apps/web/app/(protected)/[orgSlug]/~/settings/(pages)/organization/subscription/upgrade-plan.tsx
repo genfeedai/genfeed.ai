@@ -6,8 +6,6 @@ import {
   getPlanByTier,
   type PlanTier,
 } from '@genfeedai/pricing';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { StripeService } from '@services/billing/stripe.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
@@ -15,6 +13,7 @@ import { Text } from '@ui/typography/text';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { useStartCheckout } from '@/hooks/data/subscription/use-start-checkout/use-start-checkout';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
 import type { UpgradePlanProps } from '@/props/settings/upgrade-plan.props';
 
@@ -105,31 +104,20 @@ export default function UpgradePlan({ tiers }: UpgradePlanProps) {
     [],
   );
 
-  const getStripeService = useAuthedService((token: string) =>
-    StripeService.getInstance(token),
-  );
+  const openCheckout = useStartCheckout();
 
   // An org with no Stripe subscription has nothing to prorate against, so it
   // goes through Checkout; the change endpoint would reject it outright.
   const hasStripeSubscription = Boolean(subscription?.stripeSubscriptionId);
 
   /** Sends an organization with no subscription to Stripe Checkout. */
-  const startCheckout = async (tier: PlanTier, stripePriceId: string) => {
-    const service = await getStripeService();
-    const result = await service.createCheckoutSession({
-      cancelUrl: window.location.href,
+  const startCheckout = (tier: PlanTier, stripePriceId: string) =>
+    openCheckout({
       // Subscriptions bill one seat of a fixed price; quantity is for credit packs.
       quantity: null,
       stripePriceId,
       successUrl: `${window.location.origin}${window.location.pathname}?plan=${tier}`,
     });
-
-    if (!result?.url) {
-      throw new Error('Checkout session did not return a URL');
-    }
-
-    window.location.href = result.url;
-  };
 
   /**
    * Shows the one notification for a failed billing call: the cause the API

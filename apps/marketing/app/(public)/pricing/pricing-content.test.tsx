@@ -106,7 +106,7 @@ describe('PricingContent', () => {
   it('prints the sign-up gift, the card grant and the expiry, not their sum', () => {
     render(<PricingContent />);
     const grants =
-      '25 credits when you sign up, 75 more when you add a card. Free credits last 72 hours.';
+      '25 credits when you sign up, 75 more when you add a verified card. Free credits last 72 hours.';
 
     // The Pay As You Go strip and the "Is there a free trial?" FAQ answer.
     expect(screen.getAllByText(new RegExp(grants)).length).toBeGreaterThan(0);

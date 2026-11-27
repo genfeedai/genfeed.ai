@@ -1,4 +1,4 @@
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_OFFER } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
@@ -90,7 +90,7 @@ function getLaunchPriceFaqItems(): Array<{ answer: string; question: string }> {
  * sign-up gift needs no card, the trial credits need a verified card, and both
  * expire with the free trial for an organization that never pays.
  */
-const FREE_CREDITS_COPY = `${ONBOARDING_SIGNUP_GIFT_CREDITS} credits when you sign up, ${ONBOARDING_TRIAL_CREDITS} more when you add a card. Free credits last ${FREE_TRIAL_DURATION_HOURS} hours.`;
+const FREE_CREDITS_COPY = `${ONBOARDING_SIGNUP_GIFT_CREDITS} credits when you sign up, ${ONBOARDING_TRIAL_CREDITS} more when you add a verified card. Free credits last ${FREE_TRIAL_DURATION_HOURS} hours.`;
 
 const FAQ_ITEMS_BEFORE_LAUNCH = [
   {
@@ -483,7 +483,7 @@ export default function PricingContent() {
           <FaqGrid items={getFaqItems()} />
         </WebSection>
 
-        <CtaSection bg="subtle" title="Start free">
+        <CtaSection bg="subtle" title={SIGN_UP_OFFER}>
           <AgentFirstActions
             signUpHref={paygSignUpHref}
             trackingName="pricing_cta_click"

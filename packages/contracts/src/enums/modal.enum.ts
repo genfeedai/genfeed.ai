@@ -39,6 +39,7 @@ export enum ModalEnum {
   POST_REPURPOSE = 'modal-post-repurpose',
   PRESET = 'modal-preset',
   PROMPT = 'modal-prompt',
+  PUBLISHING_PAYMENT_REQUIRED = 'modal-publishing-payment-required',
   REPLY_BOT = 'modal-reply-bot',
   ROLE = 'modal-role',
   SCENE = 'modal-scene',

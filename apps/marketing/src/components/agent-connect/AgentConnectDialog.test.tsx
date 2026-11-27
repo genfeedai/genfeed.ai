@@ -101,7 +101,7 @@ describe('AgentConnectDialog', () => {
       }),
     );
     expect(
-      within(dialog).getByText(/sign in or create your free Genfeed account/i),
+      within(dialog).getByText(/sign in or create your Genfeed account/i),
     ).toBeInTheDocument();
     expect(
       within(dialog).queryByText(/connected successfully/i),
@@ -180,9 +180,7 @@ describe('AgentConnectDialog', () => {
       within(dialog).queryByRole('link', { name: 'Open Claude Customize' }),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog).queryByText(
-        /sign in or create your free Genfeed account/i,
-      ),
+      within(dialog).queryByText(/sign in or create your Genfeed account/i),
     ).not.toBeInTheDocument();
     fireEvent.click(
       within(dialog).getByRole('button', {
@@ -190,7 +188,7 @@ describe('AgentConnectDialog', () => {
       }),
     );
     expect(
-      within(dialog).getByText(/sign in or create your free Genfeed account/i),
+      within(dialog).getByText(/sign in or create your Genfeed account/i),
     ).toBeInTheDocument();
   });
 

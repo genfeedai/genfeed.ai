@@ -69,8 +69,9 @@ describe('plan naming', () => {
         expect(copy.monthlyPrice).toBe('custom');
         expect(copy.priceLabel).toBe('Custom');
       } else if (plan.price === 0) {
-        expect(copy.monthlyPrice).toBe('free');
-        expect(copy.priceLabel).toBe('Free');
+        // No free tier: the credit-only plan starts with the smallest pack.
+        expect(copy.monthlyPrice).toBe('credits from $10');
+        expect(copy.priceLabel).toBe('From $10');
       } else {
         expect(digitsOf(copy.monthlyPrice)).toBe(String(plan.price));
         expect(digitsOf(copy.priceLabel)).toBe(String(plan.price));

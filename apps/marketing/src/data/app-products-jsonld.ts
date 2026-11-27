@@ -24,8 +24,9 @@ export function buildAppProductJsonLd(product: AppProduct) {
     name: `Genfeed ${product.name}`,
     offers: {
       '@type': 'Offer',
-      description: 'Free to start. Credits pay for the output you generate.',
-      price: '0',
+      description:
+        'Credit packs from $10. Credits pay for the output you generate.',
+      price: '10',
       priceCurrency: 'USD',
     },
     operatingSystem: 'Web',

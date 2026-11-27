@@ -171,6 +171,25 @@ describe('CredentialPublishingReadinessService', () => {
     });
   });
 
+  it('blocks publishing for an organization that never paid, with no retry', async () => {
+    const readiness = await resolveWithQuota({
+      allowed: false,
+      currentCount: 0,
+      dailyLimit: 0,
+      platform: CredentialPlatform.TWITTER,
+      requiresPayment: true,
+    });
+
+    expect(readiness.quotaStatus).toBe('fail');
+    expect(
+      readiness.diagnostics.find((entry) => entry.scope === 'quota'),
+    ).toMatchObject({
+      code: 'publishing_payment_required',
+      isRetryable: false,
+      severity: 'error',
+    });
+  });
+
   describe('resolveForCredentials', () => {
     it('scopes the batch read by organization and soft delete', async () => {
       const client = { credential: { findMany } };

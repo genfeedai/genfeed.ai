@@ -82,7 +82,7 @@ describe('ProfileSubscribe', () => {
 
     const modal = await screen.findByRole('dialog');
     expect(modal).toHaveTextContent('Subscribe to @acme');
-    expect(modal).toHaveTextContent('A free Genfeed account');
+    expect(modal).toHaveTextContent('A Genfeed account');
     expect(modal).toHaveTextContent('we subscribe you to the @acme newsletter');
     expect(assign).not.toHaveBeenCalled();
     expect(subscribe).not.toHaveBeenCalled();

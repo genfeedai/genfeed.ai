@@ -1,3 +1,8 @@
+import {
+  PUBLISHING_PAYMENT_REQUIRED_CODE,
+  publishingPaymentMessage,
+  publishingPaymentUrl,
+} from '@genfeedai/contracts/api-types/contracts/publishing-payment.contract';
 import type { X_POSTING_INSUFFICIENT_CREDITS_CODE } from '@genfeedai/contracts/api-types/contracts/x-posting-billing.contract';
 import { formatTierLabel } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -168,6 +173,30 @@ export class XPostingBillingException extends HttpException {
     );
     this.name = 'XPostingBillingException';
     this.message = refusal.message;
+  }
+}
+
+/**
+ * An organization that never paid tried to schedule or publish. Cloud has no
+ * free tier: the first payment, a plan or a credit pack, unlocks publishing.
+ */
+export class PublishingPaymentRequiredException extends HttpException {
+  constructor(appUrl?: string) {
+    const upgradeUrl = publishingPaymentUrl(appUrl);
+    const message = publishingPaymentMessage(upgradeUrl);
+    super(
+      {
+        code: PUBLISHING_PAYMENT_REQUIRED_CODE,
+        detail: message,
+        meta: { upgradeUrl },
+        status: HttpStatus.PAYMENT_REQUIRED,
+        timestamp: new Date().toISOString(),
+        title: 'Publishing needs a plan or credits',
+      },
+      HttpStatus.PAYMENT_REQUIRED,
+    );
+    this.name = 'PublishingPaymentRequiredException';
+    this.message = message;
   }
 }
 

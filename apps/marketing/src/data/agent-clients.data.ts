@@ -222,8 +222,8 @@ function buildClient(copy: AgentClientCopy): AgentClient {
       ...copy.extraFaq,
       {
         answer:
-          'Yes. Creating a Genfeed account is free. Generation and publishing follow your plan; see https://genfeed.ai/pricing.',
-        question: 'Is it free to start?',
+          'You can create an account and try it on your brand at no cost. Publishing starts with your first payment, a plan or credits from $10; see https://genfeed.ai/pricing.',
+        question: 'Do I have to pay to start?',
       },
       {
         answer: `The agent repository is ${GENFEED_AGENT_REPOSITORY_URL}. Connection, OAuth, API keys, and scopes are documented at ${GENFEED_MCP_DOCS_URL}.`,

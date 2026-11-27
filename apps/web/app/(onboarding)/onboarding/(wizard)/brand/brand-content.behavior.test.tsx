@@ -29,6 +29,8 @@ const mocks = vi.hoisted(() => ({
   },
   userLoading: false,
   desktop: false,
+  saas: false,
+  getBootstrap: vi.fn(),
   scope: {
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -69,7 +71,13 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: () => mocks.desktop,
+  isSaaS: () => mocks.saas,
   hasSingleStepOnboarding: () => false,
+}));
+vi.mock('@services/auth/auth.service', () => ({
+  AuthService: {
+    getInstance: () => ({ getBootstrap: mocks.getBootstrap }),
+  },
 }));
 vi.mock('@/hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
   useFeatureFlag: () => true,
@@ -344,6 +352,7 @@ beforeEach(() => {
   };
   mocks.userLoading = false;
   mocks.desktop = false;
+  mocks.saas = false;
   selectBrand();
   mocks.scope.refreshBrands.mockResolvedValue(undefined);
   mocks.getService.mockResolvedValue(mocks);
@@ -606,6 +615,30 @@ describe('membership-scoped saved guide wizard', () => {
       expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
     },
   );
+  it('sends a Cloud organization that never paid from Skip to the plan choice', async () => {
+    mocks.saas = true;
+    mocks.getBootstrap.mockResolvedValue({
+      access: { isSuperAdmin: false, trialEndsAt: '2026-11-30T10:00:00.000Z' },
+    });
+    await show();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledExactlyOnceWith(
+        APP_ROUTES.ONBOARDING.PLANS,
+      ),
+    );
+  });
+  it('sends a Cloud organization that paid from Skip into the app', async () => {
+    mocks.saas = true;
+    mocks.getBootstrap.mockResolvedValue({
+      access: { isSuperAdmin: false, trialEndsAt: null },
+    });
+    await show();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/'),
+    );
+  });
   it('refreshes completed user state before navigating after classic Skip', async () => {
     const refresh = deferred<void>();
     await show();

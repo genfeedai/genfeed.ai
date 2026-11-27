@@ -51,6 +51,13 @@ interface OnboardingFixtures {
   personalEmailOnboardingPage: Page;
 
   /**
+   * An organization that never paid: the bootstrap carries a free-trial end
+   * and no subscription. Cloud has no free tier, so it leaves the onboarding
+   * on the plan and credits choice at `/onboarding/plans`.
+   */
+  neverPaidOnboardingPage: Page;
+
+  /**
    * The same page with the bootstrap organization typed `EXPERT`, plus the
    * Expert Path API mocks. The wizard then resolves
    * `brand → positioning → corpus` and hands off to `/onboarding/first-system`.
@@ -148,6 +155,7 @@ function buildOnboardingBootstrapPayload(
   state: OnboardingProgressState,
   accountType?: string,
   email?: string,
+  isNeverPaid = false,
 ) {
   const organization = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
@@ -164,8 +172,9 @@ function buildOnboardingBootstrapPayload(
       isOnboardingCompleted: state.isOnboardingCompleted,
       isSuperAdmin: false,
       organizationId: organization.id,
-      subscriptionStatus: 'active',
-      subscriptionTier: 'pro',
+      ...(isNeverPaid
+        ? { trialEndsAt: '2026-11-30T10:00:00.000Z' }
+        : { subscriptionStatus: 'active', subscriptionTier: 'pro' }),
       userId: MOCK_SESSION.userId,
     },
     brands: [
@@ -569,6 +578,7 @@ async function startOnboardingSession(
     baseURL?: string;
     email?: string;
     desktop?: boolean;
+    isNeverPaid?: boolean;
     registerExtraMocks?: (page: Page) => Promise<void>;
   } = {},
 ): Promise<() => void> {
@@ -632,6 +642,7 @@ async function startOnboardingSession(
             progressState,
             options.accountType,
             options.email,
+            options.isNeverPaid,
           ),
         ),
         contentType: 'application/json',
@@ -692,6 +703,17 @@ export const test = base.extend<OnboardingFixtures>({
       page,
       context,
       { baseURL, email: 'founder@gmail.com' },
+    );
+
+    await runFixture(page);
+    assertNoBlockedRequests();
+  },
+
+  neverPaidOnboardingPage: async ({ page, context, baseURL }, runFixture) => {
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      { baseURL, isNeverPaid: true },
     );
 
     await runFixture(page);

@@ -285,7 +285,7 @@ export default function AgentContent() {
               Connect Agent
             </Heading>
             <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
-              Start with a free account and connect the agent you already have.
+              Create an account and connect the agent you already have.
               Generation uses your Genfeed credits; you review the results
               before publishing.
             </Text>

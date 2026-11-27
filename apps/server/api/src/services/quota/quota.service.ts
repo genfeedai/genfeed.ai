@@ -5,6 +5,7 @@ import { PublishingQuotaTierService } from '@api/collections/organization-settin
 import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishingPaymentRequiredException } from '@api/exceptions/business-logic.exception';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
@@ -25,6 +26,11 @@ export interface QuotaCheckResult {
   currentCount: number;
   dailyLimit: number;
   platform: string;
+  /**
+   * The organization never paid: Cloud has no free tier, so it publishes
+   * nothing until its first payment (a plan or a credit pack).
+   */
+  requiresPayment?: boolean;
 }
 
 /** Platform to settings field mapping for quota lookups */
@@ -103,17 +109,25 @@ export class QuotaService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    const tier = await this.quotaTiers.resolve(organization.id.toString());
+    // Cloud has no free tier: a never-paid organization publishes nothing on
+    // any platform, metered or not.
+    if (tier === 'trial') {
+      return {
+        allowed: false,
+        currentCount: 0,
+        dailyLimit: 0,
+        platform,
+        requiresPayment: true,
+      };
+    }
+
     const quotaField = PLATFORM_QUOTA_FIELDS[platform];
-    // The owner's cap, held to what the organization has paid: a never-paid
-    // organization is at 1 post a day, a credit buyer or a plan at most at its
-    // tier ceiling. Only a deployment without organization billing can leave a
-    // platform unmetered (cap 0).
+    // The owner's cap, held to what the organization has paid: a credit buyer
+    // or a plan at most at its tier ceiling. Only a deployment without
+    // organization billing can leave a platform unmetered (cap 0).
     const dailyLimit = quotaField
-      ? resolveEffectivePublishingQuota(
-          await this.quotaTiers.resolve(organization.id.toString()),
-          quotaField,
-          settings[quotaField],
-        )
+      ? resolveEffectivePublishingQuota(tier, quotaField, settings[quotaField])
       : 0;
 
     // No quota field for this platform, or a limit of 0, means unmetered.
@@ -181,6 +195,10 @@ export class QuotaService {
     }
 
     const quotaCheck = await this.checkQuota(credential, organization);
+
+    if (quotaCheck.requiresPayment) {
+      throw new PublishingPaymentRequiredException();
+    }
 
     if (!quotaCheck.allowed) {
       throw new HttpException(

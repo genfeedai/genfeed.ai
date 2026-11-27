@@ -91,7 +91,7 @@ describe('HomeHero', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect Agent', 'Start for $0']);
+    ).toEqual(['Connect Agent', 'Start creating']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -157,7 +157,7 @@ describe('HomeHero', () => {
       screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
-      screen.getByRole('link', { name: /start for \$0/i }),
+      screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
       screen.getByText('Connecting takes one sign-in.'),
@@ -196,7 +196,7 @@ describe('HomeHero', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
-    fireEvent.click(screen.getByRole('link', { name: /start for \$0/i }));
+    fireEvent.click(screen.getByRole('link', { name: /start creating/i }));
     expect(listener).toHaveBeenCalledOnce();
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({

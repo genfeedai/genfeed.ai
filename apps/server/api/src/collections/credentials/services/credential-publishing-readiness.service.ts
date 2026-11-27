@@ -9,6 +9,7 @@ import {
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { PUBLISHING_PAYMENT_REQUIRED_CODE } from '@genfeedai/contracts/api-types/contracts/publishing-payment.contract';
 import { getRequiredPublishScopes } from '@genfeedai/contracts/constants';
 import type {
   IPublishingDiagnostic,
@@ -413,6 +414,25 @@ export class CredentialPublishingReadinessService {
       credentialId,
       organizationId,
     );
+
+    if (quota?.requiresPayment) {
+      return {
+        diagnostics: [
+          {
+            checkedAt,
+            classification: 'quota_or_rate_limit',
+            code: PUBLISHING_PAYMENT_REQUIRED_CODE,
+            correctiveAction:
+              'Pick a plan or buy credits. Publishing starts with the first payment.',
+            isRetryable: false,
+            message: 'Publishing and scheduling start with your first payment.',
+            scope: 'quota',
+            severity: 'error',
+          },
+        ],
+        status: 'fail',
+      };
+    }
 
     if (!quota || quota.dailyLimit <= 0) {
       return { diagnostics: [], status: 'unknown' };

@@ -221,8 +221,8 @@ export default function SupportCreatorModal({
               <Alert>
                 <AlertTitle>Sign in to send credits</AlertTitle>
                 <AlertDescription>
-                  Credits come from your Genfeed workspace. Sign in or create a
-                  free account to support @{handle}.
+                  Credits come from your Genfeed workspace. Sign in or create an
+                  account to support @{handle}.
                 </AlertDescription>
               </Alert>
             </DialogBody>

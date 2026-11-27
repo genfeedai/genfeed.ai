@@ -3,7 +3,11 @@
 import { useCompleteOnboarding } from '@app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
+import { FREE_TRIAL_DURATION_HOURS } from '@genfeedai/contracts/constants';
+import {
+  ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_TRIAL_CREDITS,
+} from '@genfeedai/contracts/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
@@ -20,6 +24,7 @@ import {
   Video,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
@@ -71,6 +76,7 @@ const TIMELINE_STEPS = [
 export default function SuccessContent() {
   const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
+  const translate = useTranslations('pages.onboarding.success');
   const completeOnboarding = useCompleteOnboarding();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const [previewUrl] = useState<string | null>(() => {
@@ -129,8 +135,11 @@ export default function SuccessContent() {
             Starter Credits Ready
           </p>
           <p className="text-sm text-foreground">
-            <span className="tabular-nums">{ONBOARDING_STARTER_CREDITS}</span>{' '}
-            free credits to use in your first 3 days.
+            {translate('starterCredits', {
+              gift: ONBOARDING_SIGNUP_GIFT_CREDITS,
+              hours: FREE_TRIAL_DURATION_HOURS,
+              trial: ONBOARDING_TRIAL_CREDITS,
+            })}
           </p>
         </div>
       </div>

@@ -7,7 +7,7 @@ import {
   flattenPostIngredients,
   orderedPostIngredientLinks,
 } from '@api/collections/posts/services/post-ingredient-links.util';
-import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
+import { assertPublishIntentAdmission } from '@api/collections/posts/services/post-publishing-payment-admission.util';
 import {
   SERVER_TOKENS,
   type ServerLogger,
@@ -274,7 +274,7 @@ export class PostLifecycleService {
       input.nextState === TargetExecutionState.SCHEDULED ||
       input.nextState === TargetExecutionState.PUBLISHING
     ) {
-      await assertStrategyCadenceAdmission(transaction, {
+      await assertPublishIntentAdmission(transaction, currentState, {
         ...target,
         ...input.mutation,
         targetExecutionState: input.nextState,

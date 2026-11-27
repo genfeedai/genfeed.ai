@@ -3,19 +3,17 @@ import {
   PUBLISHING_QUOTA_CEILINGS,
   PUBLISHING_QUOTA_KEYS,
   PUBLISHING_QUOTA_MAX,
-  PUBLISHING_QUOTA_TRIAL_LIMIT,
   resolveEffectivePublishingQuota,
   resolvePublishingQuotaCeiling,
 } from '../../src/constants/publishing-quota.constant';
 
 describe('publishing quota tiers', () => {
-  it('holds a never-paid organization to one post a day on every platform', () => {
+  it('holds a never-paid organization at 0 on every platform: Cloud has no free tier', () => {
     for (const key of PUBLISHING_QUOTA_KEYS) {
-      expect(resolveEffectivePublishingQuota('trial', key, 15)).toBe(
-        PUBLISHING_QUOTA_TRIAL_LIMIT,
-      );
-      expect(resolveEffectivePublishingQuota('trial', key, 0)).toBe(1);
-      expect(resolveEffectivePublishingQuota('trial', key, 1000)).toBe(1);
+      expect(resolvePublishingQuotaCeiling('trial', key)).toBe(0);
+      expect(resolveEffectivePublishingQuota('trial', key, 15)).toBe(0);
+      expect(resolveEffectivePublishingQuota('trial', key, 0)).toBe(0);
+      expect(resolveEffectivePublishingQuota('trial', key, 1000)).toBe(0);
     }
   });
 

@@ -157,6 +157,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/onboarding/brand',
     '/onboarding/corpus',
     '/onboarding/first-system',
+    '/onboarding/plans',
     '/onboarding/positioning',
     '/onboarding/post-signup',
     '/onboarding/providers',

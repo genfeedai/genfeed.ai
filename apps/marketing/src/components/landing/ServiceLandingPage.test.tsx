@@ -66,16 +66,19 @@ describe('ServiceLandingPage', () => {
     (slug) => {
       render(<ServiceLandingPage slug={slug} />);
 
-      const startFree = within(screen.getByRole('main')).getAllByRole('link', {
-        name: 'Start free',
-      });
+      const startCreating = within(screen.getByRole('main')).getAllByRole(
+        'link',
+        {
+          name: 'Start creating',
+        },
+      );
       const bookCall = within(screen.getByRole('main')).getAllByRole('link', {
         name: 'Book a call',
       });
 
-      expect(startFree).toHaveLength(2);
+      expect(startCreating).toHaveLength(2);
       expect(bookCall).toHaveLength(2);
-      for (const link of startFree) {
+      for (const link of startCreating) {
         expect(link).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
       }
       // Service calls open the configured booking page directly.
@@ -92,9 +95,9 @@ describe('ServiceLandingPage', () => {
     const heroLinks = within(screen.getByRole('main'))
       .getAllByRole('link')
       .map((link) => link.textContent?.trim())
-      .filter((label) => label === 'Book a call' || label === 'Start free');
+      .filter((label) => label === 'Book a call' || label === 'Start creating');
 
-    expect(heroLinks.slice(0, 2)).toEqual(['Book a call', 'Start free']);
+    expect(heroLinks.slice(0, 2)).toEqual(['Book a call', 'Start creating']);
     for (const link of screen.getAllByRole('link', { name: 'Book a call' })) {
       expect(link).toHaveAttribute('href', 'https://example.com/book');
     }
@@ -155,13 +158,13 @@ describe('ServiceLandingPage', () => {
       expect(connect).toHaveAttribute('aria-haspopup', 'dialog');
       expect(connect).not.toHaveAttribute('target', '_blank');
       expect(
-        screen.queryByRole('link', { name: 'Start for $0' }),
+        screen.queryByRole('link', { name: 'Start creating' }),
       ).not.toBeInTheDocument();
       const body = within(screen.getByRole('main'));
       const actions = [
         ...screen.getByRole('main').querySelectorAll('button, a'),
       ].filter((link) =>
-        ['Connect Agent', 'Start for $0'].includes(link.textContent ?? ''),
+        ['Connect Agent', 'Start creating'].includes(link.textContent ?? ''),
       );
       expect(actions.map((link) => link.textContent)).toEqual([
         'Connect Agent',

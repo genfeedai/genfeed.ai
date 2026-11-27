@@ -244,11 +244,11 @@ describe('runCheckProductRouteInventory', () => {
     // and its per-platform trend pages: the platform is a Filters facet on Trends.
     // Desktop local mode and its /desktop/local page were removed.
     expect(runCheckProductRouteInventory()).toMatchObject({
-      appPublicRouteCount: 24,
+      appPublicRouteCount: 25,
       issues: [],
       protectedPageCount: 253,
       protectedRouteCount: 277,
-      publicRouteCount: 123,
+      publicRouteCount: 124,
       websitePublicRouteCount: 99,
     });
   });

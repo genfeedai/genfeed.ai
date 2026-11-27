@@ -41,8 +41,8 @@ export const AFFILIATE_PROGRAM = {
   /** What the referred account gets. */
   referredUser: {
     description:
-      'They sign up free through your link. There is no referral discount today.',
-    title: 'A free account',
+      'They sign up through your link. There is no referral discount today.',
+    title: 'A Genfeed account',
   },
   /** Which purchases earn a reward, and which do not. */
   rewardSources: {

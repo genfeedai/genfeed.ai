@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   reload: vi.fn(),
   isCompleted: false,
+  billing: false,
+  getBootstrap: vi.fn(),
   brand: undefined as
     | { organization: { slug: string }; slug: string }
     | undefined,
@@ -33,6 +35,14 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
+vi.mock('@genfeedai/config/license', () => ({
+  hasOrganizationBillingHint: () => mocks.billing,
+}));
+vi.mock('@services/auth/auth.service', () => ({
+  AuthService: {
+    getInstance: () => ({ getBootstrap: mocks.getBootstrap }),
+  },
+}));
 vi.mock('@services/organization/users.service', () => ({
   UsersService: { getInstance: () => ({ patchMe: mocks.patch }) },
 }));
@@ -45,6 +55,7 @@ describe('useCompleteOnboarding', () => {
     mocks.token = 'token';
     mocks.isCompleted = false;
     mocks.brand = undefined;
+    mocks.billing = false;
     localStorage.setItem('gf_onboarding_brand_domain', 'acme.co');
   });
   it('keeps onboarding open when the authenticated completion write fails', async () => {
@@ -98,6 +109,34 @@ describe('useCompleteOnboarding', () => {
     const { result } = renderHook(() => useCompleteOnboarding());
     await result.current({ isLandingOnDrafts: true });
     expect(assign).toHaveBeenCalledWith(APP_ROUTES.WORKSPACE.OVERVIEW);
+    vi.unstubAllGlobals();
+  });
+  it('sends a Cloud organization that never paid to the plan choice', async () => {
+    mocks.billing = true;
+    mocks.brand = { organization: { slug: 'acme' }, slug: 'main' };
+    mocks.getBootstrap.mockResolvedValue({
+      access: { isSuperAdmin: false, trialEndsAt: '2026-11-30T10:00:00.000Z' },
+    });
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const { result } = renderHook(() => useCompleteOnboarding());
+    await result.current({ isLandingOnDrafts: true });
+    expect(assign).toHaveBeenCalledWith(APP_ROUTES.ONBOARDING.PLANS);
+    vi.unstubAllGlobals();
+  });
+  it('sends a paying Cloud organization straight to its drafts', async () => {
+    mocks.billing = true;
+    mocks.brand = { organization: { slug: 'acme' }, slug: 'main' };
+    mocks.getBootstrap.mockResolvedValue({
+      access: { isSuperAdmin: false, trialEndsAt: null },
+    });
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const { result } = renderHook(() => useCompleteOnboarding());
+    await result.current({ isLandingOnDrafts: true });
+    expect(assign).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/acme\/main\/publishing\/posts/),
+    );
     vi.unstubAllGlobals();
   });
 });

@@ -1,5 +1,5 @@
 import { agentClients } from '@data/agent-clients.data';
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentClientContentProps } from '@props/agent-client.props';
 import AgentClientExamples from '@public/agent-clients/agent-client-examples';
@@ -40,7 +40,7 @@ export default function AgentClientContent({
               variant={ButtonVariant.SECONDARY}
             >
               <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                Start free
+                {SIGN_UP_LABEL}
               </a>
             </Button>
           </>

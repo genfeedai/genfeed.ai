@@ -47,7 +47,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'Who is Genfeed for?',
   },
   {
-    answer: `Connect the agent you already use, or sign up free in the dashboard. You buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app in one workspace, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
+    answer: `Connect the agent you already use, or sign up in the dashboard and try it on your brand. Publishing starts with your first payment: credits for the output you generate, or a plan. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app in one workspace, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
     question: 'How do I get started?',
   },
 ];
@@ -86,11 +86,11 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     category: 'Pricing',
     questions: [
       {
-        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, higher API limits, and shared team seats.`,
+        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. You try Genfeed on your brand during onboarding, and publishing starts with your first payment. Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, higher API limits, and shared team seats.`,
         question: 'How does pricing work?',
       },
       {
-        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with every app and ${PLAN_COPY.pro.includedCredits} a month. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+        answer: `${PLAN_COPY.payg.name} has no subscription: credit packs from $10. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with every app and ${PLAN_COPY.pro.includedCredits} a month. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
         question: 'What are the pricing tiers?',
       },
       {
@@ -98,7 +98,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'Is there an API?',
       },
       {
-        answer: `Yes. Signing up costs nothing and there is no monthly fee on ${PLAN_COPY.payg.name}: you buy credits and spend them on output.`,
+        answer: `Not on Genfeed Cloud. You try it on your brand during onboarding, and publishing starts with your first payment: a plan, or ${PLAN_COPY.payg.name} credits from $10 with no monthly fee. The free route is self-hosting the open-source core.`,
         question: 'Is there a free option?',
       },
       {
