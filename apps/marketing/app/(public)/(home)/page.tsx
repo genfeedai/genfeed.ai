@@ -4,6 +4,7 @@ import { buildSoftwareApplicationJsonLd } from '@data/software-jsonld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import HomeContent from '@public/(home)/home-content';
 import { HOME_SOCIAL_VIDEO } from '@web-components/home/_assets';
+import HomeProof from '@web-components/home/_proof';
 import type { Metadata, ResolvingMetadata } from 'next';
 
 const HOME_PAGE_TITLE = 'Genfeed.ai | From brief to feed';
@@ -44,7 +45,7 @@ export default function HomePage() {
       <script type="application/ld+json">
         {stringifyJsonLd(buildSoftwareApplicationJsonLd(metadata.description))}
       </script>
-      <HomeContent />
+      <HomeContent proof={<HomeProof />} />
     </>
   );
 }
