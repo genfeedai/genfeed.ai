@@ -1,6 +1,7 @@
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { CLIENT_LOGO_SVGS } from '@genfeedai/helpers/integrations/connect-client-logos.helper';
 import { McpResourceConfigurationError } from '@genfeedai/helpers/integrations/mcp-resource.helper';
-import { CLIENT_LOGO_SVGS, resolveClientLogo } from '@mcp/mcp/client-logos';
+import { resolveClientLogo } from '@mcp/mcp/client-logos';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,
@@ -68,7 +69,8 @@ describe('MCP setup page', () => {
     expect(html).toContain('Authorize and verify');
     expect(html).not.toContain('step-title">Manual config');
     expect(html).not.toContain('http://localhost:3014');
-    expect(html).toContain('Muse &amp; Grok Bot');
+    expect(html).toContain('>Grok</a>');
+    expect(html).toContain('Meta Muse');
     expect(html).toContain('Other clients');
   });
 
@@ -337,7 +339,8 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="claude-code-command"');
       expect(html).toContain('id="codex-command"');
       expect(html).toContain('id="agent-setup-prompt"');
-      expect(html).toContain('id="chat-agent-prompt"');
+      expect(html).toContain('id="grok-prompt"');
+      expect(html).toContain('id="meta-muse-prompt"');
       expect(html).toContain('id="generic-client-config"');
     });
 
@@ -364,19 +367,22 @@ describe('MCP setup page', () => {
     });
   });
 
-  describe('Muse & Grok Bot and other MCP clients tabs', () => {
-    it('gives Meta Muse and Grok Bot a copy-paste chat prompt that builds their own connector', () => {
-      const html = renderSetupPage();
+  describe('Grok, Meta Muse and other MCP clients tabs', () => {
+    it.each(['grok', 'meta-muse'])(
+      'gives %s a copy-paste chat prompt that builds its own connector',
+      (id) => {
+        const html = renderSetupPage();
 
-      expect(html).toContain('Muse &amp; Grok Bot');
-      expect(html).toContain('id="chat-agent-prompt"');
-      expect(html).toContain('data-copy-source="chat-agent-prompt"');
-      expect(html).toContain('Add Genfeed as a custom connector.');
-      expect(html).toContain('MCP server URL: https://mcp.genfeed.ai/mcp');
-      expect(html).toContain(
-        'Send me the sign-in link and wait while I approve access in my browser.',
-      );
-    });
+        expect(html).toContain(`id="panel-${id}"`);
+        expect(html).toContain(`id="${id}-prompt"`);
+        expect(html).toContain(`data-copy-source="${id}-prompt"`);
+        expect(html).toContain('Add Genfeed as a custom connector.');
+        expect(html).toContain('MCP server URL: https://mcp.genfeed.ai/mcp');
+        expect(html).toContain(
+          'Send me the sign-in link and wait while I approve access in my browser.',
+        );
+      },
+    );
 
     it('gives other MCP clients (Claude.ai, ChatGPT, Cursor, Gemini) the generic JSON config', () => {
       const html = renderSetupPage();
@@ -398,20 +404,20 @@ describe('MCP setup page', () => {
 
   describe('per-client routes', () => {
     it.each([
-      ['/', 'claude-code'],
-      ['/docs', 'claude-code'],
-      ['/claude-code', 'claude-code'],
-      ['/claude-code/', 'claude-code'],
-      ['/claude-cowork', 'claude-chat'],
+      ['/', 'claude'],
+      ['/docs', 'claude'],
+      ['/claude', 'claude'],
+      ['/claude/', 'claude'],
       ['/codex', 'codex'],
-      ['/muse-grok-bot', 'chat-agent'],
+      ['/grok', 'grok'],
+      ['/meta-muse', 'meta-muse'],
       ['/other-clients', 'other-clients'],
       ['/agent-prompt', 'agent-prompt'],
     ] as const)('maps %s to the %s tab', (path, tab) => {
       expect(resolveSetupPageTab(path)).toBe(tab);
     });
 
-    it.each(['/nope', '/claude', '/v1/docs', '/mcp'])(
+    it.each(['/nope', '/claude-code', '/claude-cowork', '/v1/docs', '/mcp'])(
       'does not claim %s',
       (path) => {
         expect(resolveSetupPageTab(path)).toBeNull();
@@ -425,10 +431,10 @@ describe('MCP setup page', () => {
       );
 
       expect(hrefs).toEqual([
-        '/claude-code',
-        '/claude-cowork',
+        '/claude',
         '/codex',
-        '/muse-grok-bot',
+        '/grok',
+        '/meta-muse',
         '/other-clients',
         '/agent-prompt',
       ]);
@@ -441,10 +447,10 @@ describe('MCP setup page', () => {
         document
           .querySelector('[role="tab"][aria-selected="true"]')
           ?.getAttribute('data-tab'),
-      ).toBe('claude-code');
+      ).toBe('claude');
       expect(
         document.querySelector('.tabpanel.is-active')?.getAttribute('id'),
-      ).toBe('panel-claude-code');
+      ).toBe('panel-claude');
       expect(document.title).toBe('Genfeed MCP Server — connect any AI agent');
     });
 
@@ -454,7 +460,7 @@ describe('MCP setup page', () => {
 
       expect(tabs.some((tab) => tab.hasAttribute('tabindex'))).toBe(false);
       expect(
-        document.querySelector('#tab-claude-code')?.getAttribute('data-title'),
+        document.querySelector('#tab-claude')?.getAttribute('data-title'),
       ).toBe(document.title);
     });
 
@@ -507,11 +513,13 @@ describe('MCP setup page', () => {
       dom.window.close();
     });
 
-    it('keeps Claude Code and Claude & Cowork as separate tabs', () => {
+    it('covers Claude, Cowork and Claude Code in one Claude tab', () => {
       const document = new JSDOM(renderSetupPage()).window.document;
+      const panel = document.getElementById('panel-claude');
 
-      expect(document.getElementById('panel-claude-code')).not.toBeNull();
-      expect(document.getElementById('panel-claude-chat')).not.toBeNull();
+      expect(panel?.querySelector('#claude-chat-url')).not.toBeNull();
+      expect(panel?.querySelector('#claude-code-command')).not.toBeNull();
+      expect(document.getElementById('panel-claude-code')).toBeNull();
     });
 
     it('serves official client marks from the MCP origin', () => {

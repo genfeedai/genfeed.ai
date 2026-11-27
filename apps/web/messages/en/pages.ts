@@ -35,7 +35,6 @@ import brandOsSettings from './pages/brandOsSettings.json';
 import brandPublishingSettings from './pages/brandPublishingSettings.json';
 import brandSocialMedia from './pages/brandSocialMedia.json';
 import brandVideoKit from './pages/brandVideoKit.json';
-import connectGenfeed from './pages/connectGenfeed.json';
 import connectors from './pages/connectors.json';
 import connectSocial from './pages/connectSocial.json';
 import costUsage from './pages/costUsage.json';
@@ -115,7 +114,6 @@ const pages = {
   brandPublishingSettings,
   brandSocialMedia,
   brandVideoKit,
-  connectGenfeed,
   connectors,
   connectSocial,
   costUsage,

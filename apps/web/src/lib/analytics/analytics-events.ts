@@ -28,7 +28,6 @@ export const ANALYTICS_EVENTS = {
   BRAND_OS_FIRST_GENERATION: 'brand_os_first_generation',
   CHECKOUT_COMPLETED: 'checkout_completed',
   CHECKOUT_STARTED: 'checkout_started',
-  CONNECT_GENFEED_STEP: 'connect_genfeed_step',
   CONTENT_WRITE_BLANK_DRAFT_STARTED: 'content_write_blank_draft_started',
   CONTENT_WRITE_OPENED: 'content_write_opened',
   CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
@@ -91,15 +90,6 @@ type ExpertOnboardingAnalyticsAction = 'completed' | 'skipped';
 type ClipperAnalyticsFlow = 'quick' | 'review';
 type ClipperAnalyticsMode = 'avatar' | 'raw-cut';
 type ClipperAnalyticsSourceKind = 'library' | 'upload' | 'youtube';
-
-export type ConnectGenfeedStep =
-  | 'client_selected'
-  | 'configuration_copied'
-  | 'flow_started'
-  | 'key_created'
-  | 'key_selected'
-  | 'publishing_handoff'
-  | 'verification';
 
 /** The public signup method the user selected. */
 type SignupMethod = 'google' | 'magic_link' | 'password';
@@ -228,12 +218,6 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.CHECKOUT_COMPLETED]: {
     readonly checkoutKind: CheckoutKind;
     readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
-  };
-  [ANALYTICS_EVENTS.CONNECT_GENFEED_STEP]: {
-    readonly client: 'claude-code' | 'codex' | 'generic';
-    readonly deployment: 'cloud' | 'self-hosted';
-    readonly outcome?: AnalyticsOutcome;
-    readonly step: ConnectGenfeedStep;
   };
   [ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED]: {
     readonly checkoutKind: Extract<CheckoutKind, 'credits' | 'managed_credits'>;

@@ -1,6 +1,7 @@
 'use client';
 import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { getConnectClient } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { ClipboardService } from '@services/core/clipboard.service';
 import Card from '@ui/card/Card';
@@ -39,7 +40,7 @@ export default function PromptStep({
         <h1 className="text-2xl font-semibold">{t('prompt.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('prompt.description', {
-            client: t(`agent.clients.${client}.label`),
+            client: getConnectClient(client).label,
           })}
         </p>
       </div>

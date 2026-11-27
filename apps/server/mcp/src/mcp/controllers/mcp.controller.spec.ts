@@ -260,7 +260,7 @@ describe('McpController', () => {
       );
       const html = response.send.mock.calls[0]?.[0] as string;
       expect(html).toContain('https://mcp.genfeed.ai/mcp');
-      expect(html).toContain('Claude Code setup');
+      expect(html).toContain('<h3 class="instruction-title">Claude</h3>');
       expect(html).toContain('Codex setup');
       expect(html).not.toContain('http://localhost:3014');
     });

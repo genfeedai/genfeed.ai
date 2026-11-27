@@ -4,8 +4,10 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ConnectGenfeedClient } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
+import { getConnectClient } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
+import ConnectClientMarks from '@ui/feedback/connect-client-marks/ConnectClientMarks';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
@@ -39,7 +41,7 @@ export default function AgentStep({
   const endpoint = EnvironmentService.mcpEndpoint;
   const instructions = buildConnectGenfeedInstructions(client, endpoint);
   const setup = instructions.primaryCommand ?? endpoint;
-  const clientLabel = t(`agent.clients.${client}.label`);
+  const clientLabel = getConnectClient(client).label;
   const connection =
     status.status === 'configured' ? status.connections[0] : undefined;
 
@@ -69,14 +71,18 @@ export default function AgentStep({
         }}
         value={client}
       >
-        {ONBOARDING_AGENT_CLIENTS.map((item) => (
-          <OptionTile
-            description={t(`agent.clients.${item}.description`)}
-            key={item}
-            title={t(`agent.clients.${item}.label`)}
-            value={item}
-          />
-        ))}
+        {ONBOARDING_AGENT_CLIENTS.map((item) => {
+          const entry = getConnectClient(item);
+          return (
+            <OptionTile
+              description={t(`agent.clients.${item}.description`)}
+              icon={<ConnectClientMarks marks={entry.marks} />}
+              key={item}
+              title={entry.label}
+              value={item}
+            />
+          );
+        })}
       </OptionTileGroup>
       <Pre>
         <code>{setup}</code>

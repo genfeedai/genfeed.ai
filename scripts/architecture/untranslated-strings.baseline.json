@@ -80,7 +80,6 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx": 8,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-queue-card.tsx": 3,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-thread-card.tsx": 1,
-    "apps/web/app/(protected)/[orgSlug]/~/connectors/agents/connect-genfeed-flow.tsx": 8,
     "apps/web/app/(protected)/[orgSlug]/~/connectors/api-keys/byok-provider-card.tsx": 9,
     "apps/web/app/(protected)/[orgSlug]/~/connectors/providers/content.tsx": 1,
     "apps/web/app/(protected)/[orgSlug]/~/connectors/webhooks/content.tsx": 20,
