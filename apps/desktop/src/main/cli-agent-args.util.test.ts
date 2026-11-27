@@ -51,6 +51,24 @@ describe('buildClaudeCliArgs', () => {
     expect(args.join(' ')).not.toContain('gf_');
   });
 
+  it('passes the chosen model to Claude Code and leaves the default alone otherwise', () => {
+    const withModel = buildClaudeCliArgs({
+      mcpConfigPath: '/tmp/mcp.json',
+      model: 'opus[1m]',
+      resumeSessionId: null,
+      systemPrompt: 'x',
+    });
+    const withoutModel = buildClaudeCliArgs({
+      mcpConfigPath: '/tmp/mcp.json',
+      model: '',
+      resumeSessionId: null,
+      systemPrompt: 'x',
+    });
+
+    expect(withModel[withModel.indexOf('--model') + 1]).toBe('opus[1m]');
+    expect(withoutModel).not.toContain('--model');
+  });
+
   it('resumes the stored Claude session', () => {
     const args = buildClaudeCliArgs({
       mcpConfigPath: '/tmp/mcp.json',
@@ -122,6 +140,27 @@ describe('buildCodexCliArgs', () => {
     );
     expect(args).not.toContain('workspace-write');
     expect(args).not.toContain('danger-full-access');
+  });
+
+  it('passes the chosen model to Codex before the subcommand, also on resume', () => {
+    const fresh = buildCodexCliArgs({
+      mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+      model: 'gpt-5.1-codex',
+      resumeSessionId: null,
+    });
+    const resumed = buildCodexCliArgs({
+      mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+      model: 'gpt-5.1-codex',
+      resumeSessionId: 'codex-thread-1',
+    });
+    const withoutModel = buildCodexCliArgs({
+      mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+      resumeSessionId: null,
+    });
+
+    expect(fresh[fresh.indexOf('--model') + 1]).toBe('gpt-5.1-codex');
+    expect(resumed.indexOf('--model')).toBeLessThan(resumed.indexOf('resume'));
+    expect(withoutModel).not.toContain('--model');
   });
 
   it('resumes a Codex session reading the prompt from stdin', () => {

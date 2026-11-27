@@ -54,6 +54,45 @@ describe('runDesktopCliAgentTurn', () => {
     activeTurnRef = { current: null };
   });
 
+  it('sends the model the thread was set to, and none when it was not', async () => {
+    const baseThread = {
+      brandId: 'brand-1',
+      contextVersion: 1,
+      createdAt: '2026-09-25T00:00:00.000Z',
+      runtimeKey: 'local/claude-cli',
+      status: AgentThreadStatus.ACTIVE,
+      updatedAt: '2026-09-25T00:00:00.000Z',
+    };
+    useAgentChatStore.setState({
+      activeThreadId: 'thread-1',
+      threads: [
+        { ...baseThread, id: 'thread-1', requestedModel: 'opus' },
+        { ...baseThread, id: 'thread-2', requestedModel: '' },
+      ],
+    });
+    const first = createBridge();
+    void runDesktopCliAgentTurn({
+      activeTurnRef,
+      bridge: first.bridge,
+      content: 'Hi',
+      runtimeKey: 'local/claude-cli',
+    });
+    await flush();
+
+    useAgentChatStore.setState({ activeThreadId: 'thread-2' });
+    const second = createBridge();
+    void runDesktopCliAgentTurn({
+      activeTurnRef,
+      bridge: second.bridge,
+      content: 'Hi',
+      runtimeKey: 'local/claude-cli',
+    });
+    await flush();
+
+    expect(first.requests[0]?.model).toBe('opus');
+    expect(second.requests[0]).not.toHaveProperty('model');
+  });
+
   it('streams a local CLI turn into the transcript with tool calls', async () => {
     useAgentChatStore.setState({
       activeThreadId: 'thread-1',

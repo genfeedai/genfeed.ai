@@ -26,6 +26,14 @@ export const DESKTOP_CLI_AGENT_IDLE_TIMEOUT_MS = 5 * 60_000;
 export const DESKTOP_CLI_AGENT_KILL_GRACE_MS = 3_000;
 export const DESKTOP_CLI_AGENT_MAX_PROMPT_LENGTH = 100_000;
 
+/**
+ * A model name the user picked for a local CLI. It becomes an argv value, so
+ * it starts with a letter or digit (never a flag) and has no whitespace or
+ * shell characters. Claude Code accepts `opus[1m]`, Codex ids hold dots.
+ */
+export const DESKTOP_CLI_AGENT_MODEL_PATTERN =
+  /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]{0,63}$/;
+
 export type DesktopCliAgentProvider = 'claude' | 'codex';
 
 export interface DesktopCliAgentRuntimeDefinition {

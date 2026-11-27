@@ -326,6 +326,61 @@ describe('DesktopCliAgentRuntimeService', () => {
     child.close(0);
   });
 
+  it('runs a turn on the requested model', async () => {
+    const service = createService();
+
+    await service.startTurn(
+      {
+        model: 'sonnet',
+        prompt: 'Hi',
+        runtimeKey: 'local/claude-cli',
+        threadId: 'thread-1',
+        turnId: 'turn-model123',
+      },
+      (event) => events.push(event),
+    );
+
+    const args = spawnCalls[0]?.args ?? [];
+    expect(args[args.indexOf('--model') + 1]).toBe('sonnet');
+    child.close(0);
+    await waitFor(() => events.length > 0);
+  });
+
+  it('fails a turn on a model the CLI does not have, without falling back', async () => {
+    const service = createService();
+
+    await service.startTurn(
+      {
+        model: 'opus-9',
+        prompt: 'Hi',
+        runtimeKey: 'local/claude-cli',
+        threadId: 'thread-1',
+        turnId: 'turn-badmodel',
+      },
+      (event) => events.push(event),
+    );
+    child.emitLines([
+      {
+        is_error: true,
+        result:
+          "There's an issue with the selected model (opus-9). It may not exist or you may not have access to it.",
+        session_id: 'sess-1',
+        type: 'result',
+      },
+    ]);
+    child.close(1);
+
+    await waitFor(() => events.length > 0);
+    expect(events[0]?.event).toMatchObject({
+      code: 'model-unavailable',
+      type: 'error',
+    });
+    expect(
+      events[0]?.event.type === 'error' ? events[0].event.message : '',
+    ).toContain('opus-9');
+    expect(appended).toEqual([]);
+  });
+
   it('reports a missing CLI with install and login instructions', async () => {
     const service = createService();
     await service.startTurn(
@@ -543,6 +598,20 @@ describe('parseDesktopCliAgentTurnRequest', () => {
     });
   });
 
+  it('keeps a valid model and rejects one that could pass as a flag', () => {
+    expect(
+      parseDesktopCliAgentTurnRequest({ ...valid, model: ' opus[1m] ' }),
+    ).toMatchObject({ model: 'opus[1m]' });
+    expect(
+      parseDesktopCliAgentTurnRequest({ ...valid, model: '' }),
+    ).not.toHaveProperty('model');
+    for (const model of ['--dangerously-skip-permissions', 'a b', 'x;rm']) {
+      expect(() =>
+        parseDesktopCliAgentTurnRequest({ ...valid, model }),
+      ).toThrow(/model/);
+    }
+  });
+
   it('rejects unknown runtimes, bad ids, and empty prompts', () => {
     expect(() =>
       parseDesktopCliAgentTurnRequest({
@@ -563,6 +632,34 @@ describe('parseDesktopCliAgentTurnRequest', () => {
 });
 
 describe('classifyDesktopCliAgentFailure', () => {
+  it.each([
+    [
+      'local/claude-cli',
+      "There's an issue with the selected model (opus-9). It may not exist or you may not have access to it.",
+    ],
+    [
+      'local/codex-cli',
+      "The 'opus-9' model is not supported when using Codex with a ChatGPT account.",
+    ],
+  ] as const)('names an unavailable model on %s', (runtimeKey, raw) => {
+    expect(
+      classifyDesktopCliAgentFailure(
+        DESKTOP_CLI_AGENT_RUNTIMES[runtimeKey],
+        raw,
+        'opus-9',
+      ).code,
+    ).toBe('model-unavailable');
+  });
+
+  it('does not blame a model nobody asked for', () => {
+    expect(
+      classifyDesktopCliAgentFailure(
+        DESKTOP_CLI_AGENT_RUNTIMES['local/claude-cli'],
+        "There's an issue with the selected model (x).",
+      ).code,
+    ).toBe('process-failed');
+  });
+
   it('keeps non-auth failures as process failures', () => {
     expect(
       classifyDesktopCliAgentFailure(
