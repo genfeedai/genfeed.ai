@@ -67,21 +67,24 @@ interface BrandFindOne {
  * A brand reader limited to the brands this connection may use. Self-hosted
  * deployments read every brand of the organization.
  */
-export async function authorizedBrandReader<T extends BrandFindOne>(
-  brandsService: T,
-  brandAccessService: BrandAccessService,
-  ctx: ToolExecutionContext,
-): Promise<BrandFindOne> {
-  if (!isCloudDeployment()) return brandsService;
-  const where = await brandAccessService.predicate({
-    userId: ctx.userId,
-    organizationId: ctx.organizationId,
-    ...ctx.apiKeyContext,
-  });
-  return {
-    findOne: (query) => brandsService.findOne({ AND: [query, where] }),
-  };
-}
+export const authorizedBrandReader = traced(
+  'authorizedBrandReader',
+  async (
+    brandsService: BrandFindOne,
+    brandAccessService: BrandAccessService,
+    ctx: ToolExecutionContext,
+  ): Promise<BrandFindOne> => {
+    if (!isCloudDeployment()) return brandsService;
+    const where = await brandAccessService.predicate({
+      userId: ctx.userId,
+      organizationId: ctx.organizationId,
+      ...ctx.apiKeyContext,
+    });
+    return {
+      findOne: (query) => brandsService.findOne({ AND: [query, where] }),
+    };
+  },
+);
 
 /**
  * With several brands the member's current brand is only a guess that files an
