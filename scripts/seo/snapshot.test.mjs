@@ -207,7 +207,7 @@ test('accepted dispositions expire on changed observation or lost noindex bounda
 
 test('redirected prior-only 404 remains active and violates the direct hard-cut contract', () => {
   const record = {
-    normalized_url: 'https://marketplace.genfeed.ai/blog/old',
+    normalized_url: 'https://shop.genfeed.ai/blog/old',
     discovery_sources: ['prior_successful_snapshot'],
     http_status: 404,
     redirect_hops: [{ status: 301 }, { status: 404 }],
@@ -234,15 +234,15 @@ test('redirected prior-only 404 remains active and violates the direct hard-cut 
 });
 
 test('redirected retired 404 keeps the retired fingerprint and HTTP error in generated issues', () => {
-  const url = 'https://marketplace.genfeed.ai/blog/old';
+  const url = 'https://shop.genfeed.ai/blog/old';
   const record = {
     url,
     normalized_url: url,
-    origin: 'https://marketplace.genfeed.ai',
+    origin: 'https://shop.genfeed.ai',
     discovery_sources: ['prior_successful_snapshot'],
     http_status: 404,
     redirect_hops: [{ status: 301 }, { status: 404 }],
-    final_url: 'https://marketplace.genfeed.ai/missing',
+    final_url: 'https://shop.genfeed.ai/missing',
     robots: { indexable: false },
   };
   const input = {

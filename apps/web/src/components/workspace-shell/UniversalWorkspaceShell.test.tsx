@@ -1630,19 +1630,10 @@ describe('UniversalWorkspaceShell', () => {
       ).toBeVisible();
       const outputPane = screen.getByTestId('agent-output-output-pane');
       expect(within(outputPane).getByText('Board output')).toBeVisible();
-      // No tab strip on the output: Context is the topbar's icon, which swaps
-      // the pane and puts the board back when pressed again.
+      // No tab strip on the output, and no Context toggle while nothing is
+      // selected: there is nothing to show in it.
       expect(within(outputPane).queryByRole('tab')).toBeNull();
-      expect(dock?.panel?.canShowContext).toBe(true);
-      act(() => dock?.panel?.selectView('details'));
-      expect(
-        await within(outputPane).findByTestId('workspace-agent-context'),
-      ).toBeVisible();
-      expect(within(outputPane).getByText('Board output')).not.toBeVisible();
-      act(() => dock?.panel?.close());
-      await waitFor(() =>
-        expect(within(outputPane).getByText('Board output')).toBeVisible(),
-      );
+      expect(dock?.panel?.canShowContext).toBe(false);
     });
 
     it('opens a selected record inside the output pane of a split page', async () => {
@@ -1680,24 +1671,14 @@ describe('UniversalWorkspaceShell', () => {
       ).toHaveAttribute('inert');
     });
 
-    it('keeps empty Context and real History available without a selection', async () => {
+    it('offers no Context toggle but keeps real History without a selection', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
       renderWithDock();
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
       act(() => dock?.open());
       await screen.findByTestId('dock-conversation');
       expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
-      showPanelView(dock, 'details');
-      // Context has no actions, so it has no header.
-      expect(screen.queryByTestId('workspace-panel-header')).toBeNull();
-      expect(screen.getByTestId('workspace-agent-context')).toBeVisible();
-      expect(
-        screen.getByText(
-          'Select a record on the page to include it in the conversation.',
-        ),
-      ).toBeVisible();
-      expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
-      showPanelView(dock, 'agent');
+      expect(dock?.panel?.canShowContext).toBe(false);
       fireEvent.click(screen.getByRole('button', { name: 'History' }));
       expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
         'History',

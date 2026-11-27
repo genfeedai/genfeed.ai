@@ -115,7 +115,7 @@ describe('EnvironmentService', () => {
       expect(EnvironmentService.apps.admin).toBe('https://admin.genfeed.ai');
       expect(EnvironmentService.apps.app).toBe('https://app.genfeed.ai');
       expect(EnvironmentService.apps.marketplace).toBe(
-        'https://marketplace.genfeed.ai',
+        'https://shop.genfeed.ai',
       );
       expect(EnvironmentService.apps.website).toBe('https://genfeed.ai');
       expect(EnvironmentService.mcpConnectHref).toBe(
@@ -144,7 +144,7 @@ describe('EnvironmentService', () => {
       Object.defineProperty(window, 'location', {
         configurable: true,
         value: {
-          hostname: 'marketplace.genfeed.localhost',
+          hostname: 'shop.genfeed.localhost',
           port: '3003',
         },
       });

@@ -78,7 +78,7 @@ export async function resolveMarketplaceApiUrl(override?: string): Promise<strin
     if (!parsed) {
       throw new GenfeedError(
         `Invalid marketplace URL "${override}"`,
-        'Use an https URL, for example https://api.marketplace.genfeed.ai'
+        'Use an https URL, for example https://api.shop.genfeed.ai'
       );
     }
     return parsed;
