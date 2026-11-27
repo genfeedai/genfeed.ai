@@ -6,14 +6,14 @@ import {
   videoRetentionDays,
 } from '@genfeedai/contracts/constants';
 import {
+  ONBOARDING_ANSWER_TOTAL_CREDITS,
+  ONBOARDING_JOURNEY_TOTAL_CREDITS,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
   ONBOARDING_TRIAL_CREDITS,
 } from '@genfeedai/contracts/types';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,
-  creditPackPrice,
-  creditPackTotalCredits,
   formatPrice,
   getLaunchPrice,
   getLaunchPriceTerm,
@@ -21,9 +21,9 @@ import {
   getPlanLabel,
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
+  PAYG_MIN_PURCHASE_USD,
   PLAN_COPY,
   VIDEO_CREDIT_COSTS,
-  WEBSITE_CREDIT_PACKS,
   type websitePlans,
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -68,7 +68,7 @@ const PLAN_ORDER: PlanTier[] = ['pro', 'scale'];
 
 /** One tracking name for every plan button; `plan` in the event says which. */
 const PRICING_PLAN_CLICK = 'pricing_plan_click';
-const FEATURED_TIER: PlanTier = 'scale';
+const FEATURED_TIER: PlanTier = 'pro';
 
 // Only offered while the launch price is on the card, so the term never
 // outlives the discount it explains.
@@ -87,15 +87,24 @@ function getLaunchPriceFaqItems(): Array<{ answer: string; question: string }> {
 
 /**
  * What a new account gets, read from the constants the API grants from: the
- * sign-up gift needs no card, the trial credits need a verified card, and both
- * expire with the free trial for an organization that never pays.
+ * sign-up gift needs no card, the setup rewards come as the brand is set up
+ * (answers to onboarding cards and setup steps), the trial credits need a
+ * verified card, and all of it expires with the free trial for an organization
+ * that never pays.
  */
-const FREE_CREDITS_COPY = `${ONBOARDING_SIGNUP_GIFT_CREDITS} credits when you sign up, ${ONBOARDING_TRIAL_CREDITS} more when you add a verified card. Free credits last ${FREE_TRIAL_DURATION_HOURS} hours.`;
+const SETUP_CREDITS =
+  ONBOARDING_ANSWER_TOTAL_CREDITS + ONBOARDING_JOURNEY_TOTAL_CREDITS;
+const FREE_CREDITS_COPY = `${ONBOARDING_SIGNUP_GIFT_CREDITS} credits when you sign up, up to ${SETUP_CREDITS} more as you set up your brand and make your first pieces, and ${ONBOARDING_TRIAL_CREDITS} when you add a verified card. Free credits last ${FREE_TRIAL_DURATION_HOURS} hours.`;
 
 const FAQ_ITEMS_BEFORE_LAUNCH = [
   {
     answer: FREE_CREDITS_COPY,
-    question: 'Is there a free trial?',
+    question: 'Can I try it before I pay?',
+  },
+  {
+    answer:
+      'Trends in your niche, trend videos that play inside Genfeed, saving and remixing competitor ads, the inbox, workflows, more posts a day and your choice of agent model. Pay As You Go keeps the shared trends feed and everything you already made.',
+    question: 'What does a plan unlock?',
   },
   {
     answer:
@@ -111,7 +120,7 @@ const FAQ_ITEMS_AFTER_LAUNCH = [
   },
   {
     answer:
-      'You can choose a model in the app, let your agent pick one, or leave it to automatic routing where supported.',
+      'Yes for images, video and voice, or leave it to automatic routing. On a plan you also choose the model your agent thinks with.',
     question: 'Do I choose the AI model?',
   },
   {
@@ -228,10 +237,10 @@ export default function PricingContent() {
                   title={getPlanLabel(plan.tier)}
                   aria-label={getPlanLabel(plan.tier)}
                 >
-                  {isFeatured ? (
+                  {isFeatured && launchPrice != null ? (
                     <div className="absolute right-6 top-6">
                       <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
-                        Popular
+                        Launch price
                       </span>
                     </div>
                   ) : null}
@@ -343,7 +352,11 @@ export default function PricingContent() {
             <div className="min-w-0">
               <h2 className="text-lg font-semibold">{getPlanLabel('payg')}</h2>
               <p className="mt-1 text-sm text-foreground/60">
-                {getPriceQualifier(getPlanByTier('payg'))} · {FREE_CREDITS_COPY}
+                {getPriceQualifier(getPlanByTier('payg'))} · Top up from $
+                {PAYG_MIN_PURCHASE_USD}
+              </p>
+              <p className="mt-1 text-sm text-foreground/60">
+                {FREE_CREDITS_COPY}
               </p>
               <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
                 {getPlanByTier('payg').features.map((feature) => (
@@ -453,25 +466,6 @@ export default function PricingContent() {
             Image prices are for FLUX.3. Other models are priced per model, and
             Studio shows the exact credits before you run.
           </p>
-
-          <p className="mt-8 mb-2 text-sm font-medium text-foreground/70">
-            Top up from $10.
-          </p>
-          <div className="grid gap-px bg-foreground/10 sm:grid-cols-3">
-            {WEBSITE_CREDIT_PACKS.map((pack) => (
-              <div
-                key={pack.label}
-                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
-              >
-                <span className="text-sm font-semibold text-foreground">
-                  ${formatNumberWithCommas(creditPackPrice(pack))}
-                </span>
-                <span className="text-sm text-foreground/60">
-                  {formatNumberWithCommas(creditPackTotalCredits(pack))} credits
-                </span>
-              </div>
-            ))}
-          </div>
         </WebSection>
 
         <WebSection bg="bordered" maxWidth="md">

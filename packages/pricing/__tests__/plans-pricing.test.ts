@@ -456,7 +456,9 @@ describe('website plan catalogue', () => {
     const pro = getPlanByTier('pro');
 
     expect(pro.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
-    expect(pro.features).toContain('Automation, Messages, Discovery');
+    expect(pro.features).toContain('Trends in your niche');
+    expect(pro.features).toContain('Competitor ads: save, watch, remix');
+    expect(pro.features).toContain('10 to 25 posts a day per account');
     expect(pro.features).not.toContain('Ultra quality, model training');
   });
 
@@ -466,10 +468,10 @@ describe('website plan catalogue', () => {
     expect(scale.interval).toBe('month');
     expect(scale.includedCredits).toBe(70_000);
     expect(scale.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
-    expect(scale.features).toContain('Unlimited seats and workspaces');
+    expect(scale.features).toContain('Unlimited seats and client workspaces');
     expect(scale.features).toContain('Ultra quality, model training');
     expect(scale.features).toContain('600 API requests/min');
-    expect(scale.features).toContain('Everything in Pro');
+    expect(scale.features).toContain('Everything else in Pro');
     expect(scale.outputs).toBeNull();
   });
 

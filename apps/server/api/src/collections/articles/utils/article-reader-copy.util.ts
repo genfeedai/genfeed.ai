@@ -23,6 +23,14 @@ const PROCESS_NOTE_HEADINGS: readonly RegExp[] = [
 const PLACEHOLDER_PATTERN =
   /\[(?:TODO|TBD|FIXME|PLACEHOLDER|VIDEO LINK|INSERT[^\]]*)[^\]]*\]/;
 
+/**
+ * Articles live at `/@<handle>/articles/<slug>`. The retired `/articles/<slug>`
+ * path answers 404, and eleven help articles still linked to it (51 dead links)
+ * because nothing checked the body they were saved with.
+ */
+const LEGACY_ARTICLE_LINK_PATTERN =
+  /\bhref\s*=\s*["']((?:https?:\/\/(?:www\.)?genfeed\.ai)?\/articles\/[^"'#?\s]+)/i;
+
 const NAMED_ENTITIES: Readonly<Record<string, string>> = {
   amp: '&',
   apos: "'",
@@ -75,6 +83,13 @@ export function findArticleProcessNote(
   return undefined;
 }
 
+/** The first link to the retired `/articles/<slug>` path, or undefined when there is none. */
+export function findLegacyArticleLink(
+  html: string | null | undefined,
+): string | undefined {
+  return html?.match(LEGACY_ARTICLE_LINK_PATTERN)?.[1];
+}
+
 export function assertArticleIsReaderCopy(
   html: string | null | undefined,
 ): void {
@@ -82,6 +97,13 @@ export function assertArticleIsReaderCopy(
   if (note) {
     throw new BadRequestException(
       `A published article cannot contain research or drafting notes: remove ${note}. Cut what could not be verified, or state its limit inside the sentence it affects.`,
+    );
+  }
+
+  const legacyLink = findLegacyArticleLink(html);
+  if (legacyLink) {
+    throw new BadRequestException(
+      `A published article cannot link to ${legacyLink}: that path no longer exists. Link to https://genfeed.ai/@<handle>/articles/<slug> instead.`,
     );
   }
 }

@@ -3,11 +3,7 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
-import {
-  FREE_API_RATE_LIMIT,
-  PRO_API_RATE_LIMIT,
-  SCALE_API_RATE_LIMIT,
-} from './tier-entitlements';
+import { FREE_API_RATE_LIMIT, SCALE_API_RATE_LIMIT } from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -34,6 +30,7 @@ import {
  */
 
 import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
+import { PUBLISHING_QUOTA_CEILINGS } from '@genfeedai/contracts/constants/publishing-quota.constant';
 import type {
   CreditPackTier,
   ServiceOfferingProps,
@@ -121,6 +118,16 @@ const PLAN_PRICES = {
   pro: 49,
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
+
+/**
+ * Posts a day per connected account, read from the publishing ceilings: the
+ * most a credit buyer may set, and the span a subscriber may set (lowest
+ * platform ceiling to highest). Never-paid organizations publish nothing.
+ */
+const CREDITS_CEILINGS = Object.values(PUBLISHING_QUOTA_CEILINGS.credits);
+const PLAN_CEILINGS = Object.values(PUBLISHING_QUOTA_CEILINGS.plan);
+export const PAYG_POSTS_PER_DAY = Math.max(...CREDITS_CEILINGS);
+export const PLAN_POSTS_PER_DAY_RANGE = `${Math.min(...PLAN_CEILINGS)} to ${Math.max(...PLAN_CEILINGS)}`;
 
 /** Custom PAYG top-up bounds in whole dollars (1 credit = $0.01). */
 export const PAYG_CREDITS_PER_USD = 100;
@@ -557,10 +564,13 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
     description: 'Every app for one creator or brand',
     features: [
-      'Automation, Messages, Discovery',
+      'Trends in your niche',
+      'Competitor ads: save, watch, remix',
+      'Play trend videos in Genfeed',
+      'Inbox and workflows',
+      `${PLAN_POSTS_PER_DAY_RANGE} posts a day per account`,
+      'Choose your agent model',
       'Bring your own key',
-      'Unlimited brands and channels',
-      `${PRO_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
@@ -581,8 +591,9 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      'Everything in Pro',
-      'Unlimited seats and workspaces',
+      'Trends in your niche and competitor ads',
+      'Everything else in Pro',
+      'Unlimited seats and client workspaces',
       'Ultra quality, model training',
       `${SCALE_API_RATE_LIMIT} API requests/min`,
     ],

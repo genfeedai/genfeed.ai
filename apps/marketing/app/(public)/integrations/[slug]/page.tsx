@@ -4,6 +4,7 @@ import {
 } from '@data/integrations.data';
 import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
+import { fitDescription, withBrandSuffix } from '@data/seo-copy';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import IntegrationContent from '@public/integrations/[slug]/integration-content';
 import { getIntegrationBySlugCached } from '@public/integrations/[slug]/integration-loader';
@@ -17,8 +18,19 @@ export function generateStaticParams() {
   return getAllIntegrationSlugs().map((slug) => ({ slug }));
 }
 
+export function buildIntegrationTitle(integration: Integration): string {
+  return withBrandSuffix(
+    `${integration.name} Integration for Your AI Content Agent`,
+  );
+}
+
 export function buildIntegrationDescription(integration: Integration): string {
-  return `${integration.name}: ${integration.description}`;
+  const { description, name } = integration;
+  return fitDescription(
+    `${name}: ${description}`,
+    `${description} Connect ${name} to your AI agent over MCP and approve every draft.`,
+    `${name}: ${description} Connect it to your AI agent over MCP.`,
+  );
 }
 
 export function buildIntegrationPageJsonLd(
@@ -57,7 +69,7 @@ export async function generateMetadata(
     };
   }
 
-  const title = `Genfeed for ${integration.name}`;
+  const title = buildIntegrationTitle(integration);
   const description = buildIntegrationDescription(integration);
   const url = `${EnvironmentService.apps.website}/integrations/${slug}`;
 
