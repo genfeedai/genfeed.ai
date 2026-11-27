@@ -1,3 +1,5 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
+
 /**
  * What the request's wide event records about the JSON-RPC call inside a
  * `POST /mcp`. Every call is the same HTTP request (`POST /mcp 200`), so
@@ -13,10 +15,6 @@ const MAX_BATCH_ENTRIES = 20;
 function readName(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   return NAME_PATTERN.test(value) ? value : INVALID_NAME;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function describeCall(call: unknown): { method?: string; toolName?: string } {
