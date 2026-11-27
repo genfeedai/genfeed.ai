@@ -133,7 +133,7 @@ describe('UpgradePlan', () => {
 
     expect(screen.getByText('70,000 credits / month')).toBeInTheDocument();
     expect(
-      screen.getByText('Unlimited seats and workspaces'),
+      screen.getByText('Unlimited seats and client workspaces'),
     ).toBeInTheDocument();
   });
 
