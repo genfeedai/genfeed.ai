@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { ActivitiesController } from '@api/collections/activities/controllers/activities.controller';
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,6 +26,7 @@ const controller = new ActivitiesController(
     collapsePostActivities: async (docs: unknown) => docs,
     findAll,
   } as unknown as ActivitiesService,
+  brandAccessFixture(),
 );
 const user = {
   id: 'user-1',

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   CreatorSubscriptionStatus,
   CreditTransferKind,
+  MemberRole,
 } from '@genfeedai/contracts';
 import type { ICreatorEarnings } from '@genfeedai/contracts/interfaces/billing';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -21,14 +22,24 @@ const {
   getEarningsMock,
   listMySubscriptionsMock,
   listSubscriptionPlansMock,
+  listTeamSubscriptionsMock,
   setCancelAtPeriodEndMock,
+  setTeamSubscriptionCancelAtPeriodEndMock,
   updateSubscriptionPlanMock,
+  userRoleMock,
 } = vi.hoisted(() => ({
   getEarningsMock: vi.fn(),
   listMySubscriptionsMock: vi.fn(),
   listSubscriptionPlansMock: vi.fn(),
+  listTeamSubscriptionsMock: vi.fn(),
   setCancelAtPeriodEndMock: vi.fn(),
+  setTeamSubscriptionCancelAtPeriodEndMock: vi.fn(),
   updateSubscriptionPlanMock: vi.fn(),
+  userRoleMock: vi.fn(),
+}));
+
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
+  useUserRole: userRoleMock,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -44,7 +55,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     getEarnings: getEarningsMock,
     listMySubscriptions: listMySubscriptionsMock,
     listSubscriptionPlans: listSubscriptionPlansMock,
+    listTeamSubscriptions: listTeamSubscriptionsMock,
     setCancelAtPeriodEnd: setCancelAtPeriodEndMock,
+    setTeamSubscriptionCancelAtPeriodEnd:
+      setTeamSubscriptionCancelAtPeriodEndMock,
     updateSubscriptionPlan: updateSubscriptionPlanMock,
   }),
 }));
@@ -107,8 +121,11 @@ describe('SettingsEarningsPage', () => {
     getEarningsMock.mockReset();
     listMySubscriptionsMock.mockReset().mockResolvedValue([]);
     listSubscriptionPlansMock.mockReset().mockResolvedValue([]);
+    listTeamSubscriptionsMock.mockReset().mockResolvedValue([]);
     setCancelAtPeriodEndMock.mockReset();
+    setTeamSubscriptionCancelAtPeriodEndMock.mockReset();
     updateSubscriptionPlanMock.mockReset();
+    userRoleMock.mockReset().mockReturnValue(MemberRole.USER);
   });
 
   it('shows earned totals, the split by source and article, and each payment', async () => {
@@ -182,6 +199,63 @@ describe('SettingsEarningsPage', () => {
     await waitFor(() => {
       expect(setCancelAtPeriodEndMock).toHaveBeenCalledWith('sub_1', true);
     });
+  });
+
+  it('lets an owner see every subscription the workspace pays for and cancel one', async () => {
+    userRoleMock.mockReturnValue(MemberRole.OWNER);
+    getEarningsMock.mockResolvedValue(EARNINGS);
+    listTeamSubscriptionsMock.mockResolvedValue([
+      {
+        brandId: 'brand_9',
+        cancelAtPeriodEnd: false,
+        creatorHandle: 'bo',
+        creatorLabel: 'Bo Draws',
+        currentPeriodEnd: '2026-12-09T10:00:00.000Z',
+        id: 'sub_2',
+        priceCredits: 75,
+        readerId: 'user_2',
+        readerName: 'Ben Carter',
+        status: CreatorSubscriptionStatus.ACTIVE,
+      },
+    ]);
+    setTeamSubscriptionCancelAtPeriodEndMock.mockResolvedValue(undefined);
+    renderPage();
+
+    expect(await screen.findByText('Ben Carter')).toBeInTheDocument();
+    expect(screen.getByText('Bo Draws')).toBeInTheDocument();
+    expect(screen.getByText('75 credits')).toBeInTheDocument();
+    expect(screen.getByText('Dec 9, 2026')).toBeInTheDocument();
+    expect(listMySubscriptionsMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(setTeamSubscriptionCancelAtPeriodEndMock).toHaveBeenCalledWith(
+        'sub_2',
+        true,
+      );
+    });
+  });
+
+  it('shows a member only their own subscriptions, never the team list', async () => {
+    getEarningsMock.mockResolvedValue(EARNINGS);
+    listMySubscriptionsMock.mockResolvedValue([
+      {
+        brandId: 'brand_9',
+        cancelAtPeriodEnd: false,
+        creatorHandle: 'bo',
+        creatorLabel: 'Bo Draws',
+        currentPeriodEnd: '2026-12-09T10:00:00.000Z',
+        id: 'sub_1',
+        priceCredits: 40,
+        status: CreatorSubscriptionStatus.ACTIVE,
+      },
+    ]);
+    renderPage();
+
+    expect(
+      await screen.findByText(/Bo Draws · renews .* for 40 credits/),
+    ).toBeInTheDocument();
+    expect(listTeamSubscriptionsMock).not.toHaveBeenCalled();
+    expect(screen.queryByText('Team subscriptions')).not.toBeInTheDocument();
   });
 
   it('offers a retry when earnings fail to load', async () => {

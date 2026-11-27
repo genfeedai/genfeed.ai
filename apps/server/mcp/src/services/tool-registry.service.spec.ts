@@ -450,6 +450,22 @@ describe('ToolRegistryService', () => {
   });
 
   describe('organization named on a call', () => {
+    // The connection's right to switch comes from the request's identity check,
+    // not from a second lookup, so a call that names an organization arrives on
+    // a connection built as switchable.
+    function connectAsSwitchable() {
+      service = withMergedToolCalls(
+        new ToolRegistryService(
+          clientService as unknown as ClientService,
+          logger as unknown as LoggerService,
+          'user',
+          undefined,
+          'standard',
+          true,
+        ),
+      );
+    }
+
     // Records the organization a tool call ran in, and the arguments it got.
     function recordToolCalls() {
       let activeOrganization: string | null = null;
@@ -474,6 +490,7 @@ describe('ToolRegistryService', () => {
     }
 
     it('runs the call inside the named organization and keeps the argument out of the tool', async () => {
+      connectAsSwitchable();
       const calls = recordToolCalls();
 
       await service.handleToolCall({
@@ -491,7 +508,16 @@ describe('ToolRegistryService', () => {
 
     it('refuses a connection limited to one organization instead of answering from the wrong one', async () => {
       const calls = recordToolCalls();
-      clientService.canSwitchOrganizations.mockResolvedValue(false);
+      service = withMergedToolCalls(
+        new ToolRegistryService(
+          clientService as unknown as ClientService,
+          logger as unknown as LoggerService,
+          'user',
+          undefined,
+          'standard',
+          false,
+        ),
+      );
 
       const result = await service.handleToolCall({
         arguments: { organization: 'beta' },
@@ -512,6 +538,7 @@ describe('ToolRegistryService', () => {
     });
 
     it('refuses an organization the user does not have', async () => {
+      connectAsSwitchable();
       const calls = recordToolCalls();
 
       const result = await service.handleToolCall({
@@ -525,6 +552,7 @@ describe('ToolRegistryService', () => {
     });
 
     it('returns the organization lookup retry delay without running the tool', async () => {
+      connectAsSwitchable();
       const calls = recordToolCalls();
       clientService.listOrganizations.mockRejectedValueOnce(
         new McpUpstreamError('Organization lookup rate limit reached.', {
