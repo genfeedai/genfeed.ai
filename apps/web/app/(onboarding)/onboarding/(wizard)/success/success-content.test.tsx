@@ -15,7 +15,7 @@ describe('app/(onboarding)/onboarding/(wizard)/success/success-content.tsx', () 
     expect(source).toContain('Starter Credits Ready');
     expect(source).toContain('ONBOARDING_SIGNUP_GIFT_CREDITS');
     expect(source).toContain('ONBOARDING_TRIAL_CREDITS');
-    expect(source).toContain('verified card');
+    expect(source).toContain("translate('starterCredits'");
     expect(source).toContain('useCompleteOnboarding');
     expect(source).toContain('completeOnboarding()');
 

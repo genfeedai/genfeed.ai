@@ -10,6 +10,7 @@ import {
   type Prisma,
   SubscriptionStatus,
 } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 
 type FreeTrialStateClient = Pick<Prisma.TransactionClient, 'organization'>;
 
@@ -267,19 +268,22 @@ export async function readFreeTrial(
  * not apply (self-hosted, billing off) and for every paid or comped
  * organization. One read; usable inside a transaction.
  */
-export async function readIsNeverPaid(
-  client: FreeTrialStateClient,
-  organizationId: string,
-): Promise<boolean> {
-  if (!isFreeTrialEnforced() || !organizationId) {
-    return false;
-  }
-  const organization = await client.organization.findFirst({
-    select: trialSubjectSelect(organizationId),
-    where: { id: organizationId, isDeleted: false },
-  });
-  return organization !== null && !isExemptFromTrial(organization);
-}
+export const readIsNeverPaid = traced(
+  'readIsNeverPaid',
+  async (
+    client: FreeTrialStateClient,
+    organizationId: string,
+  ): Promise<boolean> => {
+    if (!isFreeTrialEnforced() || !organizationId) {
+      return false;
+    }
+    const organization = await client.organization.findFirst({
+      select: trialSubjectSelect(organizationId),
+      where: { id: organizationId, isDeleted: false },
+    });
+    return organization !== null && !isExemptFromTrial(organization);
+  },
+);
 
 export async function readFreeTrialState(
   client: FreeTrialStateClient,

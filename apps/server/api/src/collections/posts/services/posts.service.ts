@@ -36,10 +36,7 @@ import {
   findPublicationInsight,
   listPublicationInsights,
 } from '@api/collections/posts/services/post-publication-insights.read';
-import {
-  assertPublishingPaymentAdmission,
-  requiresPublishingPaymentAdmission,
-} from '@api/collections/posts/services/post-publishing-payment-admission.util';
+import { assertPublishingPaymentAdmission } from '@api/collections/posts/services/post-publishing-payment-admission.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import {
   assertStrategyCadenceAdmission,
@@ -205,12 +202,7 @@ export class PostsService extends BaseService<
     assertPublishTarget(executionState, dto.credentialId, dto.platform);
     assertVisibilitySupported(visibility, dto.platform);
     await this.assertCampaignMembership(dto);
-    if (requiresPublishingPaymentAdmission(prismaWriteData)) {
-      await assertPublishingPaymentAdmission(this.prisma, {
-        ...prismaWriteData,
-        organizationId: this.requireOrganizationId(dto),
-      });
-    }
+    await assertPublishingPaymentAdmission(this.prisma, prismaWriteData);
     if (executionState === TargetExecutionState.SCHEDULED) {
       // Choke point for #5193: every caller of `create()` that schedules a
       // standalone Post — POST /posts, replies, autopilot auto-publish, the

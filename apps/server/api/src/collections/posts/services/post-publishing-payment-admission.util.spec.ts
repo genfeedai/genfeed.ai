@@ -1,4 +1,7 @@
-import { assertPublishingPaymentAdmission } from '@api/collections/posts/services/post-publishing-payment-admission.util';
+import {
+  assertPublishIntentAdmission,
+  assertPublishingPaymentAdmission,
+} from '@api/collections/posts/services/post-publishing-payment-admission.util';
 import * as deployment from '@genfeedai/config';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -110,5 +113,30 @@ describe('assertPublishingPaymentAdmission', () => {
         targetExecutionState: TargetExecutionState.PUBLISHING,
       }),
     ).toBe('admitted');
+  });
+
+  describe('on a lifecycle transition', () => {
+    const transition = (currentState: TargetExecutionState) =>
+      assertPublishIntentAdmission(
+        clientWith(neverPaid()) as never,
+        currentState,
+        {
+          organizationId: 'org-1',
+          targetExecutionState: TargetExecutionState.PUBLISHING,
+        },
+      ).then(
+        () => 'admitted',
+        (error: unknown) => error,
+      );
+
+    it('refuses a draft a never-paid organization tries to publish', async () => {
+      expect(await transition(TargetExecutionState.DRAFT)).toBeInstanceOf(
+        HttpException,
+      );
+    });
+
+    it('lets a target already scheduled move on, for the worker to refuse', async () => {
+      expect(await transition(TargetExecutionState.SCHEDULED)).toBe('admitted');
+    });
   });
 });

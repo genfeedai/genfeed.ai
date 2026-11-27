@@ -24,6 +24,7 @@ import {
   Video,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
@@ -75,6 +76,7 @@ const TIMELINE_STEPS = [
 export default function SuccessContent() {
   const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
+  const translate = useTranslations('pages.onboarding.success');
   const completeOnboarding = useCompleteOnboarding();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const [previewUrl] = useState<string | null>(() => {
@@ -133,13 +135,11 @@ export default function SuccessContent() {
             Starter Credits Ready
           </p>
           <p className="text-sm text-foreground">
-            <span className="tabular-nums">
-              {ONBOARDING_SIGNUP_GIFT_CREDITS}
-            </span>{' '}
-            credits now,{' '}
-            <span className="tabular-nums">{ONBOARDING_TRIAL_CREDITS}</span>{' '}
-            more when you add a verified card. Free credits last{' '}
-            {FREE_TRIAL_DURATION_HOURS} hours.
+            {translate('starterCredits', {
+              gift: ONBOARDING_SIGNUP_GIFT_CREDITS,
+              hours: FREE_TRIAL_DURATION_HOURS,
+              trial: ONBOARDING_TRIAL_CREDITS,
+            })}
           </p>
         </div>
       </div>
