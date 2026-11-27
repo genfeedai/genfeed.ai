@@ -250,6 +250,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/youtube',
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
+    '/blog',
     '/changelog',
     '/changelog/:version',
     '/community',
