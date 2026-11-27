@@ -471,7 +471,7 @@ describe('ConnectGenfeedFlow', () => {
     expect(
       screen.getByText(/Open \/mcp inside Claude Code/),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Generic MCP' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Other clients' }));
     expect(
       screen.getByRole('button', { name: 'Copy server URL' }),
     ).toBeInTheDocument();
@@ -489,6 +489,32 @@ describe('ConnectGenfeedFlow', () => {
     expect(mocks.findAll).not.toHaveBeenCalled();
   });
 
+  it('connects Muse and Grok Bot with a pasted prompt and browser authorization only', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+    await userEvent.click(screen.getByRole('tab', { name: 'Muse & Grok Bot' }));
+
+    expect(
+      screen.queryByRole('tab', { name: 'Advanced: manual API key' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/MCP server URL: https:\/\/mcp\.genfeed\.ai\/mcp/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Copy chat prompt' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Waiting for Muse & Grok Bot to connect. This page updates as soon as it reaches Genfeed.',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+  });
+
   it('renders each client and secret-safe Codex configuration', async () => {
     render(<ConnectGenfeedFlow />);
     await userEvent.click(
@@ -501,7 +527,7 @@ describe('ConnectGenfeedFlow', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Codex' })).toBeInTheDocument();
     expect(
-      screen.getByRole('tab', { name: 'Generic MCP' }),
+      screen.getByRole('tab', { name: 'Other clients' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(

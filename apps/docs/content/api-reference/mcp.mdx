@@ -1,6 +1,6 @@
 ---
 title: MCP Server Integration
-description: 'Connect Claude Code, Codex, and other Streamable HTTP clients to the MCP server on your own Genfeed instance for content, workflows, publishing, and analytics.'
+description: 'Connect Claude Code, Codex, Grok, and other Streamable HTTP clients to the MCP server on your own Genfeed instance for content, workflows, publishing, and analytics.'
 ---
 
 # MCP Server
@@ -100,6 +100,16 @@ API key settings.
 
 Client syntax was checked against Codex CLI 0.153.2 (`mcp add --help` and
 `mcp login --help`) and the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+
+### Grok
+
+A custom connector on grok.com completed browser authorization against Genfeed
+on 2026-11-12. The connector, named `genfeed`, listed 26 tools and returned data
+from `get_account` and `get_brands`. Add Genfeed there with your MCP URL and
+approve access in your browser. Genfeed documents browser authorization only for Grok.
+
+The `grok` command-line client reported `Auth required` in the same run, so it
+is not documented here. The setup page's Muse & Grok Bot tab covers Grok Bot.
 
 ## Authentication
 

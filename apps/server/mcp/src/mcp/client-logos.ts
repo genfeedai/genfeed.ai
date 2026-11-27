@@ -7,7 +7,9 @@
  * cropped to the mark. Trademarks remain the property of their owners.
  */
 
-export type ClientLogoId = 'claude' | 'codex' | 'grok' | 'meta';
+import type { ConnectClientMarkId } from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
+
+export type ClientLogoId = ConnectClientMarkId;
 
 export const CLIENT_LOGO_SVGS: Record<ClientLogoId, string> = {
   claude:

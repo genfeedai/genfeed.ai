@@ -13,7 +13,12 @@ import type {
   ConnectGenfeedClient,
   ConnectGenfeedVerificationResult,
 } from '@genfeedai/contracts/interfaces';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
+import {
+  CONNECT_FLOW_CLIENTS,
+  getConnectClient,
+} from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
@@ -32,6 +37,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
+import ConnectClientMarks from '@ui/feedback/connect-client-marks/ConnectClientMarks';
 import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
 import {
   resolveAgentConnectionBrand,
@@ -63,23 +69,31 @@ import {
 import { organizationApiKeysQueryKey } from '@/lib/constants/api-keys-query-keys';
 import type { VerifiedMcpConnection } from '@/props/home/operational-home.props';
 
-const CLIENTS = [
-  {
-    description: 'Register Genfeed, then authorize in your browser.',
-    label: 'Claude Code',
-    value: 'claude-code',
-  },
-  {
-    description: 'Browser authorization with CLI setup or config.toml.',
-    label: 'Codex',
-    value: 'codex',
-  },
-  {
-    description: 'Portable Streamable HTTP configuration.',
-    label: 'Generic MCP',
-    value: 'generic',
-  },
-] as const;
+/** The setup page's own client list, so labels and marks never drift between the two. */
+const CLIENTS = CONNECT_FLOW_CLIENTS.map((entry) => ({
+  description: entry.summary,
+  label: entry.label,
+  marks: entry.marks,
+  value: entry.helperClient,
+}));
+
+function ClaudeCodeTabIcon() {
+  return <ConnectClientMarks marks={getConnectClient('claude-code').marks} />;
+}
+
+function CodexTabIcon() {
+  return <ConnectClientMarks marks={getConnectClient('codex').marks} />;
+}
+
+function ChatAgentTabIcon() {
+  return <ConnectClientMarks marks={getConnectClient('chat-agent').marks} />;
+}
+
+const CLIENT_TAB_ICONS: Partial<Record<ConnectGenfeedClient, IconComponent>> = {
+  'chat-agent': ChatAgentTabIcon,
+  'claude-code': ClaudeCodeTabIcon,
+  codex: CodexTabIcon,
+};
 
 /** How often the browser-authorization tab re-reads the agent connection state. */
 const OAUTH_CONNECTION_POLL_MS = 4000;
@@ -282,7 +296,9 @@ export default function ConnectGenfeedFlow() {
   const handleClientChange = (value: string) => {
     const nextClient = value as ConnectGenfeedClient;
     setClient(nextClient);
-    if (nextClient === 'claude-code') setAuthMethod('oauth');
+    if (nextClient === 'claude-code' || nextClient === 'chat-agent') {
+      setAuthMethod('oauth');
+    }
     setVerification(null);
     // The announced agent is already in the known set; resume polling so the
     // next client's connection can be detected.
@@ -499,6 +515,7 @@ export default function ConnectGenfeedFlow() {
           ariaLabel={translate('clientLabel')}
           fullWidth={false}
           items={CLIENTS.map((item) => ({
+            icon: CLIENT_TAB_ICONS[item.value],
             id: item.value,
             label: item.label,
           }))}
@@ -515,7 +532,7 @@ export default function ConnectGenfeedFlow() {
         ariaLabel={translate('authMethodLabel')}
         items={[
           { id: 'oauth', label: translate('browserAuthorization') },
-          ...(client === 'claude-code'
+          ...(client === 'claude-code' || client === 'chat-agent'
             ? []
             : [{ id: 'manual-key', label: translate('manualKey') }]),
         ]}
@@ -533,7 +550,11 @@ export default function ConnectGenfeedFlow() {
           description={translate('endpointDescription', { endpoint })}
         >
           <p className="text-sm text-muted-foreground">
-            {translate('browserDescription')}
+            {translate(
+              client === 'chat-agent'
+                ? 'chatAgentDescription'
+                : 'browserDescription',
+            )}
           </p>
           <pre className="my-4 overflow-x-auto bg-background p-3 font-mono text-xs">
             <code>{instructions.primaryCommand ?? endpoint}</code>
@@ -547,9 +568,11 @@ export default function ConnectGenfeedFlow() {
             }
             withWrapper={false}
           >
-            {instructions.primaryCommand
-              ? translate('copySetupCommand')
-              : translate('copyServerUrl')}
+            {client === 'chat-agent'
+              ? translate('copyChatPrompt')
+              : instructions.primaryCommand
+                ? translate('copySetupCommand')
+                : translate('copyServerUrl')}
           </Button>
           <p className="mt-4 text-sm">
             {instructions.authorizationInstruction}

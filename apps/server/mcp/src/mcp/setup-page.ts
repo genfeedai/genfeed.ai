@@ -12,6 +12,12 @@ import {
   GENFEED_SKILLS_INSTALL_COMMAND,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
+  CONNECT_CLIENTS,
+  type ConnectClientEntry,
+  type ConnectClientMarkId,
+  type ConnectClientTabId,
+} from '@genfeedai/helpers/integrations/connect-genfeed-clients.helper';
+import {
   deriveMcpResourceIdentifierForMode,
   getMcpSupportedScopes,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
@@ -23,7 +29,7 @@ import {
   staticSurfaceClassNames,
   staticSurfaceCss,
 } from '@genfeedai/ui/static/surface';
-import { CLIENT_LOGO_PATH_PREFIX, type ClientLogoId } from './client-logos';
+import { CLIENT_LOGO_PATH_PREFIX } from './client-logos';
 import {
   getMcpServerInfo,
   MCP_SERVER_DESCRIPTION,
@@ -50,61 +56,11 @@ const SETUP_PAGE_DESCRIPTION =
 // Genfeed surface shares its 1200x630 layout.
 const SETUP_PAGE_OG_IMAGE_PATH = '/og/mcp';
 
-export type SetupTabId =
-  | 'claude-code'
-  | 'claude-chat'
-  | 'codex'
-  | 'chat-agent'
-  | 'other-clients'
-  | 'agent-prompt';
+export type SetupTabId = ConnectClientTabId;
 
-interface SetupTab {
-  id: SetupTabId;
-  label: string;
-  /** Shareable route that opens the page on this tab. */
-  path: string;
-  logos: ClientLogoId[];
-}
-
-/**
- * Claude Code and Claude & Cowork stay separate: the first registers the
- * server with `claude mcp add` and authorizes through `/mcp`, the second
- * adds a custom connector in the Claude UI. Both use the same full-access URL
- * as every other client.
- */
-const SETUP_TABS: SetupTab[] = [
-  {
-    id: 'claude-code',
-    label: 'Claude Code',
-    logos: ['claude'],
-    path: '/claude-code',
-  },
-  {
-    id: 'claude-chat',
-    label: 'Claude & Cowork',
-    logos: ['claude'],
-    path: '/claude-cowork',
-  },
-  { id: 'codex', label: 'Codex', logos: ['codex'], path: '/codex' },
-  {
-    id: 'chat-agent',
-    label: 'Muse & Grok Bot',
-    logos: ['meta', 'grok'],
-    path: '/muse-grok-bot',
-  },
-  {
-    id: 'other-clients',
-    label: 'Other clients',
-    logos: [],
-    path: '/other-clients',
-  },
-  {
-    id: 'agent-prompt',
-    label: 'Agent prompt',
-    logos: [],
-    path: '/agent-prompt',
-  },
-];
+/** Tabs come from the shared client list the in-app Connect flow also reads. */
+const SETUP_TABS = CONNECT_CLIENTS;
+type SetupTab = ConnectClientEntry;
 
 const DEFAULT_SETUP_TAB_ID: SetupTabId = 'claude-code';
 
@@ -303,7 +259,7 @@ export function getPublicAppUrl(): string {
   return readPublicUrl('GENFEED_APP_URL', DEFAULT_APP_URL);
 }
 
-function renderTabLogos(logos: ClientLogoId[]): string {
+function renderTabLogos(logos: readonly ConnectClientMarkId[]): string {
   if (logos.length === 0) return '';
   const images = logos
     .map(
@@ -328,7 +284,7 @@ export function renderSetupPage(
   const activePageTitleSafe = escapeHtml(pageTitle(activeTab));
   const tabsMarkup = SETUP_TABS.map((tab) => {
     const isActive = tab.id === activeTab.id;
-    return `<a class="tab" id="tab-${tab.id}" href="${tab.path}" role="tab" aria-selected="${isActive}" aria-controls="panel-${tab.id}" data-tab="${tab.id}" data-title="${escapeHtml(pageTitle(tab))}">${renderTabLogos(tab.logos)}${escapeHtml(tab.label)}</a>`;
+    return `<a class="tab" id="tab-${tab.id}" href="${tab.path}" role="tab" aria-selected="${isActive}" aria-controls="panel-${tab.id}" data-tab="${tab.id}" data-title="${escapeHtml(pageTitle(tab))}">${renderTabLogos(tab.marks)}${escapeHtml(tab.label)}</a>`;
   }).join('\n        ');
   const panelClass = (id: SetupTabId): string =>
     id === activeTab.id ? 'tabpanel is-active' : 'tabpanel';

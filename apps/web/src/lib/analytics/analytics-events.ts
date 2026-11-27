@@ -230,7 +230,7 @@ export interface AnalyticsEventProperties {
     readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
   };
   [ANALYTICS_EVENTS.CONNECT_GENFEED_STEP]: {
-    readonly client: 'claude-code' | 'codex' | 'generic';
+    readonly client: 'chat-agent' | 'claude-code' | 'codex' | 'generic';
     readonly deployment: 'cloud' | 'self-hosted';
     readonly outcome?: AnalyticsOutcome;
     readonly step: ConnectGenfeedStep;

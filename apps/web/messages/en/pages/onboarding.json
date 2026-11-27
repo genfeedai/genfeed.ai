@@ -328,15 +328,12 @@
       "clientLabel": "Agent client",
       "clients": {
         "claude-code": {
-          "label": "Claude Code",
           "description": "Run one command, then sign in from /mcp."
         },
         "codex": {
-          "label": "Codex",
           "description": "Run one command, then sign in from your browser."
         },
         "generic": {
-          "label": "Another MCP client",
           "description": "Paste the server address into any client that supports remote MCP."
         }
       },
