@@ -666,6 +666,7 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings',
       '/settings/personal',
       '/settings/about',
+      '/settings/desktop',
       '/settings/help',
       '/settings/notifications',
       '/settings/progress',

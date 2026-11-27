@@ -44,6 +44,7 @@ import creatorEarnings from './pages/creatorEarnings.json';
 import creatorSubscription from './pages/creatorSubscription.json';
 import creatorTip from './pages/creatorTip.json';
 import credentialPostingTimes from './pages/credentialPostingTimes.json';
+import desktopSettings from './pages/desktopSettings.json';
 import generationReceipts from './pages/generationReceipts.json';
 import help from './pages/help.json';
 import identityDefaults from './pages/identityDefaults.json';
@@ -124,6 +125,7 @@ const pages = {
   creatorSubscription,
   creatorTip,
   credentialPostingTimes,
+  desktopSettings,
   generationReceipts,
   help,
   identityDefaults,

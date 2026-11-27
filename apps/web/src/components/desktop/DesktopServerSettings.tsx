@@ -13,10 +13,8 @@ import { Input } from '@ui/primitives/input';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { readIpcErrorMessage } from '@/lib/desktop/ipc-error';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
-
-const IPC_ERROR_PREFIX_PATTERN =
-  /^Error invoking remote method '[^']+': (?:[A-Za-z]*Error: )?/;
 
 const EMPTY_SELF_HOSTED: IDesktopSelfHostedServerConfig = {
   apiEndpoint: '',
@@ -24,11 +22,6 @@ const EMPTY_SELF_HOSTED: IDesktopSelfHostedServerConfig = {
   mcpEndpoint: '',
   wsEndpoint: '',
 };
-
-function readErrorMessage(error: unknown, fallback: string): string {
-  const message = error instanceof Error ? error.message : fallback;
-  return message.replace(IPC_ERROR_PREFIX_PATTERN, '');
-}
 
 function toPayload(
   config: IDesktopSelfHostedServerConfig,
@@ -81,7 +74,7 @@ export default function DesktopServerSettings() {
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
-          setStatus(readErrorMessage(error, translate('errors.loadFailed')));
+          setStatus(readIpcErrorMessage(error, translate('errors.loadFailed')));
         }
       });
 
@@ -117,7 +110,7 @@ export default function DesktopServerSettings() {
           : (result.error ?? translate('errors.validateFailed')),
       );
     } catch (error) {
-      setStatus(readErrorMessage(error, translate('errors.validateFailed')));
+      setStatus(readIpcErrorMessage(error, translate('errors.validateFailed')));
     } finally {
       setIsBusy(false);
     }
@@ -139,7 +132,7 @@ export default function DesktopServerSettings() {
           : { kind: 'self-hosted', selfHosted: toPayload(selfHosted) },
       );
     } catch (error) {
-      setStatus(readErrorMessage(error, translate('errors.switchFailed')));
+      setStatus(readIpcErrorMessage(error, translate('errors.switchFailed')));
       setIsBusy(false);
     }
   };

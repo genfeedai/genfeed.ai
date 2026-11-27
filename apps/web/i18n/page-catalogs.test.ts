@@ -51,6 +51,7 @@ const ORIGINAL_NAMES = [
   'creatorSubscription',
   'creatorTip',
   'credentialPostingTimes',
+  'desktopSettings',
   'generationReceipts',
   'help',
   'identityDefaults',

@@ -32,6 +32,7 @@ describe('isPersonalSettingsPage', () => {
     expect(isPersonalSettingsPage('/settings/progress')).toBe(true);
     expect(isPersonalSettingsPage('/settings/help')).toBe(true);
     expect(isPersonalSettingsPage('/settings/about')).toBe(true);
+    expect(isPersonalSettingsPage('/settings/desktop')).toBe(true);
   });
 
   it('is true for the org-scoped copy of every personal page (#4659 review)', () => {
