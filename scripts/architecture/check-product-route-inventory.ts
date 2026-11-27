@@ -251,6 +251,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
     '/changelog',
+    '/changelog/:version',
     '/community',
     '/community/articles',
     '/community/creators',

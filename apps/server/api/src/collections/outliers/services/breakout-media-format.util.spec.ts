@@ -23,6 +23,8 @@ describe('breakout media format capability', () => {
     wordpress: ['image'],
     // One photo or one video per Page post: no carousel.
     facebook: ['image', 'video'],
+    // Text, one image, one video or a 2 to 20 item carousel; no short-video kind.
+    threads: ['image', 'carousel', 'video'],
     medium: [],
   };
 
@@ -47,7 +49,7 @@ describe('breakout media format capability', () => {
     },
   );
 
-  it.each(['pinterest', 'reddit', 'mastodon', 'threads', 'not-a-platform'])(
+  it.each(['pinterest', 'reddit', 'mastodon', 'not-a-platform'])(
     'holds %s as a platform the scheduler does not publish for',
     (platform) => {
       for (const format of FORMATS)

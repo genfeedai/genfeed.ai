@@ -26,8 +26,8 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-/** Below `xl` the rail is display:none and the sidebar renders as a drawer. */
-export const CONTEXT_SIDEBAR_COMPACT_QUERY = '(max-width: 1279px)';
+/** Below `md` (phones) the rail is display:none and the sidebar renders as a drawer. */
+export const CONTEXT_SIDEBAR_COMPACT_QUERY = '(max-width: 767px)';
 
 const EMPTY_HEADER_TARGETS: ContextSidebarHeaderTargets = {
   desktop: null,

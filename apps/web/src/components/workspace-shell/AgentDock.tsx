@@ -79,9 +79,9 @@ function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
 }
 
 /**
- * The agent conversation on product routes. At `xl` and up it is a tab of the
+ * The agent conversation on product routes. At `md` and up it is a tab of the
  * shell's right-hand side panel (the shell owns the tab strip and the panel
- * chrome); below `xl` it is a bottom sheet. The topbar toggle and ⌘J open it,
+ * chrome); below `md` (phones) it is a bottom sheet. The topbar toggle and ⌘J open it,
  * Esc inside it closes it.
  *
  * The conversation renders once, into a body node owned by the dock, and the

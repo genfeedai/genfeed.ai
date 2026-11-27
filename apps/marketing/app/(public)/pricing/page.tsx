@@ -52,19 +52,31 @@ export function buildPricingJsonLd() {
       // quote-only tiers are left out of the offer list entirely.
       offers: websitePlans
         .filter((plan) => plan.price != null)
-        .map((plan) => ({
-          '@type': 'Offer',
-          description: OFFER_DESCRIPTIONS[plan.tier],
-          name: plan.label,
+        .map((plan) => {
           // Pay As You Go has no monthly price; its offer is the smallest pack.
-          price: String(plan.price === 0 ? PAYG_MIN_PURCHASE_USD : plan.price),
-          priceCurrency: 'USD',
-          priceSpecification:
-            plan.type === 'subscription'
-              ? { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }
-              : undefined,
-          url: 'https://genfeed.ai/pricing',
-        })),
+          const price = String(
+            plan.price === 0 ? PAYG_MIN_PURCHASE_USD : plan.price,
+          );
+          return {
+            '@type': 'Offer',
+            description: OFFER_DESCRIPTIONS[plan.tier],
+            name: plan.label,
+            price,
+            priceCurrency: 'USD',
+            // A UnitPriceSpecification carries its own price: without one,
+            // Google's Product check reports "Missing required price".
+            priceSpecification:
+              plan.type === 'subscription'
+                ? {
+                    '@type': 'UnitPriceSpecification',
+                    billingDuration: 'P1M',
+                    price,
+                    priceCurrency: 'USD',
+                  }
+                : undefined,
+            url: 'https://genfeed.ai/pricing',
+          };
+        }),
     },
     name: 'Genfeed Pricing',
     url: 'https://genfeed.ai/pricing',

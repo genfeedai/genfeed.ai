@@ -79,6 +79,7 @@ describe('SchedulesService', () => {
         CredentialPlatform.GHOST,
         CredentialPlatform.WORDPRESS,
         CredentialPlatform.FACEBOOK,
+        CredentialPlatform.THREADS,
         CredentialPlatform.BLUESKY,
         CredentialPlatform.MEDIUM,
         CredentialPlatform.DEV_TO,

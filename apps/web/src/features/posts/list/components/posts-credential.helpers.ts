@@ -16,8 +16,7 @@ const PLATFORM_TO_CREDENTIAL_MAP: Partial<
   [Platform.TWITCH]: CredentialPlatform.TWITCH,
   [Platform.MEDIUM]: CredentialPlatform.MEDIUM,
   [Platform.PINTEREST]: CredentialPlatform.PINTEREST,
-  // THREADS uses Instagram credentials
-  [Platform.THREADS]: CredentialPlatform.INSTAGRAM,
+  [Platform.THREADS]: CredentialPlatform.THREADS,
 };
 
 const CREDENTIAL_TO_PLATFORM_MAP: Partial<
@@ -35,6 +34,7 @@ const CREDENTIAL_TO_PLATFORM_MAP: Partial<
   [CredentialPlatform.TWITCH]: Platform.TWITCH,
   [CredentialPlatform.MEDIUM]: Platform.MEDIUM,
   [CredentialPlatform.PINTEREST]: Platform.PINTEREST,
+  [CredentialPlatform.THREADS]: Platform.THREADS,
 };
 
 export function getCredentialForPlatform(

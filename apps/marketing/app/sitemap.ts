@@ -7,6 +7,7 @@ import { helpArticleSlugs } from '@data/help-articles.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import { getAllProductSlugs } from '@data/products.data';
+import { getPublishedReleases } from '@data/releases.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
 import { Platform } from '@genfeedai/contracts';
 import {
@@ -16,6 +17,7 @@ import {
   creatorProfilePath,
   GENFEED_BRAND_HANDLE,
 } from '@genfeedai/contracts/constants';
+import { releasePath } from '@public/changelog/release-notes';
 import { PublicService } from '@services/external/public.service';
 import type { MetadataRoute } from 'next';
 
@@ -492,6 +494,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Profiles stay listed when the post list cannot be loaded.
   }
 
+  // Each release has its own page. The list at /changelog links all of them.
+  let releaseRoutes: MetadataRoute.Sitemap = [];
+  try {
+    releaseRoutes = (await getPublishedReleases()).map((release) => ({
+      changeFrequency: 'yearly' as const,
+      lastModified: new Date(release.publishedAt),
+      priority: 0.5,
+      url: `${SITE_URL}${releasePath(release.tag)}`,
+    }));
+  } catch {
+    // The list page stays listed when the releases source is unavailable.
+  }
+
   const allRoutes = [
     ...staticRoutes,
     ...agentClientRoutes,
@@ -506,6 +521,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...articleRoutes,
     ...fallbackArticleRoutes,
     ...nativePostRoutes,
+    ...releaseRoutes,
   ];
 
   const seen = new Set<string>();

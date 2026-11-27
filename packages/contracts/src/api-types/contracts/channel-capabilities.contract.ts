@@ -798,9 +798,14 @@ const channelCapabilities = [
   },
   ...(hiddenChannelCapabilities as ChannelCapability[]),
   {
+    // Limits read from Meta's Threads posts reference (updated 2026-10-30,
+    // developers.facebook.com/docs/threads/posts): text is capped at 500
+    // characters, a carousel takes 2 to 20 images and videos, and images are
+    // JPEG or PNG. `ThreadsPublisherService` sends no link attachment, so
+    // `link` is not offered.
     caption: { maxLength: 500, required: true },
     description:
-      'Planned scheduler surface for Threads once publishing support is exposed.',
+      'Text, one image, one video or a carousel of up to 20 images and videos on the connected Threads account. Follow-ups post as a reply chain.',
     helpers: [
       {
         key: 'threads.accounts',
@@ -811,16 +816,20 @@ const channelCapabilities = [
     ],
     label: 'Threads',
     media: {
-      animated: { supported: true },
+      animated: {
+        consequence:
+          'Threads image posts take JPEG and PNG, so a GIF is not published as an animation; upload a video to keep motion.',
+        supported: false,
+      },
       images: { maxItems: 20, minItems: 1 },
-      kinds: ['image', 'video', 'link', 'carousel'],
+      kinds: ['image', 'video', 'carousel'],
       maxItems: 20,
       minItems: 0,
     },
     platform: CredentialPlatform.THREADS,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
-    status: 'planned',
+    status: 'supported',
   },
   blueskyChannelCapability,
   {
