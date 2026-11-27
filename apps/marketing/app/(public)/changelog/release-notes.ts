@@ -11,6 +11,11 @@ const RELEASE_DATE: Intl.DateTimeFormatOptions = {
   year: 'numeric',
 };
 
+/** Each release has its own page, so `/changelog` stays a short list. */
+export function releasePath(tag: string): string {
+  return `/changelog/${encodeURIComponent(tag)}`;
+}
+
 export function formatReleaseDate(publishedAt: string): string {
   return new Date(publishedAt).toLocaleDateString('en-US', RELEASE_DATE);
 }
