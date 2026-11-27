@@ -1,26 +1,44 @@
 import type { PlanTier } from '@genfeedai/pricing';
-import { formatPlanPriceLabel, getPlanLabel } from '@genfeedai/pricing';
+import {
+  formatPlanPriceLabel,
+  formatPrice,
+  getPlanLabel,
+} from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PricingStripProps } from '@props/website/pricing-strip.props';
+import { serviceOffering } from '@web-components/landing/service-offering.data';
 import Link from 'next/link';
 
 /**
  * Plan names and prices come from @genfeedai/pricing. Only the marketing
  * framing (audience label, price suffix, which column is featured) lives here.
  */
-const FEATURED_TIER: PlanTier = 'scale';
+const FEATURED_TIER: PlanTier = 'pro';
 
 const PILLAR_COLUMNS: {
-  priceSuffix?: string;
-  pricePrefix?: string;
   subtitle: string;
   tier: PlanTier;
 }[] = [
   { subtitle: 'Credits only', tier: 'payg' },
   { subtitle: 'Creators', tier: 'pro' },
   { subtitle: 'Agencies', tier: 'scale' },
-  { subtitle: 'Studios', tier: 'enterprise' },
+  { subtitle: 'We run it', tier: 'enterprise' },
 ];
+
+/**
+ * The fourth column is the done-for-you service, named and priced as the
+ * pricing page names and prices it, not as the Enterprise plan.
+ */
+function getColumnCopy(tier: PlanTier): { label: string; price: string } {
+  if (tier === 'enterprise') {
+    return {
+      label: serviceOffering.name,
+      price: `From ${formatPrice(serviceOffering.startingMonthlyPrice)}/mo`,
+    };
+  }
+
+  return { label: getPlanLabel(tier), price: formatPlanPriceLabel(tier) };
+}
 
 export default function PricingStrip({ className }: PricingStripProps) {
   return (
@@ -28,8 +46,7 @@ export default function PricingStrip({ className }: PricingStripProps) {
       <div className="grid grid-cols-1 gap-px md:grid-cols-4">
         {PILLAR_COLUMNS.map((column) => {
           const isFeatured = column.tier === FEATURED_TIER;
-          const label = getPlanLabel(column.tier);
-          const price = `${column.pricePrefix ?? ''}${formatPlanPriceLabel(column.tier)}${column.priceSuffix ?? ''}`;
+          const { label, price } = getColumnCopy(column.tier);
 
           return (
             <div

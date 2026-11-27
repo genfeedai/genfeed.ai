@@ -24,13 +24,16 @@ describe('HomeCTA', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect Agent', 'Start creating', 'See plans and pricing']);
+    ).toEqual(['Connect Agent', 'Start creating', 'See pricing']);
     expect(
       screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+    expect(screen.getByTestId('home-price-line')).toHaveTextContent(
+      'Plans from $39 a month, or pay as you go from $10.',
+    );
     expect(screen.queryByText(/demo/i)).not.toBeInTheDocument();
   });
 });
