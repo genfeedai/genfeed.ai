@@ -167,6 +167,32 @@ describe('GoogleAdsAccountSelector', () => {
     );
   });
 
+  it('clears the connect error once another account is picked', async () => {
+    mockServices.postSelectGoogleAdsAccount.mockRejectedValue(
+      new Error('refused'),
+    );
+    render(
+      <GoogleAdsAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('radio', { name: /Genfeed\.ai/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect account' }));
+    expect(
+      await screen.findByText(
+        'Failed to connect this account. Please try again.',
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: /Second brand/ }));
+
+    expect(
+      screen.queryByText('Failed to connect this account. Please try again.'),
+    ).not.toBeInTheDocument();
+  });
+
   it('offers Try again and Go back when the list cannot load', async () => {
     const onBack = vi.fn();
     mockServices.getGoogleAdsAccounts = vi

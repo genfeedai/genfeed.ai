@@ -42,7 +42,17 @@ function credential(overrides: Partial<StoredCredential>): StoredCredential {
   };
 }
 
+const providerError = (status: number) =>
+  Object.assign(new Error(`Request failed with status code ${status}`), {
+    isAxiosError: true,
+    response: { status },
+  });
+
 describe('GoogleAdsAccountsService', () => {
+  afterEach(() => {
+    vi.mocked(isAxiosError).mockReturnValue(false);
+  });
+
   let rows: StoredCredential[];
   let customers: Array<{
     currencyCode?: string;
@@ -54,12 +64,18 @@ describe('GoogleAdsAccountsService', () => {
     string,
     Array<{ customerClient: { descriptiveName?: string; id: string } }>
   >;
+  let managerFailures: Record<string, Error>;
   let service: GoogleAdsAccountsService;
 
   beforeEach(() => {
+    vi.mocked(isAxiosError).mockImplementation(
+      (value: unknown): value is never =>
+        (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+    );
     rows = [credential({})];
     customers = [];
     managerClients = {};
+    managerFailures = {};
 
     // A small in-memory store: the specs read back what it ends up holding.
     const credentialsService = {
@@ -108,11 +124,11 @@ describe('GoogleAdsAccountsService', () => {
         _accessToken: string,
         customerId: string,
       ): Promise<unknown[]> => {
-        const clients = managerClients[customerId];
-        if (!clients) {
-          throw new Error('permission denied');
+        const failure = managerFailures[customerId];
+        if (failure) {
+          throw failure;
         }
-        return clients;
+        return managerClients[customerId] ?? [];
       },
       listAccessibleCustomers: async () => customers,
     } as unknown as GoogleAdsService;
@@ -175,15 +191,28 @@ describe('GoogleAdsAccountsService', () => {
       expect(await service.listSelectable('token')).toEqual([]);
     });
 
-    it('keeps the direct accounts when a manager cannot be read', async () => {
+    it('keeps the direct accounts when Google refuses to show a manager', async () => {
       customers = [
         { descriptiveName: 'Direct', id: '1111111111', isManager: false },
         { descriptiveName: 'Agency', id: '2222222222', isManager: true },
       ];
+      managerFailures['2222222222'] = providerError(403);
 
       const result = await service.listSelectable('token');
 
       expect(result.map((account) => account.id)).toEqual(['1111111111']);
+    });
+
+    it('fails instead of returning a partial list when Google is unavailable', async () => {
+      customers = [
+        { descriptiveName: 'Direct', id: '1111111111', isManager: false },
+        { descriptiveName: 'Agency', id: '2222222222', isManager: true },
+      ];
+      managerFailures['2222222222'] = providerError(503);
+
+      await expect(service.listSelectable('token')).rejects.toThrow(
+        'status code 503',
+      );
     });
   });
 
@@ -221,6 +250,22 @@ describe('GoogleAdsAccountsService', () => {
         },
       ]);
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-token');
+    });
+
+    it('hides a credential of a brand the caller may not reach', async () => {
+      const restricted = { ...USER, allowedBrandIds: ['brand-other'] };
+
+      await expect(
+        service.listForPending(restricted as never, 'cred-pending'),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+    });
+
+    it('lists for a caller whose brand list includes the credential brand', async () => {
+      const restricted = { ...USER, allowedBrandIds: ['brand-1'] };
+
+      expect(
+        await service.listForPending(restricted as never, 'cred-pending'),
+      ).toHaveLength(2);
     });
 
     it("never reads another organization's credential", async () => {
@@ -296,6 +341,25 @@ describe('GoogleAdsAccountsService', () => {
       expect(rows[0]?.externalId).toBe('111-111-1111');
     });
 
+    it('returns the connected credential when the same selection is repeated', async () => {
+      await service.selectForPending(
+        USER as never,
+        'cred-pending',
+        '111-111-1111',
+      );
+
+      const repeated = await service.selectForPending(
+        USER as never,
+        'cred-pending',
+        '1111111111',
+      );
+
+      expect(repeated).toMatchObject({
+        externalId: '111-111-1111',
+        isConnected: true,
+      });
+    });
+
     it('refuses a credential that holds no token', async () => {
       rows = [credential({ accessToken: null })];
 
@@ -306,17 +370,6 @@ describe('GoogleAdsAccountsService', () => {
   });
 
   describe('toVerifyException', () => {
-    beforeEach(() => {
-      vi.mocked(isAxiosError).mockImplementation(
-        (value: unknown): value is never =>
-          (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
-      );
-    });
-
-    afterEach(() => {
-      vi.mocked(isAxiosError).mockReturnValue(false);
-    });
-
     it.each([
       [400, HttpStatus.BAD_REQUEST],
       [401, HttpStatus.BAD_REQUEST],

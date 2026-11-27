@@ -265,7 +265,7 @@ export class GoogleAdsController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const { accessToken } = await this.getCredentialContext(user);
     return this.googleAdsService.listAccessibleCustomers(accessToken);
   }
 
@@ -282,12 +282,12 @@ export class GoogleAdsController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.listCampaigns(
-      accessToken,
+      context.accessToken,
       customerId,
       { limit: limit ? Number(limit) : undefined, status },
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -313,13 +313,13 @@ export class GoogleAdsController {
     if (segmentByDate === 'true') {
       params.segmentByDate = true;
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getCampaignMetrics(
-      accessToken,
+      context.accessToken,
       customerId,
       campaignId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -341,13 +341,13 @@ export class GoogleAdsController {
     if (startDate && endDate) {
       params.dateRange = { endDate, startDate };
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getAdGroupInsights(
-      accessToken,
+      context.accessToken,
       customerId,
       adGroupId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -372,12 +372,12 @@ export class GoogleAdsController {
     if (limit) {
       params.limit = Number(limit);
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getKeywordPerformance(
-      accessToken,
+      context.accessToken,
       customerId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -403,13 +403,13 @@ export class GoogleAdsController {
     if (limit) {
       params.limit = Number(limit);
     }
-    const accessToken = await this.getAccessTokenFromCredential(user);
+    const context = await this.getCredentialContext(user, loginCustomerId);
     return this.googleAdsService.getSearchTermsReport(
-      accessToken,
+      context.accessToken,
       customerId,
       campaignId,
       params,
-      loginCustomerId,
+      context.loginCustomerId,
     );
   }
 
@@ -419,18 +419,33 @@ export class GoogleAdsController {
    * Extract the Google Ads access token from the user's credentials.
    * Token is encrypted at rest in the database and decrypted when retrieved.
    */
-  private async getAccessTokenFromCredential(user: User): Promise<string> {
-    const organizationId = user.organizationId as string;
-    const userId = (user.userId ?? user.id) as string;
+  /**
+   * The token and `login-customer-id` for a read. A client reached through a
+   * manager was stored with that manager's id; an explicit caller value wins.
+   */
+  private async getCredentialContext(
+    user: User,
+    loginCustomerId?: string,
+  ): Promise<{ accessToken: string; loginCustomerId?: string }> {
+    const credential = await this.findConnectedCredential(user);
+    return {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken as string),
+      loginCustomerId:
+        loginCustomerId || credential.externalParentId || undefined,
+    };
+  }
 
+  private async findConnectedCredential(
+    user: User,
+  ): Promise<{ accessToken: string; externalParentId?: string | null }> {
     const credential = await this.credentialsService.findOneSelect(
       {
         isConnected: true,
-        organizationId: organizationId,
+        organizationId: user.organizationId as string,
         platform: CredentialPlatform.GOOGLE_ADS,
-        userId: userId,
+        userId: (user.userId ?? user.id) as string,
       },
-      { accessToken: true },
+      { accessToken: true, externalParentId: true },
     );
 
     if (!credential?.accessToken) {
@@ -440,7 +455,9 @@ export class GoogleAdsController {
       });
     }
 
-    // Decrypt the stored token
-    return EncryptionUtil.decrypt(credential.accessToken);
+    return {
+      accessToken: credential.accessToken,
+      externalParentId: credential.externalParentId,
+    };
   }
 }

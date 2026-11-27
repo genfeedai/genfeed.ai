@@ -224,7 +224,10 @@ export default function GoogleAdsAccountSelector({
               <OptionTileGroup
                 ariaLabel={group.managerName ?? translate('ownAccounts')}
                 columns={1}
-                onValueChange={setPickedId}
+                onValueChange={(id) => {
+                  setPickedId(id);
+                  setConfirmError(null);
+                }}
                 value={selectedId}
               >
                 {group.accounts.map((account) => (

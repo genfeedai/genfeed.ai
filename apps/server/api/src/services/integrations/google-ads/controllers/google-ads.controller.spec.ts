@@ -388,6 +388,44 @@ describe('GoogleAdsController', () => {
 
   // Campaigns
   describe('listCampaigns', () => {
+    it('reads a manager-linked client with its stored manager id', async () => {
+      credentialsService.findOneSelect.mockResolvedValueOnce({
+        accessToken: 'encrypted-token',
+        externalParentId: '220-767-1117',
+      } as never);
+
+      await controller.listCampaigns(
+        mockUser,
+        'cust-1',
+        undefined,
+        undefined,
+        undefined,
+      );
+
+      expect(googleAdsService.listCampaigns.mock.calls[0]?.[3]).toBe(
+        '220-767-1117',
+      );
+    });
+
+    it('lets an explicit login customer id override the stored one', async () => {
+      credentialsService.findOneSelect.mockResolvedValueOnce({
+        accessToken: 'encrypted-token',
+        externalParentId: '220-767-1117',
+      } as never);
+
+      await controller.listCampaigns(
+        mockUser,
+        'cust-1',
+        undefined,
+        undefined,
+        '555-555-5555',
+      );
+
+      expect(googleAdsService.listCampaigns.mock.calls[0]?.[3]).toBe(
+        '555-555-5555',
+      );
+    });
+
     it('passes customerId, status, and limit to service', async () => {
       const result = await controller.listCampaigns(
         mockUser,

@@ -23,6 +23,16 @@ interface ManagerClientRow {
   };
 }
 
+/** Google refused to show this manager's clients to this login. */
+function isManagerUnreadable(error: unknown): boolean {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  return (
+    status === HttpStatus.BAD_REQUEST ||
+    status === HttpStatus.FORBIDDEN ||
+    status === HttpStatus.NOT_FOUND
+  );
+}
+
 export interface GoogleAdsPendingAccount extends GoogleAdsSelectableAccount {
   /** Another live credential of the brand already holds this account. */
   isAlreadyConnected: boolean;
@@ -78,6 +88,12 @@ export class GoogleAdsAccountsService {
           manager.id,
         );
       } catch (error: unknown) {
+        // A manager this login may not read is skipped. Anything else (an
+        // outage, rate limit or network failure) would hand back a partial
+        // list that verify could mistake for the whole account set.
+        if (!isManagerUnreadable(error)) {
+          throw error;
+        }
         this.loggerService.warn(
           `${this.constructorName}: Could not list clients of manager ${manager.id}`,
           { error: error instanceof Error ? error.message : String(error) },
@@ -151,11 +167,21 @@ export class GoogleAdsAccountsService {
     credentialId: string,
     customerId: string,
   ): Promise<CredentialDocument> {
-    const credential = await this.requirePendingCredential(user, credentialId);
+    const owned = await this.findOwnedCredential(user, credentialId);
+    const wanted = normalizeGoogleAdsCustomerId(customerId);
+    // A repeat of a selection that already went through (the response was
+    // lost) returns the connected credential instead of an error.
+    if (
+      owned.isConnected &&
+      owned.externalId &&
+      normalizeGoogleAdsCustomerId(owned.externalId) === wanted
+    ) {
+      return owned;
+    }
+    const credential = this.requirePending(owned);
     const accounts = await this.listOrExplain(
       EncryptionUtil.decrypt(credential.accessToken as string),
     );
-    const wanted = normalizeGoogleAdsCustomerId(customerId);
     const chosen = accounts.find(
       (account) => normalizeGoogleAdsCustomerId(account.id) === wanted,
     );
@@ -230,11 +256,21 @@ export class GoogleAdsAccountsService {
     );
   }
 
-  /**
-   * A pending credential holds a token and was never settled onto an account.
-   * Anything else must reconnect, so this cannot repoint a live connection.
-   */
   private async requirePendingCredential(
+    user: User,
+    credentialId: string,
+  ): Promise<CredentialDocument> {
+    return this.requirePending(
+      await this.findOwnedCredential(user, credentialId),
+    );
+  }
+
+  /**
+   * The caller's own Google Ads credential. A brand-restricted key reaches
+   * only its brands, and the key guard cannot see a brand through a
+   * credential id, so the check lives here; a miss reads as not found.
+   */
+  private async findOwnedCredential(
     user: User,
     credentialId: string,
   ): Promise<CredentialDocument> {
@@ -244,11 +280,23 @@ export class GoogleAdsAccountsService {
       platform: CredentialPlatform.GOOGLE_ADS,
     });
 
-    if (!credential || credential.isDeleted) {
+    const isBrandAllowed =
+      !user.allowedBrandIds ||
+      (credential?.brandId != null &&
+        user.allowedBrandIds.includes(credential.brandId));
+    if (!credential || credential.isDeleted || !isBrandAllowed) {
       throw new NotFoundException({
         message: 'Google Ads credential not found',
       });
     }
+    return credential;
+  }
+
+  /**
+   * A pending credential holds a token and was never settled onto an account.
+   * Anything else must reconnect, so this cannot repoint a live connection.
+   */
+  private requirePending(credential: CredentialDocument): CredentialDocument {
     if (credential.isConnected || credential.externalId) {
       throw new HttpException(
         {
