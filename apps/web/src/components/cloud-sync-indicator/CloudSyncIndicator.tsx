@@ -13,7 +13,6 @@ import {
 } from '@ui/primitives/popover';
 import { CloudOff, CloudSync } from 'lucide-react';
 import { useState } from 'react';
-import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { useCloudSession } from '@/hooks/useCloudSession';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
@@ -116,7 +115,6 @@ export default function CloudSyncIndicator() {
             </Button>
           </div>
         )}
-        {desktop && <DesktopLocalProviderSettings />}
       </PopoverContent>
     </Popover>
   );

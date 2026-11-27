@@ -56,10 +56,6 @@ const ROUTES_OPENED_FROM_A_BRAND_PAGE: BlockedRouteCase[] = [
     name: 'a platform home',
   },
   {
-    href: brandRoute('/discovery/trends/platforms/twitter'),
-    name: 'a trends platform page',
-  },
-  {
     // Shelves are opened from the Library sidebar, so the Library code is
     // already loaded when the person clicks.
     from: brandRoute(APP_ROUTES.LIBRARY.ASSETS),

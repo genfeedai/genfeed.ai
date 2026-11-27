@@ -274,6 +274,7 @@ export * from './integrations/elevenlabs.interface';
 export * from './integrations/external-connection-request.interface';
 export * from './integrations/facebook.interface';
 export * from './integrations/ghost.interface';
+export * from './integrations/google-ads-account.interface';
 export * from './integrations/google-business.interface';
 export * from './integrations/google-search-console.interface';
 export * from './integrations/heygen.interface';

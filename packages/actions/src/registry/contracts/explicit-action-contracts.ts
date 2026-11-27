@@ -5,6 +5,7 @@ import { getAgentEventRunActionContract } from './agent-event-run-action-contrac
 import { getAgentTurnActionContract } from './agent-turn-action-contracts';
 import { getAiInfluencerActionContract } from './ai-influencer-action-contracts';
 import { getAnalyticsActionContract } from './analytics-action-contracts';
+import { getAnnotationActionContract } from './annotation-action-contracts';
 import { getAuthorReplyActionContract } from './author-reply-action-contracts';
 import { getAutomationActionContract } from './automation-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
@@ -24,6 +25,7 @@ import { getKnowledgeSourceActionContract } from './knowledge-source-action-cont
 import { getKnowledgeToolActionContract } from './knowledge-tool-action-contracts';
 import { getLifecycleEmailActionContract } from './lifecycle-email-action-contracts';
 import { getMaintenanceActionContract } from './maintenance-action-contracts';
+import { getMotionControlActionContract } from './motion-control-action-contracts';
 import { getNewsletterActionContract } from './newsletter-action-contracts';
 import { getPatternExtractionActionContract } from './pattern-extraction-action-contracts';
 import { getRemotionActionContract } from './remotion-action-contracts';
@@ -75,6 +77,8 @@ const CONTRACT_RESOLVERS = [
   getSocialSourceActionContract,
   getSystemActionContract,
   getMaintenanceActionContract,
+  getAnnotationActionContract,
+  getMotionControlActionContract,
   getNewsletterActionContract,
   getPatternExtractionActionContract,
   getScheduledPostActionContract,

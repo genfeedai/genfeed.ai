@@ -38,6 +38,7 @@ const PROVIDER_CALLBACK_ACTION_IDS = new Set([
   'aiAvatarVideo',
   'imageGen',
   'lipSync',
+  'motionControl',
   'reframe',
   'upscale',
   'videoGen',
@@ -198,6 +199,13 @@ const WORKFLOW_ACTIONS = [
   ],
   ['analyticsFeedback', 'Analytics', 'Performance stats.', 'input', 'Eye'],
   [
+    'annotation',
+    'Annotate Image',
+    'Draws shapes, arrows and text over one image.',
+    'processing',
+    'Pencil',
+  ],
+  [
     'attachPostIngredient',
     'Attach Post Ingredient',
     'Attaches a generated ingredient to a post draft.',
@@ -326,6 +334,13 @@ const WORKFLOW_ACTIONS = [
     'Runs one language-model text generation.',
     'ai',
     'Brain',
+  ],
+  [
+    'motionControl',
+    'Transfer Motion',
+    'Generates one video that moves like a reference video, from a character image.',
+    'ai',
+    'Navigation',
   ],
   [
     'musicSource',
@@ -619,6 +634,7 @@ const WORKFLOW_ACTION_CREDIT_POLICIES: Readonly<
   iterativeSeoRefine: { amount: 15, mode: 'fixed' },
   lensEffects: { amount: 1, mode: 'fixed' },
   lipSync: { amount: 8, mode: 'fixed' },
+  motionControl: { amount: 10, mode: 'fixed' },
   postReply: { amount: 1, mode: 'fixed' },
   'process-resize': { amount: 1, mode: 'fixed' },
   'process-transform': { amount: 1, mode: 'fixed' },

@@ -3,7 +3,7 @@
 import { toast } from '@genfeedai/ui/primitives/toaster';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
-import { collectGeometryIssues } from '../lib/geometry';
+import { collectGeometryIssues } from '../../engine/utils/geometry';
 import { useWorkflowStore } from '../stores/workflow';
 import { useGeometryEditorStore } from './geometryEditorStore';
 import { useGeometryMessages } from './useGeometryMessages';

@@ -1,0 +1,8 @@
+{
+  "key": "studio-edit-enhance",
+  "label": "Enhance photo",
+  "type": "image-edit",
+  "description": "Better light, color and sharpness, same subject.",
+  "prompt": "Improve the lighting, color balance and sharpness of this photo. Keep the subject, composition and details the same.",
+  "values": {}
+}

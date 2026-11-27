@@ -44,7 +44,6 @@ test.describe('Analytics — Trends (deep interactions)', () => {
   const routes = [
     `${BRAND}/discovery/trends`,
     `${BRAND}/discovery/trends/detail/mock-id`,
-    `${BRAND}/discovery/trends/platforms/tiktok`,
     `${BRAND}/analytics/streaks`,
     `${BRAND}/analytics/hooks`,
   ];
@@ -56,7 +55,7 @@ test.describe('Analytics — Trends (deep interactions)', () => {
     });
   }
 
-  test('trends list switches platform tabs and opens a trend', async ({
+  test('trends list filters by platform and opens a trend', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(authenticatedPage, `${BRAND}/discovery/trends`);
@@ -92,24 +91,6 @@ test.describe('Analytics — Trends (deep interactions)', () => {
     await tryClick(authenticatedPage, '[role="tab"]:nth-of-type(2)');
     await exerciseDateRange(authenticatedPage);
     await tryClick(authenticatedPage, 'a[href*="/discovery/trends"]');
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('platform trends breakdown filters and refreshes', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(
-      authenticatedPage,
-      `${BRAND}/discovery/trends/platforms/tiktok`,
-    );
-
-    await tryClick(authenticatedPage, '[role="tab"]');
-    await tryClick(authenticatedPage, '[role="combobox"]');
-    await exerciseDateRange(authenticatedPage);
-    await exerciseRefresh(authenticatedPage);
-    await tryClick(authenticatedPage, 'tbody tr');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

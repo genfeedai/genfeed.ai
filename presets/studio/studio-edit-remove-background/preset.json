@@ -1,0 +1,8 @@
+{
+  "key": "studio-edit-remove-background",
+  "label": "Remove background",
+  "type": "image-edit",
+  "description": "Cut out the subject on a clean white background.",
+  "prompt": "Remove the background and place the subject on a clean, plain white background. Keep the subject unchanged.",
+  "values": {}
+}

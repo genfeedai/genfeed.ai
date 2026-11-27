@@ -30,7 +30,6 @@ export const PLATFORM_MODULE_FLAG_KEYS = [
 export const PLATFORM_FEATURE_FLAG_KEYS = [
   'library_canvas',
   'low_credits_banner',
-  'desktop_local_workspace',
   'turbo_ideas',
 ] as const;
 
@@ -177,10 +176,6 @@ export const APP_RAIL_FEATURE_FLAGS = {
 
 /** Replies API + UI gate. */
 export const REPLY_BOT_FEATURE_FLAG = 'reply_bot' satisfies PlatformFlagKey;
-
-/** Desktop local/PGlite workspace entry on the login and desktop pages. */
-export const DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG =
-  'desktop_local_workspace' satisfies PlatformFlagKey;
 
 /** Library canvas view (formerly the `moodboard` route). */
 export const LIBRARY_CANVAS_FEATURE_FLAG =

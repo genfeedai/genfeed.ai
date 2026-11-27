@@ -47,14 +47,14 @@ function handlerFor(
   ) => unknown;
 }
 describe('content tenant read ledger', () => {
-  it('accounts for all 132 actual canonical aliases across 68 controllers', () => {
-    expect(TENANT_READ_CONTENT_ROUTES).toHaveLength(132);
+  it('accounts for all 131 actual canonical aliases across 67 controllers', () => {
+    expect(TENANT_READ_CONTENT_ROUTES).toHaveLength(131);
     expect(new Set(TENANT_READ_CONTENT_ROUTES.map((e) => e.route)).size).toBe(
-      132,
+      131,
     );
     expect(
       new Set(TENANT_READ_CONTENT_ROUTES.map((e) => e.controller)).size,
-    ).toBe(68);
+    ).toBe(67);
     for (const entry of TENANT_READ_CONTENT_ROUTES) {
       const handler = handlerFor(entry);
       expect(Reflect.getMetadata('genfeed.tenantReadPolicy', handler)).toBe(
@@ -228,9 +228,6 @@ import { FacebookController } from '@api/services/integrations/facebook/controll
 import { GoogleAdsController } from '@api/services/integrations/google-ads/controllers/google-ads.controller';
 import { GoogleSearchConsoleController } from '@api/services/integrations/google-search-console/controllers/google-search-console.controller';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
-import { DesktopSyncController } from '@api/services/sync/desktop-sync.controller';
-import { DesktopSyncService } from '@api/services/sync/desktop-sync.service';
-import { encodeManifestCursor } from '@api/services/sync/desktop-sync-cursor.util';
 import { SyncController } from '@api/services/sync/sync.controller';
 import { SyncService } from '@api/services/sync/sync.service';
 import type { CacheConfig } from '@api/shared/interfaces/cache/cache.interfaces';
@@ -547,64 +544,6 @@ describe('content mandatory selected-data regressions', () => {
       testId('campaign'),
       originalOrg,
       actor.brandId,
-    );
-  });
-  it('desktop manifest selects target rows, clears inherited brand, retains cursor tombstones and default scope', async () => {
-    const timestamp = new Date('2026-01-02T00:00:00.000Z');
-    const deleted = { ...tenantRows[1], isDeleted: true, updatedAt: timestamp };
-    const findMany = vi.fn(
-      (input: { where: { organizationId?: string; parentOrgId?: string } }) =>
-        Promise.resolve(
-          (input.where.organizationId ?? input.where.parentOrgId) ===
-            selectedOrg
-            ? [deleted]
-            : [{ ...tenantRows[0], updatedAt: timestamp }],
-        ),
-    );
-    const prisma = {
-      organization: {
-        findFirst: vi.fn().mockResolvedValue({ id: selectedOrg }),
-      },
-      brand: { findMany },
-      ingredient: { findMany },
-      asset: { findMany },
-    };
-    const service = new DesktopSyncService({} as never, prisma as never);
-    const c = instance(DesktopSyncController.prototype, {
-      desktopSyncService: service,
-    });
-    const cursor = encodeManifestCursor({
-      brands: { id: testId('brand'), updatedAt: '2026-01-01T00:00:00.000Z' },
-      ingredients: {
-        id: testId('ingredient'),
-        updatedAt: '2026-01-01T00:00:00.000Z',
-      },
-      assets: { id: testId('asset'), updatedAt: '2026-01-01T00:00:00.000Z' },
-    });
-    const data = await selectedRead(() =>
-      c.getBrandManifest(actor, { cursor }),
-    );
-    expect(JSON.stringify(data)).toContain('selected');
-    expect(JSON.stringify(data)).not.toContain('original');
-    for (const [input] of findMany.mock.calls)
-      expect(input.where).not.toHaveProperty('isDeleted');
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          organizationId: selectedOrg,
-          id: selectedBrand,
-        }),
-      }),
-    );
-    await selectedRead(() => service.getBrandManifest(actor, {}));
-    expect(findMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          parentOrgId: originalOrg,
-          parentBrandId: actor.brandId,
-          isDeleted: false,
-        }),
-      }),
     );
   });
   it('sync status counts target organization without mutating original identity or default callers', async () => {

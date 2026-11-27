@@ -1,9 +1,9 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory } from '@genfeedai/contracts';
-import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
-import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
-import { CINEMATIC_SHORTS } from '@genfeedai/contracts/constants/cinematic-shorts.constant';
-import { STUDIO_SYSTEM_PRESETS } from '@genfeedai/contracts/constants/studio-system-presets.constant';
+import {
+  PRESET_CATALOG,
+  type PresetCatalogEntry,
+} from '@genfeedai/contracts/constants/preset-catalog.constant';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -12,32 +12,6 @@ export type StudioPresetSeedResult = {
   unchanged: number;
   written: number;
 };
-
-const catalog = [
-  ...STUDIO_SYSTEM_PRESETS,
-  ...AD_PRESETS.map((preset) => ({
-    ...preset,
-    prompt: '',
-    type: 'video' as const,
-    values: { adPreset: preset },
-  })),
-  ...CINEMATIC_SHORTS.map((cinematicShort) => ({
-    description: cinematicShort.description,
-    key: cinematicShort.key,
-    label: cinematicShort.label,
-    prompt: '',
-    type: 'video' as const,
-    values: { cinematicShort },
-  })),
-  ...B2B_PLAYBOOKS.map((playbook) => ({
-    description: playbook.description,
-    key: playbook.key,
-    label: playbook.label,
-    prompt: '',
-    type: playbook.mediaType,
-    values: { playbook },
-  })),
-];
 
 @Traced()
 @Injectable()
@@ -50,7 +24,7 @@ export class StudioPresetSeedService {
   async reconcileCatalog(): Promise<StudioPresetSeedResult> {
     const result: StudioPresetSeedResult = { unchanged: 0, written: 0 };
     const failedKeys: string[] = [];
-    for (const preset of catalog) {
+    for (const preset of PRESET_CATALOG) {
       try {
         if (await this.seedPreset(preset)) result.written += 1;
         else result.unchanged += 1;
@@ -71,7 +45,7 @@ export class StudioPresetSeedService {
     return result;
   }
 
-  private async seedPreset(preset: (typeof catalog)[number]): Promise<boolean> {
+  private async seedPreset(preset: PresetCatalogEntry): Promise<boolean> {
     const id = `cpresetbuiltin${preset.key.replaceAll('-', '')}`;
     // tenant-scope-ignore: reserved platform seed ID collision probe; tenant rows are never rewritten, including deleted rows.
     const existing = await this.prisma.preset.findUnique({

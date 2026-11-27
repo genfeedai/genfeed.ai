@@ -194,47 +194,6 @@ describe('SkillCheckoutService', () => {
       ]);
     });
 
-    it('creates a single-skill checkout with an exact entitlement grant', async () => {
-      const selectedSkill = {
-        category: 'generation',
-        description: 'Generate images',
-        name: 'Image Gen Pro',
-        price: 1900,
-        s3Key: 'skills/image-gen-pro.zip',
-        slug: 'image-gen-pro',
-        version: '1.0.0',
-      };
-      skillRegistryService.getRegistry.mockResolvedValue({
-        bundlePrice: 49,
-        skills: [selectedSkill],
-        updatedAt: '2026-08-31T00:00:00.000Z',
-      });
-      skillRegistryService.getSkillBySlug.mockReturnValue(selectedSkill);
-
-      await service.createCheckoutSession({ skillSlug: 'image-gen-pro' });
-
-      expect(createdSessions).toEqual([
-        expect.objectContaining({
-          line_items: [
-            {
-              price_data: {
-                currency: 'usd',
-                product_data: { name: 'Image Gen Pro' },
-                unit_amount: 1900,
-              },
-              quantity: 1,
-            },
-          ],
-          metadata: expect.objectContaining({
-            bundle: 'false',
-            productType: 'skill',
-            skillSlug: 'image-gen-pro',
-            skillSlugs: 'image-gen-pro',
-          }),
-        }),
-      ]);
-    });
-
     it('should fall back to registry bundle price when no price ID is available', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({

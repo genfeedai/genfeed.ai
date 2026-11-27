@@ -1,0 +1,15 @@
+{
+  "key": "studio-profile-picture",
+  "label": "Profile picture",
+  "type": "image",
+  "description": "A clean portrait with room for a circular crop.",
+  "prompt": "Create a professional profile picture of your subject.",
+  "values": {
+    "aspectRatio": "1:1",
+    "promptTemplate": "content.image.default",
+    "style": "professional portrait photography",
+    "scene": "simple studio background",
+    "camera": "eye-level close-up",
+    "lighting": "soft studio lighting"
+  }
+}

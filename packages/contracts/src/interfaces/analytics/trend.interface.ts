@@ -38,6 +38,13 @@ export interface ITrendVideo {
   thumbnailUrl?: string;
   videoUrl?: string;
   playUrl?: string;
+  /**
+   * A copy of a TikTok or Instagram clip saved in Genfeed storage so it plays
+   * in the app's own player. Present only after a paid user played the video
+   * and until the copy expires.
+   */
+  playbackUrl?: string;
+  playbackExpiresAtMs?: number;
   views?: number;
   viewCount?: number;
   likes?: number;
@@ -70,6 +77,12 @@ export interface ITrendVideo {
    * Undefined when the video has no evaluation or no persuasion scores.
    */
   persuasionHighlight?: ITrendVideoPersuasionHighlight;
+}
+
+export interface ITrendVideoPlayback {
+  playbackUrl: string;
+  /** ISO timestamp; the copy is deleted after it unless the video trends again. */
+  playbackExpiresAt: string;
 }
 
 export interface ITrendAccount {

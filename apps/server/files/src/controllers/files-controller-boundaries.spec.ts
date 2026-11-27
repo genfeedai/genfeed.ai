@@ -7,6 +7,7 @@ import { FilesMetadataController } from '@files/controllers/files-metadata.contr
 import { FilesPerceptionController } from '@files/controllers/files-perception.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
+import { FilesTrendPlaybackController } from '@files/controllers/files-trend-playback.controller';
 import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
 import { RequestMethod } from '@nestjs/common';
 import {
@@ -23,6 +24,7 @@ const controllers = [
   [FilesPerceptionController, 'files'],
   [FilesProcessingController, 'files'],
   [FilesStorageController, 'files'],
+  [FilesTrendPlaybackController, 'files'],
   [FilesWatermarkExportController, 'files'],
 ] as const;
 
@@ -130,6 +132,16 @@ const routes = [
     'presigned-download/:type/*key',
   ],
   [
+    FilesTrendPlaybackController.prototype.prepareTrendPlayback,
+    RequestMethod.POST,
+    'process/trend-playback',
+  ],
+  [
+    FilesTrendPlaybackController.prototype.removeTrendPlayback,
+    RequestMethod.POST,
+    'process/trend-playback/delete',
+  ],
+  [
     FilesWatermarkExportController.prototype.export,
     RequestMethod.POST,
     'watermark-export',
@@ -169,6 +181,7 @@ describe('files controller boundaries', () => {
       FilesAudioOverlayController,
       FilesProcessingController,
       FilesStorageController,
+      FilesTrendPlaybackController,
       // FilesWatermarkExportController registers last: its only route
       // (`files/watermark-export`) is a static segment no earlier
       // controller's wildcard/param routes (e.g. `download/:type/*key`)

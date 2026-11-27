@@ -70,6 +70,20 @@ vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => ({ openRemix: mocks.openRemix }),
 }));
 
+vi.mock('@/components/analytics/trends/social-media-player', () => ({
+  default: ({
+    trendVideoId,
+    sourceUrl,
+  }: {
+    trendVideoId?: string | null;
+    sourceUrl?: string | null;
+  }) => (
+    <p>
+      Player for {trendVideoId ?? 'no trend video'} at {sourceUrl}
+    </p>
+  ),
+}));
+
 import DeskLightTableView from './desk-light-table-view';
 
 function buildItem(
@@ -411,7 +425,8 @@ describe('DeskLightTableView', () => {
         id: 'second',
         contentType: 'video' as const,
         title: 'Second video',
-        mediaUrl: 'https://www.tiktok.com/@creator/video/6718335390845095173',
+        mediaUrl: 'https://youtube.com/watch?v=9bZkp7q19f0',
+        thumbnailUrl: 'https://cdn.example.com/poster-2.jpg',
       },
     ];
     renderView({ items: videos });
@@ -426,6 +441,29 @@ describe('DeskLightTableView', () => {
     expect(document.querySelectorAll('iframe')).toHaveLength(1);
     expect(screen.queryByTitle('First video')).not.toBeInTheDocument();
     fireEvent.pointerLeave(second);
+    expect(document.querySelectorAll('iframe')).toHaveLength(0);
+  });
+
+  it('opens a video card in the Genfeed player instead of a platform embed', () => {
+    const video = {
+      ...ITEM,
+      contentType: 'video' as const,
+      id: 'video-1',
+      key: 'viral_video:video-1',
+      kind: 'viral_video' as const,
+      sourceUrl: 'https://www.tiktok.com/@creator/video/1',
+      thumbnailUrl: 'https://cdn.example.com/cover.jpg',
+      title: 'Dance clip',
+    };
+    renderView({ items: [video] });
+
+    fireEvent.click(screen.getByRole('button', { name: /Dance clip/ }));
+
+    expect(
+      screen.getByText(
+        'Player for video-1 at https://www.tiktok.com/@creator/video/1',
+      ),
+    ).toBeInTheDocument();
     expect(document.querySelectorAll('iframe')).toHaveLength(0);
   });
 

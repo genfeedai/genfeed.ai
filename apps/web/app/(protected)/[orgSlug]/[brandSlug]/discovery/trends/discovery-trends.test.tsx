@@ -367,7 +367,8 @@ describe('DiscoveryTrends', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByTestId('socials-platform-filter')).toBeInTheDocument();
+    // Platforms are a Filters facet like everywhere else, not a tab row.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(screen.getByTestId('container')).toBeInTheDocument();
     expect(await screen.findByText('AI video')).toBeInTheDocument();
     expect(screen.getByText('Creator ops')).toBeInTheDocument();

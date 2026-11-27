@@ -56,23 +56,8 @@ export class SkillCheckoutService {
     this.assertStripeCheckoutConfigured();
 
     const registry = await this.skillRegistryService.getRegistry();
-    const selectedSkill = dto.skillSlug
-      ? this.skillRegistryService.getSkillBySlug(registry, dto.skillSlug)
-      : undefined;
-
-    if (dto.skillSlug && !selectedSkill) {
-      throw new BadRequestException(
-        `Skills Pro skill "${dto.skillSlug}" is not available`,
-      );
-    }
-
-    const lineItem = selectedSkill
-      ? this.resolveSkillLineItem(selectedSkill)
-      : await this.resolveBundleLineItem();
-    const productType = selectedSkill ? 'skill' : 'bundle';
-    const entitledSlugs = selectedSkill
-      ? [selectedSkill.slug]
-      : registry.skills.map((skill) => skill.slug);
+    const lineItem = await this.resolveBundleLineItem();
+    const entitledSlugs = registry.skills.map((skill) => skill.slug);
 
     const appUrl = this.configService.get('GENFEEDAI_APP_URL');
     const defaultSuccessUrl = `${appUrl}/skills-pro/success?session_id={CHECKOUT_SESSION_ID}`;
@@ -90,9 +75,9 @@ export class SkillCheckoutService {
       ),
       line_items: [lineItem],
       metadata: {
-        bundle: String(productType === 'bundle'),
-        productType,
-        skillSlug: selectedSkill?.slug ?? '',
+        bundle: 'true',
+        productType: 'bundle',
+        skillSlug: '',
         skillSlugs: entitledSlugs.join(','),
         type: 'skills-pro',
       },
@@ -123,27 +108,6 @@ export class SkillCheckoutService {
     });
 
     return { url: session.url || '' };
-  }
-
-  private resolveSkillLineItem(
-    skill: Awaited<
-      ReturnType<SkillRegistryService['getRegistry']>
-    >['skills'][number],
-  ): CheckoutLineItem {
-    if (!Number.isInteger(skill.price) || !skill.price || skill.price <= 0) {
-      throw new BadRequestException(
-        `Skills Pro checkout is not configured for "${skill.slug}"`,
-      );
-    }
-
-    return {
-      price_data: {
-        currency: 'usd',
-        product_data: { name: skill.name },
-        unit_amount: skill.price,
-      },
-      quantity: 1,
-    };
   }
 
   private assertStripeCheckoutConfigured(): void {

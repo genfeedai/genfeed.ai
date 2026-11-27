@@ -254,7 +254,8 @@
       "outsideImage": "{subject} extends outside the image.",
       "pastEnd": "{subject} lands on frame {frame}, past the end of the clip.",
       "pathTooShort": "The path needs at least 2 points.",
-      "tooFewPoints": "{subject} needs at least 2 points."
+      "tooFewPoints": "{subject} needs at least 2 points.",
+      "unsupportedMode": "Only video transfer runs today. Switch the mode to video transfer."
     },
     "keyboardAnnotation": "Keyboard: arrow keys move the cursor or the selection (hold Shift for bigger steps). Enter places the chosen shape. Delete removes the selection. Ctrl Z undoes.",
     "keyboardTrajectory": "Keyboard: arrow keys move the cursor or the selection (hold Shift for bigger steps). Enter places a point. Delete removes the selection. Ctrl Z undoes.",

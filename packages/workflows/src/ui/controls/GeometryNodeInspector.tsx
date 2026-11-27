@@ -9,7 +9,7 @@ import { Button } from '@genfeedai/ui/primitives/button';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { readShapes } from '../lib/geometry';
+import { readShapes } from '../../engine/utils/geometry';
 import { PanelContainer } from '../panels/PanelContainer';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';

@@ -32,8 +32,7 @@ export type LoginSubmitMethod =
   | 'magic_link'
   | 'password'
   | 'social'
-  | 'desktop_code'
-  | 'local';
+  | 'desktop_code';
 
 /**
  * The surface an error belongs to. Each login page renders only its own:

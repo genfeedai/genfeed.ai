@@ -3,7 +3,6 @@
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -31,7 +30,6 @@ import type {
 } from '@/features/auth/props/login-better-auth.props';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
-import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
 
 import {
   getAuthCallbackURL,
@@ -154,17 +152,12 @@ export default function LoginBetterAuth({
   const isSubmitting = isLoginSubmitting(flow, 'magic_link');
   const isPasswordSubmitting = isLoginSubmitting(flow, 'password');
   const isSocialSubmitting = isLoginSubmitting(flow, 'social');
-  const isStartingLocalMode = isLoginSubmitting(flow, 'local');
   const isSubmittingDesktopCode = isLoginSubmitting(flow, 'desktop_code');
   const isWaitingForDesktopCode = isWaitingForDesktopSession(flow);
   const errorMessage = getLoginErrorMessage(flow, 'magic_link');
   const passwordErrorMessage = getLoginErrorMessage(flow, 'password');
   const socialErrorMessage = getLoginErrorMessage(flow, 'social');
   const desktopErrorMessage = getLoginErrorMessage(flow, 'desktop');
-  const {
-    isAvailable: isLocalWorkspaceAvailable,
-    isEnabled: isLocalWorkspaceEnabled,
-  } = useDesktopLocalWorkspaceFlag();
   const desktopSessionUnsubscribeRef = useRef<(() => void) | null>(null);
   const isWaitingForDesktopSessionRef = useRef(false);
   const callbackURL =
@@ -344,38 +337,6 @@ export default function LoginBetterAuth({
     }
   }
 
-  async function handleDesktopLocalMode() {
-    if (!isLocalWorkspaceAvailable || !isLocalWorkspaceEnabled) {
-      return;
-    }
-
-    const bridge = getDesktopBridge();
-    if (!bridge) {
-      dispatchFlow({
-        message:
-          'Local mode is unavailable because the desktop bridge could not be loaded.',
-        method: 'desktop',
-        type: 'fail',
-      });
-      return;
-    }
-
-    dispatchFlow({ method: 'local', type: 'submit' });
-    try {
-      await bridge.app.enableOfflineMode();
-      window.location.assign(APP_ROUTES.DESKTOP.LOCAL);
-    } catch (error) {
-      dispatchFlow({
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Local mode could not start. Your local data is still safe.',
-        method: 'desktop',
-        type: 'fail',
-      });
-    }
-  }
-
   function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     return runMagicLinkSubmit(sendMagicLink);
@@ -532,51 +493,29 @@ export default function LoginBetterAuth({
                 </Button>
               </Form>
             ) : (
-              <>
-                <Button
-                  type="button"
-                  variant={ButtonVariant.DEFAULT}
-                  onClick={() => void handleDesktopLogin()}
-                  isDisabled={!isDesktopBridgeAvailable}
-                  className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-                  withWrapper={false}
-                >
-                  {translate('loginForm.signInWithGenfeed')}
-                </Button>
-                {isLocalWorkspaceAvailable && isLocalWorkspaceEnabled ? (
-                  <Button
-                    type="button"
-                    variant={ButtonVariant.SECONDARY}
-                    isDisabled={
-                      !isDesktopBridgeAvailable || isStartingLocalMode
-                    }
-                    className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-                    withWrapper={false}
-                    onClick={() => void handleDesktopLocalMode()}
-                  >
-                    {isStartingLocalMode
-                      ? 'Starting local workspace…'
-                      : 'Use Local Workspace'}
-                  </Button>
-                ) : null}
-              </>
+              <Button
+                type="button"
+                variant={ButtonVariant.DEFAULT}
+                onClick={() => void handleDesktopLogin()}
+                isDisabled={!isDesktopBridgeAvailable}
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                {translate('loginForm.signInWithGenfeed')}
+              </Button>
             )
           }
           error={desktopErrorMessage}
           hideHeading
           supportingCopy={
-            <div className="space-y-2">
-              {isWaitingForDesktopCode ? (
-                <>
-                  <p aria-live="polite">
-                    {translate('loginForm.waitingForBrowser')}
-                  </p>
-                  <p>{translate('desktopAuth.pasteCodeHint')}</p>
-                </>
-              ) : isLocalWorkspaceAvailable && isLocalWorkspaceEnabled ? (
-                <p>{translate('desktopAuth.localModeHint')}</p>
-              ) : null}
-            </div>
+            isWaitingForDesktopCode ? (
+              <div className="space-y-2">
+                <p aria-live="polite">
+                  {translate('loginForm.waitingForBrowser')}
+                </p>
+                <p>{translate('desktopAuth.pasteCodeHint')}</p>
+              </div>
+            ) : null
           }
         />
       </AuthFormLayout>

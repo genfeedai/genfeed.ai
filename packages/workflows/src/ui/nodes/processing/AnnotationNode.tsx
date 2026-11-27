@@ -7,12 +7,12 @@ import type { NodeProps } from '@xyflow/react';
 import { Expand } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
+import { readShapes } from '../../../engine/utils/geometry';
 import GeometryThumb from '../../controls/GeometryThumb';
 import GroupedControls from '../../controls/GroupedControls';
 import { useGeometryEditorStore } from '../../controls/geometryEditorStore';
 import { useAnnotationControlGroups } from '../../controls/nodeControlGroups';
 import { useNodeImage } from '../../controls/useNodeImage';
-import { readShapes } from '../../lib/geometry';
 import { useUIStore } from '../../stores/uiStore';
 import { BaseNode } from '../BaseNode';
 
