@@ -51,7 +51,7 @@ const BRAVE_EXECUTABLE =
 const ORIGINS = [
   'https://genfeed.ai',
   'https://docs.genfeed.ai',
-  'https://marketplace.genfeed.ai',
+  'https://shop.genfeed.ai',
   'https://app.genfeed.ai',
 ];
 const EXTRACTION_METHOD =
@@ -61,7 +61,7 @@ const USER_AGENT =
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 const RETIRED_ROUTE_PREFIXES = new Map([
   ['https://genfeed.ai', ['/demo']],
-  ['https://marketplace.genfeed.ai', ['/blog', '/free', '/featured']],
+  ['https://shop.genfeed.ai', ['/blog', '/free', '/featured']],
 ]);
 const RESOURCE_EXTENSION =
   /\.(?:avif|bmp|css|csv|docx?|eot|gif|ico|jpe?g|js|json|map|mov|mp3|mp4|mpeg|ogg|otf|pdf|png|pptx?|rss|svg|tar|tiff?|ttf|txt|wav|webm|webp|woff2?|xlsx?|xml|zip)$/i;

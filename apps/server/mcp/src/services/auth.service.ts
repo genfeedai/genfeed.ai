@@ -61,6 +61,7 @@ export class AuthService {
     string,
     { result: AuthResult; expiresAt: number }
   >();
+  private readonly identityInFlight = new Map<string, Promise<AuthResult>>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -109,6 +110,47 @@ export class AuthService {
         }
       }
 
+      if (isUserIssuedApiKey) {
+        return await this.resolveIdentity(
+          bearerToken,
+          isUserIssuedApiKey,
+          cacheKey,
+        );
+      }
+      // Requests that arrive while the first one is still asking share its
+      // answer, so a burst on one connection makes one lookup, not one each.
+      const pending = this.identityInFlight.get(cacheKey);
+      if (pending) return await pending;
+      const lookup = this.resolveIdentity(
+        bearerToken,
+        isUserIssuedApiKey,
+        cacheKey,
+      ).finally(() => {
+        this.identityInFlight.delete(cacheKey);
+      });
+      this.identityInFlight.set(cacheKey, lookup);
+      return await lookup;
+    } catch (error: unknown) {
+      this.logger.error(
+        'Authentication check error:',
+        (error as Error)?.message,
+      );
+      return {
+        error: 'Auth service temporarily unavailable',
+        isUnavailable: true,
+        retryAfterSeconds: AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
+        valid: false,
+      };
+    }
+  }
+
+  /** One identity lookup against the API. Never throws: a failure is an `AuthResult`. */
+  private async resolveIdentity(
+    bearerToken: string,
+    isUserIssuedApiKey: boolean,
+    cacheKey: string,
+  ): Promise<AuthResult> {
+    try {
       const baseUrl = resolveApiBaseUrl(
         this.configService.get('GENFEEDAI_API_URL') as string | undefined,
       );

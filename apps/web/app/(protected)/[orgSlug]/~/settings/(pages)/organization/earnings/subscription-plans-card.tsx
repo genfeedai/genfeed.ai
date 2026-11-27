@@ -65,7 +65,7 @@ export default function SubscriptionPlansCard() {
       <Text as="p" size="sm" color="muted" className="max-w-2xl">
         {translate('description')}
       </Text>
-      <div className="divide-y divide-border rounded-lg border border-border">
+      <div className="divide-y divide-border">
         {data.map((plan) => (
           <SubscriptionPlanRow key={plan.brandId} plan={plan} onSave={save} />
         ))}

@@ -2,7 +2,7 @@
 
 `@genfeedai/styles`, `@genfeedai/ui`, `@genfeedai/helpers` and `@genfeedai/contracts` publish to
 npm from their own workflow, `.github/workflows/publish-shared-packages.yml`, without cutting a
-release. console.genfeed.ai and marketplace.genfeed.ai install them through `deps:update`.
+release. console.genfeed.ai and shop.genfeed.ai install them through `deps:update`.
 
 The CLI and the self-hosted scaffolder (`@genfeedai/cli`, `@genfeedai/create`) still publish from
 `release.yml` with every stable release.

@@ -8,6 +8,17 @@ import Link from 'next/link';
 const privacyPolicySections = [
   {
     content: [
+      'Genfeed is operated by Decoders Labs Ltd, Malta.',
+      'When you connect an AI assistant, Genfeed processes the tool inputs and account-scoped results needed to carry out your content request. Depending on the action, these include brand context, draft text, prompts, media, publishing targets and performance data. Relevant inputs may be shared with the configured media or social provider to fulfill that action.',
+      'Genfeed stores account, content and operational records needed for the service. The agent package does not request bulk chat histories or scan local credentials. Account permissions and approval requirements apply to connector operations.',
+      'For privacy requests, contact privacy@genfeed.ai.',
+    ],
+    id: 'operator',
+    shortLabel: 'Operator',
+    title: 'Who we are and AI assistant connections',
+  },
+  {
+    content: [
       'We collect information you provide directly to us when creating a brand, using our services, or contacting our support team. This may include your name, email address, payment information, and content you generate using our platform.',
       'We also automatically collect certain information about your device and how you interact with our platform, including IP address, browser type, and usage statistics.',
     ],

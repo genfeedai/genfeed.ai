@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   PAYG_CREDIT_PACKS,
   PAYG_CREDITS_PER_USD,
@@ -9,17 +9,26 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  inputGroupButtonClassName,
+} from '@ui/primitives/input-group';
+import { Label } from '@ui/primitives/label';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, Minus, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import type { CreditTopUpPanelProps } from '@/features/settings/props/credit-top-up-panel.props';
 
 const DIGITS_ONLY_PATTERN = /^\d+$/;
+const COMMAS_PATTERN = /,/g;
+/** The − and + buttons of the custom field move the amount by this many dollars. */
+const CUSTOM_STEP_USD = 10;
 
 function parseUsd(value: string): number | null {
-  const normalized = value.trim();
+  const normalized = value.trim().replace(COMMAS_PATTERN, '');
   if (!DIGITS_ONLY_PATTERN.test(normalized)) {
     return null;
   }
@@ -29,7 +38,7 @@ function parseUsd(value: string): number | null {
 }
 
 function formatUsd(value: number): string {
-  return `$${value.toLocaleString()}`;
+  return `$${value.toLocaleString('en-US')}`;
 }
 
 const CUSTOM_AMOUNT = 'custom';
@@ -39,11 +48,12 @@ export default function CreditTopUpPanel({
   isSubmitDisabled = false,
   isStartingCheckout,
   secondaryAction,
-  submitLabel = 'Add credit',
-  title = 'Add credits',
+  submitLabel,
+  title,
   onSubmit,
 }: CreditTopUpPanelProps): ReactElement {
   const selectionLabels = useTranslations('ui.selectionGroups');
+  const translate = useTranslations('ui.creditTopUp');
   const [selectedUsd, setSelectedUsd] = useState<number | null>(null);
   const [isCustom, setIsCustom] = useState(false);
   const [customValue, setCustomValue] = useState('');
@@ -60,16 +70,33 @@ export default function CreditTopUpPanel({
       return null;
     }
     if (customUsd === null) {
-      return 'Enter a whole-dollar amount.';
+      return translate('customErrorWholeDollars');
     }
     if (isBelowMin) {
-      return `Minimum ${formatUsd(PAYG_MIN_PURCHASE_USD)}.`;
+      return translate('customErrorMin', {
+        min: formatUsd(PAYG_MIN_PURCHASE_USD),
+      });
     }
     if (isAboveMax) {
-      return `Maximum ${formatUsd(PAYG_MAX_PURCHASE_USD)}. Contact support for more.`;
+      return translate('customErrorMax', {
+        max: formatUsd(PAYG_MAX_PURCHASE_USD),
+      });
     }
     return null;
   })();
+
+  const stepCustomAmount = (deltaUsd: number) => {
+    const base = customUsd ?? 0;
+    const next =
+      base < PAYG_MIN_PURCHASE_USD && deltaUsd > 0
+        ? PAYG_MIN_PURCHASE_USD
+        : base + deltaUsd;
+    setCustomValue(
+      String(
+        Math.min(PAYG_MAX_PURCHASE_USD, Math.max(PAYG_MIN_PURCHASE_USD, next)),
+      ),
+    );
+  };
 
   const handleSubmit = () => {
     if (!isValid || usd === null) {
@@ -81,106 +108,150 @@ export default function CreditTopUpPanel({
 
   return (
     <Card
-      label={title}
-      description="Credits land within a few minutes and expire after one year."
+      label={title ?? translate('title')}
+      description={translate('description')}
     >
       <div className="space-y-3">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">Amount</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <OptionTileGroup
-              ariaLabel={selectionLabels('creditAmount')}
-              columns="auto"
-              onValueChange={(value) => {
-                if (value === CUSTOM_AMOUNT) {
-                  setIsCustom(true);
-                  return;
-                }
-                setIsCustom(false);
-                setSelectedUsd(Number(value));
-              }}
-              value={
-                isCustom
-                  ? CUSTOM_AMOUNT
-                  : selectedUsd === null
-                    ? undefined
-                    : String(selectedUsd)
+          <p className="text-sm font-medium text-foreground">
+            {translate('amountLabel')}
+          </p>
+          <OptionTileGroup
+            ariaLabel={selectionLabels('creditAmount')}
+            columns="auto"
+            onValueChange={(value) => {
+              if (value === CUSTOM_AMOUNT) {
+                setIsCustom(true);
+                return;
               }
-            >
-              {PAYG_CREDIT_PACKS.map((pack) => (
-                <OptionTile
-                  ariaLabel={`${pack.label}, ${pack.credits.toLocaleString('en-US')} credits`}
-                  className="w-auto"
-                  description={`${pack.credits.toLocaleString()} credits`}
-                  key={pack.label}
-                  layout="stack"
-                  size="sm"
-                  title={pack.label}
-                  value={String(pack.credits / PAYG_CREDITS_PER_USD)}
-                />
-              ))}
+              setIsCustom(false);
+              setSelectedUsd(Number(value));
+            }}
+            value={
+              isCustom
+                ? CUSTOM_AMOUNT
+                : selectedUsd === null
+                  ? undefined
+                  : String(selectedUsd)
+            }
+          >
+            {PAYG_CREDIT_PACKS.map((pack) => (
               <OptionTile
-                ariaLabel="Custom credit amount"
+                ariaLabel={`${pack.label}, ${pack.credits.toLocaleString('en-US')} credits`}
                 className="w-auto"
+                description={`${pack.credits.toLocaleString('en-US')} credits`}
+                key={pack.label}
                 layout="stack"
                 size="sm"
-                title="Custom"
-                value={CUSTOM_AMOUNT}
+                title={pack.label}
+                value={String(pack.credits / PAYG_CREDITS_PER_USD)}
               />
-            </OptionTileGroup>
-
-            {isCustom ? (
-              <div
-                className={cn(
-                  'inline-flex h-9 max-w-full items-stretch overflow-hidden rounded border bg-muted/40',
-                  customError
-                    ? 'border-destructive'
-                    : 'border-border focus-within:border-border-strong',
-                )}
-              >
-                <span
-                  className="inline-flex items-center border-r border-border px-2.5 text-sm font-medium text-muted-foreground"
-                  aria-hidden="true"
-                >
-                  $
-                </span>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={PAYG_MIN_PURCHASE_USD}
-                  max={PAYG_MAX_PURCHASE_USD}
-                  step={1}
-                  value={customValue}
-                  hasError={Boolean(customError)}
-                  onChange={(event) => setCustomValue(event.target.value)}
-                  placeholder={String(PAYG_MIN_PURCHASE_USD)}
-                  aria-label="Custom credit top-up amount in dollars"
-                  aria-describedby="custom-credit-amount-hint"
-                  aria-invalid={Boolean(customError)}
-                  className="h-full w-20 min-w-0 rounded-none border-0 bg-transparent px-2.5 shadow-none focus-visible:border-0 focus-visible:ring-0"
-                />
-                <span
-                  id="custom-credit-amount-hint"
-                  className={cn(
-                    'inline-flex items-center border-l border-border px-2.5 text-xs tabular-nums whitespace-nowrap',
-                    customError ? 'text-destructive' : 'text-muted-foreground',
-                  )}
-                >
-                  {customError ??
-                    `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
-                </span>
-              </div>
-            ) : null}
-          </div>
+            ))}
+            <OptionTile
+              ariaLabel={translate('customTileLabel')}
+              className="w-auto"
+              description={translate('customTileRange', {
+                max: formatUsd(PAYG_MAX_PURCHASE_USD),
+                min: formatUsd(PAYG_MIN_PURCHASE_USD),
+              })}
+              layout="stack"
+              size="sm"
+              title={translate('customTileTitle')}
+              value={CUSTOM_AMOUNT}
+            />
+          </OptionTileGroup>
         </div>
+
+        {isCustom ? (
+          <div className="flex max-w-sm flex-col gap-1.5">
+            <Label htmlFor="custom-credit-amount">
+              {translate('customAmountLabel')}
+            </Label>
+            <InputGroup
+              aria-label={translate('customAmountGroup')}
+              className={cn(
+                'h-10 [&>*+*]:border-l-0 [&>button:last-child]:border-l [&>button:last-child]:border-border',
+                customError
+                  ? 'border-destructive'
+                  : 'focus-within:border-border-strong',
+              )}
+            >
+              <Button
+                ariaLabel={translate('decreaseAmount', {
+                  amount: formatUsd(CUSTOM_STEP_USD),
+                })}
+                className={cn(inputGroupButtonClassName, 'h-full w-10')}
+                icon={<Minus className="size-4" />}
+                isDisabled={(customUsd ?? 0) <= PAYG_MIN_PURCHASE_USD}
+                onClick={() => stepCustomAmount(-CUSTOM_STEP_USD)}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+              <InputGroupAddon
+                aria-hidden="true"
+                className="border-l border-border pr-0 text-base text-muted-foreground"
+              >
+                $
+              </InputGroupAddon>
+              <Input
+                aria-describedby="custom-credit-amount-hint"
+                aria-invalid={Boolean(customError)}
+                aria-label={translate('customAmountInput')}
+                autoFocus
+                className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2 text-base font-medium tabular-nums shadow-none focus-visible:border-0 focus-visible:ring-0"
+                hasError={Boolean(customError)}
+                id="custom-credit-amount"
+                inputMode="numeric"
+                onChange={(event) => setCustomValue(event.target.value)}
+                placeholder="25"
+                value={customValue}
+              />
+              <InputGroupAddon className="text-xs font-normal tabular-nums text-muted-foreground">
+                {isValid
+                  ? translate('creditsCount', {
+                      count: credits.toLocaleString('en-US'),
+                    })
+                  : translate('creditsUnit')}
+              </InputGroupAddon>
+              <Button
+                ariaLabel={translate('increaseAmount', {
+                  amount: formatUsd(CUSTOM_STEP_USD),
+                })}
+                className={cn(inputGroupButtonClassName, 'h-full w-10')}
+                icon={<Plus className="size-4" />}
+                isDisabled={(customUsd ?? 0) >= PAYG_MAX_PURCHASE_USD}
+                onClick={() => stepCustomAmount(CUSTOM_STEP_USD)}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </InputGroup>
+            <p
+              className={cn(
+                'text-xs',
+                customError ? 'text-destructive' : 'text-muted-foreground',
+              )}
+              id="custom-credit-amount-hint"
+            >
+              {customError ??
+                translate('customAmountRange', {
+                  max: formatUsd(PAYG_MAX_PURCHASE_USD),
+                  min: formatUsd(PAYG_MIN_PURCHASE_USD),
+                  rate: PAYG_CREDITS_PER_USD,
+                })}
+            </p>
+          </div>
+        ) : null}
 
         {helperContent}
 
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Payment</p>
+          <p className="text-sm font-medium text-foreground">
+            {translate('paymentLabel')}
+          </p>
           <p className="text-xs leading-5 text-muted-foreground">
-            Checkout opens Stripe securely. Card details are collected there —
-            not stored in Genfeed.
+            {translate('paymentBody')}
           </p>
         </div>
 
@@ -189,12 +260,16 @@ export default function CreditTopUpPanel({
             {isValid ? (
               <>
                 <span className="font-medium text-foreground">
-                  {credits.toLocaleString()} credits
+                  {translate('creditsCount', {
+                    count: credits.toLocaleString('en-US'),
+                  })}
                 </span>{' '}
-                for {formatUsd(usd ?? 0)}
+                {translate('forAmount', { amount: formatUsd(usd ?? 0) })}
               </>
+            ) : isCustom ? (
+              translate('enterAmountPrompt')
             ) : (
-              'Choose an amount to continue.'
+              translate('chooseAmountPrompt')
             )}
           </p>
 
@@ -207,7 +282,9 @@ export default function CreditTopUpPanel({
               isLoading={isStartingCheckout}
               icon={<CreditCard className="size-4" />}
             >
-              {isStartingCheckout ? 'Opening checkout...' : submitLabel}
+              {isStartingCheckout
+                ? translate('openingCheckout')
+                : (submitLabel ?? translate('submitLabel'))}
             </Button>
           </div>
         </div>
