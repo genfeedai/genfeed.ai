@@ -294,10 +294,10 @@ export default function AgentConnectDialog({
                       </AccordionTrigger>
                       <AccordionContent>
                         <p className="text-sm leading-6 text-foreground/80">
-                          Sign in or create your free Genfeed account when
-                          prompted, then approve access. Ask {client.name} to
-                          show your brands. Generation in Genfeed uses your
-                          Genfeed credits.
+                          Sign in or create your Genfeed account when prompted,
+                          then approve access. Ask {client.name} to show your
+                          brands. Generation in Genfeed uses your Genfeed
+                          credits.
                         </p>
                       </AccordionContent>
                     </AccordionItem>

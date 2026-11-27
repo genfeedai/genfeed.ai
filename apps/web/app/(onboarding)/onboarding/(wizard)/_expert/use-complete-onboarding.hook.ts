@@ -2,15 +2,18 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { PostStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
+import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useCallback } from 'react';
@@ -18,7 +21,46 @@ import type { CompleteOnboardingOptions } from '@/features/onboarding/props/comp
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 /**
- * Finish the onboarding gate and enter the brand workspace. Shared by the
+ * Where a finished onboarding lands in the brand workspace: its drafts when
+ * the onboarding made some, else the workspace overview.
+ */
+export function resolveOnboardingExitHref(
+  brand: IBrand | null | undefined,
+  isLandingOnDrafts = false,
+): string {
+  const org = brand?.organization;
+  const orgSlug =
+    org && typeof org === 'object' && 'slug' in org
+      ? (org as { slug: string }).slug
+      : '';
+  const brandSlug = brand?.slug ?? '';
+  const scopedPath = isLandingOnDrafts
+    ? createPublishingPostsFilterRoute({ status: PostStatus.DRAFT })
+    : '/workspace';
+  return orgSlug && brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, scopedPath)
+    : APP_ROUTES.WORKSPACE.OVERVIEW;
+}
+
+/**
+ * Whether the organization never paid, read from the access bootstrap. Only a
+ * billing deployment asks; a failed read answers false, since the API refuses
+ * an unpaid publish on its own and the plan choice is not the gate.
+ */
+export async function readIsNeverPaid(token: string): Promise<boolean> {
+  if (!hasOrganizationBillingHint()) return false;
+  try {
+    const { access } = await AuthService.getInstance(token).getBootstrap();
+    return access.trialEndsAt != null && access.isSuperAdmin !== true;
+  } catch (error) {
+    logger.error('Failed to read whether the organization paid', error);
+    return false;
+  }
+}
+
+/**
+ * Finish the onboarding gate and enter the brand workspace, or the plan and
+ * credits choice for an organization that never paid. Shared by the
  * classic success step and the Expert Path `first-system` step.
  */
 export function useCompleteOnboarding(): (
@@ -46,6 +88,7 @@ export function useCompleteOnboarding(): (
       // A replay by an already-onboarded user writes nothing: the completion
       // claim, its funnel event and the finished-onboarding announcement all
       // already happened.
+      let isNeverPaid = false;
       if (!isReplay) {
         try {
           const token = await resolveAuthToken(getToken, {
@@ -56,6 +99,7 @@ export function useCompleteOnboarding(): (
             isOnboardingCompleted: true,
           });
           await user?.reload();
+          isNeverPaid = await readIsNeverPaid(token);
         } catch (error) {
           logger.error('Failed to complete funnel', error);
           throw error;
@@ -74,20 +118,12 @@ export function useCompleteOnboarding(): (
         localStorage.removeItem(key);
       }
 
-      const org = selectedBrand?.organization;
-      const orgSlug =
-        org && typeof org === 'object' && 'slug' in org
-          ? (org as { slug: string }).slug
-          : '';
-      const brandSlug = selectedBrand?.slug ?? '';
-
-      const scopedPath = options.isLandingOnDrafts
-        ? createPublishingPostsFilterRoute({ status: PostStatus.DRAFT })
-        : '/workspace';
+      // Cloud has no free tier: an organization that never paid leaves the
+      // onboarding on the plan and credits choice. Its drafts stay readable.
       window.location.assign(
-        orgSlug && brandSlug
-          ? createBrandAppRoute(orgSlug, brandSlug, scopedPath)
-          : APP_ROUTES.WORKSPACE.OVERVIEW,
+        isNeverPaid
+          ? APP_ROUTES.ONBOARDING.PLANS
+          : resolveOnboardingExitHref(selectedBrand, options.isLandingOnDrafts),
       );
     },
     [getToken, isReplay, selectedBrand, user],

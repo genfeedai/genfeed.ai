@@ -86,6 +86,10 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('next/image', () => ({
   default: ({ alt }: { alt?: string }) => (
     <div data-testid="next-image">{alt ?? 'image'}</div>
@@ -149,6 +153,17 @@ describe('SuccessContent behavior', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('states the sign-up gift and the verified-card grant, not their sum', () => {
+    render(<SuccessContent />);
+
+    expect(
+      screen.getByText(
+        '25 credits now, 75 more when you add a verified card. Free credits last 72 hours.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/100/)).not.toBeInTheDocument();
   });
 
   it('cleans onboarding storage keys and routes into the workspace after completion', async () => {

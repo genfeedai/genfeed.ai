@@ -15,7 +15,7 @@ describe('AgentFirstActions', () => {
     const links = [...document.querySelectorAll('button, a')];
     expect(links.map((link) => link.textContent)).toEqual([
       'Connect Agent',
-      'Start for $0',
+      'Start creating',
     ]);
     expect(links[0]).toHaveAttribute('aria-haspopup', 'dialog');
     expect(links[1]).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');

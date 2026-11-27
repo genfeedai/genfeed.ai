@@ -18,15 +18,12 @@ export type PublishingQuotaKey = (typeof PUBLISHING_QUOTA_KEYS)[number];
 /**
  * What an organization has paid, which sets how many posts a day each
  * connected account may publish:
- * - `trial`: never paid. 1 post a day per account, locked.
+ * - `trial`: never paid. Publishes nothing until the first payment, locked.
  * - `credits`: bought credits, no plan. The cap is editable up to a low ceiling.
  * - `plan`: on a paid plan. The cap is editable up to a higher ceiling.
  * - `unmetered`: no organization billing (self-hosted). The owner's cap stands.
  */
 export type PublishingQuotaTier = 'trial' | 'credits' | 'plan' | 'unmetered';
-
-/** Posts a day, per connected account, for an organization that never paid. */
-export const PUBLISHING_QUOTA_TRIAL_LIMIT = 1;
 
 /** How high the cap can be set for each paid tier. */
 export const PUBLISHING_QUOTA_CEILINGS: Record<
@@ -52,15 +49,17 @@ export function resolvePublishingQuotaCeiling(
   tier: PublishingQuotaTier,
   key: PublishingQuotaKey,
 ): number {
-  if (tier === 'trial') return PUBLISHING_QUOTA_TRIAL_LIMIT;
+  // Cloud has no free tier: a never-paid organization publishes nothing.
+  if (tier === 'trial') return 0;
   if (tier === 'unmetered') return PUBLISHING_QUOTA_MAX;
   return PUBLISHING_QUOTA_CEILINGS[tier][key];
 }
 
 /**
  * The daily limit that is enforced for one account: the owner's cap held to
- * the tier's ceiling. A never-paid organization is always at the trial limit,
- * and a paid one cannot be unmetered (a cap of 0 or below means the ceiling).
+ * the tier's ceiling. A never-paid organization is held at 0 (it publishes
+ * nothing; callers must not read that 0 as unmetered), and a paid one cannot
+ * be unmetered (a cap of 0 or below means the ceiling).
  * Without organization billing the owner's cap stands, and 0 stays unmetered.
  */
 export function resolveEffectivePublishingQuota(

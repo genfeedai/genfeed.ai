@@ -11,6 +11,16 @@ export function getAppUrl(route: string, search = ''): string {
   return `${EnvironmentService.apps.app}${route}${search}`;
 }
 
+/**
+ * The one label every sign-up button on the site reads. Genfeed Cloud has no
+ * free tier: a new account tries Genfeed on its own brand during onboarding,
+ * and publishing starts with the first payment (a plan or a credit pack).
+ */
+export const SIGN_UP_LABEL = 'Start creating';
+
+/** The same offer as a sentence, where a call to action needs one. */
+export const SIGN_UP_OFFER = 'Try it on your brand, pay when you publish.';
+
 export function getAppSignUpUrl(search = ''): string {
   return getAppUrl(APP_ROUTES.SIGN_UP, search);
 }

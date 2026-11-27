@@ -9,6 +9,7 @@ import {
   orderedPostIngredientLinks,
   replacePostIngredientLinks,
 } from '@api/collections/posts/services/post-ingredient-links.util';
+import { assertPublishingPaymentAdmission } from '@api/collections/posts/services/post-publishing-payment-admission.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
@@ -275,6 +276,14 @@ export async function batchSchedulePosts(
     existingPosts.map((post: ExistingPost) => [post.id, post]),
   );
   const missingPostIds = requestedIds.filter((id) => !existingById.has(id));
+  if (existingPosts.length > 0) {
+    // Scheduling is a publish intent: an organization that never paid is
+    // refused before anything is written.
+    await assertPublishingPaymentAdmission(context.prisma, {
+      organizationId,
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+  }
 
   // Mutability is a read-only guard, so it runs concurrently ahead of the
   // transaction rather than once per post inside the write loop.

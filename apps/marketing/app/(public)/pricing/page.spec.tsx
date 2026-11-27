@@ -38,12 +38,12 @@ describe('pricing metadata', () => {
     );
     expect(jsonLd.description).toContain('Done for you is from $2,500/month');
   });
-  it('lists PAYG as free and Pro as a monthly offer, with the managed retainer as a separate service', () => {
+  it('lists PAYG from its smallest credit pack and Pro as a monthly offer, with the managed retainer as a separate service', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
     const payg = jsonLd.mainEntity.offers.find(
       (offer) => offer.name === 'Pay As You Go',
     );
-    expect(payg?.price).toBe('0');
+    expect(payg?.price).toBe('10');
     expect(payg?.priceSpecification).toBeUndefined();
     const pro = jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro');
     expect(pro?.price).toBe('49');

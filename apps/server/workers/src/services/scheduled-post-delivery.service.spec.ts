@@ -3060,6 +3060,27 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('refuses a post an organization scheduled before it paid, pointing at the plans', async () => {
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 0,
+      dailyLimit: 0,
+      requiresPayment: true,
+    });
+    const post = createScheduledPost();
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(mocks.publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining('/onboarding/plans'),
+        executionState: TargetExecutionState.FAILED,
+        success: false,
+      }),
+    );
+  });
+
   it('publishes thread children after a successful parent delivery', async () => {
     const publishThreadChildren = vi.fn().mockResolvedValue(undefined);
     mocks.publisherFactory.getPublisher.mockReturnValue({

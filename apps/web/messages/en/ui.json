@@ -677,6 +677,13 @@
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
   },
+  "publishingPaymentPrompt": {
+    "title": "Pick a plan to publish",
+    "heading": "Publishing starts with your first payment",
+    "body": "Your drafts stay saved. A plan or a credit pack unlocks publishing and scheduling.",
+    "buyCredits": "Buy credits",
+    "seePlans": "See plans"
+  },
   "upgradePrompt": {
     "title": "{quality} quality is on {plan}",
     "titleFallback": "Upgrade your plan",

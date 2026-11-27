@@ -54,7 +54,7 @@ export const EDITORIAL_OG_ARTWORKS = {
     headline: ['Delegate', 'Create', 'Grow'],
     route: '/hire-agents',
   },
-  pricing: { headline: ['Start free', 'Grow faster'], route: '/pricing' },
+  pricing: { headline: ['Pay when', 'you publish'], route: '/pricing' },
   publishing: {
     headline: ['Publish', 'everywhere'],
     route: '/products/publishing',

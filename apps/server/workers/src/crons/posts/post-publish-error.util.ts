@@ -30,6 +30,8 @@ export type QuotaCheckResult = {
   allowed: boolean;
   currentCount: number;
   dailyLimit: number;
+  /** The organization never paid: publishing starts with its first payment. */
+  requiresPayment?: boolean;
 };
 
 export function getPublishErrorMessage(error: unknown): string {

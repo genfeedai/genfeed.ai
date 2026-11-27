@@ -1,10 +1,9 @@
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useState } from 'react';
 import type { AddCreditsCardProps } from '@/features/settings/props/add-credits-card.props';
+import { useStartCheckout } from '@/hooks/data/subscription/use-start-checkout/use-start-checkout';
 import CreditTopUpPanel from '../credits/credit-top-up-panel';
 
 export default function AddCreditsCard({
@@ -12,9 +11,7 @@ export default function AddCreditsCard({
 }: AddCreditsCardProps) {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
-  const getStripeService = useAuthedService((token: string) =>
-    StripeService.getInstance(token),
-  );
+  const openCheckout = useStartCheckout();
 
   const handleAddCredits = async ({ credits }: { credits: number }) => {
     const paygPriceId = EnvironmentService.plans.payg;
@@ -28,20 +25,11 @@ export default function AddCreditsCard({
     setIsStartingCheckout(true);
 
     try {
-      const service = await getStripeService();
-      const result = await service.createCheckoutSession({
-        cancelUrl: window.location.href,
+      await openCheckout({
         quantity: credits,
         stripePriceId: paygPriceId,
         successUrl: `${window.location.origin}${window.location.pathname}?credits=success`,
       });
-
-      if (result?.url) {
-        window.location.href = result.url;
-        return;
-      }
-
-      throw new Error('Checkout session did not return a URL');
     } catch (error) {
       const isForbidden =
         typeof error === 'object' &&

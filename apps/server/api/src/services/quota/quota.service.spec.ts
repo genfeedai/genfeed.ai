@@ -230,14 +230,9 @@ describe('QuotaService', () => {
       quotaYoutube: 5,
     };
 
-    it.each([
-      ['TWITTER', 1],
-      ['INSTAGRAM', 1],
-      ['YOUTUBE', 1],
-      ['TIKTOK', 1],
-    ])(
-      'holds a never-paid organization to 1 post a day on %s whatever its cap says',
-      async (platform, dailyLimit) => {
+    it.each(['TWITTER', 'INSTAGRAM', 'YOUTUBE', 'TIKTOK'])(
+      'refuses a never-paid organization on %s whatever its cap says, asking for a payment',
+      async (platform) => {
         mockQuotaTiers.resolve.mockResolvedValueOnce('trial');
         mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
           ...owner,
@@ -245,29 +240,39 @@ describe('QuotaService', () => {
           quotaTwitter: 0,
           quotaYoutube: 100,
         });
-        mockPostsService.count.mockResolvedValueOnce(1);
 
         const result = await service.checkQuota(
           makeCredential(platform),
           makeOrganization(),
         );
 
-        expect(result.dailyLimit).toBe(dailyLimit);
-        expect(result.allowed).toBe(false);
+        expect(result).toMatchObject({
+          allowed: false,
+          dailyLimit: 0,
+          requiresPayment: true,
+        });
       },
     );
 
-    it('lets a never-paid organization publish its first post of the day', async () => {
+    it('answers a never-paid publish with 402 and the plans link', async () => {
       mockQuotaTiers.resolve.mockResolvedValueOnce('trial');
-      mockOrganizationSettingsService.findOne.mockResolvedValueOnce(owner);
-      mockPostsService.count.mockResolvedValueOnce(0);
-
-      const result = await service.checkQuota(
-        makeCredential('INSTAGRAM'),
+      mockOrganizationsService.findOne.mockResolvedValueOnce(
         makeOrganization(),
       );
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce(owner);
 
-      expect(result).toMatchObject({ allowed: true, dailyLimit: 1 });
+      const error = await service
+        .verifyQuota(makeCredential('INSTAGRAM'), 'org-1')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'publishing_payment_required',
+        meta: { upgradeUrl: 'https://app.genfeed.ai/onboarding/plans' },
+      });
     });
 
     it('holds a credit buyer to 5 a day on X though its cap says 15', async () => {

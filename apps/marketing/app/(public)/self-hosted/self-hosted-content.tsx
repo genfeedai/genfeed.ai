@@ -1,4 +1,4 @@
-import { getAppSignUpUrl } from '@data/app-links';
+import { getAppSignUpUrl, SIGN_UP_LABEL } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
@@ -76,7 +76,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Self-host gives you full control and zero platform fees, but you run the infrastructure and updates yourself, and you bring your own model provider keys. Managed cloud handles all of that, adds managed credits and support, and starts free. Most teams self-host to evaluate, then move to cloud to skip the ops.',
+      'Self-host gives you full control and zero platform fees, but you run the infrastructure and updates yourself, and you bring your own model provider keys. Managed cloud handles all of that, adds managed credits and support, and you pay when you publish. Most teams self-host to evaluate, then move to cloud to skip the ops.',
     question: 'Self-host or managed cloud?',
   },
   {
@@ -99,7 +99,7 @@ export default function SelfHostedContent() {
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         title={<>Open source. Self-host on your own infra.</>}
-        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops and start free on managed cloud."
+        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops on managed cloud and pay when you publish."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -122,7 +122,7 @@ export default function SelfHostedContent() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Start free on cloud
+                {SIGN_UP_LABEL}
               </a>
             </Button>
           </div>
@@ -281,7 +281,7 @@ export default function SelfHostedContent() {
                   'Managed credits: pay only for output',
                   'No ops, no scaling to manage',
                   'Direct support and SLAs on paid plans',
-                  'Start free on Pay As You Go',
+                  'Try it on your brand, pay when you publish',
                 ].map((item) => (
                   <li
                     key={item}
@@ -308,11 +308,11 @@ export default function SelfHostedContent() {
         <CtaSection
           bg="subtle"
           title="Ship it your way"
-          description="Start free on managed cloud, or deploy the open-source core on your own infrastructure."
+          description="Use managed cloud and pay when you publish, or deploy the open-source core free on your own infrastructure."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={cloudSignUpHref} target="_blank" rel="noopener noreferrer">
-              Start free on cloud
+              {SIGN_UP_LABEL}
             </a>
           </Button>
           <Button

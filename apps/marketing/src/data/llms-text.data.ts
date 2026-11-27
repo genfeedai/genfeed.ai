@@ -23,7 +23,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 
 const BASE_URL = 'https://genfeed.ai';
-const PRICING_SUMMARY = `${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom). Free to join.`;
+const PRICING_SUMMARY = `${PLAN_COPY.payg.name} (${PLAN_COPY.payg.monthlyPrice}), ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom). Try it on your brand, pay when you publish.`;
 const PUBLIC_MODELS_API_URL = 'https://api.genfeed.ai/v1/public/models';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -186,7 +186,7 @@ export function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    `> ${metadata.description} Start free, then ${PLAN_COPY.scale.name} from ${PLAN_COPY.scale.monthlyPrice}.`,
+    `> ${metadata.description} Try it on your brand, pay when you publish: ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice}, or credits from $10.`,
   );
   lines.push('');
 
@@ -262,7 +262,7 @@ export function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom)`,
+    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.payg.name} (${PLAN_COPY.payg.monthlyPrice}), ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom)`,
   );
   lines.push(
     `- [Brand OS for experts](${BASE_URL}/experts): Turn interviews, talks, and call notes into a scored positioning system and a reviewable content plan — nothing publishes without the expert's approval`,
@@ -360,7 +360,7 @@ export function buildLlmsFull(
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    `> ${metadata.description} Start free, then ${PLAN_COPY.scale.name} from ${PLAN_COPY.scale.monthlyPrice}.`,
+    `> ${metadata.description} Try it on your brand, pay when you publish: ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice}, or credits from $10.`,
   );
   s.push('');
 
@@ -461,14 +461,14 @@ export function buildLlmsFull(
   s.push('## Pricing');
   s.push('');
   s.push(
-    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, higher API limits, and unlimited team seats. API access is included on every plan. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} includes one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+    `Genfeed Cloud has no free tier: you try it on your brand during onboarding, and publishing starts with your first payment, a plan or a credit pack. Credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, higher API limits, and unlimited team seats. API access is included on every plan. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} includes one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
   );
   s.push('');
 
   for (const plan of websitePlans) {
     const priceStr =
       plan.price === 0
-        ? 'Free, pay-per-output credits'
+        ? 'No subscription, pay-per-output credits from $10'
         : plan.price === null
           ? 'Contact Sales'
           : plan.includedCredits

@@ -17,7 +17,7 @@ export type {
 export const ONBOARDING_SIGNUP_GIFT_CREDITS = 25;
 
 /**
- * Granted once per user when onboarding is finished or skipped. It stacks on
+ * Granted once per user against a verified card (`cardKey`). It stacks on
  * the signup gift: together they fund the 3-day free trial
  * (`FREE_TRIAL_DURATION_MS`), after which unspent free credits expire for an
  * organization that never paid.

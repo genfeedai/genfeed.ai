@@ -16,7 +16,7 @@ const PILLAR_COLUMNS: {
   subtitle: string;
   tier: PlanTier;
 }[] = [
-  { priceSuffix: ' + PAYG', subtitle: 'Default', tier: 'payg' },
+  { subtitle: 'Credits only', tier: 'payg' },
   { subtitle: 'Creators', tier: 'pro' },
   { subtitle: 'Agencies', tier: 'scale' },
   { subtitle: 'Studios', tier: 'enterprise' },

@@ -1082,15 +1082,16 @@
       "hint": {
         "credits": "Up to {max} with credits. A plan raises it to {planMax}.",
         "plan": "Up to {max} on your plan.",
-        "trial": "Locked at 1 until your first payment",
+        "trial": "Locked until your first payment",
         "unmetered": "Set how many posts each account may publish per day. 0 = no cap."
       },
+      "locked": "Locked",
       "noCap": "No cap",
       "notice": {
         "choosePlan": "Choose a plan",
         "creditsBody": "Credits cover every post, X included. A plan raises how high these sliders go.",
         "creditsTitle": "Want to post more?",
-        "trial": "Free credits let you try Genfeed with 1 post / day on each account. Your first payment, credits or a plan, unlocks these sliders."
+        "trial": "Publishing and scheduling start with your first payment. A plan or a credit pack unlocks these sliders; your drafts stay saved."
       },
       "perDay": "{count} / day",
       "platforms": {

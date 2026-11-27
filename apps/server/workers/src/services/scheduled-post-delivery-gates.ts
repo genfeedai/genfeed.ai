@@ -27,6 +27,10 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  PUBLISHING_PAYMENT_REQUIRED_CODE,
+  publishingPaymentMessage,
+} from '@genfeedai/contracts/api-types/contracts/publishing-payment.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
   TIKTOK_DELIVERY_MODE_APP,
@@ -431,6 +435,22 @@ export class ScheduledPostDeliveryGates {
       return null;
     }
 
+    const platform = toDomainPlatform(credential.platform);
+    if (quotaCheck.requiresPayment) {
+      // Cloud has no free tier: a post scheduled before the organization paid
+      // is refused at delivery, with the way out in its message.
+      this.logger.warn(`${url} publishing refused: organization never paid`, {
+        platform: credential.platform,
+        postId: post.id,
+      });
+      return {
+        code: PUBLISHING_PAYMENT_REQUIRED_CODE,
+        isRetryable: false,
+        message: publishingPaymentMessage(),
+        platform,
+      };
+    }
+
     this.logger.warn(`${url} quota exceeded for ${credential.platform}`, {
       currentCount: quotaCheck.currentCount,
       dailyLimit: quotaCheck.dailyLimit,
@@ -438,7 +458,6 @@ export class ScheduledPostDeliveryGates {
       postId: post.id,
     });
 
-    const platform = toDomainPlatform(credential.platform);
     return {
       activity: createQuotaExceededActivity(post, quotaCheck, platform),
       code: 'quota_exceeded',

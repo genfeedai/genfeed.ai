@@ -16,6 +16,7 @@ import {
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { readPostGenerationReceipts } from '@api/collections/posts/services/post-generation-receipts.read';
 import { preparePostPatchWrite } from '@api/collections/posts/services/post-patch-write.util';
+import { assertPublishingPaymentAdmission } from '@api/collections/posts/services/post-publishing-payment-admission.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { PostUpdateInput } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -643,11 +644,24 @@ export async function patchPostWithLearning(
     const row = await tx.post.findFirst({
       where: scopedWhere(plan.organizationId, { id }),
     });
-    if (row)
+    if (row) {
       await assertStrategyCadenceAdmission(tx, {
         ...row,
         ...prepared.prismaWriteData,
       });
+      // A patch that moves a draft toward a channel is a new intent to
+      // publish; editing a post already scheduled is not.
+      if (
+        row.targetExecutionState !== TargetExecutionState.SCHEDULED &&
+        row.targetExecutionState !== TargetExecutionState.PUBLISHING
+      ) {
+        await assertPublishingPaymentAdmission(tx, {
+          ...row,
+          ...prepared.prismaWriteData,
+          organizationId: plan.organizationId,
+        });
+      }
+    }
   }
   let updatedPost = await context.writePost(
     tx,

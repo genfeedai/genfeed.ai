@@ -3,8 +3,9 @@ import type { QualityTier } from '@genfeedai/contracts';
 /**
  * `plan`: a feature or quality tier needs a higher plan.
  * `credits`: the organization has no credits left for a credit-spending action.
+ * `publishing`: the organization never paid, so it cannot schedule or publish.
  */
-type UpgradePromptReason = 'plan' | 'credits';
+type UpgradePromptReason = 'plan' | 'credits' | 'publishing';
 
 export interface ModalUpgradePromptProps {
   /** Persisted tier string; unknown or legacy values resolve to FREE. */

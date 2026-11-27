@@ -66,6 +66,7 @@ export * from './posts.contract';
 export * from './prompt-optimization.contract';
 export * from './publish-approval.contract';
 export * from './publish-webhook-events.contract';
+export * from './publishing-payment.contract';
 export * from './publishing-readiness.contract';
 export * from './recurrence-preview.contract';
 export * from './rss-sources.contract';

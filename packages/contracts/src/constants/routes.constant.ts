@@ -254,6 +254,8 @@ export const APP_ROUTES = {
     BRAND: '/onboarding/brand',
     CORPUS: '/onboarding/corpus',
     FIRST_SYSTEM: '/onboarding/first-system',
+    /** The plan and credits choice a never-paid organization lands on. */
+    PLANS: '/onboarding/plans',
     POSITIONING: '/onboarding/positioning',
     POST_SIGNUP: '/onboarding/post-signup',
     PROVIDERS: '/onboarding/providers',
