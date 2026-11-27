@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  postMediaRenditionPath,
+  postMediaSrcSet,
+} from '@data/post-media-rendition';
 import type { CreatorPostMediaProps } from '@props/content/creator.props';
 import {
   Carousel,
@@ -17,6 +21,7 @@ import {
 export default function CreatorPostMedia({
   alt,
   media,
+  rendition,
 }: CreatorPostMediaProps): React.ReactElement | null {
   if (media.length === 0) {
     return null;
@@ -45,7 +50,22 @@ export default function CreatorPostMedia({
           className="h-auto w-full"
           height={item.height}
           loading={index === 0 ? 'eager' : 'lazy'}
-          src={item.url}
+          sizes={rendition ? '(min-width: 672px) 640px, 100vw' : undefined}
+          src={
+            rendition
+              ? postMediaRenditionPath(
+                  rendition.handle,
+                  rendition.postId,
+                  item.id,
+                  1280,
+                )
+              : item.url
+          }
+          srcSet={
+            rendition
+              ? postMediaSrcSet(rendition.handle, rendition.postId, item.id)
+              : undefined
+          }
           width={item.width}
         />
       )}

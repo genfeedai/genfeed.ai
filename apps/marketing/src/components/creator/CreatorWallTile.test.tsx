@@ -51,9 +51,14 @@ describe('CreatorWallTile', () => {
       name: 'Instagram: Winter carousel',
     });
     expect(link.getAttribute('href')).toBe('/@shayla/posts/post-1');
-    expect(container.querySelector('img')?.getAttribute('src')).toBe(
-      'https://cdn.example.com/a.png',
+    const picture = container.querySelector('img');
+    expect(picture?.getAttribute('src')).toBe(
+      '/@shayla/posts/post-1/media/a/640.webp',
     );
+    expect(picture?.getAttribute('srcset')).toContain(
+      '/@shayla/posts/post-1/media/a/1280.webp 1280w',
+    );
+    expect(picture?.getAttribute('alt')).toBe('Winter carousel');
     expect(screen.getByText('3')).toBeTruthy();
   });
 
