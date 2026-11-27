@@ -99,6 +99,7 @@ export function runDesktopCliAgentTurn(params: {
   const threadId = initialState.activeThreadId;
   const thread = initialState.threads.find((item) => item.id === threadId);
   const brandId = options?.brandId ?? thread?.brandId ?? null;
+  const requestedModel = thread?.requestedModel?.trim() || null;
   const turnId = createTurnId();
   const runId = `${DESKTOP_CLI_RUN_ID_PREFIX}${turnId}`;
   const startedAt = new Date().toISOString();
@@ -246,6 +247,8 @@ export function runDesktopCliAgentTurn(params: {
     bridge.agentRuntime
       .startTurn({
         brandId,
+        // The model the thread was set to for this CLI; empty lets the CLI decide.
+        ...(requestedModel ? { model: requestedModel } : {}),
         prompt: content,
         runtimeKey,
         threadId,

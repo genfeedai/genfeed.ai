@@ -35,6 +35,7 @@ import {
   DESKTOP_CLI_AGENT_IDLE_TIMEOUT_MS,
   DESKTOP_CLI_AGENT_KILL_GRACE_MS,
   DESKTOP_CLI_AGENT_MAX_PROMPT_LENGTH,
+  DESKTOP_CLI_AGENT_MODEL_PATTERN,
   DESKTOP_CLI_AGENT_RUNTIMES,
   DESKTOP_CLI_AGENT_TURN_TIMEOUT_MS,
   type DesktopCliAgentRuntimeDefinition,
@@ -54,6 +55,13 @@ const WHITESPACE_RUNS_PATTERN = /\s+/g;
 const TURN_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const ENTITY_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const STDERR_TAIL_BYTES = 4_096;
+/**
+ * What Claude Code and Codex print when the requested model is not one the
+ * signed-in plan can run (unknown name, or no access to it).
+ */
+const MODEL_FAILURE_PATTERN =
+  /(issue with the selected model|model_not_found|unknown model|invalid model|model[^\n]{0,120}(?:not supported|not found|does not exist|may not exist|not available|no access|not have access))/i;
+
 const AUTH_FAILURE_PATTERN =
   /(not logged in|please run \/login|log ?in|authenticat|unauthori[sz]ed|invalid api key|api key|oauth token|\b401\b|credentials)/i;
 
@@ -157,8 +165,14 @@ export function parseDesktopCliAgentTurnRequest(
     throw new DesktopCliAgentRequestError('That message is too long.');
   }
 
+  const model = typeof value.model === 'string' ? value.model.trim() : '';
+  if (model && !DESKTOP_CLI_AGENT_MODEL_PATTERN.test(model)) {
+    throw new DesktopCliAgentRequestError('Invalid model name.');
+  }
+
   return {
     brandId: readOptionalEntityId(value.brandId, 'brand id'),
+    ...(model ? { model } : {}),
     prompt,
     runtimeKey: value.runtimeKey,
     threadId: readOptionalEntityId(value.threadId, 'thread id'),
@@ -170,8 +184,16 @@ export function parseDesktopCliAgentTurnRequest(
 export function classifyDesktopCliAgentFailure(
   runtime: DesktopCliAgentRuntimeDefinition,
   rawMessage: string,
+  requestedModel?: string | null,
 ): { code: DesktopCliAgentErrorCode; message: string } {
   const message = rawMessage.trim();
+
+  if (requestedModel && MODEL_FAILURE_PATTERN.test(message)) {
+    return {
+      code: 'model-unavailable',
+      message: `${runtime.label} cannot run the model \`${requestedModel}\` on this computer. Pick another model for this thread, or choose the ${runtime.label} default. Genfeed does not switch to a hosted model on its own.`,
+    };
+  }
 
   if (AUTH_FAILURE_PATTERN.test(message)) {
     return {
@@ -422,6 +444,7 @@ export class DesktopCliAgentRuntimeService {
       });
       args = buildClaudeCliArgs({
         mcpConfigPath: mcpConfig.path,
+        model: request.model,
         resumeSessionId: params.resumeSessionId,
         systemPrompt: params.systemPrompt,
       });
@@ -430,6 +453,7 @@ export class DesktopCliAgentRuntimeService {
       environment[GENFEED_MCP_TOKEN_ENV_VAR] = params.token;
       args = buildCodexCliArgs({
         mcpEndpoint,
+        model: request.model,
         resumeSessionId: params.resumeSessionId,
       });
       // Codex has no append-system-prompt flag; the instructions open the
@@ -679,6 +703,7 @@ export class DesktopCliAgentRuntimeService {
             ? `exited with code ${String(exitCode)}`
             : 'exited without a result'),
       ),
+      turn.request.model,
     );
   }
 }

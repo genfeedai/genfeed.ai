@@ -386,6 +386,11 @@ export interface IDesktopTerminalExitEvent {
 
 export interface IDesktopCliAgentTurnRequest {
   brandId?: string | null;
+  /**
+   * A model of the user's own CLI (the thread's `requestedModel`). Omitted or
+   * empty, the CLI picks its own model.
+   */
+  model?: string | null;
   prompt: string;
   runtimeKey: AgentExternalRuntimeKey;
   /** Existing Genfeed thread; omitted to create one for this runtime. */
@@ -422,6 +427,7 @@ export type DesktopCliAgentErrorCode =
   | 'binary-not-found'
   | 'cancelled'
   | 'invalid-request'
+  | 'model-unavailable'
   | 'not-authenticated'
   | 'not-signed-in'
   | 'process-failed'
