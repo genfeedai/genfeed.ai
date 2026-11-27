@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Put AI Agents to Work on Your Content',
-  'Connect your own agent or use Genfeed’s agents to research, draft, and publish content on a schedule. Review every post by default, or switch on auto-publish once you trust them.',
+  'Connect your own agent or use Genfeed agents to research, draft and publish content on a schedule. Review every post by default, or switch on auto-publish.',
   '/hire-agents',
 );
 

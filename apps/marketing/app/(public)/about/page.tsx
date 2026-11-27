@@ -5,7 +5,7 @@ const ABOUT_DESCRIPTION =
   'Why we built Genfeed in the open: the team, the principles behind the content studio you run from your agent, and where the project is heading next.';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'About Genfeed: The Content Studio For Your Agent',
+  'About Genfeed: Content Studio for Your Agent',
   ABOUT_DESCRIPTION,
   '/about',
 );

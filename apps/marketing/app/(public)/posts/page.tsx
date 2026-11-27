@@ -5,8 +5,8 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Posts by Ingredient',
-  'Browse content made with Genfeed, organized by ingredient.',
+  'AI Social Media Posts Made With Genfeed',
+  'Browse AI-generated social media posts made with Genfeed, organized by ingredient: images, video and copy you can use as inspiration for your own brand.',
   '/posts',
 );
 

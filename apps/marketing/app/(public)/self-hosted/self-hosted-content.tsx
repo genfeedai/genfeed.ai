@@ -13,6 +13,7 @@ import MarketingEntrance from '@web-components/MarketingEntrance';
 import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
 import { Cloud, Cpu, Server, ShieldCheck, Terminal } from 'lucide-react';
+import Link from 'next/link';
 
 const QUICKSTART_DOCS_URL = 'https://docs.genfeed.ai/self-host/installation';
 
@@ -238,6 +239,13 @@ export default function SelfHostedContent() {
               <a href={repoHref} target="_blank" rel="noopener noreferrer">
                 View the GitHub repo
               </a>
+            </Button>
+            <Button
+              asChild
+              size={ButtonSize.PUBLIC}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link href="/developers">Build on the API</Link>
             </Button>
           </div>
         </WebSection>
