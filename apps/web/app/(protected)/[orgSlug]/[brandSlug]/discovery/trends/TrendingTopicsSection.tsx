@@ -165,9 +165,7 @@ export default function TrendingTopicsSection({
                 />
                 {topic}
               </p>
-              {source.contentType === 'video' ||
-              source.thumbnailUrl ||
-              source.mediaUrl ? (
+              {source.thumbnailUrl ? (
                 <SocialMediaPlayer
                   contentType={source.contentType}
                   sourceUrl={source.sourceUrl}

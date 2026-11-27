@@ -18,7 +18,10 @@ import { TrendSourcePreviewService } from '@api/collections/trends/services/modu
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { TrendsService } from '@api/collections/trends/services/trends.service';
+import {
+  MARKET_MIN_TREND_MENTIONS,
+  TrendsService,
+} from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -656,6 +659,37 @@ describe('TrendsService', () => {
       });
       expect(getPreferences).not.toHaveBeenCalled();
       expect(result.trends[0].requiresAuth).toBe(false);
+    });
+
+    it('keeps topics seen only once or twice out of the market view', async () => {
+      vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue([]);
+      vi.spyOn(service, 'getTrends').mockResolvedValue(
+        [
+          { mentions: 2_500_000, topic: 'Thanksgiving' },
+          { mentions: 2, topic: 'fun' },
+          { mentions: 1, topic: 'instadaily' },
+          { mentions: MARKET_MIN_TREND_MENTIONS, topic: 'at the floor' },
+        ].map(
+          (trend) =>
+            new TrendEntity({
+              ...mockTrend,
+              ...trend,
+              requiresAuth: false,
+            } as never),
+        ),
+      );
+
+      const result = await service.getTrendsWithAccessControl(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        { relevance: 'market' },
+      );
+
+      expect(result.trends.map((trend) => trend.topic)).toEqual([
+        'Thanksgiving',
+        'at the floor',
+      ]);
     });
 
     it('keeps expired last-good topics out of brand discovery', async () => {

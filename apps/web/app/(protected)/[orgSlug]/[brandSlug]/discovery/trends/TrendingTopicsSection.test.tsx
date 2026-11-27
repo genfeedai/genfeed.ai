@@ -29,6 +29,12 @@ vi.mock('@contexts/ui/context-sidebar-context', () => ({
     ) : null,
 }));
 
+vi.mock('@/components/analytics/trends/social-media-player', () => ({
+  default: ({ title }: { title: string }) => (
+    <div data-testid="player">{title}</div>
+  ),
+}));
+
 const trend = {
   createdAt: '2026-10-01T10:00:00.000Z',
   expiresAt: '2026-10-08T10:00:00.000Z',
@@ -103,5 +109,41 @@ describe('TrendingTopicsSection', () => {
 
     expect(screen.getByText('No trending topics available.')).toBeVisible();
     expect(screen.getByText(/check collection health/i)).toBeVisible();
+  });
+
+  it('shows an example post as a tile only when it has a thumbnail', () => {
+    renderSection({
+      trendingTopics: [
+        {
+          ...trend,
+          sourcePreview: [
+            {
+              contentType: 'video',
+              platform: 'tiktok',
+              sourceUrl: 'https://example.com/with-thumbnail',
+              text: 'Has a picture',
+              thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+              title: 'With thumbnail',
+            },
+            {
+              contentType: 'video',
+              mediaUrl: 'https://cdn.example.com/clip.mp4',
+              platform: 'tiktok',
+              sourceUrl: 'https://example.com/no-thumbnail',
+              text: 'Has no picture',
+              title: 'No thumbnail',
+            },
+          ],
+        } as TrendItem,
+      ],
+    });
+
+    expect(screen.getAllByTestId('player')).toHaveLength(1);
+    expect(screen.getByTestId('player')).toHaveTextContent('With thumbnail');
+    expect(screen.getByText('Has no picture')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute(
+      'href',
+      'https://example.com/no-thumbnail',
+    );
   });
 });

@@ -58,6 +58,13 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
+ * The Market view is the shared chart every account reads, so a topic seen once
+ * or twice (a generic hashtag on one post) is noise there, not a trend. Brand
+ * discovery keeps its own niche matching and is not cut by this floor.
+ */
+export const MARKET_MIN_TREND_MENTIONS = 5;
+
+/**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
  * source-item subsystem, preview persistence, and read queries to focused
  * module services (issue #752).
@@ -334,6 +341,12 @@ export class TrendsService {
         allowFetchIfMissing: options.allowFetchIfMissing ?? false,
       },
     );
+
+    if (options.relevance === 'market') {
+      trends = trends.filter(
+        (trend) => (trend.mentions ?? 0) >= MARKET_MIN_TREND_MENTIONS,
+      );
+    }
 
     if (options.relevance !== 'market') {
       trends = trends.filter(
