@@ -111,7 +111,7 @@ describe('TrendingTopicsSection', () => {
     expect(screen.getByText(/check collection health/i)).toBeVisible();
   });
 
-  it('shows an example post as a tile only when it has a thumbnail', () => {
+  it('lists an example post only when it has a thumbnail', () => {
     renderSection({
       trendingTopics: [
         {
@@ -140,10 +140,9 @@ describe('TrendingTopicsSection', () => {
 
     expect(screen.getAllByTestId('player')).toHaveLength(1);
     expect(screen.getByTestId('player')).toHaveTextContent('With thumbnail');
-    expect(screen.getByText('Has no picture')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute(
-      'href',
-      'https://example.com/no-thumbnail',
-    );
+    expect(screen.queryByText('Has no picture')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open source' }),
+    ).not.toBeInTheDocument();
   });
 });

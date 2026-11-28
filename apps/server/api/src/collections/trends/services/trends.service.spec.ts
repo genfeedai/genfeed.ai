@@ -695,6 +695,42 @@ describe('TrendsService', () => {
       ]);
     });
 
+    it('keeps tags everyone uses and repeated topics out of the market view', async () => {
+      vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue([]);
+      vi.spyOn(service, 'getTrends').mockResolvedValue(
+        [
+          { mentions: 2_500_000, platform: 'twitter', topic: 'Thanksgiving' },
+          { mentions: 6, platform: 'instagram', topic: 'reels' },
+          { mentions: 6, platform: 'instagram', topic: '#Explorepage' },
+          { mentions: 9, platform: 'instagram', topic: 'cozy gaming' },
+          { mentions: 8, platform: 'instagram', topic: 'Cozy Gaming' },
+          { mentions: 7, platform: 'tiktok', topic: 'cozy gaming' },
+        ].map(
+          (trend) =>
+            new TrendEntity({
+              ...mockTrend,
+              ...trend,
+              requiresAuth: false,
+            } as never),
+        ),
+      );
+
+      const result = await service.getTrendsWithAccessControl(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        { relevance: 'market' },
+      );
+
+      expect(
+        result.trends.map((trend) => `${trend.platform}:${trend.topic}`),
+      ).toEqual([
+        'twitter:Thanksgiving',
+        'instagram:cozy gaming',
+        'tiktok:cozy gaming',
+      ]);
+    });
+
     it('keeps expired last-good topics out of brand discovery', async () => {
       prisma.trend.findMany.mockResolvedValue([
         makePrismaTrendDoc({

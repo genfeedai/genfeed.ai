@@ -49,8 +49,8 @@ import {
   observedSounds,
 } from '@api/collections/trends/utils/observed-trends.util';
 import {
-  hasEnoughMarketMentions,
   isLiveTrend,
+  keepMarketTrends,
 } from '@api/collections/trends/utils/trend-read-filter.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -339,9 +339,10 @@ export class TrendsService {
       },
     );
 
-    trends = trends.filter(
-      options.relevance === 'market' ? hasEnoughMarketMentions : isLiveTrend,
-    );
+    trends =
+      options.relevance === 'market'
+        ? keepMarketTrends(trends)
+        : trends.filter(isLiveTrend);
     if (options.timeframe) {
       trends = trends.filter((trend) =>
         isWithinTimeframe(
