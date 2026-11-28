@@ -69,6 +69,7 @@ export * from './analytics/fleet-evaluation-policy.interface';
 export * from './analytics/insight.interface';
 export * from './analytics/learning-prompt-slot-outcome.interface';
 export * from './analytics/outlier-baseline.interface';
+export * from './analytics/outlier-library.interface';
 export * from './analytics/outlier-persistence.interface';
 export * from './analytics/performance-dataset.interface';
 export * from './analytics/platform-config.interface';
