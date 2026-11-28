@@ -89,7 +89,7 @@ describe('VideosResizeController', () => {
     },
     filesClientService: { uploadToS3: vi.fn() },
     ingredientsService: { patchAll: vi.fn() },
-    loggerService: { error: vi.fn(), log: vi.fn() },
+    loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({

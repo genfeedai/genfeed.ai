@@ -4,7 +4,10 @@ import { settleSharedIngredientGeneration } from '@api/collections/ingredients/u
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
+import {
+  discardVideoOutput,
+  requireVideoOutputPath,
+} from '@api/collections/videos/utils/video-processing-result.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -141,6 +144,7 @@ export class VideosResizeController {
             type: FileInputType.FILE,
           })
           .then(async (res) => {
+            discardVideoOutput(output, this.loggerService);
             const isSettled = await settleSharedIngredientGeneration(
               this.ingredientsService,
               {
@@ -238,6 +242,7 @@ export class VideosResizeController {
           `videos`,
           { path: output, type: FileInputType.FILE },
         );
+        discardVideoOutput(output, this.loggerService);
 
         await this.metadataService.patch(
           metadataData.id,

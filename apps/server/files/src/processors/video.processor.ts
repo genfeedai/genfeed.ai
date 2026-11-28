@@ -241,7 +241,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('resize', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
 
       await this.publishProcessed(job.data, { outputPath, s3Key, url });
 
@@ -297,7 +297,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('captions', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
       const result = {
         jobId: String(job.id),
         jobType: JOB_TYPES.ADD_CAPTIONS,
@@ -377,7 +377,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('gif', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -415,7 +415,7 @@ export class VideoProcessor extends WorkerHost {
     );
   }
 
-  /** Downloads, transforms, uploads and queues the completion of a whole-video effect. */
+  /** Downloads, transforms, uploads and queues the completion of a whole-video effect; output.mp4 stays for the API upload, which deletes it. */
   private async runFfmpegTransform(
     job: Job<VideoJobData>,
     name: 'reverse' | 'mirror' | 'repost-variant',
@@ -450,7 +450,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir(name, ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
       await this.publishProcessed(job.data, { outputPath, s3Key, url });
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
@@ -497,7 +497,7 @@ export class VideoProcessor extends WorkerHost {
 
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
-      this.ffmpegService.removeTempDir('trim', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -651,7 +651,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('overlay', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
 
       await this.publishProcessed(job.data, { outputPath, s3Key, url });
 

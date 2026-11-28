@@ -193,6 +193,7 @@ describe('VideosGifController', () => {
       error: (message: string) => {
         errors.push(message);
       },
+      warn: () => undefined,
     } as unknown as LoggerService;
 
     controller = new VideosGifController(

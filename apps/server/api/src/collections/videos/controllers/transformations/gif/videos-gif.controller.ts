@@ -4,6 +4,10 @@ import { settleSharedIngredientGeneration } from '@api/collections/ingredients/u
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import {
+  discardVideoOutput,
+  requireVideoOutputPath,
+} from '@api/collections/videos/utils/video-processing-result.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -112,14 +116,16 @@ export class VideosGifController {
     this.fileQueueService
       .waitForJob(jobResponse.jobId, 60000)
       .then(async (result) => {
+        const output = requireVideoOutputPath(result.outputPath);
         const uploaded = await this.filesClientService.uploadToS3(
           ingredientData.id,
           `gifs`,
           {
-            path: String(result.outputPath ?? ''),
+            path: output,
             type: FileInputType.FILE,
           },
         );
+        discardVideoOutput(output, this.loggerService);
 
         const isSettled = await settleSharedIngredientGeneration(
           this.ingredientsService,
