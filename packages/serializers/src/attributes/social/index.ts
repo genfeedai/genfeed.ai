@@ -4,6 +4,7 @@ export * from './listening-topic.attributes';
 export * from './listening-topic-outcome.attributes';
 export * from './outlier-baseline-snapshot.attributes';
 export * from './outlier-configuration.attributes';
+export * from './outlier-library-post.attributes';
 export * from './outlier-post-performance.attributes';
 export * from './social-conversation.attributes';
 export * from './social-message.attributes';

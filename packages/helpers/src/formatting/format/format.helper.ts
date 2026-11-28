@@ -9,6 +9,12 @@ const CHART_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'short',
 });
 
+/** 12x, 7.4x: one decimal under ten, none from ten up; a dash when unknown. */
+export function formatOutlierMultiple(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '-';
+  return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}x`;
+}
+
 export function formatCompactNumber(
   num: number | string | null | undefined,
 ): string {

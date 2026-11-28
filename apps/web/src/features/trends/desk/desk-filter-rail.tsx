@@ -19,7 +19,7 @@ const CONTENT_TYPE_OPTIONS: DiscoveryDeskContentTypeFilter[] = [
 ];
 
 /** Where a signal comes from. `following` opens the Following deck. */
-const SOURCE_OPTIONS = ['trends', 'imported', 'following'] as const;
+const SOURCE_OPTIONS = ['trends', 'imported', 'following', 'outliers'] as const;
 
 const SORT_OPTIONS: DiscoveryDeskSort[] = [
   'velocity',
@@ -77,7 +77,10 @@ export default function DeskFilterRail({
           value: 'all',
         },
         ...SOURCE_OPTIONS.map((option) => ({
-          count: items.filter((item) => item.source === option).length,
+          // The outlier library is not part of the desk's items: no count.
+          ...(option === 'outliers'
+            ? {}
+            : { count: items.filter((item) => item.source === option).length }),
           label: translate(
             option === 'following' ? 'following.title' : `sourceTabs.${option}`,
           ),

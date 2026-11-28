@@ -3,7 +3,6 @@ import type { TrendingSoundDocument } from '@api/collections/trends/schemas/tren
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import {
   readPlaybackFields,
-  TREND_PLAYBACK_RETENTION_MS,
   type TrendPlaybackFields,
   TrendPlaybackService,
 } from '@api/collections/trends/services/modules/trend-playback.service';
@@ -43,8 +42,8 @@ function trendKey(...parts: string[]): string {
 }
 
 /**
- * A saved playback copy survives a re-scrape, and the scrape restarts its
- * seven days: the video is trending again.
+ * A copy saved before playback moved to the platforms' own players survives a
+ * re-scrape with the expiry it already had, so the daily sweep still deletes it.
  */
 function indexSavedCopies(
   docs: ReadonlyArray<{ data: unknown }>,
@@ -65,14 +64,6 @@ function indexSavedCopies(
     }
   }
   return copies;
-}
-
-function renewedCopy(
-  copy: TrendPlaybackFields | undefined,
-): TrendPlaybackFields | Record<string, never> {
-  return copy
-    ? { ...copy, playbackExpiresAtMs: Date.now() + TREND_PLAYBACK_RETENTION_MS }
-    : {};
 }
 
 @Traced()
@@ -294,7 +285,7 @@ export class TrendVideoService {
                 const savedCopy = existingPlayback.get(videoKey);
                 const dataPayload = {
                   ...video,
-                  ...renewedCopy(savedCopy),
+                  ...savedCopy,
                   expiresAt,
                   isCurrent: true,
                   isDeleted: false,

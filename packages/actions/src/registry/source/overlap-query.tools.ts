@@ -79,7 +79,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get trending topics and content ideas based on current trends across social media and news.',
+      "Get trending topics and content ideas based on current trends across social media and news. Also returns the outlier library: public TikTok and Instagram videos that beat their creator's typical post, with the multiple, a link and the date the counts were read. Outliers ignore timeframe.",
     name: 'get_trends',
     parameters: {
       properties: {

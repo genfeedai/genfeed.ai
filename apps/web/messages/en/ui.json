@@ -102,11 +102,7 @@
     "noScopedSounds": "No TikTok sounds observed for these filters. Try another platform, period, or Market.",
     "platformFilter": "Trend platform",
     "timeframeFilter": "Trend timeframe",
-    "allPlatforms": "All platforms",
-    "preparingVideo": "Preparing video",
-    "playbackUpgrade": "Playing TikTok and Instagram videos in Genfeed is on paid plans.",
-    "viewPlans": "View plans",
-    "playbackUnavailable": "This video can't be played here. Open it on the platform."
+    "allPlatforms": "All platforms"
   },
   "promptBarSubmitSlot": {
     "stop": "Stop"

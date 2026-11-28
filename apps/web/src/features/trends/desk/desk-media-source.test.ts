@@ -31,7 +31,7 @@ describe('Discovery media resolution', () => {
       '/embed/dQw4w9WgXcQ',
     );
   });
-  it('never builds a TikTok embed, which would load its cookie wall', () => {
+  it('never builds a TikTok embed for a hover preview, which would load a platform frame in every tile', () => {
     expect(
       getDeskMediaSource(
         item({
@@ -40,19 +40,6 @@ describe('Discovery media resolution', () => {
         }),
       ),
     ).toMatchObject({ directUrl: null, embedUrl: null });
-  });
-  it('plays a saved TikTok copy natively', () => {
-    expect(
-      getDeskMediaSource(
-        item({
-          mediaUrl: 'https://cdn.genfeed.ai/assets/trend-playback/1-1.mp4',
-          sourceUrl: 'https://www.tiktok.com/@creator/video/1',
-        }),
-      ),
-    ).toMatchObject({
-      directUrl: 'https://cdn.genfeed.ai/assets/trend-playback/1-1.mp4',
-      embedUrl: null,
-    });
   });
   it.each([
     'instagram',

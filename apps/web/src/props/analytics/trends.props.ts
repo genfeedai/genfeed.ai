@@ -14,6 +14,8 @@ interface ViralVideoLeaderboardProps {
   ) => void;
   onVideoClick?: (video: ITrendVideo) => void;
   className?: string;
+  /** Frame a vertical video (TikTok, Reels) instead of a 16:9 one. */
+  isPortrait?: boolean;
 }
 
 export interface TrendingHashtagsProps {
@@ -39,10 +41,6 @@ export interface SocialMediaPlayerProps {
   thumbnailUrl?: string | null;
   title?: string;
   className?: string;
-  /** The trend video's id; lets the player ask for a saved TikTok or Instagram copy. */
-  trendVideoId?: string | null;
-  /** A saved copy the trend data already carries, played without asking again. */
-  playbackUrl?: string | null;
 }
 
 export interface TrendVideoGalleryProps extends ViralVideoLeaderboardProps {

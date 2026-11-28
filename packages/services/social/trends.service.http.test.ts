@@ -18,46 +18,6 @@ describe('TrendsService HTTP methods', () => {
     http = installMockHttp(service);
   });
 
-  describe('getVideoPlayback', () => {
-    it('returns the saved copy when the server has one', async () => {
-      http.post.mockResolvedValue(
-        axiosResponse({
-          playbackExpiresAt: '2026-12-03T00:00:00.000Z',
-          playbackUrl: 'https://cdn.example/clip.mp4',
-        }),
-      );
-
-      await expect(service.getVideoPlayback('v 1')).resolves.toEqual({
-        playbackExpiresAt: '2026-12-03T00:00:00.000Z',
-        playbackUrl: 'https://cdn.example/clip.mp4',
-        status: 'ready',
-      });
-      expect(http.post.mock.calls[0]?.[0]).toBe('/videos/v%201/playback');
-    });
-
-    it('answers "upgrade" when the plan does not include it', async () => {
-      http.post.mockRejectedValue({ response: { status: 403 } });
-      await expect(service.getVideoPlayback('v1')).resolves.toEqual({
-        status: 'upgrade',
-      });
-    });
-
-    it('answers "unavailable" when the video cannot be saved', async () => {
-      http.post.mockRejectedValue({
-        errors: [{ status: '422', title: 'Unprocessable' }],
-      });
-      await expect(service.getVideoPlayback('v1')).resolves.toEqual({
-        status: 'unavailable',
-      });
-    });
-
-    it('lets a server failure through', async () => {
-      const failure = { response: { status: 500 } };
-      http.post.mockRejectedValue(failure);
-      await expect(service.getVideoPlayback('v1')).rejects.toBe(failure);
-    });
-  });
-
   describe('preferences', () => {
     it('getPreferences unwraps the preferences envelope', async () => {
       const preferences = { platforms: ['tiktok'] };

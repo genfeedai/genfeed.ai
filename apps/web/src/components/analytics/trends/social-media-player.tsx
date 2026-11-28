@@ -1,51 +1,28 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import {
-  getSocialMediaSource,
-  isPlaybackSourceUrl,
-} from '@genfeedai/helpers/media/social-media-source.helper';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { getSocialMediaSource } from '@genfeedai/helpers/media/social-media-source.helper';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
-import Spinner from '@ui/primitives/spinner';
 import { ExternalLink, Play } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { useTrendVideoPlayback } from '@/features/trends/hooks/use-trend-video-playback/use-trend-video-playback';
 import type { SocialMediaPlayerProps } from '@/props/analytics/trends.props';
-
-type PreparePhase = 'idle' | 'preparing' | 'upgrade' | 'unavailable';
 
 export default function SocialMediaPlayer({
   title = 'Video',
   className = '',
-  trendVideoId,
-  playbackUrl,
+  isPortrait = false,
   ...source
 }: SocialMediaPlayerProps) {
   const translate = useTranslations('ui.discovery');
-  const { orgHref } = useOrgUrl();
-  const prepareVideo = useTrendVideoPlayback();
   const { directUrl, embedUrl, thumbnail, sourceUrl } =
     getSocialMediaSource(source);
   const [isPlaying, setPlaying] = useState(false);
   const [directFailed, setDirectFailed] = useState(false);
   const [embedFailed, setEmbedFailed] = useState(false);
-  const [phase, setPhase] = useState<PreparePhase>('idle');
-  const [preparedUrl, setPreparedUrl] = useState<string | null>(null);
-  const activeDirect = directFailed
-    ? null
-    : (preparedUrl ?? playbackUrl ?? directUrl);
-  const canPrepare =
-    !activeDirect &&
-    !embedUrl &&
-    !directFailed &&
-    Boolean(trendVideoId) &&
-    isPlaybackSourceUrl(sourceUrl);
+  const activeDirect = directFailed ? null : directUrl;
   const hasError =
     (directFailed || embedFailed) &&
     !activeDirect &&
@@ -72,27 +49,12 @@ export default function SocialMediaPlayer({
     };
   }, []);
 
-  const handlePlay = async () => {
-    if (activeDirect || embedUrl) {
-      setPlaying(true);
-      return;
-    }
-    if (!canPrepare || !trendVideoId) return;
-    setPhase('preparing');
-    const result = await prepareVideo(trendVideoId);
-    if (result.status === 'ready') {
-      setPreparedUrl(result.playbackUrl);
-      setPhase('idle');
-      setPlaying(true);
-      return;
-    }
-    setPhase(result.status);
-  };
-
-  const isPlayable = Boolean(activeDirect || embedUrl || canPrepare);
+  const isPlayable = Boolean(activeDirect || embedUrl);
   return (
     <div ref={container} className={`space-y-2 ${className}`}>
-      <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+      <div
+        className={`relative overflow-hidden rounded-lg bg-muted ${isPortrait ? 'aspect-[9/16]' : 'aspect-video'}`}
+      >
         {isPlaying && isVisible && !hasError ? (
           activeDirect ? (
             <VideoPlayer
@@ -133,33 +95,13 @@ export default function SocialMediaPlayer({
                 className="object-cover"
               />
             ) : null}
-            {phase === 'preparing' ? (
-              <div
-                className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 text-sm"
-                role="status"
-              >
-                <Spinner />
-                <span>{translate('preparingVideo')}</span>
-              </div>
-            ) : phase === 'upgrade' ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 p-4 text-center text-sm">
-                <p>{translate('playbackUpgrade')}</p>
-                <Button asChild size={ButtonSize.SM} withWrapper={false}>
-                  <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-                    {translate('viewPlans')}
-                  </Link>
-                </Button>
-              </div>
-            ) : source.contentType === 'video' &&
-              isPlayable &&
-              !hasError &&
-              phase !== 'unavailable' ? (
+            {source.contentType === 'video' && isPlayable && !hasError ? (
               <Button
                 aria-label={translate('playVideo', { title })}
                 variant={ButtonVariant.UNSTYLED}
                 className="absolute inset-0 flex size-full items-center justify-center bg-background/20"
                 withWrapper={false}
-                onClick={() => void handlePlay()}
+                onClick={() => setPlaying(true)}
               >
                 <Play className="size-10" />
               </Button>
@@ -186,10 +128,6 @@ export default function SocialMediaPlayer({
       {hasError ? (
         <p className="text-xs text-muted-foreground">
           {translate('previewError')}
-        </p>
-      ) : phase === 'unavailable' ? (
-        <p className="text-xs text-muted-foreground">
-          {translate('playbackUnavailable')}
         </p>
       ) : null}
     </div>

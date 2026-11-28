@@ -6042,6 +6042,53 @@ export async function mockDiscoveryDeskFollowingFeed(
 }
 
 /**
+ * The outlier library list (`GET /outlier-library`, #11643): one TikTok video
+ * that beat its creator's typical post, in the JSON:API shape the serializer
+ * returns.
+ */
+export async function mockOutlierLibrary(page: Page): Promise<void> {
+  const now = new Date().toISOString();
+  const body = {
+    data: [
+      {
+        attributes: {
+          captionExcerpt: 'One-take demo of the thing we shipped last night',
+          countsReadAt: now,
+          creator: {
+            displayName: null,
+            followersCount: null,
+            handle: 'buildlog',
+            id: 'outlier-creator-1',
+          },
+          externalId: '7300000000000000000',
+          format: 'One-take demo',
+          hashtags: [],
+          medianViews: 9_800,
+          outlierRatio: 6.3,
+          outlierTier: 'outlier',
+          platform: 'tiktok',
+          publishedAt: now,
+          sampleSize: 20,
+          url: 'https://www.tiktok.com/@buildlog/video/7300000000000000000',
+          views: 62_000,
+        },
+        id: 'outlier-post-1',
+        type: 'outlier-library-post',
+      },
+    ],
+    links: { pagination: { limit: 100, page: 1, pages: 1, total: 1 } },
+  };
+
+  await routeApiPattern(page, '/outlier-library**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(body),
+      contentType: 'application/vnd.api+json',
+      status: 200,
+    });
+  });
+}
+
+/**
  * Mock for the Ads Research list endpoint (`/ads/research`) that honors the
  * requested platform, mirroring the real `AdsResearchController` /
  * `useAdsResearchPageClient.ts`'s `filters.platform` (server-side) contract —

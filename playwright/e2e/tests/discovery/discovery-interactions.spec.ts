@@ -3,6 +3,7 @@ import {
   mockAdsResearchResults,
   mockAnalyticsData,
   mockDiscoveryDeskFollowingFeed,
+  mockOutlierLibrary,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { chooseFilterOption } from '../../utils/filter-menu';
@@ -144,6 +145,40 @@ test.describe('Discovery — deep interactions', () => {
     ).toBeVisible();
     await expect(
       authenticatedPage.getByText('Creator collab teaser'),
+    ).toBeVisible();
+
+    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/feed`);
+  });
+
+  test('Source Outliers lists videos that beat their creator and plays one on its platform', async ({
+    authenticatedPage,
+  }) => {
+    await mockDiscoveryDeskFollowingFeed(authenticatedPage);
+    await mockOutlierLibrary(authenticatedPage);
+
+    await assertRouteRenders(authenticatedPage, `${BASE}/feed`);
+    await chooseFilterOption(authenticatedPage, 'Source', /^Outliers/);
+    await expect(authenticatedPage).toHaveURL(/source=outliers/);
+
+    const row = authenticatedPage.getByRole('row', {
+      name: /One-take demo of the thing we shipped last night/,
+    });
+    await expect(row).toBeVisible();
+    await expect(row.getByText('6.3x')).toBeVisible();
+
+    await row.click();
+    await authenticatedPage
+      .getByRole('button', {
+        name: /^Play One-take demo of the thing we shipped last night/,
+      })
+      .click();
+    await expect(
+      authenticatedPage.locator(
+        'iframe[src="https://www.tiktok.com/player/v1/7300000000000000000?rel=0"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Remix for my brand' }),
     ).toBeVisible();
 
     await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/feed`);

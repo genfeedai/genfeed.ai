@@ -19,7 +19,6 @@ const YT_DLP_STDERR_TAIL_CHARS = 4000;
  * source with nothing smaller takes the smallest rendition on offer. The
  * filters read the frame's width because a vertical clip is taller than 720.
  */
-const SHORT_VIDEO_FORMAT = 'b[width<=720]/b[height<=720]/w';
 
 /**
  * yt-dlp prints the actionable failure on stderr as `ERROR: ...`. Without it
@@ -129,44 +128,6 @@ export class YtDlpService {
       }
       throw error;
     });
-  }
-
-  /**
-   * One short social clip (TikTok, Instagram) at card quality, for the trend
-   * player. A clip over `maxDurationSeconds` or `maxFileSizeMb` is skipped
-   * before it is stored, and the caller gets an error.
-   */
-  public downloadShortVideo(
-    url: string,
-    outputPath: string,
-    options: { maxDurationSeconds: number; maxFileSizeMb: number },
-  ): Promise<string> {
-    const containedOutputPath = resolveContainedPath(
-      FILES_TMP_ROOT,
-      outputPath,
-      createBadRequest,
-    );
-    this.ensureOutputDir(path.dirname(containedOutputPath));
-
-    const args = [
-      '--no-playlist',
-      '--socket-timeout',
-      '30',
-      '--max-filesize',
-      `${Math.floor(options.maxFileSizeMb)}M`,
-      '--match-filters',
-      `duration<=?${Math.floor(options.maxDurationSeconds)}`,
-      '-f',
-      SHORT_VIDEO_FORMAT,
-      '--remux-video',
-      'mp4',
-      '-o',
-      containedOutputPath,
-      '--',
-      url,
-    ];
-
-    return this.runYtDlp(args, containedOutputPath);
   }
 
   public downloadAudioLowestQuality(

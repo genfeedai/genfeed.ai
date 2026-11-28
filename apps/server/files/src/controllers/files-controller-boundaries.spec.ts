@@ -132,11 +132,6 @@ const routes = [
     'presigned-download/:type/*key',
   ],
   [
-    FilesTrendPlaybackController.prototype.prepareTrendPlayback,
-    RequestMethod.POST,
-    'process/trend-playback',
-  ],
-  [
     FilesTrendPlaybackController.prototype.removeTrendPlayback,
     RequestMethod.POST,
     'process/trend-playback/delete',

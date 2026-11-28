@@ -67,6 +67,8 @@ export class BrandRemixSourceResolverService {
         return this.resolveSourcePost(organizationId, brandId, selector);
       case 'imported_source':
         return this.resolveImportedSource(organizationId, brandId, selector);
+      case 'outlier_post':
+        return this.resolveOutlierPost(selector);
       case 'owned_post':
         return this.resolveOwnedPost(organizationId, brandId, selector);
       case 'trend_reference':
@@ -162,6 +164,72 @@ export class BrandRemixSourceResolverService {
         imageUrls: hasVideo ? (thumbnailUrl ? [thumbnailUrl] : []) : mediaUrls,
         videoUrls: hasVideo ? mediaUrls : [],
       }),
+    };
+  }
+
+  /**
+   * A post from the outlier library. The library holds another creator's public
+   * numbers and link, never the video, so the source carries no media and the
+   * creative brief gets only the abstract pattern. The list is the same for
+   * every organization; there is no tenant column on these tables.
+   */
+  private async resolveOutlierPost(
+    selector: Extract<BrandRemixSourceSelector, { kind: 'outlier_post' }>,
+  ): Promise<ResolvedSource> {
+    const post = await this.prisma.outlierPost.findFirst({
+      select: {
+        captionExcerpt: true,
+        comments: true,
+        creator: { select: { handle: true } },
+        format: true,
+        hashtags: true,
+        id: true,
+        likes: true,
+        medianViews: true,
+        outlierRatio: true,
+        platform: true,
+        url: true,
+        views: true,
+      },
+      where: { id: selector.outlierPostId, isDeleted: false },
+    });
+    if (!post) {
+      throw new NotFoundException('Outlier post', selector.outlierPostId);
+    }
+    const platform = remixSourcePlatform(post.platform);
+    const title = remixTruncate(
+      remixText(post.captionExcerpt) ?? `Video by ${post.creator.handle}`,
+    );
+    const multiple =
+      post.outlierRatio >= 10
+        ? post.outlierRatio.toFixed(0)
+        : post.outlierRatio.toFixed(1);
+    return {
+      recommendedOutputKind: 'video',
+      snapshot: {
+        authorHandle: remixText(post.creator.handle),
+        canonicalUrl: remixPublicUrl(post.url),
+        capturedAt: this.runtime.now().toISOString(),
+        evidence: [title, `${multiple}x the creator's typical views`],
+        metrics: remixNumericRecord({
+          comments: post.comments ?? undefined,
+          likes: post.likes ?? undefined,
+          medianViews: post.medianViews,
+          outlierRatio: post.outlierRatio,
+          views: post.views,
+        }),
+        pattern: remixPatternFromText(
+          [title, post.format, ...post.hashtags]
+            .filter((value): value is string => Boolean(value))
+            .join(' '),
+          'video',
+        ),
+        platform,
+        selector,
+        sourceId: post.id,
+        title,
+      },
+      sourceMedia: this.sourceMedia({ importPolicy: 'embed_only' }),
     };
   }
 

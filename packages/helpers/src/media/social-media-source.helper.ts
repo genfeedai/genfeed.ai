@@ -4,6 +4,9 @@ import { isHostOrSubdomain } from '../utils/host.util';
 const YOUTUBE_SHORTS_EMBED_OR_LIVE_PATH_PATTERN =
   /^\/(?:shorts|embed|live)\/([^/]+)/;
 const YOUTUBE_VIDEO_ID_PATTERN = /^[\w-]{11}$/;
+const TIKTOK_VIDEO_PATH_PATTERN = /\/video\/(\d{8,25})(?:[/?]|$)/;
+const INSTAGRAM_POST_PATH_PATTERN =
+  /^\/(?:[\w.]+\/)?(reel|reels|p|tv)\/([\w-]+)/;
 
 export function getSafeExternalUrl(
   value: string | null | undefined,
@@ -45,6 +48,14 @@ export function getSocialMediaSource(
               )?.[1];
         if (id && YOUTUBE_VIDEO_ID_PATTERN.test(id))
           embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${interactive ? 0 : 1}&playsinline=1&controls=${interactive ? 1 : 0}&rel=0`;
+      } else if (interactive && isHostOrSubdomain(host, 'tiktok.com')) {
+        // The platform's own player: playback stays on TikTok, nothing is copied.
+        const id = url.pathname.match(TIKTOK_VIDEO_PATH_PATTERN)?.[1];
+        if (id) embedUrl = `https://www.tiktok.com/player/v1/${id}?rel=0`;
+      } else if (interactive && isHostOrSubdomain(host, 'instagram.com')) {
+        const post = url.pathname.match(INSTAGRAM_POST_PATH_PATTERN);
+        if (post)
+          embedUrl = `https://www.instagram.com/${post[1] === 'reels' ? 'reel' : post[1]}/${post[2]}/embed`;
       } else if (
         candidate === media &&
         ![
@@ -68,19 +79,4 @@ export function getSocialMediaSource(
     sourceUrl: source,
     thumbnail: thumbnail || (item.contentType !== 'video' ? media : null),
   };
-}
-
-/**
- * TikTok and Instagram pages have no playable file in the trend data. The
- * server saves the clip for these two on first play, so the player asks for it
- * instead of embedding the platform's page.
- */
-export function isPlaybackSourceUrl(value: string | null | undefined): boolean {
-  const safe = getSafeExternalUrl(value);
-  if (!safe) return false;
-  const host = new URL(safe).hostname;
-  return (
-    isHostOrSubdomain(host, 'tiktok.com') ||
-    isHostOrSubdomain(host, 'instagram.com')
-  );
 }

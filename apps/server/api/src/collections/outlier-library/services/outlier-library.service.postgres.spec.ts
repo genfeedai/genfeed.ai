@@ -201,6 +201,23 @@ describe.skipIf(!connectionString)(
           (row) => row.externalId,
         ),
       ).toEqual(['first-big']);
+
+      const secondPage = await service.listOutlierPage({ limit: 2, page: 2 });
+      expect(secondPage).toMatchObject({ limit: 2, page: 2, totalDocs: 3 });
+      expect(secondPage.docs.map((row) => row.externalId)).toEqual([
+        'first-mid',
+      ]);
+      expect(
+        await service.listOutlierPage({
+          platform: Platform.YOUTUBE,
+          tier: 'outlier',
+        }),
+      ).toMatchObject({ page: 1, totalDocs: 1 });
+      const searched = await service.listOutlierPage({ search: 'SECOND' });
+      expect(searched.docs.map((row) => row.externalId)).toEqual([
+        'second-win',
+      ]);
+      expect(searched.totalDocs).toBe(1);
     });
 
     it('drops a post from the list when a later read no longer ranks it', async () => {

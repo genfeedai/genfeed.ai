@@ -183,7 +183,6 @@ describe('TrendsService', () => {
         {
           provide: TrendPlaybackService,
           useValue: {
-            getPlayback: vi.fn(),
             removeExpiredCopies: vi.fn().mockResolvedValue(0),
           },
         },
