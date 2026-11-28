@@ -77,6 +77,27 @@ describe('WebsiteTopbar', () => {
     expect(menus).toEqual(['Agents', 'Use cases', 'Product', 'Solutions']);
   });
 
+  it('adds Presets to the Product menu only once a preset has a page', () => {
+    const openProductMenu = () =>
+      fireEvent.click(
+        within(screen.getByRole('navigation')).getByRole('button', {
+          name: 'Product',
+        }),
+      );
+
+    const { unmount } = render(<WebsiteTopbar />);
+    openProductMenu();
+    expect(screen.queryByRole('link', { name: /Presets/ })).toBeNull();
+    unmount();
+
+    render(<WebsiteTopbar hasPresets />);
+    openProductMenu();
+    expect(screen.getByRole('link', { name: /Presets/ })).toHaveAttribute(
+      'href',
+      '/presets',
+    );
+  });
+
   it('puts the agents first, with a page for each client and the MCP server', () => {
     render(<WebsiteTopbar />);
 

@@ -227,6 +227,8 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/openclaw/:channel',
     '/pinterest',
     '/podcast-to-content',
+    '/presets',
+    '/presets/:slug',
     '/pricing',
     '/products',
     '/products/:slug',

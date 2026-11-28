@@ -8,6 +8,7 @@ import { helpArticleSlugs } from '@data/help-articles.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import { MCP_CHANNEL_SLUGS } from '@data/mcp-channels.data';
+import { getAllPresetSlugs, hasPresetPages } from '@data/presets.data';
 import { getAllProductSlugs } from '@data/products.data';
 import { getPublishedReleases } from '@data/releases.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
@@ -371,6 +372,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
+  // The hub and one page per preset that has an example; none before then.
+  const presetRoutes: MetadataRoute.Sitemap = hasPresetPages()
+    ? [
+        {
+          changeFrequency: 'weekly',
+          priority: 0.8,
+          url: 'https://genfeed.ai/presets',
+        },
+        ...getAllPresetSlugs().map((slug) => ({
+          changeFrequency: 'monthly' as const,
+          priority: 0.7,
+          url: `https://genfeed.ai/presets/${slug}`,
+        })),
+      ]
+    : [];
+
   const productRoutes: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
     changeFrequency: 'weekly',
     priority: 0.9,
@@ -535,6 +552,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...agentClientRoutes,
     ...agentClientChannelRoutes,
     ...mcpChannelRoutes,
+    ...presetRoutes,
     ...productRoutes,
     ...appProductRoutes,
     ...competitorRoutes,

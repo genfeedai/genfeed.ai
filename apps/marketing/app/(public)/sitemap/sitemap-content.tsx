@@ -1,3 +1,4 @@
+import { hasPresetPages } from '@data/presets.data';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 
@@ -28,6 +29,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
     links: [
       { href: '/products', label: 'All products' },
       { href: '/models', label: 'Models' },
+      ...(hasPresetPages() ? [{ href: '/presets', label: 'Presets' }] : []),
       { href: '/calendar', label: 'Calendar' },
       { href: '/research', label: 'Research' },
       { href: '/hire-agents', label: 'Hire agents' },
