@@ -7,6 +7,7 @@ import {
   isFinalAttempt,
   isRawCutJob,
   isYoutubeUrl,
+  toJobProgress,
   type VideoCompletionResult,
 } from '@files/processors/video-processor.util';
 import { ClipperReferenceFrameExtractionService } from '@files/services/clipper-reference-frames/clipper-reference-frame-extraction.service';
@@ -21,7 +22,6 @@ import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
 import {
-  JobProgress,
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
@@ -71,6 +71,8 @@ export class VideoProcessor extends WorkerHost {
         return await this.handleReverse(job);
       case JOB_TYPES.MIRROR_VIDEO:
         return await this.handleMirror(job);
+      case JOB_TYPES.REPOST_VARIANT_VIDEO:
+        return await this.handleRepostVariant(job);
       case JOB_TYPES.TRIM_VIDEO:
         return await this.handleTrim(job);
       case JOB_TYPES.CLIP_TRIM:
@@ -94,17 +96,6 @@ export class VideoProcessor extends WorkerHost {
       default:
         throw new Error(`Unknown video job type: ${job.name}`);
     }
-  }
-
-  private convertToJobProgress(ffmpegProgress: FFmpegProgress): JobProgress {
-    return {
-      fps: ffmpegProgress.fps,
-      frames: ffmpegProgress.frames,
-      percent: ffmpegProgress.percent || 50,
-      size: ffmpegProgress.size,
-      speed: ffmpegProgress.speed,
-      time: ffmpegProgress.time,
-    };
   }
 
   /** Reports the failure only when no retry is left; an earlier attempt may still succeed. */
@@ -191,7 +182,7 @@ export class VideoProcessor extends WorkerHost {
     return (progress) => {
       this.webSocketService.emitProgress(
         websocketUrl,
-        this.convertToJobProgress(progress),
+        toJobProgress(progress),
         userId,
         room,
       );
@@ -250,7 +241,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('resize', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
 
       await this.publishProcessed(job.data, { outputPath, s3Key, url });
 
@@ -306,7 +297,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('captions', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
       const result = {
         jobId: String(job.id),
         jobType: JOB_TYPES.ADD_CAPTIONS,
@@ -386,7 +377,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('gif', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -416,10 +407,18 @@ export class VideoProcessor extends WorkerHost {
     );
   }
 
-  /** Downloads, transforms, uploads and queues the completion of a whole-video effect. */
+  async handleRepostVariant(job: Job<VideoJobData>): Promise<JobResult> {
+    const { isMirrored, speed, trimStartSeconds, zoom } = job.data.params;
+    const options = { isMirrored, speed, trimStartSeconds, zoom };
+    return this.runFfmpegTransform(job, 'repost-variant', (input, out, onP) =>
+      this.ffmpegService.repostVariantVideo(input, out, options, onP),
+    );
+  }
+
+  /** Downloads, transforms, uploads and queues the completion of a whole-video effect; output.mp4 stays for the API upload, which deletes it. */
   private async runFfmpegTransform(
     job: Job<VideoJobData>,
-    name: 'reverse' | 'mirror',
+    name: 'reverse' | 'mirror' | 'repost-variant',
     transform: (
       inputPath: string,
       outputPath: string,
@@ -451,7 +450,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir(name, ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
       await this.publishProcessed(job.data, { outputPath, s3Key, url });
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
@@ -498,7 +497,7 @@ export class VideoProcessor extends WorkerHost {
 
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
-      this.ffmpegService.removeTempDir('trim', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -652,7 +651,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.removeTempDir('overlay', ingredientId);
+      await this.ffmpegService.cleanupTempFiles(inputPath);
 
       await this.publishProcessed(job.data, { outputPath, s3Key, url });
 

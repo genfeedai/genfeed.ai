@@ -34,6 +34,7 @@ function buildHandlers() {
     handleMarkRejected: vi.fn(),
     handleMarkValidated: vi.fn(),
     handleMirror: vi.fn(),
+    handleRepostVariant: vi.fn(),
     handlePortrait: vi.fn(),
     handlePublish: vi.fn(),
     handleReprompt: vi.fn(),

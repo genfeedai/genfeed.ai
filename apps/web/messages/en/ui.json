@@ -388,6 +388,8 @@
     "openInEditor": "Open Editor",
     "openInEditorTooltip": "Open in the Studio editor",
     "rename": "Rename",
+    "repostVariant": "Repost variant",
+    "repostVariantTooltip": "Make a new version to repost",
     "resizeFormats": {
       "landscape": "Landscape",
       "portrait": "Portrait",

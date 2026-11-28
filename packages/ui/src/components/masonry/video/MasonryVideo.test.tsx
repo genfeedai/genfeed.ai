@@ -30,6 +30,18 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  '@genfeedai/hooks/ui/ingredient/use-repost-variant/use-repost-variant',
+  () => ({
+    useRepostVariant: vi.fn(() => ({
+      clearRepostVariant: vi.fn(),
+      executeRepostVariant: vi.fn(),
+      handleRepostVariant: vi.fn(),
+      repostVariantIngredient: null,
+    })),
+  }),
+);
+
 vi.mock('@genfeedai/hooks/media/video-utils/video.utils', () => ({
   stopAndResetVideo: vi.fn(),
 }));

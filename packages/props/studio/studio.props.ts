@@ -19,6 +19,7 @@ export interface StudioQuickActionsProps {
   onClone?: (ingredient: IIngredient) => void;
   onReverse?: (ingredient: IIngredient) => void;
   onMirror?: (ingredient: IIngredient) => void;
+  onRepostVariant?: (ingredient: IIngredient) => void;
   onTrim?: (ingredient: IIngredient) => void;
   onPortrait?: (ingredient: IIngredient) => void;
   onSquare?: (ingredient: IIngredient) => void;

@@ -6,8 +6,8 @@ import {
 
 describe('websocket-events.enum', () => {
   describe('WebSocketEventType', () => {
-    it('should have 21 members', () => {
-      expect(Object.values(WebSocketEventType)).toHaveLength(21);
+    it('should have 22 members', () => {
+      expect(Object.values(WebSocketEventType)).toHaveLength(22);
     });
 
     it('should have correct values', () => {
@@ -18,6 +18,7 @@ describe('websocket-events.enum', () => {
       expect(WebSocketEventType.VIDEO_MIRRORED).toBe('video-mirrored');
       expect(WebSocketEventType.VIDEO_TRIMMED).toBe('video-trimmed');
       expect(WebSocketEventType.VIDEO_TEXT_OVERLAY).toBe('video-text-overlay');
+      expect(WebSocketEventType.VIDEO_VARIANT).toBe('video-variant');
       expect(WebSocketEventType.VIDEO_PORTRAIT).toBe('video-portrait');
       expect(WebSocketEventType.CAPTIONS_COMPLETED).toBe('captions-completed');
       expect(WebSocketEventType.CAPTIONS_FAILED).toBe('captions-failed');

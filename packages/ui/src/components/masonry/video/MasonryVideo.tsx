@@ -3,6 +3,7 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
+import { useRepostVariant } from '@genfeedai/hooks/ui/ingredient/use-repost-variant/use-repost-variant';
 import type { MasonryVideoProps } from '@genfeedai/props/content/masonry.props';
 import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
@@ -18,7 +19,13 @@ import { useMasonryVideo } from './useMasonryVideo';
 
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
-type IngredientActions = ReturnType<typeof useIngredientActions>;
+type BaseIngredientActions = ReturnType<typeof useIngredientActions>;
+type RepostVariant = ReturnType<typeof useRepostVariant>;
+type IngredientActions = Omit<BaseIngredientActions, 'handlers'> &
+  Omit<RepostVariant, 'handleRepostVariant'> & {
+    handlers: BaseIngredientActions['handlers'] &
+      Pick<RepostVariant, 'handleRepostVariant'>;
+  };
 
 // An intersection, not `interface … extends`: a workspace that cannot
 // resolve `MasonryVideoProps` then degrades to `any` instead of an empty type.
@@ -51,7 +58,20 @@ function MasonryVideoWithActions(props: MasonryVideoProps): React.ReactElement {
     onRefresh: props.onRefresh,
   });
 
-  return <MasonryVideoTile {...props} actions={actions} />;
+  const { handleRepostVariant, ...repostVariant } = useRepostVariant({
+    onRefresh: props.onRefresh,
+  });
+
+  return (
+    <MasonryVideoTile
+      {...props}
+      actions={{
+        ...actions,
+        ...repostVariant,
+        handlers: { ...actions.handlers, handleRepostVariant },
+      }}
+    />
+  );
 }
 
 function MasonryVideoTile({
@@ -260,6 +280,9 @@ function MasonryVideoTile({
         extendConfirmData={transformActions ? null : actions.extendConfirmData}
         executeExtend={actions.executeExtend}
         clearExtendConfirm={actions.clearExtendConfirm}
+        repostVariantIngredient={actions.repostVariantIngredient}
+        executeRepostVariant={actions.executeRepostVariant}
+        clearRepostVariant={actions.clearRepostVariant}
       />
     ) : null;
 

@@ -93,6 +93,10 @@ export class FilesController {
           job = await this.videoQueueService.addMirrorJob(jobData);
           break;
 
+        case JOB_TYPES.REPOST_VARIANT_VIDEO:
+          job = await this.videoQueueService.addRepostVariantJob(jobData);
+          break;
+
         case JOB_TYPES.ADD_TEXT_OVERLAY:
           job = await this.videoQueueService.addTextOverlayJob(jobData);
           break;

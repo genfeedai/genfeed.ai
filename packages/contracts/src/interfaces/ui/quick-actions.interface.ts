@@ -11,6 +11,7 @@ export interface IActionHandlers {
   onClone?: (ingredient: IIngredient) => void;
   onReverse?: (ingredient: IIngredient) => void;
   onMirror?: (ingredient: IIngredient) => void;
+  onRepostVariant?: (ingredient: IIngredient) => void;
   onTrim?: (ingredient: IIngredient) => void;
   onPortrait?: (ingredient: IIngredient) => void;
   onSquare?: (ingredient: IIngredient) => void;
@@ -57,6 +58,7 @@ export interface IActionHandlers {
 export interface IQuickActionCopy {
   openInEditor: { label: string; tooltip: string };
   remixThisVideo?: { label: string; tooltip: string };
+  repostVariant?: { label: string; tooltip: string };
   rename: string;
   resize: Record<IngredientFormat, string>;
 }

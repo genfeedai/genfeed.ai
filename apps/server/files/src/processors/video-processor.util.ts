@@ -1,4 +1,8 @@
-import type { VideoJobData } from '@files/shared/interfaces/job.interface';
+import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
+import type {
+  JobProgress,
+  VideoJobData,
+} from '@files/shared/interfaces/job.interface';
 import { RAW_CUT_JOB_PREFIX } from '@genfeedai/contracts/interfaces';
 import type { Job } from 'bullmq';
 
@@ -20,6 +24,17 @@ export interface VideoCompletionResult {
   s3Key?: string;
   startTime?: number;
   url?: string;
+}
+
+export function toJobProgress(ffmpegProgress: FFmpegProgress): JobProgress {
+  return {
+    fps: ffmpegProgress.fps,
+    frames: ffmpegProgress.frames,
+    percent: ffmpegProgress.percent || 50,
+    size: ffmpegProgress.size,
+    speed: ffmpegProgress.speed,
+    time: ffmpegProgress.time,
+  };
 }
 
 export function isYoutubeUrl(value: string | undefined): value is string {

@@ -1,4 +1,6 @@
 'use client';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IVideoRepostVariantParams } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
 import type {
   UpscaleConfirmData,
   VideoUpscaleSelection,
@@ -8,6 +10,11 @@ import type {
   VideoExtendSelection,
 } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import VideoTransformPopover from '@ui/masonry/shared/VideoTransformPopover';
+import RepostVariantControls, {
+  getDefaultRepostVariantSelection,
+  hasRepostVariantChange,
+  toRepostVariantParams,
+} from '@ui/modals/ingredients/RepostVariantControls';
 import VideoExtendConfirmControls, {
   getDefaultVideoExtendSelection,
 } from '@ui/modals/ingredients/VideoExtendConfirmControls';
@@ -24,6 +31,9 @@ export interface MasonryConfirmBridgeProps {
   extendConfirmData?: VideoExtendConfirmData | null;
   executeExtend?: (selection: VideoExtendSelection) => Promise<void>;
   clearExtendConfirm?: () => void;
+  repostVariantIngredient?: IIngredient | null;
+  executeRepostVariant?: (params: IVideoRepostVariantParams) => Promise<void>;
+  clearRepostVariant?: () => void;
 }
 
 const confirmationKeys = new WeakMap<object, number>();
@@ -121,8 +131,42 @@ function ExtendPopover({ data, execute, clear }: ExtendPopoverProps) {
   );
 }
 
+interface RepostVariantPopoverProps {
+  ingredient: IIngredient;
+  execute: (params: IVideoRepostVariantParams) => Promise<void>;
+  clear: () => void;
+}
+
+function RepostVariantPopover({
+  ingredient,
+  execute,
+  clear,
+}: RepostVariantPopoverProps) {
+  const translate = useTranslations(
+    'common.videoCreativeActions.repostVariant',
+  );
+  const [selection, setSelection] = useState(getDefaultRepostVariantSelection);
+  const count = Object.values(selection).filter(Boolean).length;
+
+  return (
+    <VideoTransformPopover
+      anchorIngredientId={ingredient.id}
+      confirmLabel={translate('confirmAction', { count })}
+      dialogLabel={translate('dialogLabel')}
+      isConfirmDisabled={!hasRepostVariantChange(selection)}
+      onClose={clear}
+      onConfirm={async () => {
+        await execute(toRepostVariantParams(selection));
+        clear();
+      }}
+    >
+      <RepostVariantControls onChange={setSelection} selection={selection} />
+    </VideoTransformPopover>
+  );
+}
+
 /**
- * Opens the video upscale and extend pickers inline, next to the tile they
+ * Opens the video upscale, extend and repost variant pickers inline, next to the tile they
  * act on. The price sits on the action button and the toast confirms it once
  * the job starts. Image upscale and enhance start without any picker.
  * Used by both MasonryImage and MasonryVideo
@@ -134,6 +178,9 @@ export default function MasonryConfirmBridge({
   extendConfirmData,
   executeExtend,
   clearExtendConfirm,
+  repostVariantIngredient,
+  executeRepostVariant,
+  clearRepostVariant,
 }: MasonryConfirmBridgeProps) {
   if (upscaleConfirmData) {
     return (
@@ -153,6 +200,17 @@ export default function MasonryConfirmBridge({
         data={extendConfirmData}
         execute={executeExtend}
         clear={clearExtendConfirm}
+      />
+    );
+  }
+
+  if (repostVariantIngredient && executeRepostVariant && clearRepostVariant) {
+    return (
+      <RepostVariantPopover
+        key={repostVariantIngredient.id}
+        ingredient={repostVariantIngredient}
+        execute={executeRepostVariant}
+        clear={clearRepostVariant}
       />
     );
   }

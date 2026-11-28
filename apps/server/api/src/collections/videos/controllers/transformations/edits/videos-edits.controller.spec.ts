@@ -35,6 +35,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { IngredientRelationKind } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -193,7 +194,12 @@ describe('VideosEditsController', () => {
       startTime: 2,
     });
     expect(result).toBeDefined();
-    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
+    expect(
+      mockServices.sharedService.createMediaDocuments.mock.calls[0][1],
+    ).toMatchObject({
+      parentId: videoId,
+      relationKind: IngredientRelationKind.TRANSFORMATION,
+    });
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalled();
   });
 
@@ -259,6 +265,12 @@ describe('VideosEditsController', () => {
       { position: 'top', text: 'Hello World' },
     );
     expect(result).toBeDefined();
+    expect(
+      mockServices.sharedService.createMediaDocuments.mock.calls[0][1],
+    ).toMatchObject({
+      parentId: videoId,
+      relationKind: IngredientRelationKind.TRANSFORMATION,
+    });
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalled();
   });
 

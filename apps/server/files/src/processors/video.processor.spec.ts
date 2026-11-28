@@ -1,3 +1,5 @@
+import os from 'node:os';
+import path from 'node:path';
 import { VideoProcessor } from '@files/processors/video.processor';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
@@ -63,6 +65,7 @@ class MockFFmpegService {
   adjustBrightness = vi.fn();
   adjustContrast = vi.fn();
   mirrorVideo = vi.fn().mockResolvedValue(undefined);
+  repostVariantVideo = vi.fn().mockResolvedValue(undefined);
   convertToPortrait = vi.fn().mockResolvedValue(undefined);
   convertToGif = vi.fn().mockResolvedValue(undefined);
   addCaptions = vi.fn().mockResolvedValue(undefined);
@@ -523,9 +526,8 @@ describe('VideoProcessor', () => {
     it('should cleanup temp files after processing', async () => {
       await processor.handleResize(mockJob);
 
-      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
-        'resize',
-        mockJobData.ingredientId,
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        `/tmp/resize-${mockJobData.ingredientId}/input.mp4`,
       );
     });
 
@@ -900,9 +902,8 @@ describe('VideoProcessor', () => {
 
       expect(result.success).toBe(true);
       expect(ffmpegService.reverseVideo).toHaveBeenCalled();
-      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
-        'reverse',
-        expect.any(String),
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        expect.stringMatching(/reverse-.*\/input\.mp4$/),
       );
     });
 
@@ -999,9 +1000,8 @@ describe('VideoProcessor', () => {
 
       expect(result.success).toBe(true);
       expect(ffmpegService.mirrorVideo).toHaveBeenCalled();
-      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
-        'mirror',
-        expect.any(String),
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        expect.stringMatching(/mirror-.*\/input\.mp4$/),
       );
     });
 
@@ -1013,6 +1013,130 @@ describe('VideoProcessor', () => {
         'Mirror failed',
       );
     });
+  });
+
+  describe('handleRepostVariant', () => {
+    it('passes the picked changes to the encode and cleans up', async () => {
+      const job = createMockJob(
+        JOB_TYPES.REPOST_VARIANT_VIDEO,
+        createMockJobData({
+          params: {
+            isMirrored: true,
+            speed: 1.1,
+            trimStartSeconds: 2,
+            zoom: 1.05,
+          },
+        }),
+      );
+
+      const result = await processor.handleRepostVariant(job);
+
+      expect(result.success).toBe(true);
+      expect(ffmpegService.repostVariantVideo).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        { isMirrored: true, speed: 1.1, trimStartSeconds: 2, zoom: 1.05 },
+        expect.any(Function),
+      );
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        expect.stringMatching(/repost-variant-.*\/input\.mp4$/),
+      );
+    });
+
+    it('fails the job when the encode fails', async () => {
+      const job = createMockJob(
+        JOB_TYPES.REPOST_VARIANT_VIDEO,
+        createMockJobData({ params: { isMirrored: true } }),
+      );
+      ffmpegService.repostVariantVideo.mockRejectedValue(
+        new Error('Pick at least one change'),
+      );
+
+      await expect(processor.handleRepostVariant(job)).rejects.toThrow(
+        'Pick at least one change',
+      );
+    });
+  });
+
+  // ==========================================================================
+  // output file lifetime
+  // ==========================================================================
+  describe('output file lifetime', () => {
+    // The API reads `outputPath` from the job result and uploads that file
+    // after the worker has returned, then deletes it. The worker must not
+    // remove the job directory first: the API upload failed with ENOENT.
+    const handlers = [
+      {
+        encode: 'resizeVideo',
+        handler: 'handleResize',
+        type: JOB_TYPES.RESIZE_VIDEO,
+      },
+      {
+        encode: 'reverseVideo',
+        handler: 'handleReverse',
+        type: JOB_TYPES.REVERSE_VIDEO,
+      },
+      {
+        encode: 'mirrorVideo',
+        handler: 'handleMirror',
+        type: JOB_TYPES.MIRROR_VIDEO,
+      },
+      {
+        encode: 'repostVariantVideo',
+        handler: 'handleRepostVariant',
+        type: JOB_TYPES.REPOST_VARIANT_VIDEO,
+      },
+    ] as const;
+
+    it.each(handlers)(
+      '$handler leaves output.mp4 on disk for the API upload and removes the input',
+      async ({ encode, handler, type }) => {
+        const realFs =
+          await vi.importActual<typeof import('node:fs')>('node:fs');
+        const dir = realFs.mkdtempSync(path.join(os.tmpdir(), 'output-life-'));
+        const input = path.join(dir, 'input.mp4');
+        const output = path.join(dir, 'output.mp4');
+
+        ffmpegService.getTempPath.mockReturnValue(dir);
+        const writeInput = (_source: string, target: string): Promise<void> => {
+          realFs.writeFileSync(target, 'input');
+          return Promise.resolve();
+        };
+        s3Service.downloadFile.mockImplementation(writeInput);
+        s3Service.downloadFromUrl.mockImplementation(writeInput);
+        ffmpegService[encode].mockImplementation(
+          (_input: string, target: string) => {
+            realFs.writeFileSync(target, 'encoded');
+            return Promise.resolve();
+          },
+        );
+        // Same effect as the real `removeTempDir`: the whole job directory,
+        // output.mp4 included, is gone as soon as it is called.
+        ffmpegService.removeTempDir.mockImplementation(() => {
+          realFs.rmSync(dir, { force: true, recursive: true });
+        });
+        ffmpegService.cleanupTempFiles.mockImplementation(
+          (...files: string[]) => {
+            for (const file of files) {
+              realFs.rmSync(file, { force: true });
+            }
+            return Promise.resolve();
+          },
+        );
+
+        try {
+          const result = await processor[handler](
+            createMockJob(type, createMockJobData()),
+          );
+
+          expect(result.outputPath).toBe(output);
+          expect(realFs.existsSync(output)).toBe(true);
+          expect(realFs.existsSync(input)).toBe(false);
+        } finally {
+          realFs.rmSync(dir, { force: true, recursive: true });
+        }
+      },
+    );
   });
 
   // ==========================================================================

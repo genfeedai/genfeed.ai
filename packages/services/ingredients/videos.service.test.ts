@@ -190,6 +190,22 @@ describe('VideosService', () => {
       });
     });
 
+    it('postRepostVariant POSTs only the picked changes', async () => {
+      mockVideoResponse();
+
+      const result = await service.postRepostVariant('video_1', {
+        isMirrored: true,
+        speed: 1.1,
+      });
+
+      expect(result.id).toBe('video_1');
+      expect(result).toBeInstanceOf(Object);
+      expect(http.post.mock.calls[0]).toEqual([
+        '/video_1/repost-variant',
+        { isMirrored: true, speed: 1.1 },
+      ]);
+    });
+
     it('postTextOverlay POSTs the overlay params', async () => {
       mockVideoResponse();
 
