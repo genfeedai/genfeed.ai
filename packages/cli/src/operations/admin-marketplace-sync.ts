@@ -6,6 +6,7 @@ import {
   PRESET_CATALOG,
   type PresetCatalogEntry,
 } from '@genfeedai/contracts/constants/preset-catalog.constant';
+import type { PresetExample } from '@genfeedai/contracts/interfaces/elements/preset-example.interface';
 import {
   type AdminMarketplaceListing,
   createMarketplaceListing,
@@ -92,9 +93,42 @@ function sameDocument(left: unknown, right: unknown): boolean {
   );
 }
 
+type ListingMedia = Pick<ListingDraft, 'previewImages' | 'previewVideo' | 'thumbnail'> & {
+  /** What the listing page needs to lay the media out and describe it. */
+  previewData: { aspectRatio?: string; mediaAlt?: string };
+};
+
+/**
+ * The store's media fields for an item with example output. One rule for every
+ * listing type: the first example sets the card picture; a clip fills the
+ * preview video, a picture fills the preview images, and a photo edit shows the
+ * source before the result. No example sets nothing, so the fields stay empty.
+ */
+export function listingMedia(examples: readonly PresetExample[]): ListingMedia {
+  const [first] = examples;
+  if (!first) return { previewData: {} };
+  const previewData = { aspectRatio: first.aspectRatio, mediaAlt: first.alt };
+  if (first.mediaType === 'video') {
+    return {
+      previewData,
+      previewVideo: first.url,
+      ...(first.posterUrl ? { thumbnail: first.posterUrl } : {}),
+    };
+  }
+  return {
+    previewData,
+    previewImages: first.sourceUrl
+      ? [first.sourceUrl, first.url]
+      : examples.map((example) => example.url),
+    thumbnail: first.url,
+  };
+}
+
 export function buildPresetListing(preset: PresetCatalogEntry): ListingDraft {
   const kind = PRESET_KIND_LABELS[preset.kind];
+  const { previewData: mediaPreviewData, ...media } = listingMedia(preset.examples);
   return {
+    ...media,
     description: `${preset.description}\n\nA built-in Genfeed ${kind} preset for ${preset.type} generation. It is free and already part of the Genfeed app; this listing is the same definition from the open-source catalogue.`,
     downloadData: {
       category: preset.type === 'video' ? 'video-generation' : 'image-generation',
@@ -109,7 +143,7 @@ export function buildPresetListing(preset: PresetCatalogEntry): ListingDraft {
     },
     packageSlug: preset.key,
     packageSource: PRESET_LISTING_SOURCE,
-    previewData: { kind: preset.kind, mediaType: preset.type },
+    previewData: { kind: preset.kind, mediaType: preset.type, ...mediaPreviewData },
     price: 0,
     shortDescription: truncate(preset.description, SHORT_DESCRIPTION_MAX),
     tags: ['preset', preset.kind, preset.type],
@@ -243,6 +277,16 @@ export async function readSkillListings(
   return { drafts, skipped };
 }
 
+/** Only the media a draft sets are compared, so an item without an example never plans an update. */
+function hasSameMedia(draft: ListingDraft, existing: AdminMarketplaceListing): boolean {
+  return (
+    (draft.thumbnail === undefined || existing.thumbnail === draft.thumbnail) &&
+    (draft.previewVideo === undefined || existing.previewVideo === draft.previewVideo) &&
+    (draft.previewImages === undefined ||
+      sameDocument(existing.previewImages ?? [], draft.previewImages))
+  );
+}
+
 function isSameContent(draft: ListingDraft, existing: AdminMarketplaceListing): boolean {
   return (
     existing.title === draft.title &&
@@ -252,7 +296,8 @@ function isSameContent(draft: ListingDraft, existing: AdminMarketplaceListing): 
     existing.version === draft.version &&
     sameDocument(existing.tags ?? [], draft.tags) &&
     sameDocument(existing.previewData ?? {}, draft.previewData) &&
-    sameDocument(existing.downloadData ?? {}, draft.downloadData)
+    sameDocument(existing.downloadData ?? {}, draft.downloadData) &&
+    hasSameMedia(draft, existing)
   );
 }
 

@@ -5,11 +5,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ListingStatus } from '@genfeedai/contracts';
 import type { PresetCatalogEntry } from '@genfeedai/contracts/constants/preset-catalog.constant';
+import type { PresetExample } from '@genfeedai/contracts/interfaces/elements/preset-example.interface';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearAdminTokenCache } from '../../src/api/admin-client';
 import {
   applySyncPlan,
   buildPresetListings,
+  listingMedia,
   PRESET_LISTING_SOURCE,
   readSkillListings,
   readSyncPlan,
@@ -40,6 +42,7 @@ interface StoredListing extends Record<string, unknown> {
 const CATALOG: PresetCatalogEntry[] = [
   {
     description: 'A clean portrait with room for a circular crop.',
+    examples: [],
     key: 'studio-profile-picture',
     kind: 'studio',
     label: 'Profile picture',
@@ -49,6 +52,7 @@ const CATALOG: PresetCatalogEntry[] = [
   },
   {
     description: 'A 10 second clip that shows what the product does.',
+    examples: [],
     key: 'b2b-product-demo',
     kind: 'b2b',
     label: 'Product demo',
@@ -203,6 +207,86 @@ describe('operations/admin-marketplace-sync', () => {
     expect(listings[0]).toMatchObject({
       shortDescription: 'A sharper portrait with room for a circular crop.',
       status: ListingStatus.PUBLISHED,
+    });
+  });
+
+  it('sets no media for a preset without an example', async () => {
+    await syncOnce();
+
+    for (const listing of listings) {
+      expect(listing).not.toHaveProperty('thumbnail');
+      expect(listing).not.toHaveProperty('previewVideo');
+      expect(listing).not.toHaveProperty('previewImages');
+      expect(listing.previewData).not.toHaveProperty('aspectRatio');
+    }
+  });
+
+  describe('example media', () => {
+    const clip: PresetExample = {
+      alt: 'A founder talks to camera in a bright office.',
+      aspectRatio: '9:16',
+      mediaType: 'video',
+      posterUrl: 'https://cdn.genfeed.ai/presets/demo-poster.jpg',
+      url: 'https://cdn.genfeed.ai/presets/demo.mp4',
+    };
+    const picture: PresetExample = {
+      alt: 'A square portrait.',
+      aspectRatio: '1:1',
+      mediaType: 'image',
+      url: 'https://cdn.genfeed.ai/presets/portrait.png',
+    };
+
+    it('turns a clip into a card picture and a preview video', () => {
+      expect(listingMedia([clip])).toEqual({
+        previewData: { aspectRatio: '9:16', mediaAlt: clip.alt },
+        previewVideo: clip.url,
+        thumbnail: clip.posterUrl,
+      });
+    });
+
+    it('turns pictures into a card picture and the preview images', () => {
+      expect(listingMedia([picture]).thumbnail).toBe(picture.url);
+      expect(listingMedia([picture]).previewImages).toEqual([picture.url]);
+    });
+
+    it('shows the source before the result for a photo edit', () => {
+      const edit: PresetExample = {
+        ...picture,
+        sourceUrl: 'https://cdn.genfeed.ai/presets/before.png',
+      };
+      expect(listingMedia([edit]).previewImages).toEqual([edit.sourceUrl, edit.url]);
+    });
+
+    it('writes the media to the store and plans no change on the next run', async () => {
+      const withExamples = structuredClone(CATALOG);
+      withExamples[0].examples = [picture];
+      withExamples[1].examples = [clip];
+
+      await syncOnce(buildPresetListings(withExamples));
+      const { plan, result } = await syncOnce(buildPresetListings(withExamples));
+
+      expect(listings[0]).toMatchObject({
+        previewImages: [picture.url],
+        thumbnail: picture.url,
+      });
+      expect(listings[1]).toMatchObject({
+        previewData: { aspectRatio: '9:16', mediaAlt: clip.alt, mediaType: 'video' },
+        previewVideo: clip.url,
+        thumbnail: clip.posterUrl,
+      });
+      expect(plan.entries.map((entry) => entry.action)).toEqual(['unchanged', 'unchanged']);
+      expect(result).toMatchObject({ created: 0, unchanged: 2, updated: 0 });
+    });
+
+    it('plans an update when an example is added to a listed preset', async () => {
+      await syncOnce();
+      const withExample = structuredClone(CATALOG);
+      withExample[0].examples = [picture];
+
+      const { plan } = await syncOnce(buildPresetListings(withExample));
+
+      expect(plan.entries.map((entry) => entry.action)).toEqual(['update', 'unchanged']);
+      expect(listings[0]).toMatchObject({ thumbnail: picture.url });
     });
   });
 

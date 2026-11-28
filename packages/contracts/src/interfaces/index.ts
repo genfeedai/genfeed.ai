@@ -244,6 +244,7 @@ export * from './elements/lens.interface';
 export * from './elements/lighting.interface';
 export * from './elements/mood.interface';
 export * from './elements/preset.interface';
+export * from './elements/preset-example.interface';
 export * from './elements/scene.interface';
 export * from './elements/style.interface';
 export * from './extension';
