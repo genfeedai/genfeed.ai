@@ -43,6 +43,8 @@ export function creatorOfVideo(video: SeedableVideo): {
   };
 }
 
+type TrackableCreator = NonNullable<ReturnType<typeof creatorOfVideo>>;
+
 /**
  * Where tracked creators come from, at no extra scraper spend (#11642): the
  * creators of videos the trends refresh and a brand's niche scan already
@@ -61,12 +63,16 @@ export class OutlierCreatorSeedService {
 
   /** Tracks the creators of videos a scrape returned; a bad row never stops the rest. */
   async seedFromVideos(videos: readonly SeedableVideo[]): Promise<number> {
-    let tracked = 0;
+    const creators = new Map<string, TrackableCreator>();
     for (const video of videos) {
       const creator = creatorOfVideo(video);
-      if (!creator) {
-        continue;
+      if (creator) {
+        creators.set(`${creator.platform}:${creator.externalId}`, creator);
       }
+    }
+
+    let tracked = 0;
+    for (const creator of creators.values()) {
       try {
         await this.library.trackCreator(creator);
         tracked += 1;

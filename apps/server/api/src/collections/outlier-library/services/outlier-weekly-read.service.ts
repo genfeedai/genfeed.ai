@@ -45,7 +45,13 @@ export class OutlierWeeklyReadService {
     private readonly logger: LoggerService,
   ) {}
 
-  async run(now: Date = new Date()): Promise<OutlierPlatformReadTotals[]> {
+  /**
+   * Each claim and each recorded read takes the time when it happens, so a
+   * lease never starts in the past however long the earlier reads ran. A test
+   * passes `now` to hold the clock still.
+   */
+  async run(now?: Date): Promise<OutlierPlatformReadTotals[]> {
+    const clock = () => now ?? new Date();
     await this.seeds.seedFromNicheList();
     await this.seeds.seedFromTrendingVideos();
 
@@ -69,13 +75,13 @@ export class OutlierWeeklyReadService {
           cap,
           claimId,
           leaseMs: OUTLIER_READ_CLAIM_LEASE_MS,
-          now,
+          now: clock(),
         });
         if (!creator) {
           break;
         }
         total.attempted += 1;
-        const isRead = await this.readOne(creator, claimId, now);
+        const isRead = await this.readOne(creator, claimId, clock);
         if (isRead) {
           total.read += 1;
         } else {
@@ -98,13 +104,13 @@ export class OutlierWeeklyReadService {
   private async readOne(
     creator: ClaimedOutlierCreator,
     claimId: string,
-    now: Date,
+    clock: () => Date,
   ): Promise<boolean> {
     let isRead = false;
     try {
       const posts = await this.readers.read(creator);
       if (posts.length > 0) {
-        await this.library.recordRead(creator.id, posts, now);
+        await this.library.recordRead(creator.id, posts, clock());
         isRead = true;
       }
     } catch (error: unknown) {
@@ -113,7 +119,7 @@ export class OutlierWeeklyReadService {
         error: error instanceof Error ? error.message : 'unknown',
       });
     }
-    await this.claims.complete(creator.id, claimId, { missed: !isRead }, now);
+    await this.claims.complete(creator.id, claimId, { missed: !isRead });
     return isRead;
   }
 }

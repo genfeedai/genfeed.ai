@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest';
 const NOW = new Date('2026-11-25T10:00:00.000Z');
 const LEASE_MS = 20 * 60 * 1000;
 const CREATORS = ['a', 'b'];
-const CAP = 1;
+const CAP = 2;
 const LONG_AGO = new Date(0);
 
 type Row = Record<string, unknown>;
@@ -31,6 +31,8 @@ type World = {
   attempts: Map<string, number>;
   budget: { claimed: number } | null;
   creators: Row[];
+  /** How often each creator went to the scraper. */
+  reads: Map<string, number>;
   /** Scraper calls: one per creator a worker went on to read. */
   scrapes: number;
 };
@@ -118,13 +120,19 @@ function prismaDouble(sim: Simulation, world: World) {
         data,
         where,
       }: {
-        data: { claimed: { increment: number } };
-        where: { claimed: { lt: number } };
+        data: { claimed: { decrement?: number; increment?: number } };
+        where: { claimed: { gt?: number; lt?: number } };
       }) => {
         await sim.step('postgres UPDATE budget');
-        const open = world.budget && world.budget.claimed < where.claimed.lt;
+        const claimed = world.budget?.claimed ?? null;
+        const { gt, lt } = where.claimed;
+        const open =
+          claimed !== null &&
+          (lt === undefined || claimed < lt) &&
+          (gt === undefined || claimed > gt);
         if (open && world.budget) {
-          world.budget.claimed += data.claimed.increment;
+          world.budget.claimed +=
+            (data.claimed.increment ?? 0) - (data.claimed.decrement ?? 0);
         }
         sim.observed(open ? 1 : 0);
         return { count: open ? 1 : 0 };
@@ -148,6 +156,7 @@ function readLoop(
       if (!creator) return;
       await sim.step('the scraper reads the creator');
       world.scrapes += 1;
+      world.reads.set(creator.id, (world.reads.get(creator.id) ?? 0) + 1);
       await complete(creator.id);
     }
   };
@@ -161,6 +170,7 @@ function scenarioOf(
       attempts: new Map(),
       budget: null,
       creators: CREATORS.map(freshCreator),
+      reads: new Map(),
       scrapes: 0,
     };
     return {
@@ -177,6 +187,9 @@ function scenarioOf(
       invariant: () => {
         for (const [id, count] of world.attempts) {
           if (count > 1) return `creator ${id} was recorded ${count} times`;
+        }
+        for (const [id, count] of world.reads) {
+          if (count > 1) return `creator ${id} was read ${count} times`;
         }
         if (world.scrapes > CAP) {
           return `the scraper ran ${world.scrapes} times with a cap of ${CAP}`;
@@ -196,6 +209,7 @@ function scenarioOf(
           world.budget,
           world.scrapes,
           [...world.attempts.entries()],
+          [...world.reads.entries()],
         ]),
       start: (sim) => {
         sim.environment(
@@ -244,7 +258,7 @@ function realWorker(sim: Simulation, world: World, name: string): Worker {
         leaseMs: LEASE_MS,
         now: NOW,
       }),
-    (id) => service.complete(id, name, { missed: false }, NOW),
+    (id) => service.complete(id, name, { missed: false }),
   );
 }
 
@@ -291,6 +305,67 @@ function naiveWorker(sim: Simulation, world: World, name: string): Worker {
   );
 }
 
+/**
+ * The claim before it stamped the attempt (#11657 review): it takes a lease
+ * and records the attempt only when the read ends. A read that outlives the
+ * lease lets a second worker take the same creator in the same week.
+ */
+function leaseOnlyWorker(sim: Simulation, world: World, name: string): Worker {
+  const prisma = prismaDouble(sim, world);
+  const due = {
+    AND: [
+      { OR: [{ lastReadAttemptAt: null }] },
+      { OR: [{ readClaimedUntil: null }, { readClaimedUntil: { lt: NOW } }] },
+    ],
+    isDeleted: false,
+    platform: Platform.TIKTOK,
+    status: 'active',
+  };
+  return readLoop(
+    sim,
+    world,
+    async () => {
+      for (;;) {
+        const candidate = (await prisma.outlierCreator.findFirst({
+          select: { id: true },
+          where: due,
+        })) as { id: string } | null;
+        if (!candidate) return null;
+        const won = await prisma.outlierCreator.updateMany({
+          data: {
+            readClaimId: name,
+            readClaimedUntil: new Date(NOW.getTime() + LEASE_MS),
+          },
+          where: { ...due, id: candidate.id },
+        });
+        if (won.count === 0) continue;
+        await prisma.outlierReadBudget.createMany();
+        const reserved = await prisma.outlierReadBudget.updateMany({
+          data: { claimed: { increment: 1 } },
+          where: { claimed: { lt: CAP } },
+        });
+        if (reserved.count === 0) {
+          await prisma.outlierCreator.updateMany({
+            data: { readClaimId: null, readClaimedUntil: null },
+            where: { id: candidate.id, readClaimId: name },
+          });
+          return null;
+        }
+        return candidate;
+      }
+    },
+    (id) =>
+      prisma.outlierCreator.updateMany({
+        data: {
+          lastReadAttemptAt: NOW,
+          readClaimId: null,
+          readClaimedUntil: null,
+        },
+        where: { id, readClaimId: name },
+      }),
+  );
+}
+
 describe('outlier weekly read claim, every order of two workers', () => {
   it('never records a creator twice, never passes the cap and never loses a creator', async () => {
     const { schedules, violation } = await explore(scenarioOf(realWorker));
@@ -302,6 +377,12 @@ describe('outlier weekly read claim, every order of two workers', () => {
   it('finds the harm in a claim that reads before it writes', async () => {
     const { violation } = await explore(scenarioOf(naiveWorker));
 
-    expect(violation?.message).toBe('the scraper ran 2 times with a cap of 1');
+    expect(violation?.message).toBe('creator a was read 2 times');
+  });
+
+  it('finds the harm in a claim that only leases a creator', async () => {
+    const { violation } = await explore(scenarioOf(leaseOnlyWorker));
+
+    expect(violation?.message).toBe('creator a was read 2 times');
   });
 });

@@ -217,29 +217,32 @@ describe.skipIf(!connectionString)(
         data: { lastReadAttemptAt: week },
         where: { id: { notIn: ids } },
       });
-      const taken: string[] = [];
-      for (let index = 0; index < 3; index += 1) {
-        const claimed = await claims.claimNext(Platform.TIKTOK, {
+      const claim = (index: number) =>
+        claims.claimNext(Platform.TIKTOK, {
           cap: 2,
           claimId: `claim-${index}`,
           leaseMs: LEASE_MS,
           now: week,
         });
-        if (claimed) taken.push(claimed.id);
-      }
+      const first = await claim(0);
+      const second = await claim(1);
+      const third = await claim(2);
+      const taken = [first?.id, second?.id];
 
-      expect(taken).toHaveLength(2);
+      expect(third).toBeNull();
+      expect(new Set(taken).size).toBe(2);
       const budget = await prisma.outlierReadBudget.findFirstOrThrow({
         where: { platform: Platform.TIKTOK, weekStart: startOfReadWeek(week) },
       });
       expect(budget.claimed).toBe(2);
-      const third = await prisma.outlierCreator.findFirstOrThrow({
+      const left = await prisma.outlierCreator.findFirstOrThrow({
         where: { id: { in: ids.filter((id) => !taken.includes(id)) } },
       });
-      expect(third.readClaimId).toBeNull();
+      expect(left.readClaimId).toBeNull();
+      expect(left.lastReadAttemptAt).toBeNull();
     });
 
-    it('lets another worker take a creator whose claim ran out', async () => {
+    it('never gives a creator whose claim ran out to a second worker in the same week', async () => {
       const id = await track('lease-lapsed');
       const week = new Date('2027-02-10T10:00:00.000Z');
       await prisma.outlierCreator.updateMany({
@@ -252,28 +255,53 @@ describe.skipIf(!connectionString)(
         leaseMs: LEASE_MS,
         now: week,
       });
-      const during = await claims.claimNext(Platform.TIKTOK, {
-        cap: 5,
-        claimId: 'worker-2',
-        leaseMs: LEASE_MS,
-        now: new Date(week.getTime() + LEASE_MS - 1),
-      });
       const after = await claims.claimNext(Platform.TIKTOK, {
         cap: 5,
         claimId: 'worker-2',
         leaseMs: LEASE_MS,
         now: new Date(week.getTime() + LEASE_MS + 1),
       });
+      await prisma.outlierCreator.updateMany({
+        data: { lastReadAttemptAt: new Date('2027-02-17T09:00:00.000Z') },
+        where: { id: { not: id } },
+      });
+      const nextWeek = await claims.claimNext(Platform.TIKTOK, {
+        cap: 5,
+        claimId: 'worker-3',
+        leaseMs: LEASE_MS,
+        now: new Date('2027-02-17T10:00:00.000Z'),
+      });
 
       expect(first?.id).toBe(id);
-      expect(during).toBeNull();
-      expect(after?.id).toBe(id);
-      expect(
-        await claims.complete(id, 'worker-1', { missed: false }, week),
-      ).toBe(false);
-      expect(
-        await claims.complete(id, 'worker-2', { missed: false }, week),
-      ).toBe(true);
+      expect(after).toBeNull();
+      expect(nextWeek?.id).toBe(id);
+      expect(await claims.complete(id, 'worker-1', { missed: false })).toBe(
+        false,
+      );
+      expect(await claims.complete(id, 'worker-3', { missed: false })).toBe(
+        true,
+      );
+    });
+
+    it('gives the reserved unit back when no creator is due', async () => {
+      const week = new Date('2027-03-10T10:00:00.000Z');
+      await prisma.outlierCreator.updateMany({
+        data: { lastReadAttemptAt: week },
+        where: { platform: Platform.TIKTOK },
+      });
+
+      const none = await claims.claimNext(Platform.TIKTOK, {
+        cap: 3,
+        claimId: 'worker-1',
+        leaseMs: LEASE_MS,
+        now: week,
+      });
+
+      expect(none).toBeNull();
+      const budget = await prisma.outlierReadBudget.findFirstOrThrow({
+        where: { platform: Platform.TIKTOK, weekStart: startOfReadWeek(week) },
+      });
+      expect(budget.claimed).toBe(0);
     });
   },
 );

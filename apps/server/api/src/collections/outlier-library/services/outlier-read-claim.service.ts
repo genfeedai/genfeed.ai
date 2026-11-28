@@ -14,11 +14,16 @@ export interface ClaimedOutlierCreator {
 /**
  * Who may read which creator this week. Two workers run side by side at every
  * deploy, so every step is one conditional write that either wins or does
- * nothing, and the claim carries a lease that runs out when its worker dies.
+ * nothing.
  *
- * A creator is due when its last attempt is older than this week's start. A
- * claim reserves one unit of the week's budget with a single `claimed < cap`
- * update, so the cap holds however many workers claim at once.
+ * A claim reserves one unit of the week's budget first, with a single
+ * `claimed < cap` update, so the cap holds however many workers claim at once
+ * and a worker that dies afterwards costs a unit, never an extra read. It then
+ * takes the creator with one conditional update that also stamps the attempt,
+ * so the creator is not due again until next week: a lease that runs out
+ * mid-read can never hand the same creator to a second worker in the same
+ * week. The lease only keeps a new week's claim from starting while a read is
+ * still running.
  */
 @Traced()
 @Injectable()
@@ -61,6 +66,19 @@ export class OutlierReadClaimService {
       status: 'active',
     };
 
+    await this.prisma.outlierReadBudget.createMany({
+      data: [{ claimed: 0, platform, weekStart }],
+      skipDuplicates: true,
+    });
+    // sql-risk-audit: ignore bulk-write-tenant-review -- outlier_creators and outlier_read_budgets are platform tables with no tenant column; the where names one row by id or by platform and week.
+    const reserved = await this.prisma.outlierReadBudget.updateMany({
+      data: { claimed: { increment: 1 } },
+      where: { claimed: { lt: cap }, platform, weekStart },
+    });
+    if (reserved.count === 0) {
+      return null;
+    }
+
     for (;;) {
       const candidate = await this.prisma.outlierCreator.findFirst({
         orderBy: [
@@ -71,55 +89,38 @@ export class OutlierReadClaimService {
         where: due,
       });
       if (!candidate) {
+        await this.refund(platform, weekStart);
         return null;
       }
 
       // sql-risk-audit: ignore bulk-write-tenant-review -- outlier_creators and outlier_read_budgets are platform tables with no tenant column; the where names one row by id or by platform and week.
       const won = await this.prisma.outlierCreator.updateMany({
         data: {
+          lastReadAttemptAt: now,
           readClaimId: claimId,
           readClaimedUntil: new Date(now.getTime() + leaseMs),
         },
         where: { ...due, id: candidate.id },
       });
-      if (won.count === 0) {
-        // Another worker took this creator first; look at the next one.
-        continue;
+      if (won.count === 1) {
+        return { ...candidate, platform };
       }
-
-      await this.prisma.outlierReadBudget.createMany({
-        data: [{ claimed: 0, platform, weekStart }],
-        skipDuplicates: true,
-      });
-      // sql-risk-audit: ignore bulk-write-tenant-review -- outlier_creators and outlier_read_budgets are platform tables with no tenant column; the where names one row by id or by platform and week.
-      const reserved = await this.prisma.outlierReadBudget.updateMany({
-        data: { claimed: { increment: 1 } },
-        where: { claimed: { lt: cap }, platform, weekStart },
-      });
-      if (reserved.count === 0) {
-        await this.release(candidate.id, claimId);
-        return null;
-      }
-
-      return { ...candidate, platform };
+      // Another worker took this creator first; look at the next one.
     }
   }
 
   /**
-   * Ends a claim with the attempt recorded, which makes the creator not due
-   * until next week. Does nothing when the lease ran out and another worker
+   * Ends a claim with the read's outcome. Does nothing when another worker
    * holds the creator now: that worker's result is the one that counts.
    */
   async complete(
     creatorId: string,
     claimId: string,
     outcome: { missed: boolean },
-    now: Date,
   ): Promise<boolean> {
     // sql-risk-audit: ignore bulk-write-tenant-review -- outlier_creators and outlier_read_budgets are platform tables with no tenant column; the where names one row by id or by platform and week.
     const done = await this.prisma.outlierCreator.updateMany({
       data: {
-        lastReadAttemptAt: now,
         missedReads: outcome.missed ? { increment: 1 } : 0,
         readClaimId: null,
         readClaimedUntil: null,
@@ -129,12 +130,15 @@ export class OutlierReadClaimService {
     return done.count === 1;
   }
 
-  /** Gives a claim back without recording an attempt. */
-  async release(creatorId: string, claimId: string): Promise<void> {
+  /** Gives back a reserved unit when no creator was due to spend it on. */
+  private async refund(
+    platform: OutlierLibraryPlatform,
+    weekStart: Date,
+  ): Promise<void> {
     // sql-risk-audit: ignore bulk-write-tenant-review -- outlier_creators and outlier_read_budgets are platform tables with no tenant column; the where names one row by id or by platform and week.
-    await this.prisma.outlierCreator.updateMany({
-      data: { readClaimId: null, readClaimedUntil: null },
-      where: { id: creatorId, readClaimId: claimId },
+    await this.prisma.outlierReadBudget.updateMany({
+      data: { claimed: { decrement: 1 } },
+      where: { claimed: { gt: 0 }, platform, weekStart },
     });
   }
 }
