@@ -150,6 +150,14 @@ export const trendReferenceRemixSourceSelectorSchema = z
   })
   .strict();
 
+/** A post in the outlier library: another creator's public post that beat their usual views. */
+export const outlierPostRemixSourceSelectorSchema = z
+  .object({
+    kind: z.literal('outlier_post'),
+    outlierPostId: opaqueIdSchema,
+  })
+  .strict();
+
 export const sourcePostRemixSourceSelectorSchema = z
   .object({
     kind: z.literal('source_post'),
@@ -201,6 +209,7 @@ export const importedSourceRemixSourceSelectorSchema = z
 export const brandRemixSourceSelectorSchema = z.discriminatedUnion('kind', [
   trendReferenceRemixSourceSelectorSchema,
   sourcePostRemixSourceSelectorSchema,
+  outlierPostRemixSourceSelectorSchema,
   importedSourceRemixSourceSelectorSchema,
   ownedPostRemixSourceSelectorSchema,
   publicAdRemixSourceSelectorSchema,

@@ -4,7 +4,10 @@ import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analy
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OutlierPerformanceResponse } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
-import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import {
+  formatCompactNumber,
+  formatOutlierMultiple,
+} from '@helpers/formatting/format/format.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
@@ -32,11 +35,6 @@ import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRe
 import OutlierBaselinePanel from './outlier-baseline-panel';
 
 const PAGE_SIZE = 20;
-
-function formatOutlierRatio(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return '-';
-  return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}x`;
-}
 
 export default function AnalyticsOutliers({
   brandId: propBrandId,
@@ -157,7 +155,7 @@ export default function AnalyticsOutliers({
         render: (post) => (
           <>
             <span className="font-semibold">
-              {formatOutlierRatio(post.outlierRatio)}
+              {formatOutlierMultiple(post.outlierRatio)}
             </span>
             {post.platform === 'youtube' ? (
               <span className="block text-xs text-foreground/60">

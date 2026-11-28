@@ -4,6 +4,7 @@ export * from './listening-topic.config';
 export * from './listening-topic-outcome.config';
 export * from './outlier-baseline-snapshot.config';
 export * from './outlier-configuration.config';
+export * from './outlier-library-post.config';
 export * from './outlier-post-performance.config';
 export * from './social-conversation.config';
 export * from './social-message.config';

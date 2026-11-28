@@ -1,5 +1,6 @@
 import { OutlierBaselineSnapshotSerializer } from '@serializers/server/social/outlier-baseline-snapshot.serializer';
 import { OutlierConfigurationSerializer } from '@serializers/server/social/outlier-configuration.serializer';
+import { OutlierLibraryPostSerializer } from '@serializers/server/social/outlier-library-post.serializer';
 import { OutlierPostPerformanceSerializer } from '@serializers/server/social/outlier-post-performance.serializer';
 import { describe, expect, it } from 'vitest';
 
@@ -81,5 +82,43 @@ describe('outlier serializer boundary', () => {
       minimumSampleSize: 5,
       maturityHoursByPlatform: { twitter: 0 },
     });
+  });
+});
+
+describe('outlier library serializer', () => {
+  it('serializes a listed post with its creator and nothing else', () => {
+    const result = OutlierLibraryPostSerializer.serialize({
+      captionExcerpt: 'a caption',
+      comments: 3,
+      countsReadAt: '2026-11-28T00:00:00.000Z',
+      creator: {
+        displayName: 'Creator',
+        followersCount: 1000,
+        handle: 'creator',
+        id: 'c',
+      },
+      externalId: 'abc',
+      format: 'video',
+      hashtags: ['a'],
+      id: 'p',
+      likes: 10,
+      medianViews: 1000,
+      outlierRatio: 12,
+      outlierTier: 'breakout',
+      platform: 'tiktok',
+      publishedAt: '2026-11-20T00:00:00.000Z',
+      sampleSize: 20,
+      soundId: null,
+      url: 'https://www.tiktok.com/@creator/video/abc',
+      views: 12000,
+      videoFile: 'private',
+    }) as Document;
+    expect(result.data.attributes).toMatchObject({
+      creator: { handle: 'creator' },
+      outlierRatio: 12,
+      outlierTier: 'breakout',
+      views: 12000,
+    });
+    expect(result.data.attributes).not.toHaveProperty('videoFile');
   });
 });

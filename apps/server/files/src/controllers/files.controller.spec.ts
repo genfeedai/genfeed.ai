@@ -238,7 +238,6 @@ describe('FilesController', () => {
   };
 
   const mockTrendPlaybackService = {
-    prepare: vi.fn(),
     remove: vi.fn(),
   };
 
@@ -449,9 +448,6 @@ describe('FilesController', () => {
       processFile: jobsController.processFile.bind(jobsController),
       processHookRemix: jobsController.processHookRemix.bind(jobsController),
       processImage: jobsController.processImage.bind(jobsController),
-      prepareTrendPlayback: trendPlaybackController.prepareTrendPlayback.bind(
-        trendPlaybackController,
-      ),
       processVideo: jobsController.processVideo.bind(jobsController),
       processYoutube: jobsController.processYoutube.bind(jobsController),
       removeTrendPlayback: trendPlaybackController.removeTrendPlayback.bind(
@@ -931,41 +927,10 @@ describe('FilesController', () => {
   // processYoutube
   // ==========================================================================
   describe('trend playback', () => {
-    it('returns the saved copy for a TikTok clip', async () => {
-      mockTrendPlaybackService.prepare.mockResolvedValue({
-        playbackKey: 'assets/trend-playback/v1-1.mp4',
-        playbackUrl: 'https://cdn.test/assets/trend-playback/v1-1.mp4',
-        size: 10,
-      });
-
-      await expect(
-        controller.prepareTrendPlayback({
-          sourceUrl: 'https://www.tiktok.com/@a/video/1',
-          videoId: 'v1',
-        }),
-      ).resolves.toMatchObject({
-        playbackUrl: 'https://cdn.test/assets/trend-playback/v1-1.mp4',
-      });
-    });
-
-    it('refuses a request without a source url or video id', async () => {
-      await expect(
-        controller.prepareTrendPlayback({ sourceUrl: '', videoId: 'v1' }),
-      ).rejects.toBeInstanceOf(HttpException);
+    it('refuses a removal without a key', async () => {
       await expect(
         controller.removeTrendPlayback({ playbackKey: '' }),
       ).rejects.toBeInstanceOf(HttpException);
-    });
-
-    it('answers a failed download with a server error', async () => {
-      mockTrendPlaybackService.prepare.mockRejectedValue(new Error('blocked'));
-
-      await expect(
-        controller.prepareTrendPlayback({
-          sourceUrl: 'https://www.tiktok.com/@a/video/1',
-          videoId: 'v1',
-        }),
-      ).rejects.toMatchObject({ status: 500 });
     });
 
     it('removes a saved copy', async () => {

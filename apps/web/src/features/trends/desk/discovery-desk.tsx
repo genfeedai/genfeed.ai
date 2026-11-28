@@ -57,6 +57,7 @@ import { useDeskKeyboard } from '@/features/trends/desk/use-desk-keyboard';
 import { useDiscoveryDeskItems } from '@/features/trends/desk/use-discovery-desk-items';
 import { useNicheScan } from '@/features/trends/desk/use-niche-scan';
 import FollowSourceModal from '@/features/trends/following/FollowSourceModal';
+import TrendsOutliers from '@/features/trends/outliers/trends-outliers';
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskSort,
@@ -82,7 +83,16 @@ const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
   'imported',
 ];
 
-const DESK_SOURCE_TABS = ['all', 'trends', 'imported', 'following'] as const;
+/** `outliers` swaps the signal desk for the outlier library view. */
+const DESK_SOURCE_TABS = [
+  'all',
+  'trends',
+  'imported',
+  'following',
+  'outliers',
+] as const;
+
+type DeskSourceParam = DiscoveryDeskSource | 'all' | 'outliers';
 
 function isDeskSourceTab(
   value: string,
@@ -103,7 +113,7 @@ const SORT_VALUES: readonly DiscoveryDeskSort[] = [
  * two shareable-URL views: the operator Desk table and the media-first
  * "Light table" grid.
  */
-export default function DiscoveryDesk() {
+function SignalDesk() {
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
   const [isFollowOpen, setIsFollowOpen] = useState(false);
@@ -117,13 +127,14 @@ export default function DiscoveryDesk() {
     defaultValue: ViewType.GRID,
     key: 'view',
   });
-  const [sourceParam, setSourceParam] = useResearchSearchParamState<
-    DiscoveryDeskSource | 'all'
-  >({
-    allowedValues: [...SOURCE_VALUES, 'all'],
-    defaultValue: 'all',
-    key: 'source',
-  });
+  const [sourceParam, setSourceParam] =
+    useResearchSearchParamState<DeskSourceParam>({
+      allowedValues: [...SOURCE_VALUES, 'all', 'outliers'],
+      defaultValue: 'all',
+      key: 'source',
+    });
+  // `outliers` unmounts this desk, so its filters keep reading as "all".
+  const deskSource = sourceParam === 'outliers' ? 'all' : sourceParam;
   const [sortParam, setSortParam] =
     useResearchSearchParamState<DiscoveryDeskSort>({
       allowedValues: SORT_VALUES,
@@ -147,8 +158,8 @@ export default function DiscoveryDesk() {
   // URL params are the source of truth for filters/sort/view; reconcile the
   // reducer state on every param change (back/forward nav, shared links,
   // the source filter).
-  if (state.filters.source !== sourceParam) {
-    dispatch({ source: sourceParam, type: 'SET_SOURCE' });
+  if (state.filters.source !== deskSource) {
+    dispatch({ source: deskSource, type: 'SET_SOURCE' });
   }
 
   if (state.sort !== sortParam) {
@@ -233,8 +244,11 @@ export default function DiscoveryDesk() {
   }, [setPlatformParam]);
 
   const handleSourceChange = useCallback(
-    (value: DiscoveryDeskSource | 'all') => {
-      dispatch({ source: value, type: 'SET_SOURCE' });
+    (value: DeskSourceParam) => {
+      dispatch({
+        source: value === 'outliers' ? 'all' : value,
+        type: 'SET_SOURCE',
+      });
       setSourceParam(value);
     },
     [setSourceParam],
@@ -515,5 +529,32 @@ export default function DiscoveryDesk() {
         onOpenChange={setIsFollowOpen}
       />
     </>
+  );
+}
+
+/**
+ * Discovery. The Source facet picks the signal desk or the outlier library
+ * (#11643); both live at the same address and share the URL's search, platform
+ * and source.
+ */
+export default function DiscoveryDesk() {
+  const [source, setSource] = useResearchSearchParamState<DeskSourceParam>({
+    allowedValues: [...SOURCE_VALUES, 'all', 'outliers'],
+    defaultValue: 'all',
+    key: 'source',
+  });
+  const handleSourceChange = useCallback(
+    (value: string) => {
+      if (isDeskSourceTab(value)) {
+        setSource(value);
+      }
+    },
+    [setSource],
+  );
+
+  return source === 'outliers' ? (
+    <TrendsOutliers onSourceChange={handleSourceChange} />
+  ) : (
+    <SignalDesk />
   );
 }

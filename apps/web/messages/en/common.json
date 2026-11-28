@@ -2712,8 +2712,53 @@
       "sourceTabs": {
         "all": "All",
         "trends": "Public trends",
-        "imported": "Imported"
+        "imported": "Imported",
+        "outliers": "Outliers"
       }
+    },
+    "outliers": {
+      "empty": "No outliers match these filters",
+      "filters": {
+        "group": "Group by",
+        "platform": "Platform",
+        "tier": "Size of the win"
+      },
+      "footnote": "Multiple is a video's views divided by its creator's typical post: the median of their last 20 posts older than 48 hours (the number in brackets). Genfeed calculates it from the platform's public counts. YouTube joins once its policy step is done.",
+      "groups": {
+        "creator": "Creator",
+        "none": "No grouping"
+      },
+      "intro": "Videos that beat their own creator's typical post, biggest win first. Click a row to watch it.",
+      "loadError": "The outlier list could not be loaded",
+      "openOriginal": "Open original",
+      "platforms": {
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "youtube": "YouTube"
+      },
+      "player": {
+        "summary": "{multiple} their usual: {views} views against a typical {median}",
+        "terms": "Plays in {platform}'s own player, with its branding and the creator's name. Genfeed keeps the link and the numbers, never the video file. Numbers read on {date}."
+      },
+      "columns": {
+        "multiple": "Multiple",
+        "platform": "Platform",
+        "posted": "Posted",
+        "tier": "Tier",
+        "typical": "Typical post",
+        "video": "Video",
+        "views": "Views"
+      },
+      "remix": "Remix for my brand",
+      "searchLabel": "Search outliers",
+      "searchPlaceholder": "Search outliers",
+      "tableLabel": "Outlier videos",
+      "tiers": {
+        "breakout": "Breakout, 10x or more",
+        "outlier": "Outlier, 3x or more"
+      },
+      "totalLabel": "outliers",
+      "videoBy": "Video by {handle}"
     }
   },
   "referrals": {

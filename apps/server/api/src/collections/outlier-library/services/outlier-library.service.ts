@@ -39,6 +39,32 @@ const OUTLIER_DROPPED_POST_PURGE_DAYS = 7;
 const DROP_BATCH = 1_000;
 const MAX_LIST_LIMIT = 100;
 
+function listedWhere(query: OutlierLibraryListQuery) {
+  const search = query.search?.trim();
+  return {
+    isDeleted: false,
+    ...(search
+      ? {
+          OR: [
+            {
+              captionExcerpt: {
+                contains: search,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              creator: {
+                handle: { contains: search, mode: 'insensitive' as const },
+              },
+            },
+          ],
+        }
+      : {}),
+    ...(query.platform ? { platform: query.platform } : {}),
+    ...(query.tier ? { outlierTier: query.tier } : {}),
+  };
+}
+
 /** Likes under this share of views, from 1,000 views, look like bought reach. */
 const BOUGHT_REACH_MIN_VIEWS = 1_000;
 const BOUGHT_REACH_MAX_LIKE_RATE = 0.005;
@@ -525,11 +551,7 @@ export class OutlierLibraryService {
       ],
       skip: Math.max(0, query.offset ?? 0),
       take: limit,
-      where: {
-        isDeleted: false,
-        ...(query.platform ? { platform: query.platform } : {}),
-        ...(query.tier ? { outlierTier: query.tier } : {}),
-      },
+      where: listedWhere(query),
     });
 
     return rows.map((row) => ({
@@ -552,5 +574,26 @@ export class OutlierLibraryService {
       url: row.url,
       views: row.views,
     }));
+  }
+
+  /** One page of the list with the total behind it, for a screen or a tool. */
+  async listOutlierPage(
+    query: OutlierLibraryListQuery & { page?: number },
+  ): Promise<{
+    docs: OutlierLibraryPostRecord[];
+    limit: number;
+    page: number;
+    totalDocs: number;
+  }> {
+    const limit = Math.min(
+      MAX_LIST_LIMIT,
+      Math.max(1, query.limit ?? DEFAULT_LIST_LIMIT),
+    );
+    const page = Math.max(1, query.page ?? 1);
+    const [docs, totalDocs] = await Promise.all([
+      this.listOutliers({ ...query, limit, offset: (page - 1) * limit }),
+      this.prisma.outlierPost.count({ where: listedWhere(query) }),
+    ]);
+    return { docs, limit, page, totalDocs };
   }
 }

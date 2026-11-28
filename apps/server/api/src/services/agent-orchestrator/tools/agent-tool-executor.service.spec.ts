@@ -1018,7 +1018,12 @@ describe('AgentToolExecutorService', () => {
     const connectionHandler = new AgentConnectionToolHandler(
       credentialsService as never,
     );
-    const trendsHandler = new AgentTrendsToolHandler(trendsService as never);
+    const trendsHandler = new AgentTrendsToolHandler(
+      trendsService as never,
+      {
+        listOutliers: vi.fn().mockResolvedValue([]),
+      } as never,
+    );
     const generationGateway = {
       generateArticle: vi.fn(),
       generateAvatarVideo: vi.fn(),
@@ -5265,6 +5270,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual({
       count: 2,
       newestUpdatedAt: updatedAt.toISOString(),
+      outliers: [],
       timeframe: '24h',
       trends: [
         {
@@ -5335,6 +5341,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual({
       count: 0,
       newestUpdatedAt: null,
+      outliers: [],
       timeframe: '24h',
       trends: [],
     });
@@ -5378,6 +5385,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual({
       count: 0,
       newestUpdatedAt: null,
+      outliers: [],
       timeframe: '24h',
       trends: [],
     });
@@ -6499,9 +6507,12 @@ describe('AgentToolExecutorService', () => {
         {} as never,
       ),
       new AgentConnectionToolHandler(credentialsService as never),
-      new AgentTrendsToolHandler({
-        getTrends: vi.fn().mockResolvedValue([]),
-      } as never),
+      new AgentTrendsToolHandler(
+        {
+          getTrends: vi.fn().mockResolvedValue([]),
+        } as never,
+        { listOutliers: vi.fn().mockResolvedValue([]) } as never,
+      ),
       new AgentProactiveToolHandler(
         loggerService,
         postsService as never,

@@ -365,14 +365,10 @@ export default function DeskLightTableView({
               <SocialMediaPlayer
                 contentType="video"
                 mediaUrl={openedVideo.mediaUrl}
-                playbackUrl={openedVideo.playbackUrl}
                 sourceUrl={openedVideo.sourceUrl}
                 thumbnailUrl={openedVideo.thumbnailUrl}
                 title={
                   openedVideo.title || openedVideo.text || openedVideo.platform
-                }
-                trendVideoId={
-                  openedVideo.kind === 'viral_video' ? openedVideo.id : null
                 }
               />
             ) : null}

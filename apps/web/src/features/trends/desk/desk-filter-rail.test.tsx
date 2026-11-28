@@ -70,6 +70,16 @@ describe('Discovery filter menu', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('lists the outlier library as a source and counts nothing for it', async () => {
+    const props = renderFilters();
+    const user = await openFacet(/^Source/);
+    const outliers = await screen.findByRole('menuitemradio', {
+      name: 'Outliers',
+    });
+    await user.click(outliers);
+    expect(props.onSourceChange).toHaveBeenCalledWith('outliers');
+  });
+
   it('clears the platform and content type filters together', async () => {
     const props = renderFilters();
     const user = userEvent.setup();

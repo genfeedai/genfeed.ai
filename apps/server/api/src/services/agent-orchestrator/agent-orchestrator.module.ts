@@ -34,6 +34,7 @@ import { OptimizersModule } from '@api/collections/optimizers/optimizers.module'
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
+import { OutlierLibraryModule } from '@api/collections/outlier-library/outlier-library.module';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -263,6 +264,7 @@ import { Module } from '@nestjs/common';
     ReviewInboxCoreModule,
     SettingsModule,
     SocialInboxModule,
+    OutlierLibraryModule,
     TrendsModule,
     ContentRunsModule,
     OrganizationModuleAccessModule,

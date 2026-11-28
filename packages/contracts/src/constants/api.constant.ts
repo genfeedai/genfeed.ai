@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
   OPTIMIZERS: '/optimizers',
   ORGANIZATIONS: '/organizations',
   OUTLIER_BASELINES: '/outlier-baselines',
+  OUTLIER_LIBRARY: '/outlier-library',
   LIBRARY_ELEMENTS: '/library-elements',
   PERSONAS: '/personas',
   POSTS: '/posts',

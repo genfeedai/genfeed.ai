@@ -17,17 +17,6 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   ),
 }));
 
-const prepareVideo = vi.hoisted(() => vi.fn());
-
-vi.mock(
-  '@/features/trends/hooks/use-trend-video-playback/use-trend-video-playback',
-  () => ({ useTrendVideoPlayback: () => prepareVideo }),
-);
-
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ orgHref: (path: string) => `/acme${path}` }),
-}));
-
 describe('interactive social media playback', () => {
   it('mounts the native video embed on explicit play and stops when the tab is hidden', () => {
     const { container } = render(
@@ -53,7 +42,7 @@ describe('interactive social media playback', () => {
       <SocialMediaPlayer
         contentType="video"
         mediaUrl="https://cdn.example.com/expired.mp4"
-        sourceUrl="https://www.instagram.com/p/abc/"
+        sourceUrl="https://www.facebook.com/watch/?v=1"
         title="Clip"
       />,
     );
@@ -64,7 +53,7 @@ describe('interactive social media playback', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute(
       'href',
-      'https://www.instagram.com/p/abc/',
+      'https://www.facebook.com/watch/?v=1',
     );
   });
   it('falls back from an expired CDN video to its native embed', () => {
@@ -99,99 +88,82 @@ describe('interactive social media playback', () => {
         mediaUrl: 'data:text/html,test',
       }),
     ).toMatchObject({ sourceUrl: null, directUrl: null, embedUrl: null });
-    expect(
-      getSocialMediaSource({
-        contentType: 'video',
-        sourceUrl: 'https://www.tiktok.com/@user/video/123456789',
-      }),
-    ).toMatchObject({ directUrl: null, embedUrl: null });
   });
 });
 
-describe('TikTok and Instagram playback in the app', () => {
-  const tiktok = {
-    contentType: 'video',
-    sourceUrl: 'https://www.tiktok.com/@user/video/123456789',
-    thumbnailUrl: 'https://cdn.example.com/cover.jpg',
-    title: 'Dance',
-    trendVideoId: 'video-1',
-  };
-
-  it('plays a saved copy in the Genfeed player and loads no third-party frame', async () => {
-    prepareVideo.mockResolvedValue({
-      playbackExpiresAt: '2026-12-03T00:00:00.000Z',
-      playbackUrl: 'https://cdn.example.com/saved.mp4',
-      status: 'ready',
-    });
-    const { container } = render(<SocialMediaPlayer {...tiktok} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Play Dance' }));
-
-    expect(await screen.findByLabelText('Direct video')).toHaveAttribute(
-      'src',
-      'https://cdn.example.com/saved.mp4',
-    );
-    expect(container.querySelector('iframe')).toBeNull();
+describe('TikTok and Instagram playback on the platform', () => {
+  it.each([
+    [
+      'https://www.tiktok.com/@user/video/7300000000000000000',
+      'https://www.tiktok.com/player/v1/7300000000000000000?rel=0',
+    ],
+    [
+      'https://www.instagram.com/reel/Cabc123/',
+      'https://www.instagram.com/reel/Cabc123/embed',
+    ],
+    [
+      'https://www.instagram.com/creator/reel/Cabc123/?igsh=x',
+      'https://www.instagram.com/reel/Cabc123/embed',
+    ],
+    [
+      'https://www.instagram.com/p/Cabc123/',
+      'https://www.instagram.com/p/Cabc123/embed',
+    ],
+  ])('embeds the platform player for %s', (sourceUrl, embedUrl) => {
+    expect(
+      getSocialMediaSource({ contentType: 'video', sourceUrl }),
+    ).toMatchObject({ directUrl: null, embedUrl });
   });
 
-  it('skips the request when the trend data already carries a saved copy', () => {
-    prepareVideo.mockClear();
+  it.each([
+    'https://www.tiktok.com/@user',
+    'https://vm.tiktok.com/ZMabc/',
+    'https://www.instagram.com/creator/',
+    'https://evil.example/tiktok.com/@user/video/7300000000000000000',
+  ])('builds no embed for %s', (sourceUrl) => {
+    expect(
+      getSocialMediaSource({ contentType: 'video', sourceUrl }).embedUrl,
+    ).toBeNull();
+  });
+
+  it('builds no platform embed for a hover preview', () => {
+    expect(
+      getSocialMediaSource(
+        {
+          contentType: 'video',
+          sourceUrl: 'https://www.tiktok.com/@user/video/7300000000000000000',
+        },
+        false,
+      ).embedUrl,
+    ).toBeNull();
+  });
+
+  it('plays a TikTok video in its own player and copies nothing', () => {
     render(
       <SocialMediaPlayer
-        {...tiktok}
-        playbackUrl="https://cdn.example.com/already.mp4"
+        contentType="video"
+        sourceUrl="https://www.tiktok.com/@user/video/7300000000000000000"
+        thumbnailUrl="https://cdn.example.com/cover.jpg"
+        title="Dance"
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Play Dance' }));
 
-    expect(screen.getByLabelText('Direct video')).toHaveAttribute(
+    expect(screen.getByTitle('Dance')).toHaveAttribute(
       'src',
-      'https://cdn.example.com/already.mp4',
+      'https://www.tiktok.com/player/v1/7300000000000000000?rel=0',
     );
-    expect(prepareVideo).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Direct video')).not.toBeInTheDocument();
   });
 
-  it('sends the free plan to its plans instead of playing', async () => {
-    prepareVideo.mockResolvedValue({ status: 'upgrade' });
-    render(<SocialMediaPlayer {...tiktok} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Play Dance' }));
-
-    expect(
-      await screen.findByText(
-        'Playing TikTok and Instagram videos in Genfeed is on paid plans.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View plans' })).toHaveAttribute(
-      'href',
-      expect.stringMatching(/^\/acme\//),
-    );
-  });
-
-  it('says so when the video cannot be saved, and offers the platform link', async () => {
-    prepareVideo.mockResolvedValue({ status: 'unavailable' });
-    render(<SocialMediaPlayer {...tiktok} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Play Dance' }));
-
-    expect(
-      await screen.findByText(
-        "This video can't be played here. Open it on the platform.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Play Dance' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute(
-      'href',
-      tiktok.sourceUrl,
-    );
-  });
-
-  it('shows no play button for a TikTok card without a trend video to save', () => {
+  it('shows no play button for a TikTok page it cannot embed, and keeps the link', () => {
     const { container } = render(
-      <SocialMediaPlayer {...tiktok} trendVideoId={undefined} />,
+      <SocialMediaPlayer
+        contentType="video"
+        sourceUrl="https://vm.tiktok.com/ZMabc/"
+        title="Dance"
+      />,
     );
 
     expect(

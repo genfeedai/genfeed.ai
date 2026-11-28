@@ -71,16 +71,8 @@ vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
 }));
 
 vi.mock('@/components/analytics/trends/social-media-player', () => ({
-  default: ({
-    trendVideoId,
-    sourceUrl,
-  }: {
-    trendVideoId?: string | null;
-    sourceUrl?: string | null;
-  }) => (
-    <p>
-      Player for {trendVideoId ?? 'no trend video'} at {sourceUrl}
-    </p>
+  default: ({ sourceUrl }: { sourceUrl?: string | null }) => (
+    <p>Player at {sourceUrl}</p>
   ),
 }));
 
@@ -460,9 +452,7 @@ describe('DeskLightTableView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Dance clip/ }));
 
     expect(
-      screen.getByText(
-        'Player for video-1 at https://www.tiktok.com/@creator/video/1',
-      ),
+      screen.getByText('Player at https://www.tiktok.com/@creator/video/1'),
     ).toBeInTheDocument();
     expect(document.querySelectorAll('iframe')).toHaveLength(0);
   });

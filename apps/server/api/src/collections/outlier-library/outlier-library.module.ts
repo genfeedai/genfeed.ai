@@ -1,3 +1,4 @@
+import { OutlierLibraryController } from '@api/collections/outlier-library/controllers/outlier-library.controller';
 import { OutlierCreatorReaderService } from '@api/collections/outlier-library/readers/outlier-creator-reader.service';
 import { OutlierCreatorSeedService } from '@api/collections/outlier-library/services/outlier-creator-seed.service';
 import { OutlierLibraryService } from '@api/collections/outlier-library/services/outlier-library.service';
@@ -10,6 +11,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
+  controllers: [OutlierLibraryController],
   exports: [
     OutlierCreatorSeedService,
     OutlierLibraryService,

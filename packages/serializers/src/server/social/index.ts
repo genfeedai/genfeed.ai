@@ -4,6 +4,7 @@ export * from './listening-topic.serializer';
 export * from './listening-topic-outcome.serializer';
 export * from './outlier-baseline-snapshot.serializer';
 export * from './outlier-configuration.serializer';
+export * from './outlier-library-post.serializer';
 export * from './outlier-post-performance.serializer';
 export * from './social-conversation.serializer';
 export * from './social-message.serializer';

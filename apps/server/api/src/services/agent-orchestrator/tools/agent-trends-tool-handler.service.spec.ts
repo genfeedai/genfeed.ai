@@ -18,14 +18,37 @@ function trendRow(
   };
 }
 
-function handlerWith(rowsByPlatform: Record<string, unknown[]>) {
+const OUTLIER_ROW = {
+  captionExcerpt: 'One-take demo',
+  countsReadAt: new Date('2026-11-27T06:00:00.000Z'),
+  creator: { handle: 'buildlog' },
+  id: 'o1',
+  medianViews: 9_800,
+  outlierRatio: 6.3,
+  outlierTier: 'outlier',
+  platform: 'tiktok',
+  publishedAt: new Date('2026-11-20T09:00:00.000Z'),
+  url: 'https://www.tiktok.com/@buildlog/video/7300000000000000000',
+  views: 62_000,
+};
+
+function handlerWith(
+  rowsByPlatform: Record<string, unknown[]>,
+  outliers: unknown[] = [],
+) {
+  const listOutliers = vi.fn().mockResolvedValue(outliers);
   const getTrends = vi
     .fn()
     .mockImplementation(
       async (_org: string, _brand: unknown, platform: string) =>
         rowsByPlatform[platform] ?? [],
     );
-  return new AgentTrendsToolHandler({ getTrends } as never);
+  return new AgentTrendsToolHandler(
+    { getTrends } as never,
+    {
+      listOutliers,
+    } as never,
+  );
 }
 
 const ctx = { organizationId: 'org-1' } as never;
@@ -41,6 +64,44 @@ describe('AgentTrendsToolHandler', () => {
       data: { count: 0, trends: [] },
       success: true,
     });
+  });
+
+  it('lists the outlier library beside the trends, numbers and links only', async () => {
+    const result = await handlerWith({}, [OUTLIER_ROW]).getTrends({}, ctx);
+
+    expect((result.data as { outliers: unknown[] }).outliers).toEqual([
+      {
+        caption: 'One-take demo',
+        countsReadAt: '2026-11-27T06:00:00.000Z',
+        creator: 'buildlog',
+        id: 'o1',
+        multiple: 6.3,
+        platform: 'tiktok',
+        publishedAt: '2026-11-20T09:00:00.000Z',
+        tier: 'outlier',
+        typicalViews: 9_800,
+        url: 'https://www.tiktok.com/@buildlog/video/7300000000000000000',
+        views: 62_000,
+      },
+    ]);
+  });
+
+  it('leaves YouTube out of the outlier list until its policy step is done', async () => {
+    const result = await handlerWith({}, [
+      OUTLIER_ROW,
+      { ...OUTLIER_ROW, id: 'o2', platform: 'youtube' },
+    ]).getTrends({}, ctx);
+    expect(
+      (result.data as { outliers: { id: string }[] }).outliers.map(
+        (row) => row.id,
+      ),
+    ).toEqual(['o1']);
+
+    const youtube = await handlerWith({}, [OUTLIER_ROW]).getTrends(
+      { platform: 'youtube' },
+      ctx,
+    );
+    expect((youtube.data as { outliers: unknown[] }).outliers).toEqual([]);
   });
 
   it('does not let one platform fill the answer when no platform is given', async () => {

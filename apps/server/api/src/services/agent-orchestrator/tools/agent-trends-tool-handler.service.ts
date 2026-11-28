@@ -1,3 +1,4 @@
+import { OutlierLibraryService } from '@api/collections/outlier-library/services/outlier-library.service';
 import { TREND_REFRESH_DATASETS } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -7,6 +8,9 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const MAX_TRENDS = 20;
+const MAX_OUTLIERS = 10;
+/** The outlier library lists these until YouTube's policy step is done (#11639). */
+const OUTLIER_PLATFORMS = ['instagram', 'tiktok'] as const;
 const TIMEFRAME_HOURS = { '24h': 24, '30d': 720, '7d': 168 } as const;
 type TrendsTimeframe = keyof typeof TIMEFRAME_HOURS;
 const TREND_PLATFORMS = TREND_REFRESH_DATASETS.filter(
@@ -47,6 +51,12 @@ function interleaveByPlatform<T extends { platform: string; score?: number }>(
   return result;
 }
 
+function readOutlierPlatform(
+  platform: string | undefined,
+): (typeof OUTLIER_PLATFORMS)[number] | undefined {
+  return OUTLIER_PLATFORMS.find((value) => value === platform);
+}
+
 /**
  * Trends listing tool + summary card builder.
  * Extracted from AgentToolExecutorService per #519.
@@ -54,7 +64,10 @@ function interleaveByPlatform<T extends { platform: string; score?: number }>(
 @Traced()
 @Injectable()
 export class AgentTrendsToolHandler {
-  constructor(private readonly trendsService: TrendsService) {}
+  constructor(
+    private readonly trendsService: TrendsService,
+    private readonly outlierLibrary: OutlierLibraryService,
+  ) {}
 
   async getTrends(
     params: Record<string, unknown>,
@@ -100,11 +113,14 @@ export class AgentTrendsToolHandler {
         .sort()
         .at(-1) ?? null;
 
+    const outliers = await this.listOutliers(platform);
+
     return {
       creditsUsed: 0,
       data: {
         count: inWindow.length,
         newestUpdatedAt,
+        outliers,
         timeframe,
         trends,
       },
@@ -119,6 +135,36 @@ export class AgentTrendsToolHandler {
       ],
       success: true,
     };
+  }
+
+  /**
+   * The outlier library: public videos that beat their creator's typical
+   * post, biggest win first. The list is the same for every organization and
+   * is not limited by the timeframe. Numbers and links only, never the video.
+   */
+  private async listOutliers(platform: string | undefined) {
+    if (platform && !readOutlierPlatform(platform)) return [];
+    const posts = await this.outlierLibrary.listOutliers({
+      limit: MAX_OUTLIERS,
+      platform: readOutlierPlatform(platform),
+    });
+    return posts
+      .filter((post) =>
+        (OUTLIER_PLATFORMS as readonly string[]).includes(post.platform),
+      )
+      .map((post) => ({
+        caption: post.captionExcerpt,
+        countsReadAt: post.countsReadAt.toISOString(),
+        creator: post.creator.handle,
+        id: post.id,
+        multiple: post.outlierRatio,
+        platform: post.platform,
+        publishedAt: post.publishedAt.toISOString(),
+        tier: post.outlierTier,
+        typicalViews: post.medianViews,
+        url: post.url,
+        views: post.views,
+      }));
   }
 
   buildTrendsSummaryCard(

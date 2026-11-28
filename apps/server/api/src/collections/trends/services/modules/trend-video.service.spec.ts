@@ -392,7 +392,7 @@ describe('TrendVideoService', () => {
       expect(mockLoggerService.error).not.toHaveBeenCalled();
     });
 
-    it('keeps a saved playback copy through a re-scrape and restarts its seven days', async () => {
+    it('keeps a saved playback copy through a re-scrape with the expiry it already had', async () => {
       const staleExpiry = Date.now() + 60_000;
       mockApifyService.getTikTokVideos.mockResolvedValue([
         { externalId: 'b', title: 'B again' },
@@ -419,9 +419,7 @@ describe('TrendVideoService', () => {
       expect(written.playbackUrl).toBe(
         'https://cdn.test/assets/trend-playback/b.mp4',
       );
-      expect(written.playbackExpiresAtMs as number).toBeGreaterThan(
-        Date.now() + 6.9 * 24 * 60 * 60 * 1000,
-      );
+      expect(written.playbackExpiresAtMs).toBe(staleExpiry);
     });
 
     it('does not invent playback fields for a video that has no saved copy', async () => {

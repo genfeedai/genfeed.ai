@@ -59,6 +59,8 @@ export interface OutlierLibraryReadResult {
 
 export interface OutlierLibraryListQuery {
   platform?: OutlierLibraryPlatform;
+  /** Matches a creator's handle or a post's caption, ignoring case. */
+  search?: string;
   tier?: OutlierLibraryTier;
   limit?: number;
   offset?: number;
@@ -89,4 +91,19 @@ export interface OutlierLibraryPostRecord {
     displayName: string | null;
     followersCount: number | null;
   };
+}
+
+/** A listed post as the list route returns it: dates are ISO strings. */
+export interface OutlierLibraryPostResponse
+  extends Omit<OutlierLibraryPostRecord, 'countsReadAt' | 'publishedAt'> {
+  countsReadAt: string;
+  publishedAt: string;
+}
+
+export interface OutlierLibraryListParams {
+  limit?: number;
+  page?: number;
+  platform?: OutlierLibraryPlatform;
+  search?: string;
+  tier?: OutlierLibraryTier;
 }

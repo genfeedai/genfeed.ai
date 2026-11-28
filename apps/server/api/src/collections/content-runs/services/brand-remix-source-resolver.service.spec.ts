@@ -14,6 +14,7 @@ describe('BrandRemixSourceResolverService', () => {
   const prisma = {
     credential: { findFirst: vi.fn() },
     ingredient: { findFirst: vi.fn() },
+    outlierPost: { findFirst: vi.fn() },
     post: { findFirst: vi.fn() },
     savedAd: { findFirst: vi.fn() },
     sourcePost: { findFirst: vi.fn() },
@@ -117,6 +118,67 @@ describe('BrandRemixSourceResolverService', () => {
       'https://tiktok.example/trend/1',
     );
     expect(resolved.snapshot.title).not.toContain('token');
+  });
+
+  it('resolves an outlier post as an embed-only video source without a tenant filter', async () => {
+    const findFirst = prisma.outlierPost.findFirst as ReturnType<typeof vi.fn>;
+    findFirst.mockResolvedValue({
+      captionExcerpt: 'One-take demo of the thing we shipped last night',
+      comments: null,
+      creator: { handle: 'buildlog' },
+      format: 'One-take demo',
+      hashtags: ['buildinpublic'],
+      id: 'outlier-1',
+      likes: 4_100,
+      medianViews: 9_800,
+      outlierRatio: 6.3,
+      platform: 'tiktok',
+      url: 'https://www.tiktok.com/@buildlog/video/7300000000000000000?lang=en',
+      views: 62_000,
+    });
+
+    const resolved = await resolver.resolveSource('org-1', 'brand-1', {
+      kind: 'outlier_post',
+      outlierPostId: 'outlier-1',
+    });
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'outlier-1', isDeleted: false },
+      }),
+    );
+    expect(resolved.recommendedOutputKind).toBe('video');
+    expect(resolved.sourceMedia).toMatchObject({
+      imageUrls: [],
+      importPolicy: 'embed_only',
+      videoUrls: [],
+    });
+    expect(resolved.snapshot).toMatchObject({
+      authorHandle: 'buildlog',
+      canonicalUrl:
+        'https://www.tiktok.com/@buildlog/video/7300000000000000000',
+      evidence: [
+        'One-take demo of the thing we shipped last night',
+        "6.3x the creator's typical views",
+      ],
+      metrics: { likes: 4_100, medianViews: 9_800, views: 62_000 },
+      platform: 'tiktok',
+      sourceId: 'outlier-1',
+    });
+    expect(resolved.snapshot.metrics).not.toHaveProperty('comments');
+  });
+
+  it('rejects an outlier post that was dropped from the library', async () => {
+    (
+      prisma.outlierPost.findFirst as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(null);
+
+    await expect(
+      resolver.resolveSource('org-1', 'brand-1', {
+        kind: 'outlier_post',
+        outlierPostId: 'gone',
+      }),
+    ).rejects.toThrow('Outlier post');
   });
 
   it('rejects a disconnected credential before any ads provider read', async () => {
