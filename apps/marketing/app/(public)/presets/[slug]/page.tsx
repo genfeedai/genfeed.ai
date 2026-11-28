@@ -5,6 +5,7 @@ import {
   getPresetPageBySlug,
   getRelatedPresetPages,
 } from '@data/presets.data';
+import { getUseCasesForPreset } from '@data/use-case-presets.data';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import PresetContent from '@public/presets/preset-content';
 import { withMarketingOgMetadata } from '@web-components/og/marketing-metadata';
@@ -49,7 +50,11 @@ export default async function PresetPage({
       <script type="application/ld+json">
         {stringifyJsonLd(buildPresetPageJsonLd(page))}
       </script>
-      <PresetContent page={page} related={getRelatedPresetPages(page)} />
+      <PresetContent
+        page={page}
+        related={getRelatedPresetPages(page)}
+        useCases={getUseCasesForPreset(page.key)}
+      />
     </>
   );
 }

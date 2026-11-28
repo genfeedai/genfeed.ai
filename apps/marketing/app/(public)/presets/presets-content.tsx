@@ -48,7 +48,7 @@ function CatalogSignal({
   );
 }
 
-function PresetCard({ page }: { page: PresetPage }): React.ReactElement {
+export function PresetCard({ page }: { page: PresetPage }): React.ReactElement {
   const [example] = page.examples;
 
   return (

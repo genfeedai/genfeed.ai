@@ -21,6 +21,12 @@ export interface UseCase {
     example: string;
   }[];
   results: string[];
+  /**
+   * Catalog presets that serve this audience, by preset key, in the order they
+   * are shown. A key the catalog does not have fails the build; a preset with
+   * no example has no page yet and is left out of the row until it has one.
+   */
+  presetKeys: readonly string[];
   /** One pointer to a deeper page, shown above the pricing card. */
   relatedLink?: { description: string; href: string; label: string };
   pricing: {
@@ -42,6 +48,12 @@ export const useCases: UseCase[] = [
       'Content availability limited to working hours',
       'Scaling influencer programs is slow',
       'No control over messaging or personality',
+    ],
+    presetKeys: [
+      'studio-profile-picture',
+      'ad-ugc-selfie',
+      'studio-dance',
+      'cinematic-anime-short',
     ],
     pricing: {
       recommended: 'payg',
@@ -108,6 +120,12 @@ export const useCases: UseCase[] = [
       'No idea which content drives revenue',
       "Can't scale beyond 3-5 posts per week",
       "Expensive tools that don't talk to each other",
+    ],
+    presetKeys: [
+      'studio-youtube-thumbnail',
+      'studio-meme',
+      'studio-animation',
+      'studio-dance',
     ],
     pricing: {
       recommended: 'payg',
@@ -179,6 +197,12 @@ export const useCases: UseCase[] = [
       'Producing another round of creative tests takes time away from client work',
       'Drafts, revisions and publishing handoffs are difficult to coordinate',
       'Adding clients adds production work faster than the team can absorb it',
+    ],
+    presetKeys: [
+      'b2b-ad-variation',
+      'ad-ugc-selfie',
+      'ad-screen-demo',
+      'studio-edit-restyle',
     ],
     pricing: {
       recommended: 'scale',
@@ -253,6 +277,12 @@ export const useCases: UseCase[] = [
       'No attribution from social content to purchases',
       'Seasonal content takes weeks to produce',
     ],
+    presetKeys: [
+      'ad-ugc-selfie',
+      'b2b-product-explainer-clip',
+      'studio-edit-remove-background',
+      'studio-edit-enhance',
+    ],
     pricing: {
       recommended: 'scale',
       why: `${PLAN_COPY.scale.name} adds managed billing, brand workspaces, bulk generation workflows, and available publishing analytics.`,
@@ -324,6 +354,12 @@ export const useCases: UseCase[] = [
       "Can't test content ideas fast enough",
       'Marketing attribution is a black box',
     ],
+    presetKeys: [
+      'b2b-ad-variation',
+      'ad-talking-head',
+      'b2b-stat-insight-card',
+      'studio-banner',
+    ],
     pricing: {
       recommended: 'scale',
       why: `${PLAN_COPY.scale.name} adds shared workspaces, advanced analytics, and production support for marketing teams running multi-channel campaigns.`,
@@ -394,6 +430,12 @@ export const useCases: UseCase[] = [
       'Your buyers and peers are talking, but you struggle to join consistently',
       'You need to see which posts get a response before planning the next batch',
     ],
+    presetKeys: [
+      'b2b-founder-talking-clip',
+      'b2b-customer-quote-card',
+      'b2b-case-study-slide',
+      'ad-screen-demo',
+    ],
     pricing: {
       recommended: 'payg',
       why: `Try it on your brand, then pay per output with credits from $10.`,
@@ -460,6 +502,13 @@ export const useCases: UseCase[] = [
     ],
   },
 ];
+
+const GENFEED_FOR_PREFIX = /^Genfeed for /;
+
+/** "Genfeed for AI Influencers" -> "AI Influencers". */
+export function getUseCaseAudienceName(useCase: UseCase): string {
+  return useCase.title.replace(GENFEED_FOR_PREFIX, '');
+}
 
 export function getUseCaseBySlug(slug: string): UseCase | undefined {
   return useCases.find((uc) => uc.slug === slug);

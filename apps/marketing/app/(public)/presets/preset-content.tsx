@@ -1,6 +1,7 @@
 import { GENFEED_MCP_DOCS_URL } from '@data/agent-clients.data';
 import { getAppSignUpUrl } from '@data/app-links';
 import type { PresetPage } from '@data/presets.data';
+import type { PresetUseCaseLink } from '@data/use-case-presets.data';
 import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import PresetExampleMedia from '@public/presets/preset-example-media';
@@ -28,9 +29,12 @@ const LINK = 'font-semibold text-foreground underline-offset-4 hover:underline';
 export default function PresetContent({
   page,
   related,
+  useCases = [],
 }: {
   page: PresetPage;
   related: readonly PresetPage[];
+  /** The audience pages that name this preset. */
+  useCases?: readonly PresetUseCaseLink[];
 }): React.ReactElement {
   const [first] = page.examples;
 
@@ -161,6 +165,26 @@ export default function PresetContent({
             <CommandBlock label="Read it through MCP" value={page.mcpCall} />
           </div>
         </section>
+
+        {useCases.length > 0 ? (
+          <section className={SECTION}>
+            <Heading
+              as="h2"
+              className="mb-4 text-2xl font-semibold text-foreground"
+            >
+              Used for
+            </Heading>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2">
+              {useCases.map((useCase) => (
+                <li key={useCase.slug}>
+                  <Link className={LINK} href={`/use-cases/${useCase.slug}`}>
+                    {useCase.audience}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section className="gsap-section mx-auto max-w-4xl px-6 pb-16">
           <Heading

@@ -1,7 +1,10 @@
 import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
 import { withBrandSuffix } from '@data/seo-copy';
-import { getAllUseCaseSlugs, type UseCase } from '@data/use-cases.data';
+import {
+  getAllUseCaseSlugs,
+  getUseCaseAudienceName,
+} from '@data/use-cases.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { getUseCaseBySlugCached } from '@public/use-cases/[slug]/use-case-loader';
 import UseCasesContent from '@public/use-cases/[slug]/use-cases-content';
@@ -15,12 +18,7 @@ export function generateStaticParams() {
   return getAllUseCaseSlugs().map((slug) => ({ slug }));
 }
 
-const GENFEED_FOR_PREFIX = /^Genfeed for /;
-
-/** "Genfeed for AI Influencers" -> "AI Influencers". */
-export function getUseCaseAudienceName(useCase: UseCase): string {
-  return useCase.title.replace(GENFEED_FOR_PREFIX, '');
-}
+export { getUseCaseAudienceName };
 
 export function buildUseCaseBreadcrumbJsonLd(
   audienceName: string,

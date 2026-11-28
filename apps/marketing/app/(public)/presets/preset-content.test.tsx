@@ -38,11 +38,18 @@ const pages = buildPresetPages(
   ]),
 );
 
-function renderPage(key: string) {
+function renderPage(
+  key: string,
+  useCases: { audience: string; slug: string }[] = [],
+) {
   const page = pages.find((candidate) => candidate.key === key);
   if (!page) throw new Error(`No fixture page for ${key}`);
   return render(
-    <PresetContent page={page} related={getRelatedPresetPages(page, pages)} />,
+    <PresetContent
+      page={page}
+      related={getRelatedPresetPages(page, pages)}
+      useCases={useCases}
+    />,
   );
 }
 
@@ -133,5 +140,22 @@ describe('PresetContent', () => {
     expect(
       screen.getByRole('link', { name: /Use this preset/ }),
     ).toHaveAttribute('href', expect.stringContaining('/sign-up'));
+  });
+
+  it('links back to the use cases that name the preset, and omits the section when none does', () => {
+    const { unmount } = renderPage('ad-ugc-selfie', [
+      { audience: 'Agencies', slug: 'agencies' },
+    ]);
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Used for' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Agencies' })).toHaveAttribute(
+      'href',
+      '/use-cases/agencies',
+    );
+    unmount();
+
+    renderPage('ad-ugc-selfie');
+    expect(screen.queryByRole('heading', { name: 'Used for' })).toBeNull();
   });
 });
