@@ -37,6 +37,7 @@ describe('PlatformSchedulesProcessor', () => {
   const mediaPerception = { queueDuePerceptions: handler() };
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
+  const outlierLibraryRead = { readTrackedCreators: handler() };
   const newsletterSends = { processDueSends: handler() };
   const notificationRecovery = { recover: handler() };
   const brandRelocations = { recover: handler() };
@@ -235,6 +236,10 @@ describe('PlatformSchedulesProcessor', () => {
         replicateModels.discoverNewModels,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.OUTLIER_LIBRARY_READ,
+        outlierLibraryRead.readTrackedCreators,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.REVIEW_GATE_TIMEOUT,
         reviewGate.resolveTimedOutReviewGates,
       ],
@@ -324,7 +329,7 @@ describe('PlatformSchedulesProcessor', () => {
         mediaPerception as never,
         modelDeprecation as never,
         replicateModels as never,
-        { readTrackedCreators: vi.fn() } as never,
+        outlierLibraryRead as never,
         transcripts as never,
         videoRetention as never,
         workflowArtifacts as never,
