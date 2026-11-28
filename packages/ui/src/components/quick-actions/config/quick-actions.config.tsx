@@ -37,6 +37,7 @@ import {
   Trash2,
   Upload,
   Video,
+  WandSparkles,
   X,
 } from 'lucide-react';
 
@@ -312,6 +313,21 @@ export const createMirrorAction = (
     },
     isLoading,
   );
+
+export const createRepostVariantAction = (
+  ingredient: IIngredient,
+  handler: IActionHandlers['onRepostVariant'],
+  copy: { label: string; tooltip: string },
+): IQuickAction | null =>
+  createStandardAction(ingredient, handler, {
+    icon: <WandSparkles className={ICON_CLASS} />,
+    id: 'repost-variant',
+    label: copy.label,
+    sectionLabel: 'Enhance',
+    showInMenu: true,
+    tooltip: copy.tooltip,
+    tooltipPosition: 'top',
+  });
 
 export const createTrimAction = (
   ingredient: IIngredient,

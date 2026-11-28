@@ -7,6 +7,7 @@ import {
   isFinalAttempt,
   isRawCutJob,
   isYoutubeUrl,
+  toJobProgress,
   type VideoCompletionResult,
 } from '@files/processors/video-processor.util';
 import { ClipperReferenceFrameExtractionService } from '@files/services/clipper-reference-frames/clipper-reference-frame-extraction.service';
@@ -21,7 +22,6 @@ import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
 import {
-  JobProgress,
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
@@ -71,6 +71,8 @@ export class VideoProcessor extends WorkerHost {
         return await this.handleReverse(job);
       case JOB_TYPES.MIRROR_VIDEO:
         return await this.handleMirror(job);
+      case JOB_TYPES.REPOST_VARIANT_VIDEO:
+        return await this.handleRepostVariant(job);
       case JOB_TYPES.TRIM_VIDEO:
         return await this.handleTrim(job);
       case JOB_TYPES.CLIP_TRIM:
@@ -94,17 +96,6 @@ export class VideoProcessor extends WorkerHost {
       default:
         throw new Error(`Unknown video job type: ${job.name}`);
     }
-  }
-
-  private convertToJobProgress(ffmpegProgress: FFmpegProgress): JobProgress {
-    return {
-      fps: ffmpegProgress.fps,
-      frames: ffmpegProgress.frames,
-      percent: ffmpegProgress.percent || 50,
-      size: ffmpegProgress.size,
-      speed: ffmpegProgress.speed,
-      time: ffmpegProgress.time,
-    };
   }
 
   /** Reports the failure only when no retry is left; an earlier attempt may still succeed. */
@@ -191,7 +182,7 @@ export class VideoProcessor extends WorkerHost {
     return (progress) => {
       this.webSocketService.emitProgress(
         websocketUrl,
-        this.convertToJobProgress(progress),
+        toJobProgress(progress),
         userId,
         room,
       );
@@ -416,10 +407,18 @@ export class VideoProcessor extends WorkerHost {
     );
   }
 
+  async handleRepostVariant(job: Job<VideoJobData>): Promise<JobResult> {
+    const { isMirrored, speed, trimStartSeconds, zoom } = job.data.params;
+    const options = { isMirrored, speed, trimStartSeconds, zoom };
+    return this.runFfmpegTransform(job, 'repost-variant', (input, out, onP) =>
+      this.ffmpegService.repostVariantVideo(input, out, options, onP),
+    );
+  }
+
   /** Downloads, transforms, uploads and queues the completion of a whole-video effect. */
   private async runFfmpegTransform(
     job: Job<VideoJobData>,
-    name: 'reverse' | 'mirror',
+    name: 'reverse' | 'mirror' | 'repost-variant',
     transform: (
       inputPath: string,
       outputPath: string,

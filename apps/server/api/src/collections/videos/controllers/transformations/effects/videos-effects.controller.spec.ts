@@ -304,6 +304,88 @@ describe('VideosEffectsController', () => {
     });
   });
 
+  it('makes a repost variant with every picked change as one linked version', async () => {
+    const harness = makeHarness({});
+
+    await expect(
+      harness.controller.repostVariant(mockRequest, mockUser, videoId, {
+        isMirrored: true,
+        speed: 1.1,
+        trimStartSeconds: 2,
+        zoom: 1.05,
+      }),
+    ).resolves.toMatchObject({ data: { id: 'ingredient-1' } });
+
+    expect(harness.createdMedia).toEqual([
+      expect.objectContaining({
+        parentId: videoId,
+        relationKind: IngredientRelationKind.TRANSFORMATION,
+        status: IngredientStatus.PROCESSING,
+      }),
+    ]);
+    expect(harness.jobs).toEqual([
+      expect.objectContaining({
+        params: {
+          inputPath: `https://api.example.com/videos/${videoId}`,
+          isMirrored: true,
+          speed: 1.1,
+          trimStartSeconds: 2,
+          zoom: 1.05,
+        },
+        type: 'repost-variant-video',
+      }),
+    ]);
+    await vi.waitFor(() =>
+      expect(harness.published).toEqual([
+        { eventType: WebSocketEventType.VIDEO_VARIANT, id: 'ingredient-1' },
+      ]),
+    );
+    expect(harness.ingredients[0]).toMatchObject({
+      status: IngredientStatus.GENERATED,
+      transformations: [
+        TransformationCategory.EDITED,
+        TransformationCategory.MIRRORED,
+      ],
+    });
+  });
+
+  it('does not tag a variant as mirrored when only the speed changed', async () => {
+    const harness = makeHarness({});
+
+    await harness.controller.repostVariant(mockRequest, mockUser, videoId, {
+      speed: 1.1,
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.ingredients[0]).toMatchObject({
+        status: IngredientStatus.GENERATED,
+        transformations: [TransformationCategory.EDITED],
+      }),
+    );
+  });
+
+  it('refuses a repost variant that changes nothing before creating anything', async () => {
+    const harness = makeHarness({});
+
+    await expect(
+      harness.controller.repostVariant(mockRequest, mockUser, videoId, {}),
+    ).rejects.toThrow('Pick at least one change');
+    expect(harness.createdMedia).toEqual([]);
+    expect(harness.jobs).toEqual([]);
+  });
+
+  it('returns not found for a repost variant of an unknown video', async () => {
+    const harness = makeHarness({});
+
+    await expect(
+      harness.controller.repostVariant(mockRequest, mockUser, 'nonexistent', {
+        isMirrored: true,
+      }),
+    ).rejects.toThrow(HttpException);
+    expect(harness.createdMedia).toEqual([]);
+    expect(harness.jobs).toEqual([]);
+  });
+
   it('uses the freshly authorized source URL when media delivery is activated', async () => {
     const harness = makeHarness({
       authorizedUrl: 'https://authorized.test/random-source?signature=grant',

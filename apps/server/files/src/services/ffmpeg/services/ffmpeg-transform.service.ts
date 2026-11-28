@@ -1,6 +1,12 @@
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
+import {
+  buildRepostVariantArgs,
+  normalizeRepostVariantOptions,
+  type RepostVariantOptions,
+} from '@files/services/ffmpeg/helpers/repost-variant-args.helper';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
+import { REPOST_VARIANT_LIMITS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -330,6 +336,46 @@ export class FFmpegTransformService {
       '-y',
       outputPath,
     ];
+
+    await this.core.executeFFmpeg(args, onProgress);
+  }
+
+  /**
+   * Repost variant: mirror, speed up, zoom in and cut the start in one
+   * re-encode, so the copy is not frame-identical to the original.
+   */
+  async repostVariantVideo(
+    inputPath: string,
+    outputPath: string,
+    options: RepostVariantOptions,
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    const validatedInputPath = SecurityUtil.validateFilePath(inputPath);
+    const validatedOutputPath = SecurityUtil.validateFilePath(outputPath);
+
+    SecurityUtil.validateFileExtension(validatedInputPath);
+    await SecurityUtil.validateFileExists(validatedInputPath);
+    await SecurityUtil.validateFileSize(validatedInputPath);
+
+    const { trimStartSeconds } = normalizeRepostVariantOptions(options);
+    const probe = await this.core.probe(validatedInputPath);
+    const duration = Number(probe.format.duration);
+    if (
+      trimStartSeconds > 0 &&
+      (!Number.isFinite(duration) ||
+        duration - trimStartSeconds < REPOST_VARIANT_LIMITS.minRemainingSeconds)
+    ) {
+      throw new Error('The video is too short to cut that much from the start');
+    }
+
+    const args = SecurityUtil.sanitizeCommandArgs(
+      buildRepostVariantArgs({
+        ...options,
+        hasAudio: probe.streams.some((stream) => stream.codec_type === 'audio'),
+        inputPath: validatedInputPath,
+        outputPath: validatedOutputPath,
+      }),
+    );
 
     await this.core.executeFFmpeg(args, onProgress);
   }

@@ -48,6 +48,11 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
     defaultPriority: JOB_PRIORITY.NORMAL,
     delay: 2000,
   },
+  [JOB_TYPES.REPOST_VARIANT_VIDEO]: {
+    attempts: 3,
+    defaultPriority: JOB_PRIORITY.NORMAL,
+    delay: 2000,
+  },
   [JOB_TYPES.ADD_TEXT_OVERLAY]: {
     attempts: 3,
     defaultPriority: JOB_PRIORITY.NORMAL,
@@ -190,6 +195,10 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
 
   async addMirrorJob(data: VideoJobData): Promise<Job<VideoJobData>> {
     return this.addJob(JOB_TYPES.MIRROR_VIDEO, data, 'mirror');
+  }
+
+  async addRepostVariantJob(data: VideoJobData): Promise<Job<VideoJobData>> {
+    return this.addJob(JOB_TYPES.REPOST_VARIANT_VIDEO, data, 'repost variant');
   }
 
   async addTextOverlayJob(data: VideoJobData): Promise<Job<VideoJobData>> {

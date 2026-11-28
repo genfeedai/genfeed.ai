@@ -6,6 +6,7 @@ export enum WebSocketEventType {
   VIDEO_MIRRORED = 'video-mirrored',
   VIDEO_TRIMMED = 'video-trimmed',
   VIDEO_TEXT_OVERLAY = 'video-text-overlay',
+  VIDEO_VARIANT = 'video-variant',
   VIDEO_PORTRAIT = 'video-portrait',
   CAPTIONS_COMPLETED = 'captions-completed',
   CAPTIONS_FAILED = 'captions-failed',

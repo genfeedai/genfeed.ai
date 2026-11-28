@@ -29,6 +29,7 @@ export const FILE_JOB_TYPES = {
   PORTRAIT_BLUR: 'portrait-blur',
   PREPARE_ALL_FILES: 'prepare-all-files',
   RENDER_EDITOR_COMPOSITION: 'render-editor-composition',
+  REPOST_VARIANT_VIDEO: 'repost-variant-video',
   RESIZE_IMAGE: 'resize-image',
   RESIZE_MEDIA: 'resize-media',
   RESIZE_VIDEO: 'resize-video',

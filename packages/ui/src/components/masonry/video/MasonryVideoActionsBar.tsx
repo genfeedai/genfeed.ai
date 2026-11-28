@@ -26,6 +26,7 @@ type VideoActionHandlers = {
   handleLandscape: (ingredient: IVideo) => void;
   handleReverse: (ingredient: IVideo) => void;
   handleMirror: (ingredient: IVideo) => void;
+  handleRepostVariant: (ingredient: IVideo) => void;
   handleMarkArchived: (ingredient: IVideo) => void;
   handleMarkRejected: (ingredient: IVideo) => void;
   handleMarkValidated: (ingredient: IVideo) => void;
@@ -163,6 +164,7 @@ export default function MasonryVideoActionsBar({
                   onLandscape={handlers.handleLandscape}
                   onReverse={onReverse || handlers.handleReverse}
                   onMirror={onMirror || handlers.handleMirror}
+                  onRepostVariant={handlers.handleRepostVariant}
                   onOpenInEditor={onOpenInEditor}
                   onResize={onResize}
                   onSeeDetails={onSeeDetails}

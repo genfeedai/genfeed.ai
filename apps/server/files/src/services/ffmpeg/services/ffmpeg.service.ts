@@ -1,3 +1,4 @@
+import type { RepostVariantOptions } from '@files/services/ffmpeg/helpers/repost-variant-args.helper';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegEffectsService } from '@files/services/ffmpeg/services/ffmpeg-effects.service';
 import { FFmpegMergeService } from '@files/services/ffmpeg/services/ffmpeg-merge.service';
@@ -259,6 +260,20 @@ export class FFmpegService {
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {
     return this.transform.mirrorVideo(inputPath, outputPath, onProgress);
+  }
+
+  async repostVariantVideo(
+    inputPath: string,
+    outputPath: string,
+    options: RepostVariantOptions,
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    return this.transform.repostVariantVideo(
+      inputPath,
+      outputPath,
+      options,
+      onProgress,
+    );
   }
 
   async applyPortraitBlur(

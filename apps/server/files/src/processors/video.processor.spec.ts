@@ -63,6 +63,7 @@ class MockFFmpegService {
   adjustBrightness = vi.fn();
   adjustContrast = vi.fn();
   mirrorVideo = vi.fn().mockResolvedValue(undefined);
+  repostVariantVideo = vi.fn().mockResolvedValue(undefined);
   convertToPortrait = vi.fn().mockResolvedValue(undefined);
   convertToGif = vi.fn().mockResolvedValue(undefined);
   addCaptions = vi.fn().mockResolvedValue(undefined);
@@ -1011,6 +1012,50 @@ describe('VideoProcessor', () => {
 
       await expect(processor.handleMirror(job)).rejects.toThrow(
         'Mirror failed',
+      );
+    });
+  });
+
+  describe('handleRepostVariant', () => {
+    it('passes the picked changes to the encode and cleans up', async () => {
+      const job = createMockJob(
+        JOB_TYPES.REPOST_VARIANT_VIDEO,
+        createMockJobData({
+          params: {
+            isMirrored: true,
+            speed: 1.1,
+            trimStartSeconds: 2,
+            zoom: 1.05,
+          },
+        }),
+      );
+
+      const result = await processor.handleRepostVariant(job);
+
+      expect(result.success).toBe(true);
+      expect(ffmpegService.repostVariantVideo).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        { isMirrored: true, speed: 1.1, trimStartSeconds: 2, zoom: 1.05 },
+        expect.any(Function),
+      );
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
+        'repost-variant',
+        expect.any(String),
+      );
+    });
+
+    it('fails the job when the encode fails', async () => {
+      const job = createMockJob(
+        JOB_TYPES.REPOST_VARIANT_VIDEO,
+        createMockJobData({ params: { isMirrored: true } }),
+      );
+      ffmpegService.repostVariantVideo.mockRejectedValue(
+        new Error('Pick at least one change'),
+      );
+
+      await expect(processor.handleRepostVariant(job)).rejects.toThrow(
+        'Pick at least one change',
       );
     });
   });

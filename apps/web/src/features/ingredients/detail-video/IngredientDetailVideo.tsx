@@ -173,6 +173,10 @@ export default function IngredientDetailVideo({
             notificationsService.success('Video mirrored successfully!');
             break;
 
+          case WebSocketEventType.VIDEO_VARIANT:
+            notificationsService.success('Repost variant is ready!');
+            break;
+
           case WebSocketEventType.VIDEO_TEXT_OVERLAY:
             notificationsService.success('Text overlay added successfully!');
             break;
