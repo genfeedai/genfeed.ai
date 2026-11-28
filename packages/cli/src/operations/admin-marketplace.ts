@@ -20,6 +20,8 @@ export interface AdminMarketplaceListing {
   packageSlug?: string | null;
   packageSource?: string | null;
   previewData?: Record<string, unknown>;
+  previewImages?: string[];
+  previewVideo?: string | null;
   /** Price in cents; 0 is a free listing. */
   price?: number;
   rejectionReason?: string | null;
@@ -27,6 +29,7 @@ export interface AdminMarketplaceListing {
   slug?: string;
   status: ListingStatus;
   tags?: string[];
+  thumbnail?: string | null;
   title: string;
   type: string;
   version?: string;
@@ -37,9 +40,15 @@ export interface MarketplaceListingFields {
   description: string;
   downloadData: Record<string, unknown>;
   previewData: Record<string, unknown>;
+  /** Pictures shown on the listing page; left out when the item has no example. */
+  previewImages?: string[];
+  /** The clip shown on the listing page. */
+  previewVideo?: string;
   price: number;
   shortDescription: string;
   tags: string[];
+  /** The card picture. */
+  thumbnail?: string;
   title: string;
   version: string;
 }

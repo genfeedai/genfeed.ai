@@ -9,5 +9,6 @@ export * from './lens.interface';
 export * from './lighting.interface';
 export * from './mood.interface';
 export * from './preset.interface';
+export * from './preset-example.interface';
 export * from './scene.interface';
 export * from './style.interface';
