@@ -1,6 +1,8 @@
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -172,6 +174,10 @@ export default function FeaturesPage(): React.ReactElement {
             </div>
           </div>
         </section>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/features')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

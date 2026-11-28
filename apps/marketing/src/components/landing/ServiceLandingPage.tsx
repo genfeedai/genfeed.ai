@@ -1,5 +1,6 @@
 import { getAppSignUpUrl, SIGN_UP_LABEL, SIGN_UP_OFFER } from '@data/app-links';
 import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
+import { getLandingRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
 import PublicShell from '@ui/shell/PublicShell';
@@ -12,6 +13,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import BookingSection from '@web-components/landing/BookingSection';
 import DoneForYouScope from '@web-components/landing/DoneForYouScope';
 import LandingFooter from '@web-components/landing/LandingFooter';
@@ -309,6 +311,12 @@ export default function ServiceLandingPage({
 
             <FaqGrid items={config.faqs} />
           </WebSection>
+
+          <RelatedLinks
+            className="pt-20"
+            links={getLandingRelatedLinks(slug)}
+            title="More from Genfeed"
+          />
 
           {slug === BOOKING_PAGE_SLUG ? (
             <>

@@ -1,4 +1,5 @@
 import { FAQ_CATEGORIES, type FAQCategory } from '@data/faq.data';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import {
   Accordion,
   AccordionContent,
@@ -6,6 +7,7 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
@@ -169,6 +171,10 @@ export default function FAQContent() {
             <ButtonRequestAccess />
           </div>
         </section>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/faq')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

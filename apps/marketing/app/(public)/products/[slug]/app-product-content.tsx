@@ -3,12 +3,14 @@ import {
   type AppProduct,
   getRelatedAppProducts,
 } from '@data/app-products.data';
+import { getProductRelatedLinks } from '@data/related-links.data';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
@@ -226,6 +228,11 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             </Link>
           </section>
         ) : null}
+
+        <RelatedLinks
+          links={getProductRelatedLinks(product.slug)}
+          title="More Genfeed products"
+        />
 
         <section className="mx-auto max-w-4xl px-6 pb-16">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 text-center sm:p-12">

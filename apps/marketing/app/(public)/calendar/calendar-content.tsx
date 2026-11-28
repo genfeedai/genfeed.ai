@@ -1,8 +1,10 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
@@ -242,6 +244,10 @@ export default function CalendarContent() {
             </div>
           </div>
         </section>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/calendar')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

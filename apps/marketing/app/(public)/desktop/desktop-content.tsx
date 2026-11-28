@@ -1,3 +1,4 @@
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant, DesktopOs } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -8,6 +9,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
@@ -287,6 +289,10 @@ export default function DesktopContent({
             </a>
           </Button>
         </CtaSection>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/desktop')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

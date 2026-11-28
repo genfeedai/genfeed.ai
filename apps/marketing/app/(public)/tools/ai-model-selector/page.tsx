@@ -6,9 +6,11 @@ import {
   modelSelectorJsonLd,
 } from '@data/ai-model-selector';
 import { stringifyJsonLd } from '@data/json-ld';
+import { getToolRelatedLinks } from '@data/related-links.data';
 import { getBenchmarkData } from '@public/benchmark/benchmark-loader';
 import { getPublicModels } from '@public/models/models-loader';
 import AiModelSelectorContent from '@public/tools/ai-model-selector/ai-model-selector-content';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { SiteFooter } from '@web-components/footers';
 import { WEBSITE_SECTIONS } from '@web-components/home/_footer';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
@@ -97,6 +99,10 @@ export default async function AiModelSelectorPage(): Promise<React.ReactElement>
           </dl>
         </section>
       </div>
+      <RelatedLinks
+        links={getToolRelatedLinks(MODEL_SELECTOR_PATH)}
+        title="More free tools"
+      />
       <SiteFooter sections={WEBSITE_SECTIONS} />
     </>
   );
