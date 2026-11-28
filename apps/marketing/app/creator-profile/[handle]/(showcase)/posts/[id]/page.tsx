@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { postMediaRenditionPath } from '@data/post-media-rendition';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
   creatorPostPath,
@@ -15,7 +16,6 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Post } from '@models/content/post.model';
 import type { CreatorPostRouteProps } from '@props/content/creator.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import { PublicService } from '@services/external/public.service';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
@@ -26,11 +26,16 @@ import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { cache } from 'react';
-import { getPublicBrandBySlug } from '../../creator-loader';
+import { getCreatorPost } from './post-loader';
 import RelatedPosts from './related-posts';
 
 export const revalidate = 300;
+export const dynamicParams = true;
+
+/** Renders on first request, then caches (see the profile page). */
+export function generateStaticParams(): { handle: string; id: string }[] {
+  return [];
+}
 
 const signUpUrl = new URL('/sign-up', EnvironmentService.apps.app).toString();
 
@@ -56,22 +61,6 @@ const postDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'long',
   timeZone: 'UTC',
   year: 'numeric',
-});
-
-/** The brand and the post, or `null` when either is not public. */
-const getCreatorPost = cache(async (handle: string, id: string) => {
-  const brand = await getPublicBrandBySlug(handle);
-  if (!brand) {
-    return null;
-  }
-  const post: Post | null = await PublicService.getInstance().getPublicPost(
-    id,
-    brand.id,
-  );
-  if (!post || post.id === 'undefined') {
-    return null;
-  }
-  return { brand, handle: brand.slug || handle, post };
 });
 
 export async function generateMetadata({
@@ -132,6 +121,7 @@ export default async function CreatorPostPage({
   const text = toPlainPostText(post.description);
   const title = postTitle(post.label, text);
   const media = getPostMedia(post.ingredients);
+  const images = media.filter((item) => item.kind === 'image');
   const networkLinks = listNetworkLinks(post);
   const publishedAt = post.publishedAt ?? post.createdAt;
   const url = `${EnvironmentService.apps.website}${creatorPostPath(handle, post.id)}`;
@@ -147,7 +137,17 @@ export default async function CreatorPostPage({
     ...(publishedAt ? { datePublished: publishedAt } : {}),
     headline: title,
     ...(text ? { articleBody: text } : {}),
-    ...(media.length > 0 ? { image: media.map((item) => item.url) } : {}),
+    ...(images.length > 0
+      ? {
+          image: images.map((item) => ({
+            '@type': 'ImageObject',
+            caption: title,
+            contentUrl: `${EnvironmentService.apps.website}${postMediaRenditionPath(handle, post.id, item.id, 1280)}`,
+            ...(item.width ? { width: item.width } : {}),
+            ...(item.height ? { height: item.height } : {}),
+          })),
+        }
+      : {}),
     ...(networkLinks.length > 0
       ? { sameAs: networkLinks.map((link) => link.url) }
       : {}),
@@ -214,7 +214,11 @@ export default async function CreatorPostPage({
 
         {media.length > 0 ? (
           <div className="mt-6">
-            <CreatorPostMedia alt={title} media={media} />
+            <CreatorPostMedia
+              alt={title}
+              media={media}
+              rendition={{ handle, postId: post.id }}
+            />
           </div>
         ) : null}
 

@@ -1,3 +1,7 @@
+import {
+  postMediaRenditionPath,
+  postMediaSrcSet,
+} from '@data/post-media-rendition';
 import { creatorPostPath } from '@genfeedai/contracts/constants';
 import {
   getPostMedia,
@@ -103,12 +107,14 @@ export default function CreatorWallTile({
             src={`${lead.url}#t=0.1`}
           />
         ) : (
-          // biome-ignore lint/performance/noImgElement: media URLs are signed per request, so next/image cannot cache them.
+          // biome-ignore lint/performance/noImgElement: next/image is off site-wide (no per-image billing); the rendition route resizes instead.
           <img
-            alt=""
+            alt={title}
             className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
-            src={lead.url}
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            src={postMediaRenditionPath(handle, post.id, lead.id, 640)}
+            srcSet={postMediaSrcSet(handle, post.id, lead.id)}
           />
         )}
         {post.platform ? (

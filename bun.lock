@@ -234,6 +234,7 @@
         "react": "19.3.1",
         "react-dom": "19.3.1",
         "replicate": "1.4.0",
+        "sharp": "0.35.5",
         "sonner": "2.0.8",
         "turndown": "7.2.5",
       },

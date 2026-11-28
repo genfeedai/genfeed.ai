@@ -144,6 +144,11 @@ export interface CreatorPostMediaProps {
   /** Alternative text for every item: the post's title. */
   alt: string;
   media: CreatorPostMediaItem[];
+  /**
+   * The post the media belongs to. When set, pictures are served from the
+   * post's permanent resized addresses (#11617) instead of the signed original.
+   */
+  rendition?: { handle: string; postId: string };
 }
 
 export interface CreatorWallProps {

@@ -19,6 +19,27 @@ describe('CreatorPostMedia', () => {
     );
   });
 
+  it('serves the permanent resized address when the post is named', () => {
+    render(
+      <CreatorPostMedia
+        alt="Launch day"
+        media={[
+          { id: 'a', kind: 'image', url: 'https://cdn.genfeed.ai/a.png' },
+        ]}
+        rendition={{ handle: 'shayla', postId: 'post-1' }}
+      />,
+    );
+
+    const picture = screen.getByRole('img', { name: 'Launch day' });
+    expect(picture).toHaveAttribute(
+      'src',
+      '/@shayla/posts/post-1/media/a/1280.webp',
+    );
+    expect(picture.getAttribute('srcset')).toContain(
+      '/@shayla/posts/post-1/media/a/320.webp 320w',
+    );
+  });
+
   it('numbers several items and plays videos inline', () => {
     const { container } = render(
       <CreatorPostMedia

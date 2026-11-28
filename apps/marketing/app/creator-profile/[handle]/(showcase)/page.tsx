@@ -14,6 +14,18 @@ import { CreatorOverview } from './creator-view';
  */
 export const revalidate = 300;
 
+/**
+ * Without `generateStaticParams` Next treats a dynamic-segment route as fully
+ * dynamic and answers `no-store`, whatever `revalidate` says. Returning no
+ * paths keeps the build free of API calls and turns on rendering on first
+ * request, then caching for `revalidate` seconds (the article page does the same).
+ */
+export const dynamicParams = true;
+
+export function generateStaticParams(): { handle: string }[] {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: CreatorRouteProps): Promise<Metadata> {
