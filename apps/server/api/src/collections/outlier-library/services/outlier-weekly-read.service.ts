@@ -29,6 +29,9 @@ export interface OutlierPlatformReadTotals {
  * runs daily and reads at most a fifth of each platform's weekly cap per run,
  * so a week of runs spreads the spend and a failed day is made up later.
  *
+ * Each run starts with the retention sweep (#11644): counts older than 30 days
+ * and creators who could not be read twice in a row leave the list first.
+ *
  * An empty or failed read never wipes the last good numbers: `recordRead`
  * changes nothing on a read too thin to know a typical post, and a failure
  * records no read at all. A run where every read of a platform came back
@@ -52,6 +55,7 @@ export class OutlierWeeklyReadService {
    */
   async run(now?: Date): Promise<OutlierPlatformReadTotals[]> {
     const clock = () => now ?? new Date();
+    await this.library.enforceRetention(clock());
     await this.seeds.seedFromNicheList();
     await this.seeds.seedFromTrendingVideos();
 

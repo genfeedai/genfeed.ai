@@ -171,4 +171,17 @@ describe('PrivacyContent Meta and TikTok disclosures', () => {
       0,
     );
   });
+
+  it('tells public creators what is kept and how to have a handle removed', () => {
+    render(<PrivacyContent />);
+
+    const heading = screen.getByRole('heading', {
+      level: 2,
+      name: 'Other creators’ public posts in Trends',
+    });
+    expect(heading.parentElement).toHaveAttribute('id', 'public-creators');
+    expect(
+      screen.getByText(/subject Creator removal request/),
+    ).toBeInTheDocument();
+  });
 });

@@ -74,6 +74,7 @@ describe.skipIf(!connectionString)(
         for (const name of [
           '20261128000000_outlier_library_store',
           '20261128010000_outlier_library_weekly_read',
+          '20261128020000_outlier_library_retention',
         ]) {
           const sql = readFileSync(
             path.resolve(
@@ -271,7 +272,10 @@ describe.skipIf(!connectionString)(
         [...ordinaryPosts('gone'), post('gone-win', 3, 9_000)],
         NOW,
       );
-      await service.removeCreator(creator);
+      await service.removeCreator({
+        handle: 'gone',
+        platform: Platform.YOUTUBE,
+      });
 
       const again = await service.trackCreator({
         externalId: 'yt-gone',
@@ -288,6 +292,136 @@ describe.skipIf(!connectionString)(
       await expect(
         service.recordRead(creator, ordinaryPosts('gone'), NOW),
       ).rejects.toThrow('not tracked');
+    });
+
+    it('scrubs a removed creator to a block that holds no name, and blocks a creator never tracked', async () => {
+      const creator = await service.trackCreator({
+        displayName: 'Scrub Me',
+        externalId: 'scrub-me',
+        followersCount: 12_000,
+        handle: 'Scrub_Me',
+        platform: Platform.TIKTOK,
+      });
+      await service.recordRead(
+        creator,
+        [...ordinaryPosts('scrub'), post('scrub-win', 3, 9_000)],
+        NOW,
+      );
+
+      await service.removeCreator({
+        handle: '@scrub_me',
+        platform: Platform.TIKTOK,
+      });
+      await service.removeCreator({
+        handle: 'never-seen',
+        platform: Platform.TIKTOK,
+      });
+
+      const row = await prisma.outlierCreator.findUniqueOrThrow({
+        where: { id: creator },
+      });
+      expect(row).toMatchObject({
+        displayName: null,
+        followersCount: null,
+        handle: 'removed',
+        isDeleted: true,
+        status: 'removed',
+      });
+      expect(JSON.stringify(row).toLowerCase()).not.toContain('scrub');
+      expect(
+        await prisma.outlierPost.count({ where: { creatorId: creator } }),
+      ).toBe(0);
+      const blockedAgain = await service.trackCreator({
+        externalId: 'never-seen',
+        handle: 'Never-Seen',
+        platform: Platform.TIKTOK,
+      });
+      const blocked = await prisma.outlierCreator.findUniqueOrThrow({
+        where: { id: blockedAgain },
+      });
+      expect(blocked.status).toBe('removed');
+      expect(
+        await prisma.outlierCreator.count({
+          where: { externalId: 'never-seen' },
+        }),
+      ).toBe(0);
+    });
+
+    it('keeps a post one read misses and drops it when two reads in a row miss it', async () => {
+      const creator = await service.trackCreator({
+        externalId: 'misses',
+        handle: 'misses',
+        platform: Platform.TIKTOK,
+      });
+      const withWin = [
+        ...ordinaryPosts('misses'),
+        post('misses-win', 3, 9_000),
+      ];
+      await service.recordRead(creator, withWin, NOW);
+      const listed = async () =>
+        (await service.listOutliers({ platform: Platform.TIKTOK })).some(
+          (row) => row.externalId === 'misses-win',
+        );
+      expect(await listed()).toBe(true);
+
+      const without = ordinaryPosts('misses');
+      await service.recordRead(creator, without, daysAgo(-7));
+      expect(await listed()).toBe(true);
+      await service.recordRead(creator, withWin, daysAgo(-14));
+      expect(await listed()).toBe(true);
+
+      await service.recordRead(creator, without, daysAgo(-21));
+      await service.recordRead(creator, without, daysAgo(-28));
+      expect(await listed()).toBe(false);
+    });
+
+    it('drops counts older than 30 days, hides a creator missed twice and deletes dropped posts for good', async () => {
+      const stale = await service.trackCreator({
+        externalId: 'retention-stale',
+        handle: 'retention-stale',
+        platform: Platform.TIKTOK,
+      });
+      const lost = await service.trackCreator({
+        externalId: 'retention-lost',
+        handle: 'retention-lost',
+        platform: Platform.TIKTOK,
+      });
+      await service.recordRead(
+        stale,
+        [...ordinaryPosts('rs'), post('rs-win', 3, 9_000)],
+        NOW,
+      );
+      await service.recordRead(
+        lost,
+        [...ordinaryPosts('rl'), post('rl-win', 3, 9_000)],
+        daysAgo(-29),
+      );
+      await prisma.outlierCreator.update({
+        data: { missedReads: 2 },
+        where: { id: lost },
+      });
+      const listedIds = async () =>
+        (await service.listOutliers({ platform: Platform.TIKTOK })).map(
+          (row) => row.externalId,
+        );
+
+      const first = await service.enforceRetention(daysAgo(-31));
+      expect(first).toMatchObject({ hiddenCreators: 1 });
+      expect(first.staleCounts).toBeGreaterThanOrEqual(1);
+      expect(await listedIds()).not.toContain('rs-win');
+      expect(await listedIds()).not.toContain('rl-win');
+      const hidden = await prisma.outlierCreator.findUniqueOrThrow({
+        where: { id: lost },
+      });
+      expect(hidden.status).toBe('unreadable');
+
+      const later = await service.enforceRetention(daysAgo(-40));
+      expect(first.deletedPosts + later.deletedPosts).toBeGreaterThanOrEqual(2);
+      expect(
+        await prisma.outlierPost.count({
+          where: { externalId: { in: ['rs-win', 'rl-win'] } },
+        }),
+      ).toBe(0);
     });
   },
 );

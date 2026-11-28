@@ -117,6 +117,16 @@ const privacyPolicySections = [
   },
   {
     content: [
+      'Genfeed Trends can show you public posts from other creators that did much better than that creator’s usual posts. For each creator we keep their handle and public name, their follower count, and for each listed post its link, its public view, like and comment counts with the date we read them, and a short excerpt of its caption. We read these numbers from the platform’s own programming interface or from the public profile once a week. We keep no copy of a video or image, and Trends plays a post with the platform’s own embedded player.',
+      'Counts are refreshed at least every 30 days. A post that the creator deleted, or that stops appearing in the creator’s profile, leaves the list after two weekly reads, and a creator whose profile can no longer be read is hidden. We do not sell this data or use it for advertising.',
+      'If you are a creator listed there, or a platform asking on a creator’s behalf, email privacy@genfeed.ai with the subject Creator removal request and name the platform and the handle. We remove the creator for every Genfeed customer, delete their posts and numbers, and never read the handle again. To make sure of that, we keep only a one-way hash of the platform and handle, which cannot be turned back into a name.',
+    ],
+    id: 'public-creators',
+    shortLabel: 'Public creators',
+    title: 'Other creators’ public posts in Trends',
+  },
+  {
+    content: [
       'The Genfeed Chrome extension adds a Genfeed button next to the reply box on X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok and YouTube. It fills the reply box and you post it yourself. It reads a page only when you use a feature and does not record the sites you visit.',
       'When you generate a reply, proofread or rewrite a draft, make an image, video or GIF, or save a page as a source, the extension sends the text you are working on, the author and URL of the post or page, and your brand voice to the Genfeed API over HTTPS. On X and LinkedIn it also records the text, link, author handle and date of a post or reply you publish, so Genfeed can show analytics for it. If you turn on the optional local fallback, that text goes to the Genfeed bridge on your own computer instead.',
       'The extension keeps your session, settings, saved-source lists and unsent drafts in Chrome extension storage. Removing the extension or clearing its data deletes them. Crash reports go to Sentry without request bodies, cookies, user information or AI inputs and outputs.',

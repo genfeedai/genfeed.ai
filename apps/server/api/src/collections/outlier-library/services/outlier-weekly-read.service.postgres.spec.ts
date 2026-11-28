@@ -79,6 +79,7 @@ describe.skipIf(!connectionString)(
         for (const name of [
           '20261128000000_outlier_library_store',
           '20261128010000_outlier_library_weekly_read',
+          '20261128020000_outlier_library_retention',
         ]) {
           let sql = readFileSync(
             path.resolve(
@@ -302,6 +303,25 @@ describe.skipIf(!connectionString)(
         where: { platform: Platform.TIKTOK, weekStart: startOfReadWeek(week) },
       });
       expect(budget.claimed).toBe(0);
+    });
+
+    it('never reads a creator who was removed, and a seed cannot bring them back', async () => {
+      await track('asked-out');
+      reads.set('asked-out', () => posts('asked-out', WEDNESDAY));
+      await library.removeCreator({
+        handle: 'Asked-Out',
+        platform: Platform.TIKTOK,
+      });
+      await library.trackCreator({
+        externalId: 'asked-out',
+        handle: 'asked-out',
+        platform: Platform.TIKTOK,
+      });
+      readCalls.length = 0;
+
+      await weeklyRead.run(new Date('2027-03-10T10:00:00.000Z'));
+
+      expect(readCalls).not.toContain('asked-out');
     });
   },
 );

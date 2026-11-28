@@ -6379,6 +6379,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDeleted',
       'likes',
       'medianViews',
+      'missedReads',
       'outlierRatio',
       'outlierTier',
       'platform',
