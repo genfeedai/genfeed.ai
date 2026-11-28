@@ -6,6 +6,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideoRepostVariantDto } from '@api/collections/videos/dto/video-repost-variant.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { discardVideoOutput } from '@api/collections/videos/utils/video-processing-result.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -151,6 +152,7 @@ export class VideosEffectsController {
           `videos`,
           { path: output, type: FileInputType.FILE },
         );
+        discardVideoOutput(output, this.loggerService);
 
         await this.metadataService.patch(
           metadataData.id,

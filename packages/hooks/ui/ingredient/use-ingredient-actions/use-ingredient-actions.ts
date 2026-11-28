@@ -39,6 +39,7 @@ import {
   getVideoExtendModelOptions,
   getVideoExtendQuote,
 } from '@hooks/ui/ingredient/use-ingredient-actions/video-extend-admission.util';
+import { useVideoVersionActions } from '@hooks/ui/ingredient/use-video-version-actions/use-video-version-actions';
 import {
   executeSilentWithActionState,
   executeWithActionState,
@@ -225,6 +226,13 @@ export function useIngredientActions({
     scopeKey: transformScopeKey,
     getImagesService,
     getVideosService,
+    onRefresh,
+    setActionStates,
+  });
+
+  const { handleMirror, handleReverse } = useVideoVersionActions({
+    getVideosService,
+    notificationsService,
     onRefresh,
     setActionStates,
   });
@@ -574,27 +582,6 @@ export function useIngredientActions({
     [onRefresh, getIngredientsService],
   );
 
-  const handleReverse = useCallback(
-    async (ingredient: IIngredient) => {
-      if (!isVideoIngredient(ingredient)) {
-        return notificationsService.error('Can only reverse videos');
-      }
-
-      await executeSilentWithActionState<unknown, MasonryActionStates>({
-        errorMessage: 'Failed to reverse video',
-        onSuccess: onRefresh,
-        operation: async () => {
-          const service = (await getVideosService()) as VideosService;
-          return service.postReverse(ingredient.id);
-        },
-        setActionStates,
-        stateKey: 'isReversing',
-        url: `POST /videos/${ingredient.id}/reverse`,
-      });
-    },
-    [onRefresh, getVideosService, notificationsService],
-  );
-
   const handleDelete = useCallback(
     async (ingredient: IIngredient) => {
       const url = `DELETE /ingredients/${ingredient.id}`;
@@ -684,27 +671,6 @@ export function useIngredientActions({
       }
     },
     [getIngredientsService, notificationsService],
-  );
-
-  const handleMirror = useCallback(
-    async (ingredient: IIngredient) => {
-      if (!isVideoIngredient(ingredient)) {
-        return notificationsService.error('Can only mirror videos');
-      }
-
-      await executeSilentWithActionState<unknown, MasonryActionStates>({
-        errorMessage: 'Failed to mirror video',
-        onSuccess: onRefresh,
-        operation: async () => {
-          const service = (await getVideosService()) as VideosService;
-          return service.postMirror(ingredient.id);
-        },
-        setActionStates,
-        stateKey: 'isMirroring',
-        url: `POST /videos/${ingredient.id}/mirror`,
-      });
-    },
-    [onRefresh, getVideosService, notificationsService],
   );
 
   const handlePortrait = useCallback(
