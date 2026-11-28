@@ -9,18 +9,38 @@ import { PublicService } from '@services/external/public.service';
 import RelatedLinks from '@web-components/content/RelatedLinks';
 import { cache } from 'react';
 
-/** Posts per creator the related links walk through. */
-const RELATED_POSTS_LIMIT = 100;
+/** Posts fetched per request; the API rejects a larger page. */
+const RELATED_POSTS_PAGE_SIZE = 100;
+
+/** Pages walked per creator: 1,000 posts, enough to bound a stuck cursor. */
+const RELATED_POSTS_MAX_PAGES = 10;
 
 const DESCRIPTION_LENGTH = 120;
 
-/** A creator's public posts, on every platform, in the API's order. A listing that fails reads as empty. */
+/**
+ * A creator's public posts, on every platform, in the API's order, across
+ * pages so a post past the first 100 still has neighbours. A listing that
+ * fails reads as empty.
+ */
 const getCreatorPostList = cache(async (brandId: string): Promise<Post[]> => {
   try {
-    return await PublicService.getInstance().findPublicPosts({
-      brand: brandId,
-      limit: RELATED_POSTS_LIMIT,
-    });
+    const service = PublicService.getInstance();
+    const posts: Post[] = [];
+
+    for (let page = 1; page <= RELATED_POSTS_MAX_PAGES; page += 1) {
+      const result = await service.findPublicPostsPage({
+        brand: brandId,
+        limit: RELATED_POSTS_PAGE_SIZE,
+        page,
+      });
+      posts.push(...result.items);
+
+      if (!result.hasNext) {
+        break;
+      }
+    }
+
+    return posts;
   } catch {
     return [];
   }
