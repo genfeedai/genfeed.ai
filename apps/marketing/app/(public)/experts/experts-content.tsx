@@ -1,8 +1,10 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -339,6 +341,10 @@ export default function ExpertsContent() {
             </div>
           </div>
         </section>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/experts')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

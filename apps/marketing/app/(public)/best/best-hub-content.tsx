@@ -1,5 +1,7 @@
 import { BEST_LISTS } from '@data/best-lists.data';
+import { getBestHubRelatedLinks } from '@data/related-links.data';
 import Card from '@ui/card/Card';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
@@ -29,6 +31,11 @@ export default function BestHubContent() {
             ))}
           </div>
         </section>
+
+        <RelatedLinks
+          links={getBestHubRelatedLinks()}
+          title="Prefer a head-to-head?"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

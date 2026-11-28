@@ -1,4 +1,5 @@
 import type { Competitor } from '@data/competitors.data';
+import { getComparisonRelatedLinks } from '@data/related-links.data';
 import Card from '@ui/card/Card';
 import {
   Table,
@@ -9,6 +10,7 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import PageLayout from '@web-components/PageLayout';
 import { Check, X } from 'lucide-react';
 import Link from 'next/link';
@@ -135,6 +137,11 @@ export default function ComparisonPage({
           </Link>
         </Card>
       </section>
+
+      <RelatedLinks
+        links={getComparisonRelatedLinks(competitor.slug)}
+        title="Compare other tools"
+      />
     </PageLayout>
   );
 }

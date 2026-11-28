@@ -1,4 +1,6 @@
+import { getToolRelatedLinks } from '@data/related-links.data';
 import YoutubeOutliersContent from '@public/tools/youtube-outliers/youtube-outliers-content';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 
@@ -17,6 +19,10 @@ export default function YoutubeOutliersPage(): React.ReactElement {
       title="YouTube outlier finder"
     >
       <YoutubeOutliersContent />
+      <RelatedLinks
+        links={getToolRelatedLinks('/tools/youtube-outliers')}
+        title="More free tools"
+      />
     </PageLayout>
   );
 }

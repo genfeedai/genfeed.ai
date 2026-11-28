@@ -1,4 +1,5 @@
 import { getAppSignUpUrl, SIGN_UP_LABEL, SIGN_UP_OFFER } from '@data/app-links';
+import { getStandaloneRelatedLinks } from '@data/related-links.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatPrice, IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
@@ -16,6 +17,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import SectionHeader from '@web-components/marketing/SectionHeader';
@@ -445,6 +447,10 @@ export default function AboutContent() {
             <Link href="/pricing">See pricing</Link>
           </Button>
         </CtaSection>
+        <RelatedLinks
+          links={getStandaloneRelatedLinks('/about')}
+          title="Keep exploring"
+        />
       </PageLayout>
     </MarketingEntrance>
   );

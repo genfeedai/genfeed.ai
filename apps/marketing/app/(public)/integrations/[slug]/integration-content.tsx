@@ -1,6 +1,8 @@
 import { INTEGRATION_CTA, type Integration } from '@data/integrations.data';
+import { getIntegrationRelatedLinks } from '@data/related-links.data';
 import Card from '@ui/card/Card';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { Check } from 'lucide-react';
@@ -79,6 +81,11 @@ export default function IntegrationContent({
           )}
         </div>
       </section>
+
+      <RelatedLinks
+        links={getIntegrationRelatedLinks(integration.slug)}
+        title="Connect more channels"
+      />
 
       <section className="max-w-4xl mx-auto pb-20">
         <Card isCentered>

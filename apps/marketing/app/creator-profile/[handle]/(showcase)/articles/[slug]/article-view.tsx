@@ -23,6 +23,7 @@ import { resolvePublicArticleAuthor } from './article-author';
 import ArticleDetailContent from './article-detail';
 import { toArticleGenerationBlocks } from './article-generations';
 import { getCreatorArticleCached } from './article-loader';
+import RelatedArticles from './related-articles';
 
 /**
  * The generation blocks the article embeds, with model labels from the public
@@ -189,6 +190,9 @@ export default async function ArticleView({
         isPreview={isPreview}
         referralCode={referralCode}
       />
+      {isPreview ? null : (
+        <RelatedArticles brandId={brand?.id} handle={handle} slug={slug} />
+      )}
     </>
   );
 }

@@ -1,4 +1,6 @@
+import { getToolRelatedLinks } from '@data/related-links.data';
 import YoutubeClipperContent from '@public/tools/youtube-clipper/youtube-clipper-content';
+import RelatedLinks from '@web-components/content/RelatedLinks';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 
@@ -17,6 +19,10 @@ export default function YoutubeClipperPage(): React.ReactElement {
       title="YouTube transcript to clips"
     >
       <YoutubeClipperContent />
+      <RelatedLinks
+        links={getToolRelatedLinks('/tools/youtube-clipper')}
+        title="More free tools"
+      />
     </PageLayout>
   );
 }
