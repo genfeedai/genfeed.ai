@@ -49,6 +49,27 @@ function parseSyncSelection(value: string): SyncSelection {
   throw new GenfeedError(`Unknown selection "${value}"`, 'Use one of: all, presets, skills');
 }
 
+/** What a draft sets on the store's picture and video fields, for the plan. */
+function describeMedia(draft: ListingDraft): Record<string, unknown> {
+  return {
+    previewImages: draft.previewImages ?? [],
+    previewVideo: draft.previewVideo ?? null,
+    thumbnail: draft.thumbnail ?? null,
+  };
+}
+
+function formatMediaLine(draft: ListingDraft): string {
+  const label = `${draft.packageSource}/${draft.packageSlug}`;
+  if (!draft.thumbnail && !draft.previewVideo && !draft.previewImages?.length)
+    return `no example, media left empty  ${label}`;
+  const parts = [
+    draft.thumbnail ? `thumbnail ${draft.thumbnail}` : undefined,
+    draft.previewVideo ? `video ${draft.previewVideo}` : undefined,
+    draft.previewImages?.length ? `${draft.previewImages.length} images` : undefined,
+  ].filter(Boolean);
+  return `${parts.join(', ')}  ${label}`;
+}
+
 async function runSync(options: SyncOptions, command: Command): Promise<void> {
   const marketplaceApiUrl = await readMarketplaceApiUrl(command);
   const drafts: ListingDraft[] = [];
@@ -76,6 +97,7 @@ async function runSync(options: SyncOptions, command: Command): Promise<void> {
       counts,
       items: plan.entries.map((entry) => ({
         action: entry.action,
+        media: describeMedia(entry.draft),
         price: entry.draft.price,
         slug: entry.draft.packageSlug,
         source: entry.draft.packageSource,
@@ -94,6 +116,19 @@ async function runSync(options: SyncOptions, command: Command): Promise<void> {
     print(
       `${entry.action.padEnd(13)} ${entry.draft.type.padEnd(7)} ${String(entry.draft.price ? entry.draft.price / 100 : 'free').padStart(5)}  ${entry.draft.packageSource}/${entry.draft.packageSlug}`
     );
+  }
+  const withMedia = plan.entries.filter(
+    (entry) =>
+      entry.draft.thumbnail || entry.draft.previewVideo || entry.draft.previewImages?.length
+  );
+  print(
+    formatLabel(
+      'Media',
+      `${withMedia.length} of ${plan.entries.length} items set a picture or a clip`
+    )
+  );
+  for (const entry of plan.entries) {
+    if (entry.draft.type === 'preset') print(`  ${formatMediaLine(entry.draft)}`);
   }
   print(
     formatLabel(
