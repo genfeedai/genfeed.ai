@@ -13,6 +13,7 @@ import { AdminOrganizationBrandsModule } from '@api/endpoints/admin/organization
 import { AdminOrganizationCreditsModule } from '@api/endpoints/admin/organization-credits/organization-credits.module';
 import { AdminOrganizationMembersModule } from '@api/endpoints/admin/organization-members/organization-members.module';
 import { AdminOrganizationsReportModule } from '@api/endpoints/admin/organizations-report/organizations-report.module';
+import { AdminOutlierLibraryModule } from '@api/endpoints/admin/outlier-library/outlier-library.module';
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
 import { AdminPublishPipelineModule } from '@api/endpoints/admin/publish-pipeline/publish-pipeline.module';
 import { AdminSeedsModule } from '@api/endpoints/admin/seeds/seeds.module';
@@ -50,6 +51,7 @@ import { Module } from '@nestjs/common';
     AdminOrganizationCreditsModule,
     AdminOrganizationMembersModule,
     AdminOrganizationsReportModule,
+    AdminOutlierLibraryModule,
     AdminPublishPipelineModule,
     AdminUnitEconomicsModule,
   ],

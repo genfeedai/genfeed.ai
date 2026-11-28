@@ -9558,12 +9558,15 @@ model OutlierPost {
   hashtags       String[]       @default([])
   captionExcerpt String?
   format         String?
+  /// Reads in a row that no longer returned this post; the second one drops it.
+  missedReads    Int            @default(0)
   isDeleted      Boolean        @default(false)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   @@unique([platform, externalId])
   @@index([creatorId, isDeleted])
+  @@index([isDeleted, countsReadAt])
   @@index([isDeleted, platform, outlierTier, outlierRatio(sort: Desc), publishedAt(sort: Desc)], map: "outlier_posts_list_idx")
   @@map("outlier_posts")
 }
