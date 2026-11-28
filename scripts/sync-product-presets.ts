@@ -265,7 +265,6 @@ export function syncPresets(source: string, commit: string): number {
   );
   const catalog = parseCatalog(catalogText);
 
-  rmSync(PINNED_DIRECTORY, { force: true, recursive: true });
   const files = new Map<string, Buffer>([
     ['catalog.json', Buffer.from(catalogText)],
   ]);
@@ -277,6 +276,13 @@ export function syncPresets(source: string, commit: string): number {
       files.set(path, readFileSync(join(source, SOURCE_PRESETS_FOLDER, path)));
     }
   }
+  // Everything that can fail is computed before the first write, so a bad
+  // preset leaves the previous pins, lock and generated file untouched.
+  const generated = renderGenerated(catalog, commit, (path) =>
+    (files.get(path) as Buffer).toString('utf8'),
+  );
+
+  rmSync(PINNED_DIRECTORY, { force: true, recursive: true });
   for (const [path, content] of files) {
     mkdirSync(dirname(join(PINNED_DIRECTORY, path)), { recursive: true });
     writeFileSync(join(PINNED_DIRECTORY, path), content);
@@ -292,12 +298,7 @@ export function syncPresets(source: string, commit: string): number {
     sourceRepository: SOURCE_REPOSITORY,
   };
   writeFileSync(LOCK_FILE, `${JSON.stringify(lock, null, 2)}\n`);
-  writeFileSync(
-    GENERATED_FILE,
-    renderGenerated(catalog, commit, (path) =>
-      (files.get(path) as Buffer).toString('utf8'),
-    ),
-  );
+  writeFileSync(GENERATED_FILE, generated);
   checkPins();
   return files.size - 1;
 }

@@ -1,5 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { renderGenerated } from './sync-product-presets';
+import { renderGenerated, syncPresets } from './sync-product-presets';
 
 const CLIP_EXAMPLE = {
   alt: 'A founder talks to camera.',
@@ -63,5 +67,51 @@ describe('renderGenerated', () => {
     expect(() => render({ 'b2b/b2b-one/preset.json': [CLIP_EXAMPLE] })).toThrow(
       /mediaType must be image on a preset that makes image/,
     );
+  });
+});
+
+describe('syncPresets', () => {
+  it('leaves the pinned files untouched when a preset example is invalid', () => {
+    const source = mkdtempSync(join(tmpdir(), 'catalog-'));
+    const git = (...args: string[]): string =>
+      execFileSync('git', ['-C', source, ...args], { encoding: 'utf8' }).trim();
+    git('init', '-q');
+    git('remote', 'add', 'origin', 'https://github.com/genfeedai/catalog');
+    const write = (path: string, content: unknown): void => {
+      mkdirSync(join(source, 'presets', path, '..'), { recursive: true });
+      writeFileSync(join(source, 'presets', path), JSON.stringify(content));
+    };
+    write('catalog.json', { groups: CATALOG.groups });
+    write('ad/ad-one/preset.json', {
+      examples: [{ ...CLIP_EXAMPLE, posterUrl: undefined }],
+      key: 'ad-one',
+    });
+    write('b2b/b2b-one/preset.json', { key: 'b2b-one', mediaType: 'image' });
+    write('cinematic/cinematic-one/preset.json', { key: 'cinematic-one' });
+    write('studio/studio-one/preset.json', {
+      key: 'studio-one',
+      type: 'image',
+    });
+    git('add', '-A');
+    git(
+      '-c',
+      'user.name=test',
+      '-c',
+      'user.email=test@example.com',
+      'commit',
+      '-q',
+      '-m',
+      'catalog',
+    );
+    const commit = git('rev-parse', 'HEAD');
+    const root = join(import.meta.dirname, '..');
+    const pinned = ['presets/catalog.lock.json', 'presets/catalog.json'];
+    const before = pinned.map((file) => readFileSync(join(root, file), 'utf8'));
+
+    expect(() => syncPresets(source, commit)).toThrow(/posterUrl/);
+
+    expect(
+      pinned.map((file) => readFileSync(join(root, file), 'utf8')),
+    ).toEqual(before);
   });
 });
