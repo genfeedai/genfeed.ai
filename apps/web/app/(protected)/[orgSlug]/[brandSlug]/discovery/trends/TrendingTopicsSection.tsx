@@ -42,7 +42,15 @@ export default function TrendingTopicsSection({
     .flatMap((trend) =>
       (trend.sourcePreview ?? []).flatMap((source) => {
         const key = `${source.platform}:${source.sourceUrl}`;
-        if (seen.has(key) || !getSafeExternalUrl(source.sourceUrl)) return [];
+        // A post with no picture is a stranger's text, and a video without one
+        // renders as a black tile: only posts with a thumbnail are listed.
+        if (
+          seen.has(key) ||
+          !getSafeExternalUrl(source.thumbnailUrl) ||
+          !getSafeExternalUrl(source.sourceUrl)
+        ) {
+          return [];
+        }
         seen.add(key);
         return [{ source, topic: trend.topic }];
       }),
@@ -165,24 +173,13 @@ export default function TrendingTopicsSection({
                 />
                 {topic}
               </p>
-              {source.thumbnailUrl ? (
-                <SocialMediaPlayer
-                  contentType={source.contentType}
-                  sourceUrl={source.sourceUrl}
-                  mediaUrl={source.mediaUrl}
-                  thumbnailUrl={source.thumbnailUrl}
-                  title={source.title || topic}
-                />
-              ) : (
-                <a
-                  href={getSafeExternalUrl(source.sourceUrl) ?? undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs underline"
-                >
-                  {discovery('openSource')}
-                </a>
-              )}
+              <SocialMediaPlayer
+                contentType={source.contentType}
+                sourceUrl={source.sourceUrl}
+                mediaUrl={source.mediaUrl}
+                thumbnailUrl={source.thumbnailUrl}
+                title={source.title || topic}
+              />
               <p className="line-clamp-6 whitespace-pre-wrap text-sm">
                 {source.text || source.title}
               </p>

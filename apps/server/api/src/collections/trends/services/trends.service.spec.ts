@@ -34,6 +34,7 @@ import { XaiService } from '@api/services/integrations/xai/services/xai.service'
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import { Timeframe } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -692,6 +693,82 @@ describe('TrendsService', () => {
       expect(result.trends.map((trend) => trend.topic)).toEqual([
         'Thanksgiving',
         'at the floor',
+      ]);
+    });
+
+    it('keeps tags everyone uses and repeated topics out of the market view', async () => {
+      vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue([]);
+      vi.spyOn(service, 'getTrends').mockResolvedValue(
+        [
+          { mentions: 2_500_000, platform: 'twitter', topic: 'Thanksgiving' },
+          { mentions: 6, platform: 'instagram', topic: 'reels' },
+          { mentions: 6, platform: 'instagram', topic: '#Explorepage' },
+          { mentions: 9, platform: 'instagram', topic: 'cozy gaming' },
+          { mentions: 8, platform: 'instagram', topic: 'Cozy Gaming' },
+          { mentions: 7, platform: 'tiktok', topic: 'cozy gaming' },
+        ].map(
+          (trend) =>
+            new TrendEntity({
+              ...mockTrend,
+              ...trend,
+              requiresAuth: false,
+            } as never),
+        ),
+      );
+
+      const result = await service.getTrendsWithAccessControl(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        { relevance: 'market' },
+      );
+
+      expect(
+        result.trends.map((trend) => `${trend.platform}:${trend.topic}`),
+      ).toEqual([
+        'twitter:Thanksgiving',
+        'instagram:cozy gaming',
+        'tiktok:cozy gaming',
+      ]);
+    });
+
+    it('drops a repeated topic by its in-window row, not its newest row', async () => {
+      const now = Date.now();
+      vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue([]);
+      vi.spyOn(service, 'getTrends').mockResolvedValue(
+        [
+          {
+            createdAt: new Date(now - 24 * 60 * 60 * 1000),
+            mentions: 9,
+            topic: 'cozy gaming',
+            updatedAt: new Date(now - 48 * 60 * 60 * 1000),
+          },
+          {
+            createdAt: new Date(now - 48 * 60 * 60 * 1000),
+            mentions: 8,
+            topic: 'Cozy Gaming',
+            updatedAt: new Date(now - 60 * 60 * 1000),
+          },
+        ].map(
+          (trend) =>
+            new TrendEntity({
+              ...mockTrend,
+              ...trend,
+              platform: 'instagram',
+              requiresAuth: false,
+            } as never),
+        ),
+      );
+
+      const result = await service.getTrendsWithAccessControl(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        { relevance: 'market', timeframe: Timeframe.H24 },
+      );
+
+      expect(result.trends.map((trend) => trend.topic)).toEqual([
+        'Cozy Gaming',
       ]);
     });
 
