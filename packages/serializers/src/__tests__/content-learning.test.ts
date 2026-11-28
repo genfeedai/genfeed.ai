@@ -2,6 +2,7 @@ import { ContentLearningArm, ContentLearningMode } from '@genfeedai/contracts';
 import type { LearningAccountView } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { describe, expect, it } from 'vitest';
 import { contentLearningDatasetAttributes } from '../attributes/analytics/content-learning-dataset.attributes';
+import { contentLearningExperimentAttributes } from '../attributes/analytics/content-learning-experiment.attributes';
 import { contentLearningReleaseAttributes } from '../attributes/analytics/content-learning-release.attributes';
 import { contentLearningRunAttributes } from '../attributes/analytics/content-learning-run.attributes';
 import { ContentLearningAccountSerializer } from '../server/analytics/content-learning-account.serializer';
@@ -18,6 +19,11 @@ describe('public learning projections', () => {
       expect(attributes).not.toContain('rightsStatement');
     }
     expect(contentLearningDatasetAttributes).not.toContain('manifest');
+  });
+  it('never exposes a pilot seed or the operator who preregistered it', () => {
+    expect(contentLearningExperimentAttributes).not.toContain('encryptedSeed');
+    expect(contentLearningExperimentAttributes).not.toContain('actorUserId');
+    expect(contentLearningExperimentAttributes).toContain('specHash');
   });
 });
 

@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentLearningOperationStatus as OperationStatus } from '@genfeedai/contracts';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import {
+  type ContentLearningOperation,
+  type Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import {
@@ -14,6 +18,30 @@ export interface LearningActor {
   organizationId: string;
   actorId: string;
 }
+export interface LearningMutationInput {
+  actor: LearningActor;
+  credentialId: string;
+  requestId: string;
+  expectedRevision: number;
+  type: string;
+  payload: unknown;
+}
+type LockedLearningAccount = Awaited<
+  ReturnType<LearningOperationService['lockedAccount']>
+>;
+type LearningOperationBase = Pick<
+  Prisma.ContentLearningOperationUncheckedCreateInput,
+  | 'organizationId'
+  | 'brandId'
+  | 'credentialId'
+  | 'actorId'
+  | 'scope'
+  | 'requestId'
+  | 'payloadHash'
+  | 'type'
+  | 'beforeRevision'
+  | 'afterRevision'
+>;
 export function learningCanonicalHash(value: unknown): string {
   return sha256Hex(stableStringify(value));
 }
@@ -71,19 +99,75 @@ export class LearningOperationService {
     return member;
   }
   async mutate(
-    input: {
-      actor: LearningActor;
-      credentialId: string;
-      requestId: string;
-      expectedRevision: number;
-      type: string;
-      payload: unknown;
-    },
+    input: LearningMutationInput,
     apply: (
       tx: Prisma.TransactionClient,
-      account: Awaited<ReturnType<LearningOperationService['lockedAccount']>>,
+      account: LockedLearningAccount,
     ) => Promise<unknown>,
   ) {
+    return this.runMutation(input, async (tx, account, base) => {
+      const result = await apply(tx, account);
+      await this.bumpRevision(tx, input, account);
+      return tx.contentLearningOperation.create({
+        data: {
+          ...base,
+          status: OperationStatus.COMPLETED,
+          resultReferences: toPrismaJson(result),
+        },
+      });
+    });
+  }
+  /**
+   * Like mutate, but writes the operation receipt before applying, so rows the
+   * mutation creates can reference it (an enrollment's owner operation).
+   */
+  async mutateWithReceipt(
+    input: LearningMutationInput,
+    apply: (
+      tx: Prisma.TransactionClient,
+      account: LockedLearningAccount,
+      operationId: string,
+    ) => Promise<unknown>,
+  ) {
+    return this.runMutation(input, async (tx, account, base) => {
+      const pending = await tx.contentLearningOperation.create({
+        data: {
+          ...base,
+          status: OperationStatus.PENDING,
+          resultReferences: toPrismaJson({}),
+        },
+      });
+      const result = await apply(tx, account, pending.id);
+      await this.bumpRevision(tx, input, account);
+      const where = {
+        id: pending.id,
+        organizationId: account.organizationId,
+        isDeleted: false,
+      };
+      const completed = await tx.contentLearningOperation.updateMany({
+        where: { ...where, status: OperationStatus.PENDING },
+        data: {
+          status: OperationStatus.COMPLETED,
+          resultReferences: toPrismaJson(result),
+        },
+      });
+      const receipt =
+        completed.count === 1
+          ? await tx.contentLearningOperation.findFirst({ where })
+          : null;
+      if (!receipt) throw new ConflictException('Operation receipt changed');
+      return receipt;
+    });
+  }
+  /** Fence, lock, replay an earlier receipt, or check the expected revision. */
+  private async runMutation(
+    input: LearningMutationInput,
+    run: (
+      tx: Prisma.TransactionClient,
+      account: LockedLearningAccount,
+      base: LearningOperationBase,
+    ) => Promise<ContentLearningOperation>,
+  ): Promise<ContentLearningOperation> {
     const scope = learningHash([
       input.actor.organizationId,
       input.credentialId,
@@ -115,35 +199,36 @@ export class LearningOperationService {
           reason: 'revision_conflict',
           currentRevision: account.revision,
         });
-      const result = await apply(tx, account);
-      const updated = await tx.contentLearningAccount.updateMany({
-        where: {
-          id: account.id,
-          organizationId: input.actor.organizationId,
-          revision: account.revision,
-          isDeleted: false,
-        },
-        data: { revision: { increment: 1 } },
-      });
-      if (updated.count !== 1)
-        throw new ConflictException('Account revision changed');
-      return tx.contentLearningOperation.create({
-        data: {
-          organizationId: account.organizationId,
-          brandId: account.brandId,
-          credentialId: account.credentialId,
-          actorId: input.actor.actorId,
-          scope,
-          requestId: input.requestId,
-          payloadHash,
-          type: input.type,
-          beforeRevision: account.revision,
-          afterRevision: account.revision + 1,
-          status: OperationStatus.COMPLETED,
-          resultReferences: toPrismaJson(result),
-        },
+      return run(tx, account, {
+        organizationId: account.organizationId,
+        brandId: account.brandId,
+        credentialId: account.credentialId,
+        actorId: input.actor.actorId,
+        scope,
+        requestId: input.requestId,
+        payloadHash,
+        type: input.type,
+        beforeRevision: account.revision,
+        afterRevision: account.revision + 1,
       });
     });
+  }
+  private async bumpRevision(
+    tx: Prisma.TransactionClient,
+    input: LearningMutationInput,
+    account: LockedLearningAccount,
+  ) {
+    const updated = await tx.contentLearningAccount.updateMany({
+      where: {
+        id: account.id,
+        organizationId: input.actor.organizationId,
+        revision: account.revision,
+        isDeleted: false,
+      },
+      data: { revision: { increment: 1 } },
+    });
+    if (updated.count !== 1)
+      throw new ConflictException('Account revision changed');
   }
   async lockedAccount(
     tx: Prisma.TransactionClient,
