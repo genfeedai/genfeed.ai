@@ -152,6 +152,12 @@ const VIDEO_ROUTES = [
     'videos:create',
   ],
   [
+    'POST /videos/:videoId/repost-variant',
+    VideosEffectsController,
+    VideosEffectsController.prototype.repostVariant,
+    'videos:create',
+  ],
+  [
     'POST /videos/:videoId/mirror',
     VideosEffectsController,
     VideosEffectsController.prototype.mirrorVideo,

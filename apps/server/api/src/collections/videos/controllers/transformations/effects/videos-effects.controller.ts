@@ -4,6 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { settleSharedIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { VideoRepostVariantDto } from '@api/collections/videos/dto/video-repost-variant.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -37,7 +38,16 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Controller, Optional, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Optional,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 function requirePath(value: unknown): string {
@@ -290,6 +300,149 @@ export class VideosEffectsController {
           await this.websocketService.publishMediaFailed(
             websocketUrl,
             'Failed to mirror video',
+            user.id,
+            getUserRoomName(user.id),
+          );
+        });
+
+      return serializeSingle(request, IngredientSerializer, ingredientData);
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * One new version of the video with the picked changes applied in a single
+   * pass: mirror, a little faster, a slight zoom, a cut start. Meant for
+   * posting the same video again without it being frame-identical.
+   */
+  @Post(':videoId/repost-variant')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
+  async repostVariant(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('videoId') videoId: string,
+    @Body() dto: VideoRepostVariantDto,
+  ) {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    const isMirrored = dto.isMirrored === true;
+    const speed = dto.speed ?? 1;
+    const zoom = dto.zoom ?? 1;
+    const trimStartSeconds = dto.trimStartSeconds ?? 0;
+    if (!isMirrored && speed === 1 && zoom === 1 && trimStartSeconds === 0) {
+      throw new HttpException(
+        'Pick at least one change for the variant',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const video = await this.videosService.findOne({
+      id: videoId,
+      userId: user.userId ?? user.id,
+    });
+
+    if (!video) {
+      return returnNotFound(this.constructorName, videoId);
+    }
+
+    try {
+      // Resolved first: a lookup failure must not leave a PROCESSING child
+      // that no job will ever finish.
+      const videoUrl = await this.processingVideoUrl(
+        user.organizationId.toString(),
+        videoId,
+      );
+      const { metadataData, ingredientData } =
+        await this.sharedService.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
+          brandId: video.brandId,
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          organizationId: video.organizationId ?? undefined,
+          parentId: videoId,
+          relationKind: IngredientRelationKind.TRANSFORMATION,
+          status: IngredientStatus.PROCESSING,
+        });
+
+      this.fileQueueService
+        .processVideo({
+          ingredientId: ingredientData.id.toString(),
+          organizationId: user.organizationId,
+          params: {
+            inputPath: videoUrl,
+            isMirrored,
+            speed,
+            trimStartSeconds,
+            zoom,
+          },
+          room: getUserRoomName(user.id),
+          type: 'repost-variant-video',
+          userId: user.userId ?? user.id,
+          websocketUrl: `/videos/${ingredientData.id}`,
+        })
+        .then(async (job) => {
+          const result = await this.fileQueueService.waitForJob(
+            job.jobId,
+            120000,
+          );
+          const output = requirePath(result.outputPath);
+          const meta = await this.filesClientService.uploadToS3(
+            ingredientData.id,
+            `videos`,
+            { path: output, type: FileInputType.FILE },
+          );
+
+          await this.metadataService.patch(
+            metadataData.id,
+            new MetadataEntity(meta),
+          );
+          const isSettled = await settleSharedIngredientGeneration(
+            this.ingredientsService,
+            {
+              data: {
+                ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
+                transformations: [
+                  TransformationCategory.EDITED,
+                  ...(isMirrored ? [TransformationCategory.MIRRORED] : []),
+                ],
+              },
+              id: ingredientData.id,
+              organizationId: user.organizationId,
+              to: IngredientStatus.GENERATED,
+            },
+          );
+
+          if (isSettled) {
+            await this.websocketService.publishVideoComplete(
+              WebSocketPaths.video(ingredientData.id),
+              {
+                eventType: WebSocketEventType.VIDEO_VARIANT,
+                id: ingredientData.id,
+                status: WebSocketEventStatus.COMPLETED,
+              },
+              user.id,
+              getUserRoomName(user.id),
+            );
+          }
+
+          try {
+            fs.unlinkSync(output);
+          } catch (error: unknown) {
+            this.loggerService.warn(
+              `Failed to cleanup temp file: ${output}`,
+              error,
+            );
+          }
+        })
+        .catch(async (error: unknown) => {
+          this.loggerService.error(`${url} repostVariant failed`, error);
+
+          await this.websocketService.publishMediaFailed(
+            WebSocketPaths.video(ingredientData.id),
+            'Failed to create the repost variant',
             user.id,
             getUserRoomName(user.id),
           );

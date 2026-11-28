@@ -39,6 +39,14 @@ export interface IVideoTextOverlayParams {
   style?: IVideoTextOverlayStyle;
 }
 
+/** The changes one repost variant applies to a video, in a single new version. */
+export interface IVideoRepostVariantParams {
+  isMirrored?: boolean;
+  speed?: number;
+  trimStartSeconds?: number;
+  zoom?: number;
+}
+
 export interface IVideoEditParams {
   model?: string;
   format?: IngredientFormat;

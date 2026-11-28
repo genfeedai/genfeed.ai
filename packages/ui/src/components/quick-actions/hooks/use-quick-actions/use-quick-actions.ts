@@ -33,6 +33,7 @@ import {
   createPublishAction,
   createRemixVideoAction,
   createRenameAction,
+  createRepostVariantAction,
   createResizeAction,
   createReverseAction,
   createSeeDetailsAction,
@@ -108,6 +109,7 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   portrait: 'Transform',
   prompt: 'Library',
   publish: 'Library',
+  'repost-variant': 'Transform',
   reverse: 'Transform',
   'set-as-banner': 'Branding',
   'set-as-logo': 'Branding',
@@ -448,6 +450,13 @@ export function useQuickActions({
             selectedIngredient,
             handlers.onClone,
             loadingStates.isCloning,
+          )
+        : null,
+      isVideo && copy?.repostVariant
+        ? createRepostVariantAction(
+            selectedIngredient,
+            handlers.onRepostVariant,
+            copy.repostVariant,
           )
         : null,
       isVideo

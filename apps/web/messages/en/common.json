@@ -2831,6 +2831,19 @@
       "generationModelLabel": "Generation model",
       "newClipDurationLabel": "New clip duration"
     },
+    "repostVariant": {
+      "confirmAction": "{count, plural, one {Create variant · # change} other {Create variant · # changes}}",
+      "description": "Pick what to change. One new version is made with all of it applied.",
+      "dialogLabel": "Repost variant",
+      "mirror": "Mirror",
+      "mirrorHint": "Flip left to right",
+      "speed": "Speed {speed}x",
+      "speedHint": "A little faster, the audio keeps its pitch",
+      "trimStart": "Cut the first {seconds} seconds",
+      "trimStartHint": "A new opening, the same payoff",
+      "zoom": "Slight zoom",
+      "zoomHint": "Crop in about 5% from the centre"
+    },
     "upscale": {
       "confirmAction": "{cost, plural, one {Upscale · # credit} other {Upscale · # credits}}",
       "confirmActionUnpriced": "Upscale · pricing…",

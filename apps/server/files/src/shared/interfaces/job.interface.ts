@@ -160,6 +160,12 @@ export interface VideoProcessingParams {
   audioBitrate?: string;
   audioFormat?: string;
 
+  // Repost variant params
+  isMirrored?: boolean;
+  speed?: number;
+  zoom?: number;
+  trimStartSeconds?: number;
+
   // Trim params
   startTime?: number;
   endTime?: number;

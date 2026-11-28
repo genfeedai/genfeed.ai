@@ -50,6 +50,9 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   createMirrorAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('mirror', 'Mirror') : null,
   ),
+  createRepostVariantAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('repost-variant', 'Repost variant') : null,
+  ),
   createCopyPromptAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('copy-prompt', 'Copy Prompt') : null,
   ),
@@ -155,6 +158,7 @@ const mockHandlers = {
   onMarkRejected: vi.fn(),
   onMarkValidated: vi.fn(),
   onMirror: vi.fn(),
+  onRepostVariant: vi.fn(),
   onMoreOptions: vi.fn(),
   onPortrait: vi.fn(),
   onPublish: vi.fn(),
@@ -202,6 +206,10 @@ const mockLoadingStates = {
 const quickActionCopy = {
   openInEditor: { label: 'Open Editor', tooltip: 'Open in the editor' },
   rename: 'Rename',
+  repostVariant: {
+    label: 'Repost variant',
+    tooltip: 'Make a new version to repost',
+  },
   resize: {
     [IngredientFormat.LANDSCAPE]: 'Resize to Landscape',
     [IngredientFormat.PORTRAIT]: 'Resize to Portrait',
@@ -515,6 +523,40 @@ describe('useQuickActions', () => {
     expect(
       video.result.current.actions.some((action) => action.id === 'mirror'),
     ).toBe(true);
+  });
+
+  it('offers repost variant on videos only, inside the Transform menu', () => {
+    const image = renderHook(() =>
+      useQuickActions({
+        copy: quickActionCopy,
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+    const video = renderHook(() =>
+      useQuickActions({
+        copy: quickActionCopy,
+        handlers: mockHandlers,
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+        }),
+      }),
+    );
+
+    expect(
+      image.result.current.actions.some(
+        (action) => action.id === 'repost-variant',
+      ),
+    ).toBe(false);
+    expect(
+      video.result.current.actions.find(
+        (action) => action.id === 'repost-variant',
+      ),
+    ).toMatchObject({ sectionLabel: 'Transform' });
   });
 
   it('does not duplicate review actions beside the full status control', () => {

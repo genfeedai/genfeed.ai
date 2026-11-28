@@ -15,6 +15,7 @@ import type {
   IVideoEditParams,
   IVideoExtendParams,
   IVideoMergeParams,
+  IVideoRepostVariantParams,
   IVideoResizeParams,
   IVideoTextOverlayParams,
 } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
@@ -201,6 +202,18 @@ export class VideosService extends IngredientsService<Video> {
   public async postMirror(id: string) {
     return await this.instance
       .post<JsonApiResponseDocument>(buildResourcePath(id, 'mirror'))
+      .then((res) => this.mapOne(res.data));
+  }
+
+  public async postRepostVariant(
+    id: string,
+    params: IVideoRepostVariantParams,
+  ) {
+    return await this.instance
+      .post<JsonApiResponseDocument>(
+        buildResourcePath(id, 'repost-variant'),
+        params,
+      )
       .then((res) => this.mapOne(res.data));
   }
 
