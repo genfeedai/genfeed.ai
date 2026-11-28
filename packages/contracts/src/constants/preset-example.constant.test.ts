@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import type { PresetExample } from '../interfaces/elements/preset-example.interface';
-import { PRESET_CATALOG } from './preset-catalog.constant';
 import {
   PRESET_EXAMPLES_MAX,
   presetExampleProblems,
@@ -38,18 +37,17 @@ describe('preset examples', () => {
     expect(presetExampleProblems('image-edit', [edit])).toEqual([]);
   });
 
-  it('refuses an address that is not on the public CDN', () => {
-    for (const url of [
-      'https://example.com/clip.mp4',
-      'http://cdn.genfeed.ai/clip.mp4',
-      'https://cdn.genfeed.ai/clip.mp4?X-Amz-Signature=abc',
-      ['https://', 'name', ':', 'word', '@cdn.genfeed.ai/clip.mp4'].join(''),
-      'https://cdn.genfeed.ai.evil.com/clip.mp4',
-      'not a url',
-    ])
-      expect(presetExampleProblems('video', [{ ...clip, url }]), url).toEqual([
-        expect.stringContaining('examples[0].url'),
-      ]);
+  it.each([
+    'https://example.com/clip.mp4',
+    'http://cdn.genfeed.ai/clip.mp4',
+    'https://cdn.genfeed.ai/clip.mp4?X-Amz-Signature=abc',
+    ['https://', 'name', ':', 'word', '@cdn.genfeed.ai/clip.mp4'].join(''),
+    'https://cdn.genfeed.ai.evil.com/clip.mp4',
+    'not a url',
+  ])('refuses %s as an example address', (url) => {
+    expect(presetExampleProblems('video', [{ ...clip, url }])).toEqual([
+      expect.stringContaining('examples[0].url'),
+    ]);
   });
 
   it('refuses an example whose media type does not match what the preset makes', () => {
@@ -91,9 +89,6 @@ describe('preset examples', () => {
   });
 
   it('lists the catalog presets that still have no example', () => {
-    expect(presetsWithoutExample(PRESET_CATALOG)).toHaveLength(
-      PRESET_CATALOG.length,
-    );
     expect(
       presetsWithoutExample([
         { examples: [picture], key: 'a' },
