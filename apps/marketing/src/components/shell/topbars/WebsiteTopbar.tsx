@@ -24,6 +24,7 @@ import {
   Film,
   HeartHandshake,
   Layers,
+  LayoutTemplate,
   Library,
   Megaphone,
   MessageSquare,
@@ -160,6 +161,15 @@ const AGENT_LINKS = [
     label: 'Agent skills',
   },
 ];
+
+/** Real examples of each preset. Linked only once a preset has an example to show. */
+const PRESETS_LINK = {
+  description: 'Real examples and the recipe to copy',
+  group: 'Create',
+  href: '/presets',
+  icon: LayoutTemplate,
+  label: 'Presets',
+};
 
 const PRODUCT_LINKS = [
   {
@@ -310,7 +320,11 @@ const NAV_LINKS = [
   { href: '/blog', label: 'Blog' },
 ];
 
-export default function WebsiteTopbar() {
+export default function WebsiteTopbar({
+  hasPresets = false,
+}: {
+  hasPresets?: boolean;
+}) {
   const isSignedIn = useDeferredIsSignedIn();
   const isHeroCtaRevealed = useHeroCtaRevealed();
 
@@ -378,7 +392,7 @@ export default function WebsiteTopbar() {
             href: '/products',
             label: 'Browse all products',
           },
-          items: PRODUCT_LINKS,
+          items: hasPresets ? [...PRODUCT_LINKS, PRESETS_LINK] : PRODUCT_LINKS,
           label: 'Product',
         },
         {

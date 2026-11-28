@@ -20,6 +20,7 @@ import {
   buildMcpChannelPage,
   MCP_CHANNEL_SLUGS,
 } from '@data/mcp-channels.data';
+import { getPresetPages } from '@data/presets.data';
 import { products } from '@data/products.data';
 import { useCases } from '@data/use-cases.data';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -116,6 +117,36 @@ function appendPublicSurfaces(lines: string[], isDetailed: boolean): void {
     );
   }
   if (!isDetailed) lines.push('');
+
+  const presetPages = getPresetPages();
+  if (presetPages.length > 0) {
+    lines.push('## Presets');
+    lines.push('');
+    lines.push(
+      `Ready-made recipes for posts, ads and clips, each with a real example and the full prompt. The index is ${BASE_URL}/presets. Each URL below is a live page.`,
+    );
+    lines.push('');
+    if (!isDetailed) {
+      lines.push(
+        `- [Genfeed presets](${BASE_URL}/presets): Index of the presets, grouped by what they make`,
+      );
+    }
+    for (const page of presetPages) {
+      if (isDetailed) {
+        lines.push(`### ${page.label}`);
+        lines.push('');
+        lines.push(page.description);
+        lines.push('');
+        lines.push(`URL: ${BASE_URL}/presets/${page.slug}`);
+        lines.push('');
+        continue;
+      }
+      lines.push(
+        `- [${page.label}](${BASE_URL}/presets/${page.slug}): ${page.description}`,
+      );
+    }
+    if (!isDetailed) lines.push('');
+  }
 
   lines.push('## Comparisons');
   lines.push('');

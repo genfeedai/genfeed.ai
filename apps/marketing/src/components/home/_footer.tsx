@@ -1,3 +1,4 @@
+import { hasPresetPages } from '@data/presets.data';
 import type { FooterSection } from '@web-components/footers';
 import { SiteFooter } from '@web-components/footers';
 
@@ -15,6 +16,8 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/products', label: 'Products' },
       { href: '/products/publishing', label: 'Publishing' },
       { href: '/models', label: 'Models' },
+      // Linked once a preset has an example to show: the page 404s before then.
+      ...(hasPresetPages() ? [{ href: '/presets', label: 'Presets' }] : []),
       { href: '/integrations', label: 'Integrations' },
       { href: '/tools', label: 'Free tools' },
     ],

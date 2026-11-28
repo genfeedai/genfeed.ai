@@ -1,8 +1,9 @@
+import { hasPresetPages } from '@data/presets.data';
 import type { LayoutProps } from '@props/layout/layout.props';
 import PublicShell from '@ui/shell/PublicShell';
 import WebsiteTopbar from '@web-components/shell/topbars/WebsiteTopbar';
 
-const TOPBAR = <WebsiteTopbar />;
+const TOPBAR = <WebsiteTopbar hasPresets={hasPresetPages()} />;
 
 export default function PublicLayout({ children }: LayoutProps) {
   return <PublicShell topbar={TOPBAR}>{children}</PublicShell>;
