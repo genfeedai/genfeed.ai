@@ -4,7 +4,6 @@ import { ApifyInstagramService } from '@api/services/integrations/apify/services
 import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
-import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyService', () => {
@@ -27,11 +26,6 @@ describe('ApifyService', () => {
   };
   let twitterService: {
     getTwitterTrends: ReturnType<typeof vi.fn>;
-  };
-  let youtubeService: {
-    getYouTubeChannelUploads: ReturnType<typeof vi.fn>;
-    getYouTubeChannelVideos: ReturnType<typeof vi.fn>;
-    searchYouTubeVideos: ReturnType<typeof vi.fn>;
   };
   let linkedinService: {
     getLinkedInProfilePosts: ReturnType<typeof vi.fn>;
@@ -84,14 +78,6 @@ describe('ApifyService', () => {
           },
         },
         {
-          provide: ApifyYouTubeService,
-          useValue: {
-            getYouTubeChannelUploads: vi.fn(),
-            getYouTubeChannelVideos: vi.fn(),
-            searchYouTubeVideos: vi.fn(),
-          },
-        },
-        {
           provide: ApifyLinkedInService,
           useValue: {
             getLinkedInProfilePosts: vi.fn(),
@@ -111,9 +97,6 @@ describe('ApifyService', () => {
     twitterService = module.get(
       ApifyTwitterService,
     ) as unknown as typeof twitterService;
-    youtubeService = module.get(
-      ApifyYouTubeService,
-    ) as unknown as typeof youtubeService;
     linkedinService = module.get(
       ApifyLinkedInService,
     ) as unknown as typeof linkedinService;
@@ -179,22 +162,6 @@ describe('ApifyService', () => {
       await expect(
         service.searchInstagramByHashtag('#travel', { limit: 30 }),
       ).resolves.toEqual(['#travel', { limit: 30 }]);
-    });
-
-    it('forwards YouTube calls and returns their results', async () => {
-      youtubeService.getYouTubeChannelVideos.mockImplementation(echo());
-      youtubeService.searchYouTubeVideos.mockImplementation(echo());
-      youtubeService.getYouTubeChannelUploads.mockImplementation(echo());
-
-      await expect(
-        service.getYouTubeChannelVideos('channel-url'),
-      ).resolves.toEqual(['channel-url', undefined]);
-      await expect(service.searchYouTubeVideos('search term')).resolves.toEqual(
-        ['search term', undefined],
-      );
-      await expect(
-        service.getYouTubeChannelUploads('channel-url', { limit: 20 }),
-      ).resolves.toEqual(['channel-url', { limit: 20 }, undefined]);
     });
 
     it('forwards LinkedIn calls and returns their results', async () => {
@@ -272,7 +239,7 @@ describe('ApifyService', () => {
     });
   });
 
-  it('forwards governed context through all four timelines and two posts', async () => {
+  it('forwards governed context through all three timelines and two posts', async () => {
     const context = {
       organizationId: 'org-1',
       origin: 'social-source' as const,
@@ -280,7 +247,6 @@ describe('ApifyService', () => {
     const echo = (...args: unknown[]) => Promise.resolve(args);
     instagramService.getInstagramUserPosts.mockImplementation(echo);
     tiktokService.getTikTokUserVideos.mockImplementation(echo);
-    youtubeService.getYouTubeChannelUploads.mockImplementation(echo);
     linkedinService.getLinkedInProfilePosts.mockImplementation(echo);
     instagramService.getInstagramPostByUrl.mockImplementation(echo);
     tiktokService.getTikTokVideoByUrl.mockImplementation(echo);
@@ -288,7 +254,6 @@ describe('ApifyService', () => {
     const timelines = await Promise.all([
       service.getInstagramUserPosts('creator', {}, context),
       service.getTikTokUserVideos('creator', {}, context),
-      service.getYouTubeChannelUploads('channel', {}, context),
       service.getLinkedInProfilePosts('profile', {}, context),
     ]);
     const posts = await Promise.all([
@@ -297,7 +262,6 @@ describe('ApifyService', () => {
     ]);
 
     expect(timelines.map((args) => (args as unknown[]).at(-1))).toEqual([
-      context,
       context,
       context,
       context,

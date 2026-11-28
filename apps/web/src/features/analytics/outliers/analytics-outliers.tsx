@@ -155,9 +155,16 @@ export default function AnalyticsOutliers({
         header: translate('ratio'),
         key: 'outlierRatio',
         render: (post) => (
-          <span className="font-semibold">
-            {formatOutlierRatio(post.outlierRatio)}
-          </span>
+          <>
+            <span className="font-semibold">
+              {formatOutlierRatio(post.outlierRatio)}
+            </span>
+            {post.platform === 'youtube' ? (
+              <span className="block text-xs text-foreground/60">
+                {translate('calculatedByGenfeed')}
+              </span>
+            ) : null}
+          </>
         ),
       },
       {

@@ -100,13 +100,29 @@ describe('PricingContent', () => {
     // named by what it does, not by the app that holds it.
     expect(cells('Market trends feed')).toEqual(['✓', '✓', '✓', '✓']);
     for (const name of [
-      'Trends in your niche',
       'Play trend videos in Genfeed',
-      'Competitor ads: save, watch, remix',
+      'Watched competitors rescanned for you',
       'Inbox and workflows',
     ]) {
       expect(cells(name)).toEqual(['—', '✓', '✓', '✓']);
     }
+    // Scans are limited by plan rather than refused; the numbers are the ones
+    // the API enforces.
+    for (const name of ['Trend scans in your niche', 'Competitor ad scans']) {
+      expect(cells(name)).toEqual([
+        '1 a week',
+        '5 a day',
+        '25 a day',
+        'Unlimited',
+      ]);
+    }
+    // Saving and remixing what a scan finds is open to every account.
+    expect(cells('Save and remix what a scan finds')).toEqual([
+      '✓',
+      '✓',
+      '✓',
+      '✓',
+    ]);
     expect(cells('Posts a day, per account')).toEqual([
       '5 after a top-up',
       '10 to 25',
@@ -169,9 +185,12 @@ describe('PricingContent', () => {
   it('names what Pro unlocks on the Pro card', () => {
     render(<PricingContent />);
     const pro = within(screen.getByLabelText('Pro'));
-    expect(pro.getByText('Trends in your niche')).toBeInTheDocument();
     expect(
-      pro.getByText('Competitor ads: save, watch, remix'),
+      pro.getByText('Trend scans in your niche: 5 a day'),
+    ).toBeInTheDocument();
+    expect(pro.getByText('Competitor ad scans: 5 a day')).toBeInTheDocument();
+    expect(
+      pro.getByText('Watched competitors rescanned for you'),
     ).toBeInTheDocument();
     expect(pro.getByText('4,900 credits included')).toBeInTheDocument();
     expect(pro.getAllByRole('listitem')[0]).toHaveTextContent(
@@ -194,8 +213,9 @@ describe('PricingContent', () => {
       'Pro',
       [
         '4,900 credits included',
-        'Trends in your niche',
-        'Competitor ads: save, watch, remix',
+        'Trend scans in your niche: 5 a day',
+        'Competitor ad scans: 5 a day',
+        'Watched competitors rescanned for you',
         'Play trend videos in Genfeed',
         'Inbox and workflows',
         '10 to 25 posts a day per account',
@@ -207,7 +227,7 @@ describe('PricingContent', () => {
       'Scale',
       [
         '70,000 credits included',
-        'Trends in your niche and competitor ads',
+        'Trend scans and competitor ad scans: 25 a day each',
         'Everything else in Pro',
         'Unlimited seats and client workspaces',
         'Ultra quality, model training',

@@ -29,6 +29,7 @@ import type {
   ISourcePost,
   ISubscription,
   JsonApiSingleResponse,
+  ResearchScanStatus,
   SocialSourcesResponse,
 } from '@genfeedai/contracts/interfaces';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
@@ -5944,6 +5945,43 @@ export async function mockRateLimiting(
 // ----------------------------------------------------------------------------
 // Discovery Desk Mocks
 // ----------------------------------------------------------------------------
+
+/**
+ * Mocks `GET /research/scans`, the scans each research library has left
+ * (#11623). Pass `remaining: 0` with a `nextAvailableAt` to see the limit alert.
+ */
+export async function mockResearchScans(
+  page: Page,
+  options: {
+    hasPlan?: boolean;
+    nextAvailableAt?: string | null;
+    remaining?: number;
+  } = {},
+): Promise<void> {
+  const hasPlan = options.hasPlan ?? true;
+  const remaining = options.remaining ?? 5;
+  const limit = hasPlan
+    ? { maxScans: 5, windowMs: 86_400_000 }
+    : { maxScans: 1, windowMs: 604_800_000 };
+  const data: ResearchScanStatus[] = (['trends', 'ads'] as const).map(
+    (library) => ({
+      hasPlan,
+      library,
+      limit,
+      nextAvailableAt: options.nextAvailableAt ?? null,
+      remaining,
+      used: limit.maxScans - remaining,
+    }),
+  );
+
+  await routeApiPattern(page, '/research/scans**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ data }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
 
 /**
  * Mock for the Discovery Desk's followed-creator feed (`/social-sources/feed`).

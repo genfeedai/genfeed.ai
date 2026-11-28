@@ -8,7 +8,6 @@ import { ApifyInstagramService } from '@api/services/integrations/apify/services
 import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
-import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import { ResearchAccessModule } from '@api/services/research-access/research-access.module';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
@@ -30,7 +29,6 @@ const BaseModule = createServiceModule(ApifyService, {
     ApifyTikTokService,
     ApifyInstagramService,
     ApifyTwitterService,
-    ApifyYouTubeService,
     ApifyLinkedInService,
   ],
 });

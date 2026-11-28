@@ -450,14 +450,18 @@ describe('website plan catalogue', () => {
     expect(payg.price).toBe(0);
     expect(payg.outputs).toBeNull();
     expect(payg.includedCredits).toBeUndefined();
+    expect(payg.features).toContain(
+      '1 trend scan and 1 competitor ad scan a week',
+    );
   });
 
   it('sells Pro with every app and its monthly credits on one seat', () => {
     const pro = getPlanByTier('pro');
 
     expect(pro.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
-    expect(pro.features).toContain('Trends in your niche');
-    expect(pro.features).toContain('Competitor ads: save, watch, remix');
+    expect(pro.features).toContain('Trend scans in your niche: 5 a day');
+    expect(pro.features).toContain('Competitor ad scans: 5 a day');
+    expect(pro.features).toContain('Watched competitors rescanned for you');
     expect(pro.features).toContain('10 to 25 posts a day per account');
     expect(pro.features).not.toContain('Ultra quality, model training');
   });

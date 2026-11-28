@@ -104,6 +104,9 @@ function OutlierRow({
         <Text className="text-xs uppercase tracking-label text-foreground/60">
           {tierLabel(video)}
         </Text>
+        <Text className="text-xs text-foreground/60">
+          Calculated by Genfeed
+        </Text>
       </div>
     </li>
   );
@@ -258,6 +261,10 @@ export default function YoutubeOutliersContent(): React.ReactElement {
           latest 20 videos that are at least two days old. 3x or more is an
           outlier and 10x or more a breakout. Shorts and long videos are ranked
           together, and views are read live from YouTube.
+        </Text>
+        <Text className="mt-3 text-sm leading-6 text-foreground/70">
+          The multiples and tiers are calculated by Genfeed. They are not
+          metrics provided by YouTube.
         </Text>
       </aside>
     </section>

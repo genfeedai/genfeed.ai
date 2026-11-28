@@ -63,6 +63,7 @@ export class SavedAdsController {
   }
 
   @Post()
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   async save(
     @Req() request: Request,
@@ -84,6 +85,7 @@ export class SavedAdsController {
   }
 
   @Patch()
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   async updateNotes(
     @Req() request: Request,
@@ -104,6 +106,7 @@ export class SavedAdsController {
   }
 
   @Delete()
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   async unsave(
     @CurrentUser() user: User,

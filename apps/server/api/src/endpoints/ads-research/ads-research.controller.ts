@@ -101,6 +101,7 @@ export class AdsResearchController {
    * row shows, so a blocked archive is explained rather than silent.
    */
   @Post('watchlist/:id/poll')
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   async pollWatchedAdvertiser(
     @CurrentUser() user: User,
@@ -184,6 +185,7 @@ export class AdsResearchController {
   }
 
   @Post('ad-pack')
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   async generateAdPack(
     @CurrentUser() user: User,
@@ -211,6 +213,7 @@ export class AdsResearchController {
   }
 
   @Post('remix-workflow')
+  @OrganizationModule('discovery', 'read')
   @RequiredScopes(ApiKeyScope.ADMIN)
   async createRemixWorkflow(
     @CurrentUser() user: User,

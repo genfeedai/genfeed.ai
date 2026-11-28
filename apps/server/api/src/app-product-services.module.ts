@@ -6,6 +6,7 @@ import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { CoreModule } from '@api/endpoints/core/core.module';
 import { CostReportingModule } from '@api/endpoints/cost-reporting/cost-reporting.module';
+import { ResearchScansModule } from '@api/endpoints/research-scans/research-scans.module';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SelfHostedSeedModule } from '@api/seeds/self-hosted-seed.module';
@@ -54,6 +55,7 @@ import { Module } from '@nestjs/common';
     SkillsProModule,
     AdminModule,
     AdsResearchModule,
+    ResearchScansModule,
     AnalyticsModule,
     MemoryModule,
     AdsGatewayModule,

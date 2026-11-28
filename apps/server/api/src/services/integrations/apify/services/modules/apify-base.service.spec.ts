@@ -108,6 +108,22 @@ describe('ApifyBaseService', () => {
     expect(httpService.post).not.toHaveBeenCalled();
   });
 
+  it.each(['streamers/youtube-scraper', 'streamers/youtube-channel-scraper'])(
+    'blocks the YouTube scraper %s with the hosted token in production',
+    async (actorId) => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'APIFY_API_TOKEN') return 'test-token';
+        if (key === 'NODE_ENV') return 'production';
+        return undefined;
+      });
+
+      await expect(service.runActor(actorId, {})).rejects.toThrow(
+        'not registered for hosted production execution',
+      );
+      expect(httpService.post).not.toHaveBeenCalled();
+    },
+  );
+
   it('allows a registered actor through the governed production boundary', async () => {
     configService.get.mockImplementation((key: string) => {
       if (key === 'APIFY_API_TOKEN') return 'test-token';
@@ -132,7 +148,7 @@ describe('ApifyBaseService', () => {
       .mockReturnValueOnce(of({ data: [] }));
 
     await expect(
-      service.runActor('streamers/youtube-scraper', {}),
+      service.runActor('clockworks/tiktok-scraper', {}),
     ).resolves.toEqual([]);
     expect(httpService.post).toHaveBeenCalledTimes(1);
   });
@@ -424,14 +440,6 @@ describe('ApifyBaseService', () => {
     expect(service.calculateGrowthRate(0)).toBe(0);
   });
 
-  it('parseDuration handles ISO 8601 durations', () => {
-    expect(service.parseDuration('PT1H2M3S')).toBe(3723);
-    expect(service.parseDuration('PT5M')).toBe(300);
-    expect(service.parseDuration('PT30S')).toBe(30);
-    expect(service.parseDuration(undefined)).toBeUndefined();
-    expect(service.parseDuration('invalid')).toBeUndefined();
-  });
-
   it('extractHashtags finds hashtags in text', () => {
     expect(
       service.extractHashtags('Check out #viral #trending content'),
@@ -440,7 +448,6 @@ describe('ApifyBaseService', () => {
   });
 
   it('ACTORS contains expected platform keys', () => {
-    expect(service.ACTORS.YOUTUBE_SCRAPER).toBeDefined();
     expect(service.ACTORS.TWITTER_TRENDS).toBeDefined();
     expect(service.ACTORS.INSTAGRAM_SCRAPER).toBeDefined();
   });

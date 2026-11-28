@@ -1,5 +1,6 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import type { ResearchScanLimitMeta } from '@api/helpers/exceptions/research-scan-limit/research-scan-limit.exception';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import {
   isOAuthErrorPath,
@@ -159,6 +160,8 @@ export class AllExceptionFilter implements ExceptionFilter {
        */
       code?: string;
       brandedGenerationReceiptId?: string;
+      /** Where a refused scan stands: when the next one opens. */
+      scanLimit?: ResearchScanLimitMeta;
       /** Every required input a workflow run was started without. */
       missingInputs?: readonly WorkflowMissingInput[];
       persistedVideoIngredientIds?: readonly string[];
@@ -174,9 +177,11 @@ export class AllExceptionFilter implements ExceptionFilter {
         code: error.code ?? error.status.toString(),
         ...(error.persistedVideoIngredientIds ||
         error.brandedGenerationReceiptId ||
-        error.missingInputs
+        error.missingInputs ||
+        error.scanLimit
           ? {
               meta: {
+                ...(error.scanLimit ? error.scanLimit : {}),
                 ...(error.persistedVideoIngredientIds
                   ? {
                       persistedVideoIngredientIds: [

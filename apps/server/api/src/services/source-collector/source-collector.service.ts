@@ -41,7 +41,8 @@ function hasExternalPostId(
  *     (competitor accounts, via the brand's own credential) → Apify
  * TikTok: brand OAuth (own account only, needs `credentialId`) → Apify
  * YouTube: brand OAuth (own account history) → public API key (public channel,
- *     `YOUTUBE_API_KEY`) → Apify (fallback when the public API is unavailable)
+ *     `YOUTUBE_API_KEY`). No Apify fallback: YouTube's API policy bars scraped
+ *     data, so a read the API cannot serve fails with the provider's own error.
  * LinkedIn: brand OAuth (own account history) → Apify (public feed)
  *
  * A successful native result — including an empty upload list — ends the

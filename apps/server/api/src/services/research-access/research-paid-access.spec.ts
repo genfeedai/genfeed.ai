@@ -1,7 +1,10 @@
 import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import { resolveResearchCollectionAccess } from './research-paid-access';
+import {
+  resolveResearchCollectionAccess,
+  resolveResearchScanTier,
+} from './research-paid-access';
 
 const NOW = new Date('2026-09-24T12:00:00.000Z');
 const FUTURE = '2026-10-24T12:00:00.000Z';
@@ -117,5 +120,35 @@ describe('resolveResearchCollectionAccess', () => {
         subscriptions: [subscription({ plan: 'yearly' })],
       }),
     ).toEqual({ isAllowed: true, reason: 'active_paid' });
+  });
+});
+
+describe('resolveResearchScanTier', () => {
+  const paid = { isAllowed: true, reason: 'active_paid' } as const;
+  const unpaid = {
+    isAllowed: false,
+    reason: 'research_paid_access_required',
+  } as const;
+
+  it('uses the organization paid tier', () => {
+    expect(resolveResearchScanTier(paid, SubscriptionTier.SCALE)).toBe(
+      SubscriptionTier.SCALE,
+    );
+    expect(resolveResearchScanTier(paid, SubscriptionTier.ENTERPRISE)).toBe(
+      SubscriptionTier.ENTERPRISE,
+    );
+  });
+
+  it('gives a paying organization whose tier reads free the Pro limit', () => {
+    expect(resolveResearchScanTier(paid, SubscriptionTier.FREE)).toBe(
+      SubscriptionTier.PRO,
+    );
+    expect(resolveResearchScanTier(paid, null)).toBe(SubscriptionTier.PRO);
+  });
+
+  it('gives an organization without a plan the free tier whatever its tier says', () => {
+    expect(resolveResearchScanTier(unpaid, SubscriptionTier.SCALE)).toBe(
+      SubscriptionTier.FREE,
+    );
   });
 });

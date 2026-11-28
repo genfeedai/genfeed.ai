@@ -5,6 +5,7 @@ import {
   mockAdsResearchResults,
   mockAnalyticsData,
   mockDiscoveryDeskFollowingFeed,
+  mockResearchScans,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { DiscoveryPage } from '../../pages/discovery.page';
@@ -70,6 +71,45 @@ test.describe('Discovery section', () => {
         APP_ROUTES.DISCOVERY.FEED,
       );
       await expect(discoveryPage.mainContent).toBeVisible();
+    });
+
+    test('shows how many niche scans are left and starts one', async ({
+      authenticatedPage,
+    }) => {
+      await mockResearchScans(authenticatedPage, { remaining: 5 });
+      const discoveryPage = new DiscoveryPage(authenticatedPage);
+
+      await discoveryPage.gotoSection('feed');
+
+      await expect(
+        authenticatedPage.getByTestId('research-scan-badge'),
+      ).toHaveText(/5 of 5 scans left today/i);
+      await expect(
+        authenticatedPage.getByRole('button', { name: 'Scan niche' }),
+      ).toBeEnabled();
+    });
+
+    test('says when the next scan opens once the trends scans are used', async ({
+      authenticatedPage,
+    }) => {
+      await mockResearchScans(authenticatedPage, {
+        hasPlan: false,
+        nextAvailableAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+        remaining: 0,
+      });
+      const discoveryPage = new DiscoveryPage(authenticatedPage);
+
+      await discoveryPage.gotoSection('feed');
+
+      await expect(
+        authenticatedPage.getByTestId('research-scan-limit'),
+      ).toContainText("You have used this week's scan");
+      await expect(
+        authenticatedPage.getByRole('link', { name: 'See plans' }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('button', { name: 'Scan niche' }),
+      ).toBeDisabled();
     });
 
     test('should have proper page title for feed', async ({

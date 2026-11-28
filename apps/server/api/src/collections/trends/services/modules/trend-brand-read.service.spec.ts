@@ -29,6 +29,11 @@ function setup(isAvailable = true, hasSnapshot = false) {
     cache as never,
     logger as never,
     niche as never,
+    // Outside a plan check, a scan only runs what it is given; the scan itself
+    // is covered in `trend-brand-read.service.scan.spec.ts`.
+    {
+      runScan: (_input: unknown, run: () => Promise<unknown>) => run(),
+    } as never,
   );
   return { cache, service, warnings };
 }

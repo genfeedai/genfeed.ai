@@ -151,24 +151,6 @@ export interface ApifyInstagramPost {
 }
 
 /**
- * YouTube trend data from Apify
- */
-export interface ApifyYouTubeVideo {
-  id: string;
-  title?: string;
-  description?: string;
-  viewCount?: number;
-  likeCount?: number;
-  commentCount?: number;
-  channelName?: string;
-  channelId?: string;
-  thumbnailUrl?: string;
-  publishedAt?: string;
-  duration?: string;
-  url?: string;
-}
-
-/**
  * LinkedIn profile post from Apify's `curious_coder/linkedin-profile-scraper`.
  *
  * The actor's exact output schema has not been confirmed against a live run

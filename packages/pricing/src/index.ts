@@ -26,6 +26,7 @@ export * from './model-pricing-export';
 export * from './plans-pricing';
 export * from './provider-pricing';
 export * from './provider-rate-margin';
+export * from './research-scan-limits';
 export * from './reviewed-provider-pricing';
 export * from './reviewed-rate-hash';
 export * from './reviewed-rates';

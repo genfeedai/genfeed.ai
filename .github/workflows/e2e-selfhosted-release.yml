@@ -213,8 +213,17 @@ jobs:
           # The workers register each platform schedule as a BullMQ job
           # scheduler on the in-container Redis at boot; a missing one means
           # hired agents or approved posts would never run on this image.
+          #
+          # This job tests a released image, not master. The workflow is
+          # master's, so the queue that carries posts-publish comes from the
+          # released source checked out above: a release cut before the
+          # publish sweeps moved to their own queue (#11517) keeps it on
+          # system-sweeps.
+          publish_queue="$(sed -n "s/^export const PUBLISH_SWEEP_QUEUE = '\(.*\)';.*/\1/p" \
+            packages/contracts/src/queue/queue-names.constant.ts)"
+          publish_queue="${publish_queue:-system-sweeps}"
           deadline=$((SECONDS + 120))
-          for entry in system-sweeps:platform:proactive-agent-strategies publish-sweeps:platform:posts-publish; do
+          for entry in system-sweeps:platform:proactive-agent-strategies "${publish_queue}:platform:posts-publish"; do
             queue="${entry%%:*}"
             scheduler="${entry#*:}"
             until [ -n "$(docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" \
