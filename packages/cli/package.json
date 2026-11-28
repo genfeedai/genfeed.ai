@@ -60,7 +60,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node",
+    "build": "bun build src/index.ts --outdir dist --target node --tsconfig-override ./tsconfig.json",
     "build:standalone": "bun build src/index.ts --compile --outfile gf",
     "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
     "dev": "bun run src/index.ts",

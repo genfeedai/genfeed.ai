@@ -21,6 +21,7 @@
       "@genfeedai/errors": ["../errors/src/index.ts"],
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/mcp-kit": ["../mcp-kit/src/index.ts"],
       "@genfeedai/pricing": ["../pricing/src/index.ts"],
       "@genfeedai/serializers": ["../helpers/src/deserializer/index.ts"]
     },
