@@ -36,6 +36,7 @@ import {
   ingredientRowWorld,
 } from '@api-test/fixtures/ingredient-row.world';
 import {
+  IngredientRelationKind,
   IngredientStatus,
   TransformationCategory,
   WebSocketEventType,
@@ -221,6 +222,7 @@ describe('VideosEffectsController', () => {
         brandId,
         organizationId,
         parentId: videoId,
+        relationKind: IngredientRelationKind.TRANSFORMATION,
         status: IngredientStatus.PROCESSING,
       }),
     ]);
@@ -282,6 +284,12 @@ describe('VideosEffectsController', () => {
       harness.controller.mirrorVideo(mockRequest, mockUser, videoId),
     ).resolves.toMatchObject({ data: { id: 'ingredient-1' } });
 
+    expect(harness.createdMedia).toEqual([
+      expect.objectContaining({
+        parentId: videoId,
+        relationKind: IngredientRelationKind.TRANSFORMATION,
+      }),
+    ]);
     expect(harness.jobs).toEqual([
       expect.objectContaining({ type: 'mirror-video' }),
     ]);

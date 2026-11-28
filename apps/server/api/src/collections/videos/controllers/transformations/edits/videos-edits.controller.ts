@@ -26,6 +26,7 @@ import {
   FONT_FAMILY_METADATA,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   resolveFontFamily,
@@ -160,6 +161,7 @@ export class VideosEditsController {
           extension: MetadataExtension.MP4,
           organizationId: video.organizationId ?? undefined,
           parentId: videoId,
+          relationKind: IngredientRelationKind.TRANSFORMATION,
           status: IngredientStatus.PROCESSING,
         });
 
@@ -296,6 +298,7 @@ export class VideosEditsController {
           height: originalMetadata.height,
           organizationId: video.organizationId ?? undefined,
           parentId: videoId,
+          relationKind: IngredientRelationKind.TRANSFORMATION,
           status: IngredientStatus.PROCESSING,
           width: originalMetadata.width,
         });

@@ -25,6 +25,7 @@ import {
   FileInputType,
   IngredientCategory,
   IngredientOrigin,
+  IngredientRelationKind,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -112,6 +113,7 @@ export class VideosEffectsController {
         extension: MetadataExtension.MP4,
         organizationId: video.organizationId ?? undefined,
         parentId: videoId,
+        relationKind: IngredientRelationKind.TRANSFORMATION,
         status: IngredientStatus.PROCESSING,
       });
 
@@ -206,6 +208,7 @@ export class VideosEffectsController {
           extension: MetadataExtension.MP4,
           organizationId: video.organizationId ?? undefined,
           parentId: videoId,
+          relationKind: IngredientRelationKind.TRANSFORMATION,
           status: IngredientStatus.PROCESSING,
         });
 
