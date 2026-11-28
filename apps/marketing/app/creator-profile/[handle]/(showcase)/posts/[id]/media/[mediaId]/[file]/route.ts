@@ -1,10 +1,10 @@
+import { getCreatorPost } from '@creator/(showcase)/posts/[id]/post-loader';
 import {
   isTrustedMediaSource,
   parsePostMediaFile,
 } from '@data/post-media-rendition';
 import { getPostMedia } from '@genfeedai/helpers/content/public-post.helper';
 import sharp from 'sharp';
-import { getCreatorPost } from '../../../post-loader';
 
 /**
  * A public post's image at a permanent address: `/@handle/posts/<post>/media/<media>/640.webp`.
