@@ -78,6 +78,9 @@ export function buildRepostVariantArgs(
       `scale=trunc(iw*${zoom}/2)*2:trunc(ih*${zoom}/2)*2`,
       `crop=trunc(iw/${zoom}/2)*2:trunc(ih/${zoom}/2)*2`,
     );
+  } else {
+    // yuv420p needs even sides; an even frame passes through unchanged.
+    videoFilters.push('scale=trunc(iw/2)*2:trunc(ih/2)*2');
   }
   if (speed > 1) videoFilters.push(`setpts=PTS/${speed}`);
 

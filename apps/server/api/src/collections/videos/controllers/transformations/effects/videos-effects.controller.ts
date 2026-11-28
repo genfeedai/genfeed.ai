@@ -349,6 +349,12 @@ export class VideosEffectsController {
     }
 
     try {
+      // Resolved first: a lookup failure must not leave a PROCESSING child
+      // that no job will ever finish.
+      const videoUrl = await this.processingVideoUrl(
+        user.organizationId.toString(),
+        videoId,
+      );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
           origin: IngredientOrigin.GENERATED,
@@ -361,10 +367,6 @@ export class VideosEffectsController {
           status: IngredientStatus.PROCESSING,
         });
 
-      const videoUrl = await this.processingVideoUrl(
-        user.organizationId.toString(),
-        videoId,
-      );
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),

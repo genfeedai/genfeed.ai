@@ -374,6 +374,21 @@ describe('VideosEffectsController', () => {
     expect(harness.jobs).toEqual([]);
   });
 
+  it('creates no repost child when the source URL cannot be issued', async () => {
+    const harness = makeHarness({
+      authorizedUrl: new Error('Scoped media unavailable'),
+    });
+
+    await expect(
+      harness.controller.repostVariant(mockRequest, mockUser, videoId, {
+        isMirrored: true,
+      }),
+    ).rejects.toThrow('Scoped media unavailable');
+    expect(harness.createdMedia).toEqual([]);
+    expect(harness.ingredients).toEqual([]);
+    expect(harness.jobs).toEqual([]);
+  });
+
   it('returns not found for a repost variant of an unknown video', async () => {
     const harness = makeHarness({});
 

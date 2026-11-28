@@ -32,7 +32,9 @@ describe('buildRepostVariantArgs', () => {
     const args = buildRepostVariantArgs({ ...base, isMirrored: true });
 
     expect(args).not.toContain('-ss');
-    expect(filterOf(args, '-vf')).toBe('hflip');
+    expect(filterOf(args, '-vf')).toBe(
+      'hflip,scale=trunc(iw/2)*2:trunc(ih/2)*2',
+    );
     expect(filterOf(args, '-af')).toBeUndefined();
   });
 
