@@ -4,6 +4,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import type { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
+import { useVideoVersionRefresh } from '@hooks/ui/ingredient/use-video-version-refresh/use-video-version-refresh';
 import { withServiceOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useCallback, useState } from 'react';
 
@@ -17,6 +18,7 @@ interface UseRepostVariantOptions {
  */
 export function useRepostVariant({ onRefresh }: UseRepostVariantOptions = {}) {
   const { getVideosService } = useIngredientServices();
+  const refreshWhenVersionReady = useVideoVersionRefresh({ onRefresh });
   const [repostVariantIngredient, setRepostVariantIngredient] =
     useState<IIngredient | null>(null);
 
@@ -42,7 +44,7 @@ export function useRepostVariant({ onRefresh }: UseRepostVariantOptions = {}) {
       const { id } = repostVariantIngredient;
       await withServiceOperation({
         errorMessage: 'Failed to create the repost variant',
-        onSuccess: onRefresh,
+        onSuccess: refreshWhenVersionReady,
         operation: async () => {
           const service = (await getVideosService()) as VideosService;
           return service.postRepostVariant(id, params);
@@ -52,7 +54,7 @@ export function useRepostVariant({ onRefresh }: UseRepostVariantOptions = {}) {
       });
       setRepostVariantIngredient(null);
     },
-    [getVideosService, onRefresh, repostVariantIngredient],
+    [getVideosService, refreshWhenVersionReady, repostVariantIngredient],
   );
 
   return {
