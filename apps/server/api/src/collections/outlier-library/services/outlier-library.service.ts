@@ -269,6 +269,14 @@ export class OutlierLibraryService {
       MAX_LIST_LIMIT,
       Math.max(1, query.limit ?? DEFAULT_LIST_LIMIT),
     );
+    const activeCreators = await this.prisma.outlierCreator.findMany({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        status: 'active',
+        ...(query.platform ? { platform: query.platform } : {}),
+      },
+    });
     const rows = await this.prisma.outlierPost.findMany({
       include: {
         creator: {
@@ -288,7 +296,7 @@ export class OutlierLibraryService {
       skip: Math.max(0, query.offset ?? 0),
       take: limit,
       where: {
-        creator: { isDeleted: false, status: 'active' },
+        creatorId: { in: activeCreators.map((creator) => creator.id) },
         isDeleted: false,
         ...(query.platform ? { platform: query.platform } : {}),
         ...(query.tier ? { outlierTier: query.tier } : {}),
