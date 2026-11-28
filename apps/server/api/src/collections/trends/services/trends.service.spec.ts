@@ -34,6 +34,7 @@ import { XaiService } from '@api/services/integrations/xai/services/xai.service'
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import { Timeframe } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -728,6 +729,46 @@ describe('TrendsService', () => {
         'twitter:Thanksgiving',
         'instagram:cozy gaming',
         'tiktok:cozy gaming',
+      ]);
+    });
+
+    it('drops a repeated topic by its in-window row, not its newest row', async () => {
+      const now = Date.now();
+      vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue([]);
+      vi.spyOn(service, 'getTrends').mockResolvedValue(
+        [
+          {
+            createdAt: new Date(now - 24 * 60 * 60 * 1000),
+            mentions: 9,
+            topic: 'cozy gaming',
+            updatedAt: new Date(now - 48 * 60 * 60 * 1000),
+          },
+          {
+            createdAt: new Date(now - 48 * 60 * 60 * 1000),
+            mentions: 8,
+            topic: 'Cozy Gaming',
+            updatedAt: new Date(now - 60 * 60 * 1000),
+          },
+        ].map(
+          (trend) =>
+            new TrendEntity({
+              ...mockTrend,
+              ...trend,
+              platform: 'instagram',
+              requiresAuth: false,
+            } as never),
+        ),
+      );
+
+      const result = await service.getTrendsWithAccessControl(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        { relevance: 'market', timeframe: Timeframe.H24 },
+      );
+
+      expect(result.trends.map((trend) => trend.topic)).toEqual([
+        'Cozy Gaming',
       ]);
     });
 

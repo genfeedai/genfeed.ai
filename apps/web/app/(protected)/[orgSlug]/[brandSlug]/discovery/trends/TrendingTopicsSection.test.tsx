@@ -133,6 +133,14 @@ describe('TrendingTopicsSection', () => {
               text: 'Has no picture',
               title: 'No thumbnail',
             },
+            {
+              contentType: 'video',
+              platform: 'tiktok',
+              sourceUrl: 'https://example.com/blank-thumbnail',
+              text: 'Blank picture',
+              thumbnailUrl: '   ',
+              title: 'Blank thumbnail',
+            },
           ],
         } as TrendItem,
       ],
@@ -141,8 +149,6 @@ describe('TrendingTopicsSection', () => {
     expect(screen.getAllByTestId('player')).toHaveLength(1);
     expect(screen.getByTestId('player')).toHaveTextContent('With thumbnail');
     expect(screen.queryByText('Has no picture')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Open source' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Blank thumbnail')).not.toBeInTheDocument();
   });
 });

@@ -339,10 +339,6 @@ export class TrendsService {
       },
     );
 
-    trends =
-      options.relevance === 'market'
-        ? keepMarketTrends(trends)
-        : trends.filter(isLiveTrend);
     if (options.timeframe) {
       trends = trends.filter((trend) =>
         isWithinTimeframe(
@@ -351,6 +347,10 @@ export class TrendsService {
         ),
       );
     }
+    trends =
+      options.relevance === 'market'
+        ? keepMarketTrends(trends)
+        : trends.filter(isLiveTrend);
 
     // Brand discovery never substitutes the global chart for a missing match.
     if (options.relevance !== 'market' && brandId && organizationId) {

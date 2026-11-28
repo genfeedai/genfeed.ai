@@ -46,7 +46,7 @@ export default function TrendingTopicsSection({
         // renders as a black tile: only posts with a thumbnail are listed.
         if (
           seen.has(key) ||
-          !source.thumbnailUrl ||
+          !getSafeExternalUrl(source.thumbnailUrl) ||
           !getSafeExternalUrl(source.sourceUrl)
         ) {
           return [];
