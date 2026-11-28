@@ -324,6 +324,7 @@ describe('PlatformSchedulesProcessor', () => {
         mediaPerception as never,
         modelDeprecation as never,
         replicateModels as never,
+        { readTrackedCreators: vi.fn() } as never,
         transcripts as never,
         videoRetention as never,
         workflowArtifacts as never,

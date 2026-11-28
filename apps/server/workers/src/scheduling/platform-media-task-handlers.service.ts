@@ -6,6 +6,7 @@ import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredie
 import { CronMediaPerceptionService } from '@workers/crons/media-perception/cron.media-perception.service';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
+import { CronOutlierLibraryReadService } from '@workers/crons/outlier-library/cron.outlier-library-read.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
 import { CronTurboRunReconcileService } from '@workers/crons/turbo-run/cron.turbo-run-reconcile.service';
 import { CronVideoRetentionService } from '@workers/crons/video-retention/cron.video-retention.service';
@@ -27,6 +28,7 @@ export class PlatformMediaTaskHandlers {
     private readonly mediaPerception: CronMediaPerceptionService,
     private readonly modelDeprecation: CronModelDeprecationService,
     private readonly modelWatcher: CronModelWatcherService,
+    private readonly outlierLibraryRead: CronOutlierLibraryReadService,
     private readonly transcriptPurge: CronTranscriptPurgeService,
     private readonly videoRetention: CronVideoRetentionService,
     private readonly workflowArtifacts: CronWorkflowArtifactsService,
@@ -64,6 +66,8 @@ export class PlatformMediaTaskHandlers {
         this.mediaSchedules.reconcileRawCutClips(),
       [PLATFORM_SCHEDULED_TASKS.REPLICATE_MODEL_DISCOVERY]: () =>
         this.modelWatcher.discoverNewModels(),
+      [PLATFORM_SCHEDULED_TASKS.OUTLIER_LIBRARY_READ]: () =>
+        this.outlierLibraryRead.readTrackedCreators(),
       [PLATFORM_SCHEDULED_TASKS.TRANSCRIPT_PURGE]: () =>
         this.transcriptPurge.purgeExpiredTranscripts(),
       [PLATFORM_SCHEDULED_TASKS.VIDEO_RETENTION]: () =>

@@ -42,6 +42,7 @@ import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-
 import { CronNewsletterSendsModule } from '@workers/crons/newsletter-sends/cron.newsletter-sends.module';
 import { CronNotificationRetentionModule } from '@workers/crons/notification-retention/cron.notification-retention.module';
 import { CronOAuthClientCleanupModule } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.module';
+import { CronOutlierLibraryReadModule } from '@workers/crons/outlier-library/cron.outlier-library-read.module';
 import { CronPatternExtractionModule } from '@workers/crons/pattern-extraction/cron.pattern-extraction.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronReviewGateModule } from '@workers/crons/review-gate/cron.review-gate.module';
@@ -130,6 +131,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronNewsletterSendsModule,
     CronNotificationRetentionModule,
     CronOAuthClientCleanupModule,
+    CronOutlierLibraryReadModule,
     CronPatternExtractionModule,
     CronPostsModule,
     CronReviewGateModule,

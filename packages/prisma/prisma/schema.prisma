@@ -2080,6 +2080,12 @@ model PlatformSetting {
   linkedinTrendSourceUrls String?
   agentContextCompressionModel String?
   agentContextWindowSize Int @default(5)
+  /// The Genfeed-owned professional Instagram account that reads other creators
+  /// through Business Discovery (#11642): organization, brand and credential.
+  /// Any of the three null: Instagram creators wait.
+  outlierLibraryInstagramOrganizationId String?
+  outlierLibraryInstagramBrandId String?
+  outlierLibraryInstagramCredentialId String?
   generationMaxTokens Int @default(4000)
   typedDecisionTimeoutMs Int @default(800)
   trainingCreditsCost Float @default(500)
@@ -9489,6 +9495,15 @@ model OutlierCreator {
   /// active | unreadable | removed (OutlierCreatorStatus in contracts).
   status         String        @default("active")
   lastReadAt     DateTime?
+  /// The last weekly read that ended, good or empty; a creator is read once a
+  /// week by whoever claims it while this is older than the week's start.
+  lastReadAttemptAt DateTime?
+  /// Weekly reads in a row that returned nothing readable; reset by a good read.
+  missedReads    Int           @default(0)
+  /// Held by the worker reading this creator until `readClaimedUntil`; a worker
+  /// that dies leaves a claim that simply runs out.
+  readClaimId    String?
+  readClaimedUntil DateTime?
   medianViews    Float?
   sampleSize     Int           @default(0)
   isDeleted      Boolean       @default(false)
@@ -9498,7 +9513,24 @@ model OutlierCreator {
 
   @@unique([platform, externalId])
   @@index([platform, status, lastReadAt])
+  @@index([platform, status, lastReadAttemptAt])
   @@map("outlier_creators")
+}
+
+/// Creators claimed for a weekly read, per platform and week (#11642). A claim
+/// takes one unit with a single conditional update, so two workers never go
+/// past the cap kept in the code next to the plan numbers.
+model OutlierReadBudget {
+  id        String   @id @default(cuid())
+  platform  String
+  /// Monday 00:00 UTC of the week.
+  weekStart DateTime
+  claimed   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([platform, weekStart])
+  @@map("outlier_read_budgets")
 }
 
 /// A listed post of a tracked creator: it beat that creator's typical post by

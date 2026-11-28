@@ -1,3 +1,4 @@
+import { OutlierCreatorSeedService } from '@api/collections/outlier-library/services/outlier-creator-seed.service';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
@@ -24,6 +25,7 @@ export class TrendBrandNicheVideoService {
     private readonly loggerService: LoggerService,
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
+    private readonly creatorSeeds: OutlierCreatorSeedService,
   ) {}
 
   private cacheKey(organizationId: string, brandId: string): string {
@@ -51,6 +53,9 @@ export class TrendBrandNicheVideoService {
         { organizationId, origin: 'social-source' },
       ),
     );
+    // The creators of these public videos join the shared library. Only the
+    // creator is handed over, never the brand, the organization or the query.
+    await this.creatorSeeds.seedFromVideos(videos);
     const expiresAt = new Date(Date.now() + BRAND_NICHE_TTL_SECONDS * 1000);
     const seen = new Set<string>();
     const stored: TrendingVideoDocument[] = [];
