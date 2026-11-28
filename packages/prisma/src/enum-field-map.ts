@@ -6351,8 +6351,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'id',
       'isDeleted',
       'lastReadAt',
+      'lastReadAttemptAt',
       'medianViews',
+      'missedReads',
       'platform',
+      'readClaimId',
+      'readClaimedUntil',
       'sampleSize',
       'status',
       'updatedAt',
@@ -6424,6 +6428,19 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     relationIdFields: {
       baselineSnapshot: 'baselineSnapshotId',
     },
+  },
+  OutlierReadBudget: {
+    allFields: [
+      'claimed',
+      'createdAt',
+      'id',
+      'platform',
+      'updatedAt',
+      'weekStart',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
   },
   OutreachCampaign: {
     allFields: [
@@ -6687,6 +6704,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'moderationProvider',
       'moderationThresholds',
       'murekaModel',
+      'outlierLibraryInstagramBrandId',
+      'outlierLibraryInstagramCredentialId',
+      'outlierLibraryInstagramOrganizationId',
       'patternAnalyzerDecisionMode',
       'patternAnalyzerMinConfidence',
       'paygFallbackCredits',

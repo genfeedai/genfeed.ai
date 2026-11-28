@@ -73,6 +73,7 @@ function serviceFor(sim: Simulation, world: World): TrendsService {
     { log: vi.fn() } as never,
     cache as never,
     apifyFor(sim, world) as never,
+    { seedFromVideos: async () => 0 } as never,
   );
   return new TrendsService(
     { warn: vi.fn() } as never,
@@ -141,6 +142,7 @@ function readWithoutClaim(sim: Simulation, world: World): Read {
     { log: vi.fn() } as never,
     cache as never,
     apifyFor(sim, world) as never,
+    { seedFromVideos: async () => 0 } as never,
   );
   return async () => {
     if (await niche.hasSnapshot(ORG, BRAND)) return;

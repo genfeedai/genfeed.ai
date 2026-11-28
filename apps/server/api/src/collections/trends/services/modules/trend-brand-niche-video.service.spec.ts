@@ -11,6 +11,7 @@ describe('TrendBrandNicheVideoService', () => {
     set: vi.fn(),
   };
   const apify = { searchTikTokByQueries: vi.fn() };
+  const creatorSeeds = { seedFromVideos: vi.fn() };
   let service: TrendBrandNicheVideoService;
 
   beforeEach(() => {
@@ -19,6 +20,7 @@ describe('TrendBrandNicheVideoService', () => {
       logger as never,
       cache as never,
       apify as never,
+      creatorSeeds as never,
     );
   });
 
@@ -47,6 +49,21 @@ describe('TrendBrandNicheVideoService', () => {
         expect.objectContaining({ externalId: 'b' }),
       ],
       expect.objectContaining({ ttl: 36 * 60 * 60 }),
+    );
+  });
+
+  it('hands the creators of a niche scan to the shared library without the brand or the query', async () => {
+    const videos = [
+      { creatorHandle: 'dancer', externalId: 'a', platform: 'tiktok' },
+    ];
+    apify.searchTikTokByQueries.mockResolvedValue(videos);
+    cache.set.mockResolvedValue(true);
+
+    await service.fetchAndCache('org-1', 'brand-1', ['secret niche query']);
+
+    expect(creatorSeeds.seedFromVideos).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(creatorSeeds.seedFromVideos.mock.calls)).not.toMatch(
+      /org-1|brand-1|secret niche query/,
     );
   });
 

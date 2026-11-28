@@ -9,6 +9,7 @@ import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception
 import { NEWSLETTER_SENDS_SCHEDULE } from '@workers/crons/newsletter-sends/cron.newsletter-sends.service';
 import { NOTIFICATION_RETENTION_SCHEDULE } from '@workers/crons/notification-retention/notification-retention.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
+import { OUTLIER_WEEKLY_READ_SCHEDULE } from '@workers/crons/outlier-library/outlier-library-read.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 import { VIDEO_RETENTION_SCHEDULE } from '@workers/crons/video-retention/video-retention.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
@@ -61,6 +62,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
   NOTIFICATION_RETENTION: 'notification-retention',
   OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
+  OUTLIER_LIBRARY_READ: 'outlier-library-read',
   PATTERN_EXTRACTION: 'pattern-extraction',
   PENDING_WORKFLOW_EXECUTION_RECONCILE: 'pending-workflow-execution-reconcile',
   POSTS_MANUAL_POST_REMINDERS: 'posts-manual-post-reminders',
@@ -319,6 +321,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC]: {
     pattern: '0 * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.OUTLIER_LIBRARY_READ]: {
+    pattern: OUTLIER_WEEKLY_READ_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.STREAK_MAINTENANCE]: {

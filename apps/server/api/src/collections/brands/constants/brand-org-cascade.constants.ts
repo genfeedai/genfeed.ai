@@ -1097,6 +1097,11 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * listed here — so a new one can't slip through unreviewed.
  */
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
+  // The platform singleton names the Genfeed-owned Instagram account that reads
+  // other creators (#11642) by organization, brand and credential. It is an
+  // operator setting, not brand-owned content: moving that brand is an operator
+  // action that updates the setting, and until then the read fails honestly.
+  'PlatformSetting',
   // Single-column FK to Brand.id, same reasoning as Member.currentBrandId: an
   // API key never moves orgs, so defaultBrandId cannot share the compound
   // (brandId, organizationId) cascade used by brand-owned content (#5219).
@@ -1179,6 +1184,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  * via SECOND_ORDER_TARGETS.
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
+  'platform_settings',
   'api_keys',
   'brand_relocations',
   'branded_generation_feedback',

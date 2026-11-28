@@ -293,6 +293,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler for the #4957 daily delete of OAuth clients that never completed a sign-in.',
   },
   {
+    file: 'apps/server/workers/src/crons/outlier-library/cron.outlier-library-read.service.ts',
+    id: 'outlier-library-read',
+    methodName: 'readTrackedCreators',
+    reason:
+      'Platform schedule handler for the #11642 daily slice of the weekly read of tracked creators.',
+  },
+  {
     file: 'apps/server/workers/src/crons/transcript-purge/cron.transcript-purge.service.ts',
     id: 'transcript-purge',
     methodName: 'purgeExpiredTranscripts',

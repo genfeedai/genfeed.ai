@@ -68,17 +68,24 @@ describe.skipIf(!connectionString)(
       }
       pool = new Pool({ connectionString });
       await pool.query(`CREATE SCHEMA "${schema}"`);
-      const migration = readFileSync(
-        path.resolve(
-          __dirname,
-          '../../../../../../../packages/prisma/prisma/migrations/20261128000000_outlier_library_store/migration.sql',
-        ),
-        'utf8',
-      );
       const client = await pool.connect();
       try {
         await client.query(`SET search_path TO "${schema}"`);
-        await client.query(migration);
+        for (const name of [
+          '20261128000000_outlier_library_store',
+          '20261128010000_outlier_library_weekly_read',
+        ]) {
+          const sql = readFileSync(
+            path.resolve(
+              __dirname,
+              `../../../../../../../packages/prisma/prisma/migrations/${name}/migration.sql`,
+            ),
+            'utf8',
+          );
+          // platform_settings is not part of this fixture.
+          const cut = sql.indexOf('ALTER TABLE "platform_settings"');
+          await client.query(cut === -1 ? sql : sql.slice(0, cut));
+        }
       } finally {
         client.release();
       }

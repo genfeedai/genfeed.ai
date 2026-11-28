@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { OutlierCreatorSeedService } from '@api/collections/outlier-library/services/outlier-creator-seed.service';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
@@ -187,6 +188,10 @@ describe('TrendsService', () => {
           },
         },
         TrendBrandNicheVideoService,
+        {
+          provide: OutlierCreatorSeedService,
+          useValue: { seedFromVideos: vi.fn().mockResolvedValue(undefined) },
+        },
         TrendBrandDigestService,
         { provide: TrendBrandReadService, useValue: {} },
         {

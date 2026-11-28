@@ -23,7 +23,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
-  exports: [SourceCollectorService],
+  exports: [InstagramBusinessDiscoveryProvider, SourceCollectorService],
   imports: [
     LoggerModule,
     HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
