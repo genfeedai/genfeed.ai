@@ -264,10 +264,7 @@ describe.skipIf(!connectionString)(
         [...ordinaryPosts('gone'), post('gone-win', 3, 9_000)],
         NOW,
       );
-      await prisma.outlierCreator.update({
-        data: { status: 'removed' },
-        where: { id: creator },
-      });
+      await service.removeCreator(creator);
 
       const again = await service.trackCreator({
         externalId: 'yt-gone',

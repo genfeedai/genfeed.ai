@@ -120,6 +120,25 @@ export class OutlierLibraryService {
   }
 
   /**
+   * Takes a creator out of the library for good: the creator is marked removed
+   * (so a later track or read never brings them back) and every post of theirs
+   * is hidden in the same transaction, which is why a list needs no creator
+   * filter.
+   */
+  async removeCreator(creatorId: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.outlierPost.updateMany({
+        data: { isDeleted: true },
+        where: { creatorId, isDeleted: false },
+      }),
+      this.prisma.outlierCreator.updateMany({
+        data: { status: 'removed' },
+        where: { id: creatorId, isDeleted: false },
+      }),
+    ]);
+  }
+
+  /**
    * Stores one read of a creator: computes the creator's typical post with the
    * same baseline Analytics > Outliers uses, lists every post at the outlier
    * threshold or more, and drops from the list a post that fell below it.
@@ -269,14 +288,6 @@ export class OutlierLibraryService {
       MAX_LIST_LIMIT,
       Math.max(1, query.limit ?? DEFAULT_LIST_LIMIT),
     );
-    const activeCreators = await this.prisma.outlierCreator.findMany({
-      select: { id: true },
-      where: {
-        isDeleted: false,
-        status: 'active',
-        ...(query.platform ? { platform: query.platform } : {}),
-      },
-    });
     const rows = await this.prisma.outlierPost.findMany({
       include: {
         creator: {
@@ -296,7 +307,6 @@ export class OutlierLibraryService {
       skip: Math.max(0, query.offset ?? 0),
       take: limit,
       where: {
-        creatorId: { in: activeCreators.map((creator) => creator.id) },
         isDeleted: false,
         ...(query.platform ? { platform: query.platform } : {}),
         ...(query.tier ? { outlierTier: query.tier } : {}),
